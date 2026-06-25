@@ -44,6 +44,16 @@ Current phase: build an evolvable backend framework, not the full product.
 - After request tracing is implemented, request logs must carry `traceId` through MDC; business code must not generate trace IDs manually.
 - Never log plaintext `student_identity`, passwords, tokens, cookies, Authorization headers, Keycloak secrets, or full personal sensitive data.
 
+## Documentation Rules
+
+- Treat `docs/README.md` as the documentation index and `docs/agent/README.md` as the fast context entry for future agents.
+- Before editing a module, read the nearest module `AGENTS.md`.
+- Before opening an MR, update `CHANGELOG.md` using `docs/agent/changelog.md`; it is written by agents but must read naturally for humans.
+- When changing code, scripts, CI, deployment configuration, or module boundaries, update the matching docs listed in `docs/doc-sync-map.tsv`.
+- Keep `docs/agent/context-map.md` current when top-level directories, runnable services, or module responsibilities change.
+- If a fact cannot be proven from current files, write it as a TODO instead of guessing.
+- Run `./scripts/check-doc-sync.sh origin/main WORKTREE` before opening a PR when local refs are available.
+
 ## Git Rules
 
 - Do not commit unless the user explicitly asks.
@@ -57,9 +67,11 @@ Use this check after Java changes:
 
 ```bash
 mvn clean verify
+./scripts/check-test-policy.sh
 ```
 
 `mvn clean verify` runs unit tests and JaCoCo coverage checks.
+`check-test-policy.sh` verifies that Java modules with executable source have tests and generated Surefire/JaCoCo reports unless explicitly allowlisted.
 
 Coverage standard:
 
@@ -67,6 +79,7 @@ Coverage standard:
 - Spring Boot startup classes and configuration classes are excluded from the coverage gate.
 - New business logic, JWT/security parsing, HTTP controller behavior, and client/adapters should add focused unit tests in the same change.
 - Placeholder-only modules and empty modules do not need tests until they contain executable code.
+- DTO-only modules without behavior may be listed in `docs/test-policy-allowlist.tsv`; do not use the allowlist for business logic.
 
 If packaging or Docker image behavior changes, also run:
 

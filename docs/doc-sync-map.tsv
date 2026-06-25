@@ -1,0 +1,18 @@
+# changed-path-pattern	required-docs-csv	reason
+AGENTS.md	docs/README.md,docs/agent/README.md,docs/agent/doc-sync.md	Root agent rules changed.
+README.md	docs/README.md	Public entrypoint changed.
+CONTRIBUTING.md	docs/agent/doc-sync.md,.github/pull_request_template.md	Contribution workflow changed.
+.github/*	.github/AGENTS.md,docs/agent/quality-gates.md	Repository automation or PR workflow changed.
+pom.xml	docs/architecture.md,docs/agent/quality-gates.md	Root Maven build changed.
+platform-common/*	platform-common/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Shared module boundary changed.
+platform-auth/pom.xml	platform-auth/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Auth module composition changed.
+platform-auth/auth-core/*	platform-auth/auth-core/AGENTS.md,platform-auth/auth-core/TESTING.md,docs/architecture.md	Auth parsing or tests changed.
+platform-auth/auth-interface/*	platform-auth/auth-interface/AGENTS.md,docs/api.md,docs/architecture.md	Auth cross-module contract changed.
+platform-auth/auth-web/*	platform-auth/auth-web/AGENTS.md,platform-auth/auth-web/TESTING.md,docs/api.md,docs/architecture.md	Auth HTTP/security behavior changed.
+deploy/*	deploy/AGENTS.md,deploy/README.md,deploy/UPDATE.md,docs/server-deployment.md	Deployment configuration changed.
+scripts/*	scripts/AGENTS.md,docs/agent/doc-sync.md,docs/agent/quality-gates.md,deploy/UPDATE.md,docs/server-deployment.md	Repository script behavior changed.
+platform-training-data/*	platform-training-data/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Training data module changed.
+platform-blog/*	platform-blog/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Blog module changed.
+platform-editor/*	platform-editor/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Editor module changed.
+platform-article-storage/*	platform-article-storage/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Article storage module changed.
+frontend/*	frontend/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Frontend boundary changed.

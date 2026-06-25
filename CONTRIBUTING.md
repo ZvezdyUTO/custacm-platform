@@ -26,6 +26,8 @@ git checkout -b feature/training-records
 - 任何人都可以从 fork 提交 PR。
 - PR 标题和描述使用中文。
 - PR 描述需要说明做了什么、怎么验证、是否影响部署或配置。
+- 每个 PR 需要同步更新 [CHANGELOG.md](CHANGELOG.md)，用面向人类的语言记录本次 MR 成果。
+- 改代码、脚本、CI、部署配置或模块边界时，需要同步更新 `docs/doc-sync-map.tsv` 指向的文档。
 - 不要把 `deploy/.env`、日志、构建产物、IDE 配置提交到仓库。
 - 不要在 PR 中引入本地密码登录、自签 JWT、demo token 或拆分 `student_identity` 的实现。
 
@@ -40,10 +42,12 @@ git checkout -b feature/training-records
 Java 代码变更提交 PR 前执行：
 
 ```bash
+./scripts/check-doc-sync.sh origin/main WORKTREE
 mvn clean verify
+./scripts/check-test-policy.sh
 ```
 
-`mvn clean verify` 会运行单元测试和 JaCoCo 覆盖率检查。当前代码模块的 JaCoCo 行覆盖率门槛是 `70%`。
+`check-doc-sync.sh` 会检查代码/配置变更是否同步更新了对应文档。`mvn clean verify` 会运行单元测试和 JaCoCo 覆盖率检查。`check-test-policy.sh` 会检查 Java 模块是否有测试报告和覆盖率报告，除非该模块在 `docs/test-policy-allowlist.tsv` 中明确声明为无行为模块。当前代码模块的 JaCoCo 行覆盖率门槛是 `70%`。
 
 部署配置变更提交 PR 前执行对应配置检查，例如：
 

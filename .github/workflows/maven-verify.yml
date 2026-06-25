@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -22,5 +24,11 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Check documentation sync
+        run: ./scripts/check-doc-sync.sh
+
       - name: Verify
         run: mvn clean verify
+
+      - name: Check test policy
+        run: ./scripts/check-test-policy.sh

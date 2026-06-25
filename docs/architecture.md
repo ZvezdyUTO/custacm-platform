@@ -28,6 +28,8 @@ custacm-platform/
   deploy/
 ```
 
+For agent navigation, keep the directory-level map in `docs/agent/context-map.md` synchronized with this architecture document.
+
 ## Current Module Responsibilities
 
 ### platform-common
@@ -162,10 +164,12 @@ com.custacm.platform.auth.web
 Current verification commands:
 
 ```bash
+./scripts/check-doc-sync.sh origin/main WORKTREE
 mvn clean verify
+./scripts/check-test-policy.sh
 ```
 
-`mvn clean verify` runs unit tests and JaCoCo coverage checks. Code-bearing modules should keep line coverage at or above `70%`; placeholder-only modules do not need tests until they contain executable code.
+`check-doc-sync.sh` verifies that code/config changes include the matching documentation updates. `mvn clean verify` runs unit tests and JaCoCo coverage checks. `check-test-policy.sh` verifies that Java modules with executable source have tests and generated test/coverage reports unless explicitly allowlisted. Code-bearing modules should keep line coverage at or above `70%`; placeholder-only modules do not need tests until they contain executable code.
 
 Run the packaging check when build artifacts or Docker image behavior changes:
 

@@ -1,0 +1,2 @@
+# module-path	reason
+platform-auth/auth-interface	DTO-only module with CurrentUserResponse record and no behavior beyond Java record accessors.
