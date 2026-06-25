@@ -1,0 +1,9 @@
+.git
+.idea
+*.iml
+.DS_Store
+*.log
+logs
+target
+**/target
+deploy/.env

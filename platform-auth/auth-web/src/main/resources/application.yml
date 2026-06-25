@@ -1,0 +1,12 @@
+server:
+  port: ${AUTH_WEB_PORT:8081}
+
+spring:
+  application:
+    name: auth-web
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/custacm}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/custacm/protocol/openid-connect/certs}

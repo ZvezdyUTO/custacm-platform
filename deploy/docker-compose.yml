@@ -1,0 +1,62 @@
+services:
+  keycloak-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - keycloak-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+    command:
+      - start-dev
+      - --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: keycloak-db
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL}
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    ports:
+      - "${KEYCLOAK_PORT}:8080"
+    volumes:
+      - ./keycloak/custacm-realm.json:/opt/keycloak/data/import/custacm-realm.json:ro
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+
+  custacm-backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: platform-auth/auth-web
+        JAR_PATH: platform-auth/auth-web/target/auth-web-0.1.0-SNAPSHOT.jar
+        APP_PORT: 8081
+    environment:
+      AUTH_WEB_PORT: ${AUTH_WEB_PORT:-8081}
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI}
+      KEYCLOAK_JWK_SET_URI: ${KEYCLOAK_JWK_SET_URI}
+      LOG_DIR: /app/logs
+    ports:
+      - "${BACKEND_PORT}:8081"
+    volumes:
+      - ../logs:/app/logs
+    depends_on:
+      keycloak:
+        condition: service_started
+
+volumes:
+  keycloak-db-data:

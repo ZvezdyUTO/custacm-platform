@@ -1,0 +1,14 @@
+target/
+**/target/
+
+.idea/
+*.iml
+
+.DS_Store
+
+*.log
+logs/
+
+deploy/.env
+deploy/.auto-update-main.state
+deploy/.auto-update-main.lock/
