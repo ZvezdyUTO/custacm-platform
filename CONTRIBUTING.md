@@ -1,6 +1,6 @@
 # Contributing
 
-本项目按队内协作开发流程维护：`main` 是稳定主线，所有功能都通过分支和 Pull Request 合并，由项目负责人审核。
+本项目按公开 Pull Request 协作流程维护：任何人都可以 fork 仓库后提交 Pull Request，`main` 是稳定主线，所有变更由项目负责人审核后合并。
 
 ## Branches
 
@@ -10,7 +10,7 @@
 - `docs/<short-name>`：文档调整分支。
 - `chore/<short-name>`：构建、脚本、依赖和仓库维护分支。
 
-示例：
+有仓库写权限时，可以直接从本仓库创建分支：
 
 ```bash
 git checkout main
@@ -18,9 +18,12 @@ git pull
 git checkout -b feature/training-records
 ```
 
+没有仓库写权限时，不需要额外申请 collaborator 权限，直接 fork 仓库，在自己的 fork 里创建分支并提交 Pull Request。
+
 ## Pull Requests
 
 - PR 目标分支固定为 `main`。
+- 任何人都可以从 fork 提交 PR。
 - PR 标题和描述使用中文。
 - PR 描述需要说明做了什么、怎么验证、是否影响部署或配置。
 - 不要把 `deploy/.env`、日志、构建产物、IDE 配置提交到仓库。
@@ -28,7 +31,7 @@ git checkout -b feature/training-records
 
 ## Review
 
-- 所有 PR 必须经过负责人审核后合并。
+- 所有 PR 都可以自由提交，但必须经过负责人审核后合并。
 - 推荐使用 squash merge，让 `main` 历史保持清晰。
 - 不要 force push `main`，不要直接删除 `main`。
 
