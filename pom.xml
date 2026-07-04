@@ -15,6 +15,7 @@
     <modules>
         <module>platform-common</module>
         <module>platform-auth</module>
+        <module>platform-training-data</module>
     </modules>
 
     <properties>

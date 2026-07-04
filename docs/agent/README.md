@@ -12,10 +12,11 @@ This is the fast entry point for future agents. It records how to navigate the r
 
 ## Current Working Shape
 
-- Root Maven reactor includes `platform-common` and `platform-auth`.
-- `platform-auth/auth-web` is the only runnable backend implementation.
+- Root Maven reactor includes `platform-common`, `platform-auth`, and `platform-training-data`.
+- `platform-auth/auth-web` is the first runnable backend implementation.
+- `platform-training-data/training-data-web` is the second runnable backend implementation. It exposes an admin-only Codeforces ODS batch-upsert API.
 - `platform-common` currently contains empty shared Maven modules.
-- `platform-training-data`, `platform-blog`, `platform-editor`, `platform-article-storage`, and `frontend` are placeholders.
+- `platform-blog`, `platform-editor`, `platform-article-storage`, and `frontend` are placeholders.
 - Local deployment is under `deploy/` and currently starts Keycloak, Keycloak PostgreSQL, and `custacm-backend`.
 
 ## Agent Workflow

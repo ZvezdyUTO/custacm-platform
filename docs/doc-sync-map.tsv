@@ -11,7 +11,8 @@ platform-auth/auth-interface/*	platform-auth/auth-interface/AGENTS.md,docs/api.m
 platform-auth/auth-web/*	platform-auth/auth-web/AGENTS.md,platform-auth/auth-web/TESTING.md,docs/api.md,docs/architecture.md	Auth HTTP/security behavior changed.
 deploy/*	deploy/AGENTS.md,deploy/README.md,deploy/UPDATE.md,docs/server-deployment.md	Deployment configuration changed.
 scripts/*	scripts/AGENTS.md,docs/agent/doc-sync.md,docs/agent/quality-gates.md,deploy/UPDATE.md,docs/server-deployment.md	Repository script behavior changed.
-platform-training-data/*	platform-training-data/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Training data module changed.
+platform-training-data/*	platform-training-data/AGENTS.md,docs/architecture.md,docs/api.md,docs/agent/context-map.md	Training data module or API changed.
+platform-training-data/*/src/main/resources/logback-spring.xml	docs/logging.md	Logging config changed.
 platform-blog/*	platform-blog/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Blog module changed.
 platform-editor/*	platform-editor/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Editor module changed.
 platform-article-storage/*	platform-article-storage/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Article storage module changed.

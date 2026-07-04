@@ -18,7 +18,7 @@ This repository is expected to be developed by agents. Documentation is part of 
 | Planning | [../TODO.md](../TODO.md), [../CHANGELOG.md](../CHANGELOG.md) | Human-readable todo list and MR outcome history. |
 | Agent map | [agent/README.md](agent/README.md), [agent/context-map.md](agent/context-map.md), [agent/doc-sync.md](agent/doc-sync.md), [agent/changelog.md](agent/changelog.md), [agent/quality-gates.md](agent/quality-gates.md) | Fast context, update rules, changelog format, and verification commands. |
 | Architecture | [architecture.md](architecture.md), [adr/](adr/) | Current architecture and durable decisions. |
-| API | [api.md](api.md) | Implemented HTTP contracts only. |
+| API | [api.md](api.md) | Implemented HTTP contracts for auth and training-data services only. |
 | Operations | [logging.md](logging.md), [server-deployment.md](server-deployment.md), [../deploy/README.md](../deploy/README.md), [../deploy/UPDATE.md](../deploy/UPDATE.md) | Runtime, logging, deployment, and update workflows. |
 | Module docs | `*/AGENTS.md`, `*/TESTING.md` | Local module context and test coverage notes. |
 

@@ -4,7 +4,7 @@
 
 The current phase creates a small, evolvable backend skeleton. It should not lock in the final product model yet.
 
-The first runnable slice is Keycloak-backed platform auth. Other product areas are represented by directories only and should be expanded later, one module at a time.
+The first runnable slice is Keycloak-backed platform auth. The second runnable slice is the training-data ODS warehouse model. Other product areas are represented by directories only and should be expanded later, one module at a time.
 
 ## Module Map
 
@@ -20,6 +20,9 @@ custacm-platform/
     auth-web/
 
   platform-training-data/
+    training-data-codeforces/
+    training-data-web/
+
   platform-blog/
   platform-editor/
   platform-article-storage/
@@ -91,11 +94,60 @@ platform-auth/
 
 Add `auth-domain`, `auth-app`, or `auth-infra` only when the platform needs business-owned auth or identity data beyond the immutable `student_identity` claim.
 
+### platform-training-data
+
+`platform-training-data` owns the first training-data warehouse slice.
+
+Current implementation:
+
+- stores raw Codeforces submissions in `ods_codeforces__submission`;
+- keeps Codeforces HTTP ingress, ingest application service, collect batch type, ODS record, parser, writer, fixture, DDL, Spring config, and tests in an independent OJ module;
+- parses Codeforces fixture data into OJ-specific ODS records for repeatable tests;
+- writes ODS rows through `CodeforcesOdsSubmissionWriter` and its JDBC implementation;
+- exposes OJ-specific ODS ingest through each OJ module under `training-data-web`;
+- uses Keycloak JWT resource-server validation for `/api/**`, matching the auth module's converter.
+- restricts OJ-specific ODS ingest to the platform `admin` role.
+- applies ODS table migrations from OJ modules through Flyway at `training-data-web` startup.
+
+Current training-data module shape:
+
+```text
+platform-training-data/
+  training-data-codeforces/
+    app/
+    config/
+    domain/
+    infra/
+    web/
+    src/main/resources/db/migration/
+    src/main/resources/fixtures/codeforces/
+    src/main/resources/sql/ods/
+  training-data-web/
+```
+
+The OJ boundary is vertical. Codeforces owns its entrance and data organization end to end:
+
+```text
+external source or fixture -> OJ HTTP ingress -> OJ ingest app service -> OJ parser/writer -> OJ ODS table
+```
+
+There is currently no shared DAG/task orchestration layer. Do not reintroduce pipeline run state, scheduler, or generic task executors until the data model has a real downstream workflow. OJ-specific DWD tables should also stay independent, for example `dwd_codeforces__*`, until a concrete cross-OJ product query needs a unified view or ADS table.
+
+Current physical data layer:
+
+```text
+ODS: ods_codeforces__submission
+DWD/DWS/ADS: not implemented yet
+```
+
+`training-data-web` owns the runtime datasource, MySQL JDBC driver, and Flyway auto-migration. OJ modules own the actual migration scripts under their own `src/main/resources/db/migration/` directories.
+
+`training-data-web` uses the same file logging contract as other runnable Spring Boot services: `LOG_DIR/combined.log` and `LOG_DIR/error.log`.
+
 ### Placeholder Modules
 
 These directories exist to preserve product boundaries:
 
-- `platform-training-data`: future training data API and worker area.
 - `platform-blog`: future blog/content module.
 - `platform-editor`: future external editor integration.
 - `platform-article-storage`: future article storage module.
@@ -123,7 +175,7 @@ Rules:
 - `infra` implements repositories and remote clients.
 - `web` owns Spring Boot startup and HTTP controllers.
 
-`platform-auth` is currently a Keycloak adapter module and therefore intentionally has only `auth-core`, `auth-interface`, and `auth-web`.
+`platform-auth` is currently a Keycloak adapter module and therefore intentionally has only `auth-core`, `auth-interface`, and `auth-web`. `platform-training-data` uses vertical OJ modules because OJ data warehouses must own their own ingress and data organization.
 
 ## Cross-Module Calls
 
@@ -198,6 +250,28 @@ GET  /api/auth/me
 ```
 
 `GET /api/auth/me` requires a Keycloak bearer token.
+
+Run `training-data-web` locally:
+
+```bash
+java -jar platform-training-data/training-data-web/target/training-data-web-0.1.0-SNAPSHOT.jar
+```
+
+Default port:
+
+```text
+8082
+```
+
+Basic endpoints:
+
+```text
+GET  /health
+GET  /module-info
+POST /api/training-data/ods/codeforces/submissions:batch-upsert
+```
+
+Training-data `/api/**` endpoints require a Keycloak bearer token. ODS batch-upsert endpoints require the platform `admin` role.
 
 Current response shape:
 

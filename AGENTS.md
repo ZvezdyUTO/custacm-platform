@@ -9,14 +9,15 @@ Current phase: build an evolvable backend framework, not the full product.
 ## Current Scope
 
 - Keycloak is the only login and token issuer for this project.
-- `platform-auth` is the only module with a runnable backend implementation.
+- `platform-auth/auth-web` is the first runnable backend implementation.
+- `platform-training-data/training-data-web` is the second runnable backend implementation. It exposes admin-only OJ-specific ODS batch-upsert APIs and applies training-data SQL migrations with Flyway.
 - Student identity is a single immutable string in the format `fixed-length student number + real name`, for example `112487张三`.
 - The Keycloak user attribute and JWT claim name for this value is `student_identity`.
 - `studentIdentity` is the only user ID used by platform business code.
 - `platform-auth` currently validates Keycloak JWTs and exposes `student_identity` plus one `role`. It does not implement local password login.
 - The only platform roles are `admin` and `student`; business responses use a single role string, not a role list.
 - `platform-auth/auth-core` contains Keycloak JWT parsing and current-user extraction helpers.
-- `platform-training-data`, `platform-blog`, `platform-editor`, `platform-article-storage`, `frontend`, and `deploy` are placeholders.
+- `platform-blog`, `platform-editor`, `platform-article-storage`, `frontend`, and `deploy` are placeholders.
 - Do not implement all placeholder modules at once. Add one runnable slice at a time.
 
 ## Architecture Rules

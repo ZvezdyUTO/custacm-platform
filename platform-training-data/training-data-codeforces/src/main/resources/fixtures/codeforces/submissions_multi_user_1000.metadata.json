@@ -1,0 +1,169 @@
+{
+  "capturedAt": "2026-07-03T06:41:15Z",
+  "source": "Codeforces public API user.status",
+  "purpose": "Stable local fixture for parser, HTTP ingest, and later training-data pipeline tests without re-crawling Codeforces.",
+  "actualRows": 1000,
+  "uniqueSubmissionIds": 1000,
+  "requestedHandles": [
+    "Benq",
+    "Um_nik",
+    "ecnerwala",
+    "jiangly",
+    "tourist"
+  ],
+  "handlesInPayload": [
+    "Benq",
+    "Merkurev",
+    "Siberian",
+    "Um_nik",
+    "ecnerwala",
+    "jiangly",
+    "ksun48",
+    "tourist"
+  ],
+  "sourceRequests": [
+    {
+      "handle": "tourist",
+      "from": 1,
+      "count": 100,
+      "url": "https://codeforces.com/api/user.status?handle=tourist&from=1&count=100",
+      "status": "OK",
+      "returnedRows": 100,
+      "selectedUniqueRows": 100,
+      "firstSubmissionId": 380351477,
+      "lastSubmissionId": 358331630
+    },
+    {
+      "handle": "tourist",
+      "from": 1001,
+      "count": 100,
+      "url": "https://codeforces.com/api/user.status?handle=tourist&from=1001&count=100",
+      "status": "OK",
+      "returnedRows": 100,
+      "selectedUniqueRows": 100,
+      "firstSubmissionId": 248981250,
+      "lastSubmissionId": 236793269
+    },
+    {
+      "handle": "Benq",
+      "from": 1,
+      "count": 100,
+      "url": "https://codeforces.com/api/user.status?handle=Benq&from=1&count=100",
+      "status": "OK",
+      "returnedRows": 100,
+      "selectedUniqueRows": 100,
+      "firstSubmissionId": 378463155,
+      "lastSubmissionId": 369916783
+    },
+    {
+      "handle": "Benq",
+      "from": 1001,
+      "count": 100,
+      "url": "https://codeforces.com/api/user.status?handle=Benq&from=1001&count=100",
+      "status": "OK",
+      "returnedRows": 100,
+      "selectedUniqueRows": 100,
+      "firstSubmissionId": 243674865,
+      "lastSubmissionId": 234244833
+    },
+    {
+      "handle": "ecnerwala",
+      "from": 1,
+      "count": 100,
+      "url": "https://codeforces.com/api/user.status?handle=ecnerwala&from=1&count=100",
+      "status": "OK",
+      "returnedRows": 100,
+      "selectedUniqueRows": 100,
+      "firstSubmissionId": 379569129,
+      "lastSubmissionId": 364073031
+    },
+    {
+      "handle": "ecnerwala",
+      "from": 1001,
+      "count": 100,
+      "url": "https://codeforces.com/api/user.status?handle=ecnerwala&from=1001&count=100",
+      "status": "OK",
+      "returnedRows": 100,
+      "selectedUniqueRows": 100,
+      "firstSubmissionId": 215593832,
+      "lastSubmissionId": 195173130
+    },
+    {
+      "handle": "Um_nik",
+      "from": 1,
+      "count": 100,
+      "url": "https://codeforces.com/api/user.status?handle=Um_nik&from=1&count=100",
+      "status": "OK",
+      "returnedRows": 100,
+      "selectedUniqueRows": 100,
+      "firstSubmissionId": 366999559,
+      "lastSubmissionId": 332895214
+    },
+    {
+      "handle": "Um_nik",
+      "from": 1001,
+      "count": 100,
+      "url": "https://codeforces.com/api/user.status?handle=Um_nik&from=1001&count=100",
+      "status": "OK",
+      "returnedRows": 100,
+      "selectedUniqueRows": 100,
+      "firstSubmissionId": 185545041,
+      "lastSubmissionId": 176309535
+    },
+    {
+      "handle": "jiangly",
+      "from": 1,
+      "count": 100,
+      "url": "https://codeforces.com/api/user.status?handle=jiangly&from=1&count=100",
+      "status": "OK",
+      "returnedRows": 100,
+      "selectedUniqueRows": 100,
+      "firstSubmissionId": 381083115,
+      "lastSubmissionId": 365879699
+    },
+    {
+      "handle": "jiangly",
+      "from": 1001,
+      "count": 100,
+      "url": "https://codeforces.com/api/user.status?handle=jiangly&from=1001&count=100",
+      "status": "OK",
+      "returnedRows": 100,
+      "selectedUniqueRows": 100,
+      "firstSubmissionId": 305674110,
+      "lastSubmissionId": 298818342
+    }
+  ],
+  "creationTimeSecondsRange": {
+    "min": 1665844608,
+    "max": 1783046495,
+    "minIso": "2022-10-15T14:36:48Z",
+    "maxIso": "2026-07-03T02:41:35Z"
+  },
+  "contestIdRange": {
+    "min": 1,
+    "max": 106516
+  },
+  "verdicts": [
+    "CHALLENGED",
+    "COMPILATION_ERROR",
+    "IDLENESS_LIMIT_EXCEEDED",
+    "MEMORY_LIMIT_EXCEEDED",
+    "OK",
+    "PARTIAL",
+    "RUNTIME_ERROR",
+    "SKIPPED",
+    "TIME_LIMIT_EXCEEDED",
+    "WRONG_ANSWER"
+  ],
+  "programmingLanguagesSample": [
+    "C++17 (GCC 7-32)",
+    "C++17 (GCC 9-64)",
+    "C++20 (GCC 11-64)",
+    "C++20 (GCC 13-64)",
+    "C++23 (GCC 14-64, msys2)",
+    "Kotlin 1.9",
+    "PyPy 2",
+    "Python 3"
+  ],
+  "readyToPostFixture": "submissions_multi_user_1000.json"
+}
