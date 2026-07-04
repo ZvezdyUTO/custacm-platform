@@ -33,6 +33,7 @@ If a changed file matches the pattern, at least one listed required doc must als
 - Deployment or scripts changed: update `deploy/` docs, [../server-deployment.md](../server-deployment.md), or [../../scripts/AGENTS.md](../../scripts/AGENTS.md).
 - Logging changed: read and update [../logging.md](../logging.md) if the logging contract changes.
 - PR outcome changed: update [../../CHANGELOG.md](../../CHANGELOG.md) using [changelog.md](changelog.md).
+- Root collaboration or PR review rules changed: update [../../AGENTS.md](../../AGENTS.md), [../../CONTRIBUTING.md](../../CONTRIBUTING.md), [../README.md](../README.md), this doc, and the PR template when reviewer expectations change.
 - New module slice added: add a module `AGENTS.md`, add a module-level `README.md` with directory layout and file-level responsibilities, add tests or explain why not, update [context-map.md](context-map.md), [../architecture.md](../architecture.md), and [../doc-sync-map.tsv](../doc-sync-map.tsv).
 - Existing module files changed: update that module's `README.md` when files, directories, query capabilities, or responsibilities are added, removed, renamed, or materially changed.
 
