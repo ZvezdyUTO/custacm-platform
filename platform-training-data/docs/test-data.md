@@ -1,6 +1,6 @@
 # Local Test Data
 
-This document is the stable entrypoint for training-data fixtures used by parser, API, and later pipeline tests. Default tests must read these local files instead of crawling online judges.
+This document is the stable entrypoint for training-data fixtures used by parser, API, and warehouse SQL tests. Default tests must read these local files instead of crawling online judges.
 
 ## Codeforces Submissions
 

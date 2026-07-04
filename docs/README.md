@@ -20,7 +20,7 @@ This repository is expected to be developed by agents. Documentation is part of 
 | Architecture | [architecture.md](architecture.md), [adr/](adr/) | Current architecture and durable decisions. |
 | API | [api.md](api.md) | Implemented HTTP contracts for auth and training-data services only. |
 | Operations | [logging.md](logging.md), [server-deployment.md](server-deployment.md), [../deploy/README.md](../deploy/README.md), [../deploy/UPDATE.md](../deploy/UPDATE.md) | Runtime, logging, deployment, and update workflows. |
-| Module docs | `*/AGENTS.md`, `*/TESTING.md` | Local module context and test coverage notes. |
+| Module docs | `*/AGENTS.md`, `*/TESTING.md`, `platform-training-data/docs/*.md` | Local module context, warehouse contracts, fixtures, and test coverage notes. |
 
 ## Update Rule
 

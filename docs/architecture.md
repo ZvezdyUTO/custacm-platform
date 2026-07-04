@@ -101,13 +101,16 @@ Add `auth-domain`, `auth-app`, or `auth-infra` only when the platform needs busi
 Current implementation:
 
 - stores raw Codeforces submissions in `ods_codeforces__submission`;
-- keeps Codeforces HTTP ingress, ingest application service, collect batch type, ODS record, parser, writer, fixture, DDL, Spring config, and tests in an independent OJ module;
+- stores cleaned Codeforces submission details in `dwd_codeforces__submission`;
+- stores Codeforces handle/problem first accepted intermediate facts in `dwm_codeforces__handle_problem_first_accepted`;
+- stores Codeforces handle/date/rating accepted summaries in `dws_codeforces__handle_daily_rating_accepted_summary`;
+- keeps Codeforces HTTP ingress, ingest application service, collect batch type, ODS record, parser, writer, fixture, DDL, SQL task resources, Spring config, and tests in an independent OJ module;
 - parses Codeforces fixture data into OJ-specific ODS records for repeatable tests;
 - writes ODS rows through `CodeforcesOdsSubmissionWriter` and its JDBC implementation;
 - exposes OJ-specific ODS ingest through each OJ module under `training-data-web`;
 - uses Keycloak JWT resource-server validation for `/api/**`, matching the auth module's converter.
 - restricts OJ-specific ODS ingest to the platform `admin` role.
-- applies ODS table migrations from OJ modules through Flyway at `training-data-web` startup.
+- applies ODS/DWD/DWM/DWS table migrations from OJ modules through Flyway at `training-data-web` startup.
 
 Current training-data module shape:
 
@@ -121,6 +124,9 @@ platform-training-data/
     web/
     src/main/resources/db/migration/
     src/main/resources/fixtures/codeforces/
+    src/main/resources/sql/dwd/
+    src/main/resources/sql/dwm/
+    src/main/resources/sql/dws/
     src/main/resources/sql/ods/
   training-data-web/
 ```
@@ -128,16 +134,27 @@ platform-training-data/
 The OJ boundary is vertical. Codeforces owns its entrance and data organization end to end:
 
 ```text
-external source or fixture -> OJ HTTP ingress -> OJ ingest app service -> OJ parser/writer -> OJ ODS table
+external source or fixture
+ -> OJ HTTP ingress
+ -> OJ ingest app service
+ -> OJ parser/writer
+ -> OJ ODS table
+ -> OJ SQL task resources
+ -> OJ DWD/DWM/DWS tables
 ```
 
-There is currently no shared DAG/task orchestration layer. Do not reintroduce pipeline run state, scheduler, or generic task executors until the data model has a real downstream workflow. OJ-specific DWD tables should also stay independent, for example `dwd_codeforces__*`, until a concrete cross-OJ product query needs a unified view or ADS table.
+Codeforces DWD/DWM/DWS transforms are SQL task resources. Java scheduling/execution is not implemented yet; later Java code should trigger these SQL files rather than performing row-by-row transformation.
+
+There is currently no shared DAG/task orchestration layer. Do not reintroduce pipeline run state, scheduler, or generic task executors until the data model has a real downstream workflow. OJ-specific DWD/DWM/DWS tables should stay independent until a concrete cross-OJ product query needs a unified view or ADS table.
 
 Current physical data layer:
 
 ```text
 ODS: ods_codeforces__submission
-DWD/DWS/ADS: not implemented yet
+DWD: dwd_codeforces__submission
+DWM: dwm_codeforces__handle_problem_first_accepted
+DWS: dws_codeforces__handle_daily_rating_accepted_summary
+ADS: not implemented yet
 ```
 
 `training-data-web` owns the runtime datasource, MySQL JDBC driver, and Flyway auto-migration. OJ modules own the actual migration scripts under their own `src/main/resources/db/migration/` directories.
