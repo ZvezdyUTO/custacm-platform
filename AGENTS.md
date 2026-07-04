@@ -61,6 +61,8 @@ Current phase: build an evolvable backend framework, not the full product.
 - Do not commit unless the user explicitly asks.
 - Do not push unless the user explicitly asks.
 - If the user says to push, treat that as permission to commit and push.
+- PRs/MRs opened by anyone other than the project owner must not be merged until the project owner explicitly confirms approval.
+- PRs/MRs opened by the project owner do not need an additional review confirmation; the owner's explicit merge instruction is enough.
 - MR titles and descriptions must be written in Chinese.
 
 ## Verification

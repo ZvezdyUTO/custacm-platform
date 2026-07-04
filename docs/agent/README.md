@@ -7,6 +7,7 @@ This is the fast entry point for future agents. It records how to navigate the r
 - Treat [../../AGENTS.md](../../AGENTS.md) as the hard rule source.
 - Do not invent product behavior from directory names. If a module is a placeholder, keep it documented as a placeholder.
 - Before editing a directory, read the nearest `AGENTS.md` in that directory or its parent.
+- For PR/MR merges, project-owner PRs can be merged on the owner's explicit merge instruction; PRs from anyone else require explicit owner approval first.
 - Keep `student_identity` as one immutable business identity string unless the user explicitly changes the decision.
 - Keep Keycloak as the only login and token issuer unless the user explicitly changes the decision.
 

@@ -1,6 +1,6 @@
 # Contributing
 
-本项目按公开 Pull Request 协作流程维护：任何人都可以 fork 仓库后提交 Pull Request，`main` 是稳定主线，所有变更由项目负责人审核后合并。
+本项目按公开 Pull Request 协作流程维护：任何人都可以 fork 仓库后提交 Pull Request，`main` 是稳定主线。非项目负责人发起的变更必须由项目负责人确认后合并；项目负责人本人发起的 PR 在负责人明确要求合并时无需额外审核确认。
 
 ## Branches
 
@@ -33,7 +33,9 @@ git checkout -b feature/training-records
 
 ## Review
 
-- 所有 PR 都可以自由提交，但必须经过负责人审核后合并。
+- 所有 PR 都可以自由提交。
+- 非项目负责人发起的 PR 必须经过项目负责人明确确认后才能合并。
+- 项目负责人本人发起的 PR，在负责人明确要求合并时可以直接合并，不需要额外审核确认。
 - 推荐使用 squash merge，让 `main` 历史保持清晰。
 - 不要 force push `main`，不要直接删除 `main`。
 
