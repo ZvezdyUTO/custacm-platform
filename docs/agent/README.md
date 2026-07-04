@@ -28,10 +28,11 @@ This is the fast entry point for future agents. It records how to navigate the r
    - architecture/module changes: [../architecture.md](../architecture.md)
    - logging changes: [../logging.md](../logging.md)
    - deployment changes: [../../deploy/README.md](../../deploy/README.md), [../../deploy/UPDATE.md](../../deploy/UPDATE.md), [../server-deployment.md](../server-deployment.md)
-4. Make the code/docs change.
-5. Run the relevant checks from [quality-gates.md](quality-gates.md).
-6. Update [../../CHANGELOG.md](../../CHANGELOG.md) using [changelog.md](changelog.md).
-7. Run [../../scripts/check-doc-sync.sh](../../scripts/check-doc-sync.sh) before PR.
+4. Read the module-level `README.md` when one exists. For non-placeholder modules with source code, create or update that README when files, directories, or responsibilities change; it should include directory layout and file-level responsibilities.
+5. Make the code/docs change.
+6. Run the relevant checks from [quality-gates.md](quality-gates.md).
+7. Update [../../CHANGELOG.md](../../CHANGELOG.md) using [changelog.md](changelog.md).
+8. Run [../../scripts/check-doc-sync.sh](../../scripts/check-doc-sync.sh) before PR.
 
 ## When Unsure
 

@@ -1,7 +1,7 @@
-package com.custacm.platform.trainingdata.codeforces.infra;
+package com.custacm.platform.trainingdata.codeforces.infra.repo;
 
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesCollectBatch;
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesOdsSubmission;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesCollectBatch;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesOdsSubmission;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -13,7 +13,9 @@ import org.springframework.jdbc.datasource.init.ScriptUtils;
 import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -77,10 +79,17 @@ class JdbcCodeforcesOdsSubmissionWriterTest {
                 from ods_codeforces__submission
                 where codeforces_submission_id = 379398914
                 """, Long.class);
+        Timestamp fetchedAt = jdbcTemplate.queryForObject("""
+                select fetched_at
+                from ods_codeforces__submission
+                where codeforces_submission_id = 379398914
+                """, Timestamp.class);
 
         assertThat(verdict).isEqualTo("RUNTIME_ERROR");
         assertThat(batchId).isEqualTo("batch-2");
         assertThat(creationTimeSeconds).isEqualTo(1781798091L);
+        assertThat(fetchedAt).isNotNull();
+        assertThat(fetchedAt.toLocalDateTime()).isEqualTo(LocalDateTime.parse("2026-06-27T09:00:00"));
     }
 
     private static CodeforcesOdsSubmission submission(

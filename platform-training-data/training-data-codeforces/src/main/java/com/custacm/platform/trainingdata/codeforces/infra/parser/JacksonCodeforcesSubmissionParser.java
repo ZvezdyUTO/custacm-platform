@@ -1,7 +1,8 @@
-package com.custacm.platform.trainingdata.codeforces.infra;
+package com.custacm.platform.trainingdata.codeforces.infra.parser;
 
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesCollectBatch;
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesOdsSubmission;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesCollectBatch;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesOdsSubmission;
+import com.custacm.platform.trainingdata.codeforces.domain.parser.CodeforcesSubmissionParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -13,13 +14,14 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 
-public class CodeforcesSubmissionParser {
+public class JacksonCodeforcesSubmissionParser implements CodeforcesSubmissionParser {
     private final ObjectMapper objectMapper;
 
-    public CodeforcesSubmissionParser(ObjectMapper objectMapper) {
+    public JacksonCodeforcesSubmissionParser(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
+    @Override
     public List<CodeforcesOdsSubmission> parse(String apiResponse, CodeforcesCollectBatch batch) {
         try {
             JsonNode root = objectMapper.readTree(apiResponse);
@@ -100,7 +102,11 @@ public class CodeforcesSubmissionParser {
         if (value.isMissingNode() || value.isNull()) {
             throw new IllegalArgumentException("missing Codeforces field: " + fieldName);
         }
-        return value.asLong();
+        long parsedValue = value.asLong();
+        if (!Long.toString(parsedValue).equals(value.asText())) {
+            throw new IllegalArgumentException("invalid Codeforces numeric field: " + fieldName);
+        }
+        return parsedValue;
     }
 
     private static String nullableText(JsonNode node, String fieldName) {

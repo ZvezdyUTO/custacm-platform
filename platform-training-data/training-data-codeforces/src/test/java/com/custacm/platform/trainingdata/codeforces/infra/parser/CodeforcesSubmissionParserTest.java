@@ -1,6 +1,6 @@
-package com.custacm.platform.trainingdata.codeforces.infra;
+package com.custacm.platform.trainingdata.codeforces.infra.parser;
 
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesCollectBatch;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesCollectBatch;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CodeforcesSubmissionParserTest {
     private static final String MULTI_USER_CODEFORCES_ARRAY_FIXTURE =
@@ -20,7 +21,7 @@ class CodeforcesSubmissionParserTest {
                 .getContentAsString(StandardCharsets.UTF_8);
         CodeforcesCollectBatch batch = new CodeforcesCollectBatch("batch-1", Instant.parse("2026-06-27T00:00:00Z"));
 
-        var records = new CodeforcesSubmissionParser(new ObjectMapper()).parse(fixture, batch);
+        var records = new JacksonCodeforcesSubmissionParser(new ObjectMapper()).parse(fixture, batch);
 
         assertThat(records).hasSize(2);
         assertThat(records.get(0).codeforcesSubmissionId()).isEqualTo(379398914L);
@@ -43,11 +44,32 @@ class CodeforcesSubmissionParserTest {
         String array = new ObjectMapper().readTree(fixture).path("result").toString();
         CodeforcesCollectBatch batch = new CodeforcesCollectBatch("batch-1", Instant.parse("2026-06-27T00:00:00Z"));
 
-        var records = new CodeforcesSubmissionParser(new ObjectMapper()).parse(array, batch);
+        var records = new JacksonCodeforcesSubmissionParser(new ObjectMapper()).parse(array, batch);
 
         assertThat(records).hasSize(2);
         assertThat(records.get(0).codeforcesSubmissionId()).isEqualTo(379398914L);
         assertThat(records.get(0).authorHandle()).isEqualTo("tourist");
+    }
+
+    @Test
+    void rejectsSubmissionWhenIdDoesNotParseConsistently() {
+        String payload = """
+                [
+                  {
+                    "id": "379398914x",
+                    "author": {
+                      "members": [
+                        { "handle": "tourist" }
+                      ]
+                    }
+                  }
+                ]
+                """;
+        CodeforcesCollectBatch batch = new CodeforcesCollectBatch("batch-1", Instant.parse("2026-06-27T00:00:00Z"));
+
+        assertThatThrownBy(() -> new JacksonCodeforcesSubmissionParser(new ObjectMapper()).parse(payload, batch))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("invalid Codeforces numeric field: id");
     }
 
     @Test
@@ -56,7 +78,7 @@ class CodeforcesSubmissionParserTest {
                 .getContentAsString(StandardCharsets.UTF_8);
         CodeforcesCollectBatch batch = new CodeforcesCollectBatch("batch-1", Instant.parse("2026-07-03T00:00:00Z"));
 
-        var records = new CodeforcesSubmissionParser(new ObjectMapper()).parse(fixture, batch);
+        var records = new JacksonCodeforcesSubmissionParser(new ObjectMapper()).parse(fixture, batch);
 
         assertThat(records).hasSize(1000);
         assertThat(records.getFirst().codeforcesSubmissionId()).isEqualTo(380351477L);

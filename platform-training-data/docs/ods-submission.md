@@ -23,6 +23,42 @@ External collectors should post raw submission arrays to the OJ-specific HTTP in
 
 Codeforces DWD/DWM/DWS transforms are idempotent SQL task resources. Java scheduling/execution is not implemented yet, and ADS physical tables are not implemented yet. Future cross-OJ transforms should stay independent until a concrete cross-OJ query or ADS workflow needs a unified view or wide table.
 
+Codeforces read-side Java repositories can query existing warehouse tables directly when the target table already matches the query grain. Current DWD/DWM/DWS query support is internal Java capability, not a public HTTP API.
+
+## Codeforces Java Package Layout
+
+Codeforces is still one vertical OJ Maven module. The Java packages are split by responsibility inside that module:
+
+```text
+codeforces/
+  app/
+    result/      # application-level result records returned by use cases
+    service/     # ingest/query use-case orchestration; no SQL construction here
+  config/        # Spring Bean wiring for Codeforces services and adapters
+  domain/
+    criteria/    # repository query criteria records and default filter helpers
+    model/       # ODS/DWD/DWM/DWS records and read models
+    parser/      # parser ports consumed by application services
+    repo/        # repository/writer interfaces owned by the domain boundary
+    value/       # reusable constants such as fixed rating buckets
+  infra/
+    parser/      # external Codeforces payload parsing into OJ-owned records
+    repo/        # JDBC implementations and SQL-facing row mapping
+  web/
+    controller/  # OJ-specific HTTP endpoints
+    response/    # HTTP response DTOs
+```
+
+Tests mirror the same package layout under `src/test/java`.
+
+## Warehouse Time Zone
+
+Training-data warehouse tables use UTC+8 (`Asia/Shanghai`) as the canonical local time zone for stored `datetime` and date-grain fields.
+
+Codeforces source `creationTimeSeconds` is an epoch second. DWD converts it to `submitted_at_utc_plus8` by adding eight hours to the UTC epoch timestamp, then derives `submitted_date_utc_plus8` from that UTC+8 local timestamp. DWM and DWS inherit the same UTC+8 day boundary. Java read-side query objects use `LocalDateTime` / `LocalDate` values that are already in UTC+8.
+
+ODS `fetched_at` is also written as a UTC+8 local `datetime`. Runtime MySQL configuration should keep `serverTimezone=Asia/Shanghai`.
+
 ## Source Access Notes
 
 Codeforces default test data comes from a local fixture shaped like the public `user.status` API:
@@ -62,7 +98,7 @@ Fixture metadata is stored next to the data in `submissions_multi_user_1000.meta
 | `time_consumed_millis` | `timeConsumedMillis` | No |
 | `memory_consumed_bytes` | `memoryConsumedBytes` | No |
 | `batch_id` | collect batch id | Yes |
-| `fetched_at` | collect time | Yes |
+| `fetched_at` | collect time stored as UTC+8 local `datetime` | Yes |
 | `raw_payload` | raw source item JSON | Yes |
 | `payload_hash` | SHA-256 of `raw_payload` | Yes |
 
@@ -95,8 +131,8 @@ Important derived fields:
 | Column | Rule |
 | --- | --- |
 | `ods_submission_id` | ODS row `id` |
-| `submitted_at` | `creation_time_seconds` added to UTC epoch |
-| `submitted_date_utc` | UTC date from `submitted_at` |
+| `submitted_at_utc_plus8` | `creation_time_seconds` added to UTC epoch, then shifted to UTC+8 local `datetime` |
+| `submitted_date_utc_plus8` | UTC+8 local date from `submitted_at_utc_plus8` |
 | `problem_key` | `problem_contest_id + ':' + problem_index`; null when either part is missing |
 | `is_accepted` | `verdict = 'OK'` |
 | `ods_batch_id` | ODS `batch_id` |
@@ -108,6 +144,29 @@ The task SQL is:
 ```text
 training-data-codeforces/src/main/resources/sql/dwd/upsert_dwd_codeforces__submission.sql
 ```
+
+Internal Java query boundary:
+
+```text
+CodeforcesSubmissionQueryService
+ -> CodeforcesSubmissionRepository
+ -> JdbcCodeforcesSubmissionRepository
+ -> dwd_codeforces__submission
+```
+
+The DWD query model supports two atomic reads:
+
+- by requested `authorHandle`, optional inclusive UTC+8 submitted time range, and optional problem rating lower/upper bounds;
+- by requested `problemKey`, plus optional inclusive UTC+8 submitted time range, across all handles.
+
+Null time bounds mean no lower or upper time limit. Null problem rating bounds mean all rated and unrated rows. Setting either problem rating bound filters to the requested inclusive rating interval and excludes unrated rows.
+
+The repository returns DWD atomic submission rows. The app service returns report records that keep matching submission details:
+
+- handle query: requested handle and matching submission detail items;
+- problem query: requested problem key and matching submission detail items across handles.
+
+Time and rating filters affect the selected rows, but report payloads do not echo those request criteria.
 
 ## Codeforces DWM First Accepted
 
@@ -139,14 +198,14 @@ where is_accepted = 1
   and problem_key is not null
   and problem_contest_id is not null
   and problem_index is not null
-  and submitted_at is not null
-  and submitted_date_utc is not null
+  and submitted_at_utc_plus8 is not null
+  and submitted_date_utc_plus8 is not null
 ```
 
 Tie-break rule:
 
 ```text
-earliest submitted_at, then smallest codeforces_submission_id
+earliest submitted_at_utc_plus8, then smallest codeforces_submission_id
 ```
 
 The task SQL is:
@@ -155,14 +214,37 @@ The task SQL is:
 training-data-codeforces/src/main/resources/sql/dwm/upsert_dwm_codeforces__handle_problem_first_accepted.sql
 ```
 
+Internal Java query boundary:
+
+```text
+CodeforcesFirstAcceptedProblemQueryService
+ -> CodeforcesFirstAcceptedProblemRepository
+ -> JdbcCodeforcesFirstAcceptedProblemRepository
+ -> dwm_codeforces__handle_problem_first_accepted
+```
+
+The DWM query model supports two atomic reads:
+
+- by requested `authorHandle`, optional inclusive UTC+8 first-accepted time range, and optional problem rating lower/upper bounds;
+- by requested `problemKey`, plus optional inclusive UTC+8 first-accepted time range, across all handles.
+
+Null time bounds mean no lower or upper time limit. Null problem rating bounds mean all rated and unrated rows. Setting either problem rating bound filters to the requested inclusive rating interval and excludes unrated rows.
+
+The repository returns DWM atomic first-accepted rows. The app service returns report records that keep the current query's required detail list:
+
+- handle query: requested handle, accepted problem total, and first-accepted problem detail items;
+- problem query: requested problem key, accepted handle count, and accepted handle list with each handle's first accepted UTC+8 time.
+
+Time and rating filters affect the selected rows, but report payloads do not echo those request criteria.
+
 ## Codeforces DWS Daily Rating Summary
 
-`dws_codeforces__handle_daily_rating_accepted_summary` summarizes first accepted problems by handle, UTC date, and Codeforces problem rating.
+`dws_codeforces__handle_daily_rating_accepted_summary` summarizes first accepted problems by handle and UTC+8 local date. Each row is a wide daily summary with one count column for each fixed Codeforces problem rating bucket and one count column for unrated problems.
 
 Grain:
 
 ```text
-one author_handle + accepted_date_utc + problem_rating_key
+one author_handle + accepted_date_utc_plus8
 ```
 
 Primary key:
@@ -174,21 +256,31 @@ id
 Business unique key:
 
 ```text
-author_handle + accepted_date_utc + problem_rating_key
+author_handle + accepted_date_utc_plus8
 ```
 
-Rating key rule:
+Rating columns:
 
 ```text
-problem_rating is null -> UNRATED
-problem_rating is not null -> string value of problem_rating
+rating_800_accepted_problem_count
+rating_900_accepted_problem_count
+...
+rating_3500_accepted_problem_count
+unrated_accepted_problem_count
 ```
 
 Source rule:
 
 ```text
 dwm_codeforces__handle_problem_first_accepted
-group by author_handle, first_accepted_date_utc, problem_rating_key
+group by author_handle, first_accepted_date_utc_plus8
+
+For each grouped DWM row:
+problem_rating = 800 -> rating_800_accepted_problem_count
+problem_rating = 900 -> rating_900_accepted_problem_count
+...
+problem_rating = 3500 -> rating_3500_accepted_problem_count
+problem_rating is null -> unrated_accepted_problem_count
 ```
 
 The task SQL is:
@@ -196,6 +288,35 @@ The task SQL is:
 ```text
 training-data-codeforces/src/main/resources/sql/dws/upsert_dws_codeforces__handle_daily_rating_accepted_summary.sql
 ```
+
+Internal Java query boundary:
+
+```text
+CodeforcesAcceptedSummaryQueryService
+ -> CodeforcesAcceptedSummaryRepository
+ -> JdbcCodeforcesAcceptedSummaryRepository
+ -> dws_codeforces__handle_daily_rating_accepted_summary
+```
+
+The query model supports:
+
+- requested `authorHandle`;
+- optional inclusive UTC+8 date range;
+- optional problem rating lower/upper bounds. DWS includes unrated only when both problem rating bounds are absent.
+
+The repository returns DWS atomic rows at the table grain:
+
+```text
+author_handle + accepted_date_utc_plus8
+```
+
+The app service returns only one aggregated report with:
+
+- the requested handle;
+- interval-level rating totals derived from the wide rating count columns;
+- total accepted problem count for the requested interval.
+
+Date and rating filters affect the selected rows, but report payloads do not echo those request criteria.
 
 ## SQL Task Order
 

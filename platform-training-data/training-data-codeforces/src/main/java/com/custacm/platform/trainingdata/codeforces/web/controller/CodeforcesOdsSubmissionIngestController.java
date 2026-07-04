@@ -1,6 +1,7 @@
-package com.custacm.platform.trainingdata.codeforces.web;
+package com.custacm.platform.trainingdata.codeforces.web.controller;
 
-import com.custacm.platform.trainingdata.codeforces.app.CodeforcesOdsSubmissionIngestService;
+import com.custacm.platform.trainingdata.codeforces.app.service.CodeforcesOdsSubmissionIngestService;
+import com.custacm.platform.trainingdata.codeforces.web.response.CodeforcesOdsBatchUpsertResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.HttpStatus;

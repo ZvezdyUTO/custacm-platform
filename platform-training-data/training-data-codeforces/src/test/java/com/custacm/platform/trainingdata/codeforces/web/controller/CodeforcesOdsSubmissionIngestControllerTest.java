@@ -1,8 +1,8 @@
-package com.custacm.platform.trainingdata.codeforces.web;
+package com.custacm.platform.trainingdata.codeforces.web.controller;
 
-import com.custacm.platform.trainingdata.codeforces.app.CodeforcesOdsSubmissionIngestService;
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesOdsSubmissionWriter;
-import com.custacm.platform.trainingdata.codeforces.infra.CodeforcesSubmissionParser;
+import com.custacm.platform.trainingdata.codeforces.app.service.CodeforcesOdsSubmissionIngestService;
+import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesOdsSubmissionWriter;
+import com.custacm.platform.trainingdata.codeforces.infra.parser.JacksonCodeforcesSubmissionParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -26,10 +26,10 @@ class CodeforcesOdsSubmissionIngestControllerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final CodeforcesOdsSubmissionWriter writer = mock(CodeforcesOdsSubmissionWriter.class);
     private final CodeforcesOdsSubmissionIngestService ingestService = new CodeforcesOdsSubmissionIngestService(
-            new CodeforcesSubmissionParser(objectMapper),
+            new JacksonCodeforcesSubmissionParser(objectMapper),
             writer,
             objectMapper,
-            Clock.fixed(FIXED_NOW, ZoneOffset.UTC)
+            Clock.fixed(FIXED_NOW, ZoneOffset.ofHours(8))
     );
     private final CodeforcesOdsSubmissionIngestController controller = new CodeforcesOdsSubmissionIngestController(
             ingestService

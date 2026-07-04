@@ -1,6 +1,7 @@
-package com.custacm.platform.trainingdata.codeforces.infra;
+package com.custacm.platform.trainingdata.codeforces.infra.repo;
 
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesCollectBatch;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesCollectBatch;
+import com.custacm.platform.trainingdata.codeforces.infra.parser.JacksonCodeforcesSubmissionParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,11 @@ import org.springframework.jdbc.datasource.init.ScriptUtils;
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,6 +48,8 @@ class CodeforcesWarehouseSqlTaskTest {
         try (Connection connection = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V010__create_ods_codeforces_submission.sql"));
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V011__create_codeforces_dwd_dwm_dws_tables.sql"));
+            ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V012__rename_codeforces_warehouse_time_columns_to_utc_plus8.sql"));
+            ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V013__reshape_codeforces_dws_daily_rating_summary.sql"));
         }
     }
 
@@ -53,7 +60,7 @@ class CodeforcesWarehouseSqlTaskTest {
                 Instant.parse("2026-07-03T00:00:00Z")
         );
         String fixture = new ClassPathResource(FIXTURE).getContentAsString(StandardCharsets.UTF_8);
-        var records = new CodeforcesSubmissionParser(new ObjectMapper()).parse(fixture, batch);
+        var records = new JacksonCodeforcesSubmissionParser(new ObjectMapper()).parse(fixture, batch);
         assertThat(records).hasSize(1000);
         writer.upsertBatch(batch, records);
 
@@ -81,6 +88,24 @@ class CodeforcesWarehouseSqlTaskTest {
 
         assertThat(problemKey).isEqualTo("2239:D");
         assertThat(accepted).isTrue();
+
+        Timestamp submittedAtUtcPlus8 = jdbcTemplate.queryForObject("""
+                select submitted_at_utc_plus8
+                from dwd_codeforces__submission
+                where codeforces_submission_id = 375842134
+                """, Timestamp.class);
+        Date submittedDateUtcPlus8 = jdbcTemplate.queryForObject("""
+                select submitted_date_utc_plus8
+                from dwd_codeforces__submission
+                where codeforces_submission_id = 375842134
+                """, Date.class);
+
+        assertThat(submittedAtUtcPlus8).isNotNull();
+        assertThat(submittedDateUtcPlus8).isNotNull();
+        assertThat(submittedAtUtcPlus8.toLocalDateTime())
+                .isEqualTo(LocalDateTime.parse("2026-05-24T01:04:27"));
+        assertThat(submittedDateUtcPlus8.toLocalDate())
+                .isEqualTo(LocalDate.parse("2026-05-24"));
     }
 
     private void runWarehouseTasks() throws Exception {
@@ -110,8 +135,8 @@ class CodeforcesWarehouseSqlTaskTest {
                       and problem_key is not null
                       and problem_contest_id is not null
                       and problem_index is not null
-                      and submitted_at is not null
-                      and submitted_date_utc is not null
+                      and submitted_at_utc_plus8 is not null
+                      and submitted_date_utc_plus8 is not null
                     group by author_handle, problem_key
                 ) grouped
                 """, Integer.class);
@@ -124,19 +149,9 @@ class CodeforcesWarehouseSqlTaskTest {
                 from (
                     select
                         author_handle,
-                        first_accepted_date_utc,
-                        problem_rating_key
-                    from (
-                        select
-                            author_handle,
-                            first_accepted_date_utc,
-                            case
-                                when problem_rating is null then 'UNRATED'
-                                else concat('', problem_rating)
-                            end as problem_rating_key
-                        from dwm_codeforces__handle_problem_first_accepted
-                    ) keyed
-                    group by author_handle, first_accepted_date_utc, problem_rating_key
+                        first_accepted_date_utc_plus8
+                    from dwm_codeforces__handle_problem_first_accepted
+                    group by author_handle, first_accepted_date_utc_plus8
                 ) grouped
                 """, Integer.class);
         return count == null ? 0 : count;
@@ -144,7 +159,35 @@ class CodeforcesWarehouseSqlTaskTest {
 
     private int sumAcceptedProblemCount() {
         Integer count = jdbcTemplate.queryForObject("""
-                select coalesce(sum(accepted_problem_count), 0)
+                select coalesce(sum(rating_800_accepted_problem_count), 0) +
+                    coalesce(sum(rating_900_accepted_problem_count), 0) +
+                    coalesce(sum(rating_1000_accepted_problem_count), 0) +
+                    coalesce(sum(rating_1100_accepted_problem_count), 0) +
+                    coalesce(sum(rating_1200_accepted_problem_count), 0) +
+                    coalesce(sum(rating_1300_accepted_problem_count), 0) +
+                    coalesce(sum(rating_1400_accepted_problem_count), 0) +
+                    coalesce(sum(rating_1500_accepted_problem_count), 0) +
+                    coalesce(sum(rating_1600_accepted_problem_count), 0) +
+                    coalesce(sum(rating_1700_accepted_problem_count), 0) +
+                    coalesce(sum(rating_1800_accepted_problem_count), 0) +
+                    coalesce(sum(rating_1900_accepted_problem_count), 0) +
+                    coalesce(sum(rating_2000_accepted_problem_count), 0) +
+                    coalesce(sum(rating_2100_accepted_problem_count), 0) +
+                    coalesce(sum(rating_2200_accepted_problem_count), 0) +
+                    coalesce(sum(rating_2300_accepted_problem_count), 0) +
+                    coalesce(sum(rating_2400_accepted_problem_count), 0) +
+                    coalesce(sum(rating_2500_accepted_problem_count), 0) +
+                    coalesce(sum(rating_2600_accepted_problem_count), 0) +
+                    coalesce(sum(rating_2700_accepted_problem_count), 0) +
+                    coalesce(sum(rating_2800_accepted_problem_count), 0) +
+                    coalesce(sum(rating_2900_accepted_problem_count), 0) +
+                    coalesce(sum(rating_3000_accepted_problem_count), 0) +
+                    coalesce(sum(rating_3100_accepted_problem_count), 0) +
+                    coalesce(sum(rating_3200_accepted_problem_count), 0) +
+                    coalesce(sum(rating_3300_accepted_problem_count), 0) +
+                    coalesce(sum(rating_3400_accepted_problem_count), 0) +
+                    coalesce(sum(rating_3500_accepted_problem_count), 0) +
+                    coalesce(sum(unrated_accepted_problem_count), 0)
                 from dws_codeforces__handle_daily_rating_accepted_summary
                 """, Integer.class);
         return count == null ? 0 : count;

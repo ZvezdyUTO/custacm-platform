@@ -103,10 +103,12 @@ Current implementation:
 - stores raw Codeforces submissions in `ods_codeforces__submission`;
 - stores cleaned Codeforces submission details in `dwd_codeforces__submission`;
 - stores Codeforces handle/problem first accepted intermediate facts in `dwm_codeforces__handle_problem_first_accepted`;
-- stores Codeforces handle/date/rating accepted summaries in `dws_codeforces__handle_daily_rating_accepted_summary`;
-- keeps Codeforces HTTP ingress, ingest application service, collect batch type, ODS record, parser, writer, fixture, DDL, SQL task resources, Spring config, and tests in an independent OJ module;
+- stores Codeforces handle/date daily accepted summaries with fixed rating count columns in `dws_codeforces__handle_daily_rating_accepted_summary`;
+- keeps Codeforces HTTP ingress, ingest application service, collect batch type, ODS record, parser, writer, DWD/DWM/DWS query repositories/services, fixture, DDL, SQL task resources, Spring config, and tests in an independent OJ module;
 - parses Codeforces fixture data into OJ-specific ODS records for repeatable tests;
 - writes ODS rows through `CodeforcesOdsSubmissionWriter` and its JDBC implementation;
+- reads Codeforces DWD submission rows, DWM first-accepted problem rows, and DWS daily rating accepted summary rows through OJ-owned repositories and JDBC implementations;
+- uses UTC+8 (`Asia/Shanghai`) as the canonical warehouse `datetime` / date-grain time zone for Codeforces derived tables and read-side query boundaries;
 - exposes OJ-specific ODS ingest through each OJ module under `training-data-web`;
 - uses Keycloak JWT resource-server validation for `/api/**`, matching the auth module's converter.
 - restricts OJ-specific ODS ingest to the platform `admin` role.
@@ -117,11 +119,23 @@ Current training-data module shape:
 ```text
 platform-training-data/
   training-data-codeforces/
-    app/
-    config/
-    domain/
-    infra/
-    web/
+    src/main/java/com/custacm/platform/trainingdata/codeforces/
+      app/
+        result/
+        service/
+      config/
+      domain/
+        criteria/
+        model/
+        parser/
+        repo/
+        value/
+      infra/
+        parser/
+        repo/
+      web/
+        controller/
+        response/
     src/main/resources/db/migration/
     src/main/resources/fixtures/codeforces/
     src/main/resources/sql/dwd/
@@ -130,6 +144,8 @@ platform-training-data/
     src/main/resources/sql/ods/
   training-data-web/
 ```
+
+`app` owns use-case orchestration and result types. `domain` owns business data models, value objects, repository contracts, and validated query criteria. `infra` owns source parsing and JDBC implementations. `web` owns HTTP controllers and HTTP response DTOs. `config` wires the OJ module into Spring.
 
 The OJ boundary is vertical. Codeforces owns its entrance and data organization end to end:
 
@@ -144,6 +160,10 @@ external source or fixture
 ```
 
 Codeforces DWD/DWM/DWS transforms are SQL task resources. Java scheduling/execution is not implemented yet; later Java code should trigger these SQL files rather than performing row-by-row transformation.
+
+Codeforces read-side query code may read existing warehouse tables directly through OJ-owned repositories. Current DWD/DWM/DWS query support is internal Java capability only; it is not yet exposed as an HTTP API.
+
+Training-data warehouse `datetime` and date-grain fields use UTC+8 (`Asia/Shanghai`) as the canonical local time zone. Codeforces epoch seconds are shifted to UTC+8 when building DWD `submitted_at_utc_plus8` / `submitted_date_utc_plus8`; DWM and DWS inherit the same day boundary. The default `training-data-web` datasource URL sets `serverTimezone=Asia/Shanghai`.
 
 There is currently no shared DAG/task orchestration layer. Do not reintroduce pipeline run state, scheduler, or generic task executors until the data model has a real downstream workflow. OJ-specific DWD/DWM/DWS tables should stay independent until a concrete cross-OJ product query needs a unified view or ADS table.
 

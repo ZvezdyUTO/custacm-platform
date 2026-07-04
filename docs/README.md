@@ -20,10 +20,12 @@ This repository is expected to be developed by agents. Documentation is part of 
 | Architecture | [architecture.md](architecture.md), [adr/](adr/) | Current architecture and durable decisions. |
 | API | [api.md](api.md) | Implemented HTTP contracts for auth and training-data services only. |
 | Operations | [logging.md](logging.md), [server-deployment.md](server-deployment.md), [../deploy/README.md](../deploy/README.md), [../deploy/UPDATE.md](../deploy/UPDATE.md) | Runtime, logging, deployment, and update workflows. |
-| Module docs | `*/AGENTS.md`, `*/TESTING.md`, `platform-training-data/docs/*.md` | Local module context, warehouse contracts, fixtures, and test coverage notes. |
+| Module docs | `*/AGENTS.md`, module `README.md`, `*/TESTING.md`, `platform-training-data/docs/*.md` | Local module context, file-level module maps, warehouse contracts, fixtures, and test coverage notes. |
 
 ## Update Rule
 
 When changing code, scripts, CI, deployment configuration, or module boundaries, update the matching docs in [doc-sync-map.tsv](doc-sync-map.tsv). The CI job runs [../scripts/check-doc-sync.sh](../scripts/check-doc-sync.sh) to enforce this for PRs.
+
+Every non-placeholder module with source code should have a module-level `README.md` that humans and agents can use as the local map. Keep it synchronized when files, directories, or responsibilities change.
 
 Docs-only changes should still keep links and facts consistent, but they do not require Maven verification unless they change executable examples or configuration.

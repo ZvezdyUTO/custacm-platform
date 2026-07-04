@@ -146,7 +146,7 @@ GET /module-info
 }
 ```
 
-`training-data-web` 启动时也会应用内部 Codeforces ODS/DWD/DWM/DWS 数仓表迁移。DWD/DWM/DWS 转换目前以 `training-data-codeforces` 内的 SQL 任务资源表示，尚未实现 Java SQL-task 执行器或公开 HTTP refresh 入口。
+`training-data-web` 启动时也会应用内部 Codeforces ODS/DWD/DWM/DWS 数仓表迁移。DWS 当前是 handle/date 粒度的内部宽表，每个固定 rating 桶和 unrated 各占一个计数列。DWD/DWM/DWS 转换目前以 `training-data-codeforces` 内的 SQL 任务资源表示，尚未实现 Java SQL-task 执行器或公开 HTTP refresh 入口。
 
 ## GET /api/auth/me
 
@@ -190,7 +190,7 @@ curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
 
 后端会生成 `batchId` / `fetchedAt`，按每条 submission 计算 `rawPayload` 和 `payloadHash`，然后幂等写入 `ods_codeforces__submission`。
 
-下游 DWD/DWM/DWS 转换目前不是 HTTP API。它们以模块资源中的幂等 SQL 任务文件存在，后续 Java 调度只需要按固定顺序触发这些 SQL。
+下游 DWD/DWM/DWS 转换目前不是 HTTP API。它们以模块资源中的幂等 SQL 任务文件存在，后续 Java 调度只需要按固定顺序触发这些 SQL；其中 DWS 会生成 handle/date 粒度的 rating 宽表汇总。
 
 ### 请求
 

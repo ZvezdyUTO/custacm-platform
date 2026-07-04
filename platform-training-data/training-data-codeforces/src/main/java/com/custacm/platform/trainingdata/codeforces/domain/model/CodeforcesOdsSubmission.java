@@ -1,4 +1,4 @@
-package com.custacm.platform.trainingdata.codeforces.domain;
+package com.custacm.platform.trainingdata.codeforces.domain.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;

@@ -1,4 +1,4 @@
-package com.custacm.platform.trainingdata.codeforces.domain;
+package com.custacm.platform.trainingdata.codeforces.domain.model;
 
 import java.time.Instant;
 import java.util.Objects;
