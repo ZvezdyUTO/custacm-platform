@@ -1,0 +1,20 @@
+server:
+  port: ${TRAINING_DATA_WEB_PORT:8082}
+
+spring:
+  application:
+    name: training-data-web
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/custacm}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/custacm/protocol/openid-connect/certs}
+  datasource:
+    url: ${TRAINING_DATA_DB_URL:jdbc:mysql://localhost:3306/custacm_training?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${TRAINING_DATA_DB_USERNAME:root}
+    password: ${TRAINING_DATA_DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration

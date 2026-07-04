@@ -1,0 +1,85 @@
+{
+  "status": "OK",
+  "result": [
+    {
+      "id": 379398914,
+      "contestId": 2237,
+      "creationTimeSeconds": 1781798091,
+      "relativeTimeSeconds": 4791,
+      "problem": {
+        "contestId": 2237,
+        "index": "G",
+        "name": "Send GCDs",
+        "type": "PROGRAMMING",
+        "points": 2750.0,
+        "rating": 2900,
+        "tags": [
+          "communication",
+          "constructive algorithms",
+          "interactive",
+          "math",
+          "number theory"
+        ]
+      },
+      "author": {
+        "contestId": 2237,
+        "participantId": 239070986,
+        "members": [
+          {
+            "handle": "tourist"
+          }
+        ],
+        "participantType": "CONTESTANT",
+        "ghost": false,
+        "room": 550,
+        "startTimeSeconds": 1781793300
+      },
+      "programmingLanguage": "C++23 (GCC 14-64, msys2)",
+      "verdict": "OK",
+      "testset": "TESTS",
+      "passedTestCount": 10,
+      "timeConsumedMillis": 375,
+      "memoryConsumedBytes": 4505600
+    },
+    {
+      "id": 379397782,
+      "contestId": 2237,
+      "creationTimeSeconds": 1781797891,
+      "relativeTimeSeconds": 4591,
+      "problem": {
+        "contestId": 2237,
+        "index": "G",
+        "name": "Send GCDs",
+        "type": "PROGRAMMING",
+        "points": 2750.0,
+        "rating": 2900,
+        "tags": [
+          "communication",
+          "constructive algorithms",
+          "interactive",
+          "math",
+          "number theory"
+        ]
+      },
+      "author": {
+        "contestId": 2237,
+        "participantId": 239070986,
+        "members": [
+          {
+            "handle": "tourist"
+          }
+        ],
+        "participantType": "CONTESTANT",
+        "ghost": false,
+        "room": 550,
+        "startTimeSeconds": 1781793300
+      },
+      "programmingLanguage": "C++23 (GCC 14-64, msys2)",
+      "verdict": "WRONG_ANSWER",
+      "testset": "PRETESTS",
+      "passedTestCount": 1,
+      "timeConsumedMillis": 93,
+      "memoryConsumedBytes": 4403200
+    }
+  ]
+}

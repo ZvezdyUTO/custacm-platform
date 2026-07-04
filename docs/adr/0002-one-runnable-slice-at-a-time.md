@@ -10,7 +10,7 @@ The project should evolve by adding one runnable slice at a time. Placeholder mo
 
 ## Consequences
 
-- `platform-auth/auth-web` is currently the only runnable backend implementation.
+- `platform-auth/auth-web` was the first runnable backend implementation; `platform-training-data/training-data-web` is the next runnable slice.
 - Placeholder modules stay out of the Maven reactor until implementation starts.
 - Avoid adding shared abstractions to `platform-common` before repeated concrete needs exist.
 - New slices must add local module docs, focused tests, and doc-sync-map entries in the same change.

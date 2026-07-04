@@ -2,23 +2,29 @@
 
 本文档记录当前已经实现并可以对外调用的后端接口。
 
-当前阶段只有 `platform-auth/auth-web` 是可运行后端模块，默认端口为 `8081`。登录、注册、密码重置、会话管理和 token 签发均由 Keycloak 负责，平台后端只校验 Keycloak JWT 并返回平台业务身份。
+当前阶段有两个可运行后端模块：
+
+- `platform-auth/auth-web`：默认端口 `8081`，负责 Keycloak JWT 解析和当前用户身份接口。
+- `platform-training-data/training-data-web`：默认端口 `8082`，负责训练数据 ODS 批量写入入口。
+
+登录、注册、密码重置、会话管理和 token 签发均由 Keycloak 负责，平台后端只校验 Keycloak JWT 并返回或使用平台业务身份。
 
 ## 基础信息
 
 默认本地地址：
 
 ```text
-http://localhost:8081
+auth-web:          http://localhost:8081
+training-data-web: http://localhost:8082
 ```
 
-部署后端口由 `BACKEND_PORT` 暴露，服务内部端口由 `AUTH_WEB_PORT` 控制。
+部署后端口由对应模块配置控制。当前 Compose 部署只覆盖 `auth-web`；`training-data-web` 的容器化部署还未接入 `deploy/`。
 
 当前后端没有自定义统一响应包裹，接口直接返回业务 JSON。
 
 ## 鉴权规则
 
-除健康检查和模块信息接口外，`/api/**` 接口都需要 Keycloak Bearer Token。
+除健康检查和模块信息接口外，`/api/**` 接口都需要 Keycloak Bearer Token。训练数据 ODS 批量写入接口还要求 token 中的平台角色为 `admin`。
 
 请求头格式：
 
@@ -52,11 +58,14 @@ student
 
 ## 接口列表
 
-| 方法 | 路径 | 鉴权 | 说明 |
-| --- | --- | --- | --- |
-| `GET` | `/health` | 否 | 后端健康检查 |
-| `GET` | `/module-info` | 否 | 当前模块信息 |
-| `GET` | `/api/auth/me` | 是 | 查询当前登录用户的平台身份 |
+| 服务 | 方法 | 路径 | 鉴权 | 说明 |
+| --- | --- | --- | --- | --- |
+| `auth-web` | `GET` | `/health` | 否 | 鉴权模块健康检查 |
+| `auth-web` | `GET` | `/module-info` | 否 | 鉴权模块信息 |
+| `auth-web` | `GET` | `/api/auth/me` | 是 | 查询当前登录用户的平台身份 |
+| `training-data-web` | `GET` | `/health` | 否 | 训练数据模块健康检查 |
+| `training-data-web` | `GET` | `/module-info` | 否 | 训练数据模块信息 |
+| `training-data-codeforces` | `POST` | `/api/training-data/ods/codeforces/submissions:batch-upsert` | `admin` | 批量写入 Codeforces submission ODS |
 
 ## GET /health
 
@@ -68,12 +77,21 @@ student
 GET /health
 ```
 
-### 响应
+### auth-web 响应
 
 ```json
 {
   "status": "UP",
   "service": "auth-web"
+}
+```
+
+### training-data-web 响应
+
+```json
+{
+  "status": "UP",
+  "service": "training-data-web"
 }
 ```
 
@@ -94,7 +112,7 @@ GET /health
 GET /module-info
 ```
 
-### 响应
+### auth-web 响应
 
 ```json
 {
@@ -114,6 +132,21 @@ GET /module-info
 | `module` | `string` | 当前业务模块 |
 | `service` | `string` | 当前 Spring Boot 服务名 |
 | `features` | `string[]` | 当前模块已经提供的能力 |
+
+### training-data-web 响应
+
+```json
+{
+  "module": "platform-training-data",
+  "service": "training-data-web",
+  "features": [
+    "oj-warehouse-modules",
+    "codeforces-ods-submission"
+  ]
+}
+```
+
+`training-data-web` 启动时也会应用内部 Codeforces ODS/DWD/DWM/DWS 数仓表迁移。DWS 当前是 handle/date 粒度的内部宽表，每个固定 rating 桶和 unrated 各占一个计数列。DWD/DWM/DWS 转换目前以 `training-data-codeforces` 内的 SQL 任务资源表示，尚未实现 Java SQL-task 执行器或公开 HTTP refresh 入口。
 
 ## GET /api/auth/me
 
@@ -151,6 +184,63 @@ curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   http://localhost:8081/api/auth/me
 ```
 
+## POST /api/training-data/ods/codeforces/submissions:batch-upsert
+
+批量写入 Codeforces submission ODS。请求体直接是 Codeforces 原始 submission 数组，不包 `{ data: [...] }`。
+
+后端会生成 `batchId` / `fetchedAt`，按每条 submission 计算 `rawPayload` 和 `payloadHash`，然后幂等写入 `ods_codeforces__submission`。
+
+下游 DWD/DWM/DWS 转换目前不是 HTTP API。它们以模块资源中的幂等 SQL 任务文件存在，后续 Java 调度只需要按固定顺序触发这些 SQL；其中 DWS 会生成 handle/date 粒度的 rating 宽表汇总。
+
+### 请求
+
+```http
+POST /api/training-data/ods/codeforces/submissions:batch-upsert
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+[
+  {
+    "id": 379398914,
+    "contestId": 2237,
+    "creationTimeSeconds": 1781798091,
+    "relativeTimeSeconds": 4791,
+    "problem": {
+      "contestId": 2237,
+      "index": "G",
+      "name": "Send GCDs",
+      "type": "PROGRAMMING",
+      "points": 2750.0,
+      "rating": 2900,
+      "tags": ["math"]
+    },
+    "author": {
+      "members": [
+        { "handle": "tourist" }
+      ],
+      "participantType": "CONTESTANT"
+    },
+    "programmingLanguage": "C++23",
+    "verdict": "OK",
+    "testset": "TESTS",
+    "passedTestCount": 10,
+    "timeConsumedMillis": 375,
+    "memoryConsumedBytes": 4505600
+  }
+]
+```
+
+### 响应
+
+```json
+{
+  "batchId": "external-codeforces-1782554400000-...",
+  "tableName": "ods_codeforces__submission",
+  "writtenRows": 1,
+  "fetchedAt": "2026-06-27T10:00:00Z"
+}
+```
+
 ## 错误行为
 
 当前错误响应还没有平台统一错误格式，认证相关错误主要由 Spring Security 处理。
@@ -161,6 +251,8 @@ curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
 | Bearer token 无效或过期 | 返回认证失败响应，通常为 `401` |
 | token 缺少 `student_identity` | 当前代码会拒绝解析该 token，后续统一错误格式时再固化响应体 |
 | token 缺少 `admin` / `student` 平台角色 | 当前代码会拒绝解析该 token，后续统一错误格式时再固化响应体 |
+| 使用 `student` 角色调用 ODS ingest | 返回 `403` |
+| ODS ingest 请求体不是数组，或缺少 OJ 必填字段 | 返回 `400` |
 
 ## 非平台后端接口
 

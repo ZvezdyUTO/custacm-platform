@@ -12,10 +12,11 @@ This is the fast entry point for future agents. It records how to navigate the r
 
 ## Current Working Shape
 
-- Root Maven reactor includes `platform-common` and `platform-auth`.
-- `platform-auth/auth-web` is the only runnable backend implementation.
+- Root Maven reactor includes `platform-common`, `platform-auth`, and `platform-training-data`.
+- `platform-auth/auth-web` is the first runnable backend implementation.
+- `platform-training-data/training-data-web` is the second runnable backend implementation. It exposes an admin-only Codeforces ODS batch-upsert API and applies Codeforces ODS/DWD/DWM/DWS table migrations.
 - `platform-common` currently contains empty shared Maven modules.
-- `platform-training-data`, `platform-blog`, `platform-editor`, `platform-article-storage`, and `frontend` are placeholders.
+- `platform-blog`, `platform-editor`, `platform-article-storage`, and `frontend` are placeholders.
 - Local deployment is under `deploy/` and currently starts Keycloak, Keycloak PostgreSQL, and `custacm-backend`.
 
 ## Agent Workflow
@@ -27,10 +28,11 @@ This is the fast entry point for future agents. It records how to navigate the r
    - architecture/module changes: [../architecture.md](../architecture.md)
    - logging changes: [../logging.md](../logging.md)
    - deployment changes: [../../deploy/README.md](../../deploy/README.md), [../../deploy/UPDATE.md](../../deploy/UPDATE.md), [../server-deployment.md](../server-deployment.md)
-4. Make the code/docs change.
-5. Run the relevant checks from [quality-gates.md](quality-gates.md).
-6. Update [../../CHANGELOG.md](../../CHANGELOG.md) using [changelog.md](changelog.md).
-7. Run [../../scripts/check-doc-sync.sh](../../scripts/check-doc-sync.sh) before PR.
+4. Read the module-level `README.md` when one exists. For non-placeholder modules with source code, create or update that README when files, directories, or responsibilities change; it should include directory layout and file-level responsibilities.
+5. Make the code/docs change.
+6. Run the relevant checks from [quality-gates.md](quality-gates.md).
+7. Update [../../CHANGELOG.md](../../CHANGELOG.md) using [changelog.md](changelog.md).
+8. Run [../../scripts/check-doc-sync.sh](../../scripts/check-doc-sync.sh) before PR.
 
 ## When Unsure
 

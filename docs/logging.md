@@ -21,6 +21,8 @@ On the server these files live under:
 
 AI log lookup uses the read-only `local-logs-mcp-server` over SSH. The server must not expose a public log query port.
 
+Every runnable Spring Boot web service in this repository must ship a `logback-spring.xml` that writes to the same file contract unless a future shared logging starter replaces the duplicated resource. Placeholder modules do not need logging files until they become runnable services.
+
 ## Required Logging Style
 
 Use one logger per class:
@@ -43,6 +45,7 @@ Rules:
 - If an exception exists, pass the `Throwable` as the final argument. Do not only log `ex.getMessage()`.
 - After request tracing is added, every request log must carry `traceId` through MDC; business code must not generate trace IDs manually.
 - User-facing copy is not a stable query key. Prefer `errorCode`, `traceId`, route path, HTTP status, and log level.
+- Schedulers and background workers must log unexpected task failures at the boundary that also records task state. The same stable `errorCode` should appear in the log and in the task or job status table.
 
 ## Log Levels
 
@@ -85,3 +88,4 @@ Before adding or changing logs:
 3. Pass `Throwable` as the final argument for exception logs.
 4. Keep sensitive data out of logs.
 5. Make the log searchable by `errorCode`, `traceId`, route path, or a stable domain key.
+6. For a new runnable `*-web` service, add `logback-spring.xml` and verify it uses `LOG_DIR`, `combined.log`, `error.log`, and the shared pattern with `traceId` and `errorCode`.
