@@ -6,12 +6,14 @@ CONTRIBUTING.md	docs/agent/doc-sync.md,.github/pull_request_template.md	Contribu
 pom.xml	docs/architecture.md,docs/agent/quality-gates.md	Root Maven build changed.
 platform-common/*	platform-common/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Shared module boundary changed.
 platform-auth/pom.xml	platform-auth/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Auth module composition changed.
-platform-auth/auth-core/*	platform-auth/auth-core/AGENTS.md,platform-auth/auth-core/TESTING.md,docs/architecture.md	Auth parsing or tests changed.
-platform-auth/auth-interface/*	platform-auth/auth-interface/AGENTS.md,docs/api.md,docs/architecture.md	Auth cross-module contract changed.
-platform-auth/auth-web/*	platform-auth/auth-web/AGENTS.md,platform-auth/auth-web/TESTING.md,docs/api.md,docs/architecture.md	Auth HTTP/security behavior changed.
+platform-auth/auth-domain/*	platform-auth/auth-domain/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Auth domain model changed.
+platform-auth/auth-app/*	platform-auth/auth-app/AGENTS.md,docs/architecture.md,docs/api.md,docs/agent/context-map.md	Auth use cases changed.
+platform-auth/auth-core/*	platform-auth/auth-core/README.md,platform-auth/auth-core/AGENTS.md,platform-auth/auth-core/TESTING.md,docs/authorization.md,docs/architecture.md	Auth parsing, shared authorization, or tests changed.
+platform-auth/auth-infra/*	platform-auth/auth-infra/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Auth persistence, password hashing, token issuing, or migrations changed.
+platform-auth/auth-web/*	platform-auth/auth-web/README.md,platform-auth/auth-web/AGENTS.md,platform-auth/auth-web/TESTING.md,docs/authorization.md,docs/api.md,docs/architecture.md	Auth HTTP/security behavior changed.
 deploy/*	deploy/AGENTS.md,deploy/README.md,deploy/UPDATE.md,docs/server-deployment.md	Deployment configuration changed.
 scripts/*	scripts/AGENTS.md,docs/agent/doc-sync.md,docs/agent/quality-gates.md,deploy/UPDATE.md,docs/server-deployment.md	Repository script behavior changed.
-platform-training-data/*	platform-training-data/AGENTS.md,docs/architecture.md,docs/api.md,docs/agent/context-map.md	Training data module or API changed.
+platform-training-data/*	platform-training-data/README.md,platform-training-data/AGENTS.md,docs/authorization.md,docs/architecture.md,docs/api.md,docs/agent/context-map.md	Training data module or API changed.
 platform-training-data/*/src/main/resources/logback-spring.xml	docs/logging.md	Logging config changed.
 platform-blog/*	platform-blog/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Blog module changed.
 platform-editor/*	platform-editor/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Editor module changed.

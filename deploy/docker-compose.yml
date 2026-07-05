@@ -1,41 +1,18 @@
 services:
-  keycloak-db:
-    image: postgres:16-alpine
+  auth-db:
+    image: mysql:8.4
     environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      MYSQL_DATABASE: ${AUTH_DB_NAME}
+      MYSQL_USER: ${AUTH_DB_USERNAME}
+      MYSQL_PASSWORD: ${AUTH_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${AUTH_DB_ROOT_PASSWORD}
     volumes:
-      - keycloak-db-data:/var/lib/postgresql/data
+      - auth-db-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p${AUTH_DB_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 10
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
-    command:
-      - start-dev
-      - --import-realm
-    environment:
-      KC_DB: postgres
-      KC_DB_URL_HOST: keycloak-db
-      KC_DB_URL_DATABASE: keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
-      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL}
-      KC_HTTP_ENABLED: "true"
-      KC_HEALTH_ENABLED: "true"
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    ports:
-      - "${KEYCLOAK_PORT}:8080"
-    volumes:
-      - ./keycloak/custacm-realm.json:/opt/keycloak/data/import/custacm-realm.json:ro
-    depends_on:
-      keycloak-db:
-        condition: service_healthy
 
   custacm-backend:
     build:
@@ -47,16 +24,24 @@ services:
         APP_PORT: 8081
     environment:
       AUTH_WEB_PORT: ${AUTH_WEB_PORT:-8081}
-      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI}
-      KEYCLOAK_JWK_SET_URI: ${KEYCLOAK_JWK_SET_URI}
+      AUTH_DB_URL: jdbc:mysql://auth-db:3306/${AUTH_DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      AUTH_DB_USERNAME: ${AUTH_DB_USERNAME}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}
+      AUTH_JWT_PRIVATE_KEY_PATH: /run/secrets/auth-private-key.pem
+      AUTH_JWT_PUBLIC_KEY_PATH: /run/secrets/auth-public-key.pem
+      AUTH_JWT_ACCESS_TOKEN_TTL: ${AUTH_JWT_ACCESS_TOKEN_TTL}
+      AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY: ${AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY}
+      AUTH_BOOTSTRAP_ADMIN_PASSWORD: ${AUTH_BOOTSTRAP_ADMIN_PASSWORD}
       LOG_DIR: /app/logs
     ports:
       - "${BACKEND_PORT}:8081"
     volumes:
       - ../logs:/app/logs
+      - ${AUTH_JWT_PRIVATE_KEY_HOST_PATH}:/run/secrets/auth-private-key.pem:ro
+      - ${AUTH_JWT_PUBLIC_KEY_HOST_PATH}:/run/secrets/auth-public-key.pem:ro
     depends_on:
-      keycloak:
-        condition: service_started
+      auth-db:
+        condition: service_healthy
 
 volumes:
-  keycloak-db-data:
+  auth-db-data:

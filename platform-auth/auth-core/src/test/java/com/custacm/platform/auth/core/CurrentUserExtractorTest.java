@@ -11,27 +11,34 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CurrentUserExtractorTest {
     @Test
-    void extractsStudentIdentityAndPlatformRole() {
+    void extractsSubjectAndPlatformRole() {
         Jwt jwt = jwt(Map.of(
-                "student_identity", "112487张三",
-                "realm_access", Map.of("roles", java.util.List.of("student"))
+                "sub", "230511213黄炳睿",
+                "role", "player"
         ));
 
         CurrentUser currentUser = CurrentUserExtractor.from(jwt);
 
-        assertThat(currentUser.studentIdentity()).isEqualTo("112487张三");
-        assertThat(currentUser.role()).isEqualTo("student");
+        assertThat(currentUser.studentIdentity()).isEqualTo("230511213黄炳睿");
+        assertThat(currentUser.role()).isEqualTo("player");
     }
 
     @Test
-    void requiresStudentIdentityClaim() {
-        Jwt jwt = jwt(Map.of(
-                "realm_access", Map.of("roles", java.util.List.of("student"))
-        ));
+    void requiresSubject() {
+        Jwt jwt = jwt(Map.of("role", "player"));
 
         assertThatThrownBy(() -> CurrentUserExtractor.from(jwt))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("student_identity");
+                .hasMessageContaining("sub");
+    }
+
+    @Test
+    void requiresPlatformRole() {
+        Jwt jwt = jwt(Map.of("sub", "230511213黄炳睿"));
+
+        assertThatThrownBy(() -> CurrentUserExtractor.from(jwt))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("role");
     }
 
     private Jwt jwt(Map<String, Object> claims) {

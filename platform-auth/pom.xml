@@ -17,8 +17,10 @@
     <name>platform-auth</name>
 
     <modules>
+        <module>auth-domain</module>
+        <module>auth-app</module>
         <module>auth-core</module>
-        <module>auth-interface</module>
+        <module>auth-infra</module>
         <module>auth-web</module>
     </modules>
 </project>

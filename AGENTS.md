@@ -8,15 +8,14 @@ Current phase: build an evolvable backend framework, not the full product.
 
 ## Current Scope
 
-- Keycloak is the only login and token issuer for this project.
+- `platform-auth/auth-web` owns login, password hashing, user management, and JWT token issuance for this project.
 - `platform-auth/auth-web` is the first runnable backend implementation.
 - `platform-training-data/training-data-web` is the second runnable backend implementation. It exposes admin-only OJ-specific ODS batch-upsert APIs and applies training-data SQL migrations with Flyway.
 - Student identity is a single immutable string in the format `fixed-length student number + real name`, for example `112487张三`.
-- The Keycloak user attribute and JWT claim name for this value is `student_identity`.
 - `studentIdentity` is the only user ID used by platform business code.
-- `platform-auth` currently validates Keycloak JWTs and exposes `student_identity` plus one `role`. It does not implement local password login.
-- The only platform roles are `admin` and `student`; business responses use a single role string, not a role list.
-- `platform-auth/auth-core` contains Keycloak JWT parsing and current-user extraction helpers.
+- `platform-auth` stores local accounts in MySQL, hashes passwords with BCrypt, signs JWTs with an RSA private key, and exposes `studentIdentity` plus one `role`.
+- Stored account roles are `admin`, `player`, and `disable`; `disable` accounts cannot authenticate. JWT roles are only `admin` or `player`. `guest` is implicit unauthenticated access; business responses use a single role string, not a role list.
+- `platform-auth/auth-core` contains platform JWT parsing and current-user extraction helpers.
 - `platform-blog`, `platform-editor`, `platform-article-storage`, `frontend`, and `deploy` are placeholders.
 - Do not implement all placeholder modules at once. Add one runnable slice at a time.
 
@@ -25,10 +24,11 @@ Current phase: build an evolvable backend framework, not the full product.
 - Business modules expose functionality upward through their own `*-web` HTTP layer.
 - Other modules should call those HTTP APIs through local client/adapters when needed.
 - Do not put business entities in `platform-common`.
-- Do not reintroduce demo-token, in-memory login, or self-issued JWT login flows unless the user explicitly changes the identity decision.
-- Passwords, login sessions, registration, reset password, and token issuance belong to Keycloak.
-- Do not split `student_identity` into separate student-number/name fields unless explicitly requested. The project decision is to treat it as one immutable business identity string.
+- Do not reintroduce demo-token or in-memory login flows unless the user explicitly changes the identity decision.
+- Passwords, account management, and token issuance belong to `platform-auth`; there is no public registration flow.
+- Do not split `studentIdentity` into separate student-number/name fields unless explicitly requested. The project decision is to treat it as one immutable business identity string.
 - Other business modules should reference users by `studentIdentity`.
+- HTTP APIs must follow the URL authorization tiers in `docs/authorization.md`: `/admin/**` is admin-only, `/player/**` is player-or-admin, and guest endpoints are public and must not parse or depend on JWTs.
 - Keep module boundaries clear:
   - `*-domain`: entities, domain types, repository interfaces, domain services.
   - `*-interface`: cross-module DTOs, request/response contracts, client contracts.
@@ -43,7 +43,7 @@ Current phase: build an evolvable backend framework, not the full product.
 - Use Spring Boot's default SLF4J/Logback stack; do not introduce a custom logging system or heavy log platform in the current phase.
 - Error logs must include a stable `errorCode`.
 - After request tracing is implemented, request logs must carry `traceId` through MDC; business code must not generate trace IDs manually.
-- Never log plaintext `student_identity`, passwords, tokens, cookies, Authorization headers, Keycloak secrets, or full personal sensitive data.
+- Never log passwords, tokens, cookies, Authorization headers, JWT signing keys, database passwords, or full personal sensitive data.
 
 ## Documentation Rules
 
@@ -94,6 +94,6 @@ For deployment configuration changes, run the relevant config checks, for exampl
 docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config
 ```
 
-For local deployment, use the Compose stack under `deploy/`, which starts Keycloak and the backend.
+For local deployment, use the Compose stack under `deploy/`, which starts auth MySQL and the backend.
 
 For docs-only changes, Maven verification is not required.

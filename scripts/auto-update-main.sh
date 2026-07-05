@@ -59,11 +59,11 @@ classify_changes() {
 
   for file in "$@"; do
     case "${file}" in
-      Dockerfile|pom.xml|deploy/docker-compose.yml|deploy/.env.example|deploy/keycloak/*|scripts/deploy.sh|scripts/server-deploy.sh)
+      Dockerfile|pom.xml|deploy/docker-compose.yml|deploy/.env.example|scripts/deploy.sh|scripts/server-deploy.sh)
         needs_full=1
         has_runtime_change=1
         ;;
-      platform-auth/pom.xml|platform-auth/auth-core/*|platform-auth/auth-interface/*|platform-auth/auth-web/*)
+      platform-auth/pom.xml|platform-auth/auth-domain/*|platform-auth/auth-app/*|platform-auth/auth-core/*|platform-auth/auth-infra/*|platform-auth/auth-web/*)
         needs_auth=1
         has_runtime_change=1
         ;;

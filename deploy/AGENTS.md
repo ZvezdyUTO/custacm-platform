@@ -4,9 +4,9 @@ This directory owns local/server deployment configuration.
 
 - `deploy/.env` is local-only and must not be committed.
 - `deploy/.env.example` is the public template; keep secrets as `change-me-*` placeholders.
-- `docker-compose.yml` currently starts `keycloak-db`, `keycloak`, and `custacm-backend`.
+- `docker-compose.yml` currently starts `auth-db` and `custacm-backend`.
 - `custacm-backend` currently runs `platform-auth/auth-web`.
-- Keycloak realm import is in `keycloak/custacm-realm.json`.
+- JWT private/public key PEM files are local secrets and must not be committed.
 
 When deployment behavior changes, update:
 

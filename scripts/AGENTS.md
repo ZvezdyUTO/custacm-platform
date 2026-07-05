@@ -17,3 +17,5 @@ Current scripts:
 - `install-log-mcp-server.sh` - installs the pinned read-only log MCP helper.
 - `check-doc-sync.sh` - verifies code/config changes include matching doc updates.
 - `check-test-policy.sh` - verifies Java modules have tests and generated test/coverage reports unless allowlisted.
+
+`auto-update-main.sh` classifies changes under `platform-auth/auth-domain`, `auth-app`, `auth-core`, `auth-infra`, and `auth-web` as `auth-web` module updates.

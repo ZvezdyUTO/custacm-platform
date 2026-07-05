@@ -19,7 +19,7 @@ Each implemented OJ is a vertical Maven module and owns its own HTTP ingress, in
 
 Do not reintroduce a unified `OdsSubmissionRecord`, `OdsSubmissionWriter`, `SourcePlatform`, or shared collect batch to flatten different OJ submission shapes.
 
-External collectors should post raw submission arrays to the OJ-specific HTTP ingest endpoint with a Keycloak token that has the platform `admin` role. The OJ module creates its own `batch_id`, `fetched_at`, `raw_payload`, and `payload_hash`, then writes through its own writer.
+External collectors should post raw submission arrays to the OJ-specific HTTP ingest endpoint with a platform JWT that has the `admin` role. The OJ module creates its own `batch_id`, `fetched_at`, `raw_payload`, and `payload_hash`, then writes through its own writer.
 
 Codeforces DWD/DWM/DWS transforms are idempotent SQL task resources. Java scheduling/execution is not implemented yet, and ADS physical tables are not implemented yet. Future cross-OJ transforms should stay independent until a concrete cross-OJ query or ADS workflow needs a unified view or wide table.
 
@@ -214,10 +214,10 @@ Each task is designed to be repeatable. DWD uses `insert ... select ... on dupli
 External collectors can write ODS through HTTP without connecting directly to the database:
 
 ```text
-POST /api/training-data/ods/codeforces/submissions:batch-upsert
+POST /api/training-data/admin/ods/codeforces/submissions:batch-upsert
 ```
 
-The endpoint requires the platform `admin` role and accepts a JSON array, not a wrapped object. Each array item is the raw source submission object for that OJ. There is no DAG/pipeline endpoint or DWD/DWM/DWS refresh HTTP endpoint in the current slice.
+The endpoint is under the platform admin URL tier, requires the platform `admin` role, and accepts a JSON array, not a wrapped object. Each array item is the raw source submission object for that OJ. There is no DAG/pipeline endpoint or DWD/DWM/DWS refresh HTTP endpoint in the current slice.
 
 ## Adding Another OJ
 

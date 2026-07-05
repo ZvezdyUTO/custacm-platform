@@ -7,8 +7,9 @@ Current state:
 - Maven parent module with independent OJ module `training-data-codeforces`, plus runnable `training-data-web`.
 - Implemented Codeforces storage targets are `ods_codeforces__submission`, `dwd_codeforces__submission`, `dwm_codeforces__handle_problem_first_accepted`, and `dws_codeforces__handle_daily_rating_accepted_summary`.
 - Codeforces owns its own HTTP ingress, ingest application service, collect batch type, ODS record, parser, writer, fixture, DDL, ODS upsert SQL, DWD/DWM/DWS SQL task resources, Spring config, and tests.
-- `training-data-web` exposes module health/info and OJ-specific ODS batch-upsert endpoints.
-- OJ-specific ODS batch-upsert endpoints require the platform `admin` role.
+- `training-data-web` exposes module health/info and OJ-specific ODS batch-upsert endpoints under `/api/training-data/admin/**`.
+- OJ-specific ODS batch-upsert endpoints require the platform `admin` role and must stay under the admin URL tier.
+- HTTP authorization follows [../docs/authorization.md](../docs/authorization.md): `/admin/**` is admin-only, `/player/**` is player/admin, and guest endpoints must not parse JWTs.
 - `training-data-web` includes MySQL runtime driver support and applies `classpath:db/migration` scripts with Flyway.
 - `training-data-web` must use the project file logging contract from [../docs/logging.md](../docs/logging.md).
 - Submission warehouse table contracts, SQL task order, and source-access notes live in [docs/ods-submission.md](docs/ods-submission.md).

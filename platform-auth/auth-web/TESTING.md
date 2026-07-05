@@ -20,9 +20,9 @@ Tests use JUnit 5 and AssertJ through `spring-boot-starter-test`.
 
 ## Covered Scenarios
 
-- `AuthControllerTest` - `GET /api/auth/me` controller logic returns `studentIdentity` and `role` from a constructed JWT.
+- `AuthWebIntegrationTest` - H2 + Flyway + RSA JWT integration coverage for login, `/api/auth/player/me`, guest endpoints ignoring bearer tokens, protected player routes, admin user operation responses, batch partial success/failure, generated passwords, deletion, unified role/password updates including `disable`, player password change including confirmation mismatch, player admin rejection, and admin self-downgrade protection.
 - `AuthModuleControllerTest` - health and module-info controller metadata.
 
 ## Notes
 
-Current tests instantiate controllers directly; they do not start a full Spring context or a live Keycloak server.
+The integration test starts a Spring context with H2, generated RSA keys, and a bootstrap admin. It does not require a live MySQL server.

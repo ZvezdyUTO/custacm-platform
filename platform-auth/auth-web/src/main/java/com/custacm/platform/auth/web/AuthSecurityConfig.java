@@ -1,30 +1,29 @@
 package com.custacm.platform.auth.web;
 
-import com.custacm.platform.auth.core.KeycloakJwtAuthenticationConverters;
+import com.custacm.platform.auth.core.PlatformSecurityConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableMethodSecurity
 public class AuthSecurityConfig {
     @Bean
-    public SecurityFilterChain authSecurityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/health", "/module-info").permitAll()
-                        .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll()
-                )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(
-                        KeycloakJwtAuthenticationConverters.jwtAuthenticationConverter()
-                )))
+    @Order(PlatformSecurityConfig.PROTECTED_CHAIN_ORDER)
+    public SecurityFilterChain authProtectedSecurityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder) throws Exception {
+        return PlatformSecurityConfig.statelessJwt(http, jwtDecoder)
+                .admin("/api/auth/admin/**")
+                .player("/api/auth/player/**")
                 .build();
+    }
+
+    @Bean
+    @Order(PlatformSecurityConfig.GUEST_CHAIN_ORDER)
+    public SecurityFilterChain authGuestSecurityFilterChain(HttpSecurity http) throws Exception {
+        return PlatformSecurityConfig.guest(http);
     }
 }

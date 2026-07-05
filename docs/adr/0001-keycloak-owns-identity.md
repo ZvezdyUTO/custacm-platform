@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted.
+Superseded by [0004-platform-owns-auth.md](0004-platform-owns-auth.md).
 
 ## Decision
 

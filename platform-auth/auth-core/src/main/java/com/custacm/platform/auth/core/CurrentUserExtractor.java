@@ -7,14 +7,23 @@ public final class CurrentUserExtractor {
     }
 
     public static CurrentUser from(Jwt jwt) {
-        String studentIdentity = requiredClaimAsString(jwt, "student_identity");
-        return new CurrentUser(studentIdentity, KeycloakRoles.platformRoleFromClaims(jwt.getClaims()));
+        String studentIdentity = requiredSubject(jwt);
+        String role = requiredClaimAsString(jwt, "role");
+        return new CurrentUser(studentIdentity, PlatformRoles.requireTokenRole(role));
+    }
+
+    private static String requiredSubject(Jwt jwt) {
+        String subject = jwt.getSubject();
+        if (subject != null && !subject.isBlank()) {
+            return subject.trim();
+        }
+        throw new IllegalArgumentException("missing JWT subject: sub");
     }
 
     private static String requiredClaimAsString(Jwt jwt, String claimName) {
         Object value = jwt.getClaims().get(claimName);
         if (value instanceof String text && !text.isBlank()) {
-            return text;
+            return text.trim();
         }
         throw new IllegalArgumentException("missing JWT claim: " + claimName);
     }

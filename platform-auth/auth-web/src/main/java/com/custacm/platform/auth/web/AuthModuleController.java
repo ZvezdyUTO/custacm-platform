@@ -20,7 +20,7 @@ public class AuthModuleController {
         return Map.of(
                 "module", "platform-auth",
                 "service", "auth-web",
-                "features", new String[]{"keycloak-jwt", "current-user"}
+                "features", new String[]{"local-login", "rsa-jwt", "user-management", "current-user"}
         );
     }
 }

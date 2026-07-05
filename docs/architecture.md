@@ -4,7 +4,7 @@
 
 The current phase creates a small, evolvable backend skeleton. It should not lock in the final product model yet.
 
-The first runnable slice is Keycloak-backed platform auth. The second runnable slice is the training-data ODS warehouse model. Other product areas are represented by directories only and should be expanded later, one module at a time.
+The first runnable slice is platform-owned auth. The second runnable slice is the training-data ODS warehouse model. Other product areas are represented by directories only and should be expanded later, one module at a time.
 
 ## Module Map
 
@@ -15,8 +15,10 @@ custacm-platform/
     common-web/
 
   platform-auth/
+    auth-domain/
+    auth-app/
     auth-core/
-    auth-interface/
+    auth-infra/
     auth-web/
 
   platform-training-data/
@@ -54,45 +56,58 @@ Do not put business concepts such as `User`, `Article`, `TrainingDataset`, or ed
 
 Current implementation:
 
-- keeps Keycloak JWT parsing and current-user extraction in `auth-core`;
-- validates Keycloak-issued JWTs;
-- extracts immutable student identity and one platform role from JWT claims;
-- exposes the current-user endpoint.
+- stores local accounts in MySQL through `auth-infra`;
+- hashes passwords with BCrypt;
+- signs access tokens with an RSA private key in `auth-web`;
+- validates platform JWTs with the matching RSA public key;
+- keeps platform JWT parsing, role-to-authority conversion, current-user extraction, and shared URL security setup in `auth-core`;
+- exposes login, current-user, own-password-change, and admin user-management endpoints.
 
-Keycloak is the source of truth for login, registration, password reset, sessions, and token issuance. Do not add local password login, demo tokens, or self-issued JWTs unless the identity decision changes explicitly.
+There is no public registration flow. Admins create users directly or through batch creation. The first admin may be bootstrapped from environment variables at startup.
 
-The only platform roles are:
+The platform roles are:
 
 ```text
 admin
-student
+player
+disable
 ```
 
-Business APIs expose a single `role` string. If Keycloak ever puts both platform roles in a token, `admin` wins.
+Business APIs expose a single `role` string when a user is authenticated. Stored login accounts can be `admin`, `player`, or `disable`; `disable` accounts cannot authenticate. Unauthenticated visitors have no `role` value and are handled only through public endpoints. JWTs only emit authenticatable roles: `admin` or `player`.
+
+HTTP authorization follows [authorization.md](authorization.md):
+
+```text
+/admin/**   -> admin-only
+/player/**  -> player or admin
+other paths  -> guest/public and do not parse JWTs
+```
+
+`admin` includes `player` capability in Spring Security authorities, so admin JWTs can call `/player/**` endpoints.
 
 The platform student identity is one immutable string:
 
 ```text
-student_identity = fixed-length student number + real name
-example: 112487张三
+studentIdentity = fixed-length student number + real name
+example: 230511213黄炳睿
 ```
-
-This value is stored as a Keycloak user attribute named `student_identity` and emitted into JWTs as the `student_identity` claim.
 
 Do not split this identity into separate `student_no` and `real_name` fields in the platform model unless the product decision changes explicitly.
 
-`studentIdentity` is the only user ID in platform business code. Other modules should store and reference this value directly when they need to associate data with a student.
+`studentIdentity` is the only user ID in platform business code. Other modules should store and reference this value directly when they need to associate data with a user. JWTs carry this value in the standard `sub` claim and carry the single role in `role`.
 
 Current auth module shape:
 
 ```text
 platform-auth/
+  auth-domain/
+  auth-app/
   auth-core/
-  auth-interface/
+  auth-infra/
   auth-web/
 ```
 
-Add `auth-domain`, `auth-app`, or `auth-infra` only when the platform needs business-owned auth or identity data beyond the immutable `student_identity` claim.
+`auth-domain` owns account entities, account roles, and repository contracts. `auth-app` owns login, failed-login retry cooldown, admin user-management use cases, generated-password handling, and app-layer result models. `auth-infra` owns JDBC persistence, BCrypt, RSA JWT issuing, and Flyway migrations. `auth-web` owns HTTP controllers and HTTP-local request/response DTOs, including admin operation responses that can return a one-time plaintext password for newly created or reset accounts. `auth-core` remains the shared platform JWT parsing, authority conversion, public-key decoder, and URL authorization library for runnable services. Other runnable services should use `auth-core` to validate JWTs and extract `studentIdentity` plus `role`; they do not depend on auth HTTP DTOs.
 
 ### platform-training-data
 
@@ -108,8 +123,8 @@ Current implementation:
 - parses Codeforces fixture data into OJ-specific ODS records for repeatable tests;
 - writes ODS rows through `CodeforcesOdsSubmissionWriter` and its JDBC implementation;
 - exposes OJ-specific ODS ingest through each OJ module under `training-data-web`;
-- uses Keycloak JWT resource-server validation for `/api/**`, matching the auth module's converter.
-- restricts OJ-specific ODS ingest to the platform `admin` role.
+- uses platform RSA JWT resource-server validation for protected `/admin/**` and `/player/**` URL tiers, matching the auth module's converter.
+- exposes OJ-specific ODS ingest under `/api/training-data/admin/**`, restricted to the platform `admin` role.
 - applies ODS/DWD/DWM/DWS table migrations from OJ modules through Flyway at `training-data-web` startup.
 
 Current training-data module shape:
@@ -180,19 +195,16 @@ Within a business module, prefer this shape:
 ```text
 web -> app -> domain
 web -> infra -> domain
-app -> interface
-web -> interface
 ```
 
 Rules:
 
 - `domain` must not depend on `app`, `infra`, or `web`.
-- `interface` must not depend on `app`, `infra`, or `web`.
 - `app` orchestrates use cases and should avoid direct infrastructure details.
 - `infra` implements repositories and remote clients.
 - `web` owns Spring Boot startup and HTTP controllers.
 
-`platform-auth` is currently a Keycloak adapter module and therefore intentionally has only `auth-core`, `auth-interface`, and `auth-web`. `platform-training-data` uses vertical OJ modules because OJ data warehouses must own their own ingress and data organization.
+`platform-auth` now follows the domain/app/infra/web split because it owns account and credential data. `platform-training-data` uses vertical OJ modules because OJ data warehouses must own their own ingress and data organization.
 
 ## Cross-Module Calls
 
@@ -263,10 +275,15 @@ Basic endpoints:
 ```text
 GET  /health
 GET  /module-info
-GET  /api/auth/me
+POST /api/auth/login
+GET  /api/auth/player/me
+PATCH /api/auth/player/me/password
+POST /api/auth/admin/users
+GET  /api/auth/admin/users
+PATCH /api/auth/admin/users/{studentIdentity}
 ```
 
-`GET /api/auth/me` requires a Keycloak bearer token.
+`/api/auth/player/**` and `/api/auth/admin/**` require a platform bearer token issued by `auth-web`. Other auth endpoints are guest endpoints unless documented otherwise.
 
 Run `training-data-web` locally:
 
@@ -285,17 +302,17 @@ Basic endpoints:
 ```text
 GET  /health
 GET  /module-info
-POST /api/training-data/ods/codeforces/submissions:batch-upsert
+POST /api/training-data/admin/ods/codeforces/submissions:batch-upsert
 ```
 
-Training-data `/api/**` endpoints require a Keycloak bearer token. ODS batch-upsert endpoints require the platform `admin` role.
+Training-data `/admin/**` endpoints require a platform bearer token with the platform `admin` role. Guest endpoints do not parse JWTs.
 
 Current response shape:
 
 ```json
 {
-  "studentIdentity": "112487张三",
-  "role": "student"
+  "studentIdentity": "230511213黄炳睿",
+  "role": "player"
 }
 ```
 

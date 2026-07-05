@@ -58,12 +58,11 @@ Rules:
 
 Never log these values:
 
-- plaintext `student_identity`
 - password, reset code, login session, token, cookie, or `Authorization` header
-- Keycloak client secret, signing key, database password, or `.env` value
+- JWT private key, signing key material, database password, or `.env` value
 - full personal information or raw request/response bodies that may contain personal data
 
-When user correlation is needed, log a hash such as `studentIdentityHash`, not the raw identity.
+When user correlation is needed, prefer a hash such as `studentIdentityHash` unless the raw `studentIdentity` is explicitly required for an operator-facing audit trail.
 
 ## Future Error Response Contract
 

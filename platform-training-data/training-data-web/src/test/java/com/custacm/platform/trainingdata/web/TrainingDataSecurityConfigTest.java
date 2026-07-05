@@ -3,9 +3,11 @@ package com.custacm.platform.trainingdata.web;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -19,6 +21,9 @@ class TrainingDataSecurityConfigTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @MockBean
+    private JwtDecoder jwtDecoder;
+
     @Test
     void healthIsPublic() throws Exception {
         mockMvc.perform(get("/health"))
@@ -26,17 +31,24 @@ class TrainingDataSecurityConfigTest {
     }
 
     @Test
+    void publicEndpointsIgnoreBearerToken() throws Exception {
+        mockMvc.perform(get("/module-info")
+                        .header("Authorization", "Bearer not-a-jwt"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void odsIngestRequiresAuthentication() throws Exception {
-        mockMvc.perform(post("/api/training-data/ods/codeforces/submissions:batch-upsert")
+        mockMvc.perform(post("/api/training-data/admin/ods/codeforces/submissions:batch-upsert")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("[]"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void odsIngestRejectsStudentRole() throws Exception {
-        mockMvc.perform(post("/api/training-data/ods/codeforces/submissions:batch-upsert")
-                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_student")))
+    void odsIngestRejectsPlayerRole() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/ods/codeforces/submissions:batch-upsert")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_player")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("[]"))
                 .andExpect(status().isForbidden());
@@ -44,7 +56,7 @@ class TrainingDataSecurityConfigTest {
 
     @Test
     void odsIngestAllowsAdminRolePastSecurity() throws Exception {
-        mockMvc.perform(post("/api/training-data/ods/codeforces/submissions:batch-upsert")
+        mockMvc.perform(post("/api/training-data/admin/ods/codeforces/submissions:batch-upsert")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("[]"))

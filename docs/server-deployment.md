@@ -9,6 +9,7 @@ Use this directory layout on the server:
 ```text
 /opt/custacm-platform/                  application repository
 /opt/custacm-platform/deploy/.env       server-only environment file
+/opt/custacm-platform/deploy/secrets/   server-only JWT key files
 /opt/custacm-platform/logs/             backend log files
 /opt/custacm-tools/local-logs-mcp-server/  pinned MCP log reader
 ```
@@ -37,14 +38,19 @@ Prepare environment variables:
 
 ```bash
 cp deploy/.env.example deploy/.env
+mkdir -p deploy/secrets
+openssl genrsa -out deploy/secrets/auth-private-key.pem 2048
+openssl rsa -in deploy/secrets/auth-private-key.pem -pubout -out deploy/secrets/auth-public-key.pem
 vim deploy/.env
 ```
 
 At minimum, change:
 
 ```env
-KEYCLOAK_ADMIN_PASSWORD=change-me-admin-password
-KEYCLOAK_DB_PASSWORD=change-me-keycloak-db-password
+AUTH_DB_PASSWORD=change-me-auth-db-password
+AUTH_DB_ROOT_PASSWORD=change-me-auth-root-password
+AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY=root
+AUTH_BOOTSTRAP_ADMIN_PASSWORD=change-me-root-password
 ```
 
 Deploy:
