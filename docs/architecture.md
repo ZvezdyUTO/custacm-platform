@@ -119,13 +119,16 @@ Current implementation:
 - stores cleaned Codeforces submission details in `dwd_codeforces__submission`;
 - stores Codeforces handle/problem first accepted intermediate facts in `dwm_codeforces__handle_problem_first_accepted`;
 - stores Codeforces handle/date/rating accepted summaries in `dws_codeforces__handle_daily_rating_accepted_summary`;
-- keeps Codeforces HTTP ingress, ingest application service, collect batch type, ODS record, parser, writer, fixture, DDL, SQL task resources, Spring config, and tests in an independent OJ module;
+- stores platform `studentIdentity` to Codeforces handle bindings in `codeforces_handle_account`;
+- keeps Codeforces HTTP ingress, ingest application service, collect batch type, ODS record, parser, writer, handle-account mapping, fixture, DDL, SQL task resources, Spring config, and tests in an independent OJ module;
 - parses Codeforces fixture data into OJ-specific ODS records for repeatable tests;
 - writes ODS rows through `CodeforcesOdsSubmissionWriter` and its JDBC implementation;
 - exposes OJ-specific ODS ingest through each OJ module under `training-data-web`;
 - uses platform RSA JWT resource-server validation for protected `/admin/**` and `/player/**` URL tiers, matching the auth module's converter.
 - exposes OJ-specific ODS ingest under `/api/training-data/admin/**`, restricted to the platform `admin` role.
-- applies ODS/DWD/DWM/DWS table migrations from OJ modules through Flyway at `training-data-web` startup.
+- exposes Codeforces handle-account creation and identity migration under `/api/training-data/admin/codeforces/**`, restricted to the platform `admin` role.
+- exposes Codeforces handle lookup by `studentIdentity` under `/api/training-data/codeforces/**` as a guest endpoint that does not parse JWTs.
+- applies ODS/DWD/DWM/DWS and Codeforces handle-account table migrations from OJ modules through Flyway at `training-data-web` startup.
 
 Current training-data module shape:
 
@@ -158,6 +161,16 @@ external source or fixture
  -> OJ DWD/DWM/DWS tables
 ```
 
+Codeforces also owns its current handle-account mapping because the only implemented binding is Codeforces-specific:
+
+```text
+studentIdentity
+ -> Codeforces handle-account app service
+ -> codeforces_handle_account
+```
+
+Admin identity migration for this mapping updates only `codeforces_handle_account.student_identity`; it does not update auth accounts and does not change the stored Codeforces handle.
+
 Codeforces DWD/DWM/DWS transforms are SQL task resources. Java scheduling/execution is not implemented yet; later Java code should trigger these SQL files rather than performing row-by-row transformation.
 
 There is currently no shared DAG/task orchestration layer. Do not reintroduce pipeline run state, scheduler, or generic task executors until the data model has a real downstream workflow. OJ-specific DWD/DWM/DWS tables should stay independent until a concrete cross-OJ product query needs a unified view or ADS table.
@@ -169,6 +182,7 @@ ODS: ods_codeforces__submission
 DWD: dwd_codeforces__submission
 DWM: dwm_codeforces__handle_problem_first_accepted
 DWS: dws_codeforces__handle_daily_rating_accepted_summary
+Codeforces handle account: codeforces_handle_account
 ADS: not implemented yet
 ```
 

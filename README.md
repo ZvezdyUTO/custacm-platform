@@ -6,7 +6,7 @@
 
 - `platform-common`：公共模块；当前保留基础公共能力，不承载业务身份模型。
 - `platform-auth`：平台自有用户管理和鉴权模块，包含本地账号、BCrypt 密码哈希、RSA JWT 签发/解析和当前用户接口。
-- `platform-training-data`：训练数据模块第一版，包含 Codeforces 垂直 OJ 数仓模块、submission ODS 存储、DWD 明细、DWM 中间事实和 DWS 汇总 SQL 任务。
+- `platform-training-data`：训练数据模块第一版，包含 Codeforces 垂直 OJ 数仓模块、submission ODS 存储、DWD 明细、DWM 中间事实、DWS 汇总 SQL 任务和 CF handle 绑定维护。
 - `platform-blog`：Blog / 内容模块占位。
 - `platform-editor`：编辑器接入模块占位。
 - `platform-article-storage`：文章存储模块占位。
@@ -67,4 +67,4 @@ curl http://localhost:8082/module-info
 ```
 
 训练数据第一版实现 Codeforces 独立 OJ 数仓链路：ODS 原始提交、DWD 标准提交明细、DWM handle-题目首次通过和 DWS handle-日期-rating 汇总。
-ODS 写入接口位于 `/api/training-data/admin/ods/codeforces/submissions:batch-upsert`，需要平台 JWT 中带 `admin` 角色。`training-data-web` 默认连接 MySQL，并通过 Flyway 应用 OJ 模块里的 ODS/DWD/DWM/DWS 建表脚本；DWD/DWM/DWS 转换目前以幂等 SQL 任务文件形式提供，Java SQL-task 执行器和 HTTP refresh 入口尚未实现。
+ODS 写入接口位于 `/api/training-data/admin/ods/codeforces/submissions:batch-upsert`，需要平台 JWT 中带 `admin` 角色。Codeforces handle 绑定维护支持管理员创建 `studentIdentity + handle`、迁移绑定的 `studentIdentity`，以及游客按 `studentIdentity` 查询 handle。`training-data-web` 默认连接 MySQL，并通过 Flyway 应用 OJ 模块里的建表脚本；DWD/DWM/DWS 转换目前以幂等 SQL 任务文件形式提供，Java SQL-task 执行器和 HTTP refresh 入口尚未实现。

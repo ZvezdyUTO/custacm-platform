@@ -34,6 +34,9 @@ POST  /api/auth/admin/users
 PATCH /api/auth/admin/users/{studentIdentity}
 
 POST  /api/training-data/admin/ods/codeforces/submissions:batch-upsert
+POST  /api/training-data/admin/codeforces/handles
+PATCH /api/training-data/admin/codeforces/handles:change-identity
+GET   /api/training-data/codeforces/handles?studentIdentity=230511213黄炳睿
 ```
 
 If an endpoint needs the current user identity, it is not a guest endpoint. Put it under `/player/**` or `/admin/**`.

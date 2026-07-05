@@ -46,6 +46,14 @@ class TrainingDataSecurityConfigTest {
     }
 
     @Test
+    void codeforcesHandleCreateRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/handles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void odsIngestRejectsPlayerRole() throws Exception {
         mockMvc.perform(post("/api/training-data/admin/ods/codeforces/submissions:batch-upsert")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_player")))
@@ -55,11 +63,37 @@ class TrainingDataSecurityConfigTest {
     }
 
     @Test
+    void codeforcesHandleCreateRejectsPlayerRole() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/handles")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_player")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void odsIngestAllowsAdminRolePastSecurity() throws Exception {
         mockMvc.perform(post("/api/training-data/admin/ods/codeforces/submissions:batch-upsert")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("[]"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void codeforcesHandleCreateAllowsAdminRolePastSecurity() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/handles")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void codeforcesHandleLookupIsPublicAndIgnoresBearerToken() throws Exception {
+        mockMvc.perform(get("/api/training-data/codeforces/handles")
+                        .param("studentIdentity", "112487张三")
+                        .header("Authorization", "Bearer not-a-jwt"))
                 .andExpect(status().isNotFound());
     }
 }

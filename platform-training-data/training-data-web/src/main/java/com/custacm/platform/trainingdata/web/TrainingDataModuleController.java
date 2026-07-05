@@ -23,7 +23,8 @@ public class TrainingDataModuleController {
                 "service", "training-data-web",
                 "features", List.of(
                         "oj-warehouse-modules",
-                        "codeforces-ods-submission"
+                        "codeforces-ods-submission",
+                        "codeforces-handle-account"
                 )
         );
     }

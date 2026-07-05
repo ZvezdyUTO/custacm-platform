@@ -2,7 +2,7 @@
 
 This module is the Codeforces vertical OJ slice for `platform-training-data`.
 
-It owns Codeforces ODS ingest, ODS/DWD/DWM/DWS schema migrations, idempotent SQL task resources, internal Java read-side query services, local fixtures, and tests. It does not expose public DWD/DWM/DWS query HTTP APIs yet.
+It owns Codeforces ODS ingest, Codeforces handle-account mapping, ODS/DWD/DWM/DWS schema migrations, idempotent SQL task resources, internal Java read-side query services, local fixtures, and tests. It does not expose public DWD/DWM/DWS query HTTP APIs yet.
 
 ## Layer Rules
 
@@ -41,6 +41,7 @@ src/main/java/com/custacm/platform/trainingdata/codeforces/
     repo/              # JDBC repository/writer implementations and SQL mapping
   web/                 # HTTP layer
     controller/        # OJ-specific controllers
+    request/           # HTTP request DTOs
     response/          # HTTP response DTOs
   config/              # Spring Bean wiring
 
@@ -75,11 +76,13 @@ src/test/java/com/custacm/platform/trainingdata/codeforces/
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/app/result/CodeforcesProblemFirstAcceptedHandleReport.java` | app | App-layer DWM problem report: accepted handle count and accepted handle list with each handle's first accepted UTC+8 time. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/app/result/CodeforcesProblemSubmissionReport.java` | app | App-layer DWD problem report: requested problem key and matching submission detail items. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/app/result/CodeforcesSubmissionItem.java` | app | App-layer DWD submission item preserving cleaned submission metadata, problem metadata, verdict, resource usage, and UTC+8 submitted time. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/app/CodeforcesHandleAccountException.java` | app | Runtime exception carrying nested stable Codeforces handle-account error codes for HTTP mapping. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/app/service/CodeforcesAcceptedSummaryQueryService.java` | app | DWS read use case; queries daily wide summary rows, applies problem rating bounds, includes unrated only when both bounds are absent, and returns only an app-layer report with rating totals and overall total. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/app/service/CodeforcesFirstAcceptedProblemQueryService.java` | app | DWM read use cases; queries repository atomic rows and returns app-layer handle problem details or problem accepted-handle lists. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/app/service/CodeforcesHandleAccountService.java` | app | Codeforces handle-account use cases: create `studentIdentity + handle`, query handle by `studentIdentity`, and migrate `studentIdentity` without changing the handle. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/app/service/CodeforcesOdsSubmissionIngestService.java` | app | Validates raw submission JSON array, creates a collect batch, parses ODS records, writes them through the writer, and returns upsert result metadata. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/app/service/CodeforcesSubmissionQueryService.java` | app | DWD read use cases; queries repository atomic rows and returns app-layer submission detail lists by handle or problem key. |
-| `src/main/java/com/custacm/platform/trainingdata/codeforces/config/CodeforcesTrainingDataConfig.java` | config | Registers parser, writer, repositories, and application services as Spring beans. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/config/CodeforcesTrainingDataConfig.java` | config | Registers parser, writer, repositories, handle-account repository, and application services as Spring beans. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/criteria/CodeforcesAcceptedSummaryCriteria.java` | domain | DWS query criteria: requested handle, optional UTC+8 accepted date range, and optional problem rating lower/upper bounds. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/criteria/CodeforcesHandleFirstAcceptedProblemCriteria.java` | domain | DWM handle query criteria: requested handle, optional UTC+8 first-accepted time range, and optional problem rating lower/upper bounds. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/criteria/CodeforcesHandleSubmissionCriteria.java` | domain | DWD handle query criteria: requested handle, optional UTC+8 submitted time range, and optional problem rating lower/upper bounds. |
@@ -88,20 +91,29 @@ src/test/java/com/custacm/platform/trainingdata/codeforces/
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/model/CodeforcesCollectBatch.java` | domain | ODS collect batch identity and fetch time; validates required batch metadata. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/model/CodeforcesDailyRatingAcceptedSummary.java` | domain | DWS read model for one handle/date row with fixed rating-bucket accepted problem counts. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/model/CodeforcesFirstAcceptedProblem.java` | domain | DWM read model for one handle's first accepted submission for one problem. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/model/CodeforcesHandleAccount.java` | domain | Codeforces handle-account mapping model keyed by platform `studentIdentity`, with one immutable handle and audit timestamps. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/model/CodeforcesOdsSubmission.java` | domain | ODS record model preserving Codeforces submission fields, raw payload, payload hash, batch id, and required-field validation. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/model/CodeforcesSubmission.java` | domain | DWD read model for one cleaned Codeforces submission row. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/parser/CodeforcesSubmissionParser.java` | domain | Parser port used by the ODS ingest application service to convert raw Codeforces payloads into ODS records without depending on an infra implementation. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/repo/CodeforcesAcceptedSummaryRepository.java` | domain | Repository contract for DWS accepted-summary queries. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/repo/CodeforcesFirstAcceptedProblemRepository.java` | domain | Repository contract for DWM first-accepted queries by handle or problem key. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/repo/CodeforcesHandleAccountRepository.java` | domain | Repository contract for Codeforces handle-account lookup, insert, and `studentIdentity` migration. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/repo/CodeforcesOdsSubmissionWriter.java` | domain | Writer contract for idempotent ODS batch upsert. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/repo/CodeforcesSubmissionRepository.java` | domain | Repository contract for DWD submission queries by handle or problem key. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/domain/value/CodeforcesProblemRatingBuckets.java` | domain | Fixed Codeforces rating bucket constants used by DWS wide-row mapping and app-layer aggregation. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/infra/parser/JacksonCodeforcesSubmissionParser.java` | infra | Jackson-backed parser implementation for Codeforces API responses or raw arrays; extracts first author handle, stores raw JSON, and computes SHA-256 payload hash. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesAcceptedSummaryRepository.java` | infra | JDBC implementation for DWS summary queries; builds optional date/rating-column predicates and maps wide rows to DWS models. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesFirstAcceptedProblemRepository.java` | infra | JDBC implementation for DWM first-accepted queries; builds optional time/rating predicates and maps rows to DWM models. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesHandleAccountRepository.java` | infra | JDBC implementation for `codeforces_handle_account`; finds by identity or handle, inserts mappings, and updates only the identity key. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesOdsSubmissionWriter.java` | infra | JDBC writer for ODS upsert; loads `sql/ods/upsert_ods_codeforces__submission.sql`, maps ODS records to named parameters, and writes UTC+8 local `fetched_at`. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesSubmissionRepository.java` | infra | JDBC implementation for DWD submission queries; builds optional time/rating predicates and maps rows to DWD models. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/web/CodeforcesHandleAccountExceptionHandler.java` | web | Maps Codeforces handle-account business errors to JSON error responses with `400`, `404`, or `409`. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/web/controller/CodeforcesHandleAccountController.java` | web | HTTP endpoints for admin create, public lookup by `studentIdentity`, and admin identity migration for Codeforces handle accounts. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/web/controller/CodeforcesOdsSubmissionIngestController.java` | web | HTTP endpoint for `POST /api/training-data/admin/ods/codeforces/submissions:batch-upsert`; converts invalid bodies to `400`. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/web/request/ChangeCodeforcesHandleIdentityRequest.java` | web | HTTP request DTO for migrating a Codeforces handle account from one `studentIdentity` to another. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/web/request/CreateCodeforcesHandleAccountRequest.java` | web | HTTP request DTO for creating a Codeforces `studentIdentity + handle` binding. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/web/response/CodeforcesHandleAccountErrorResponse.java` | web | HTTP error response DTO for Codeforces handle-account business failures. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/web/response/CodeforcesHandleAccountResponse.java` | web | HTTP response DTO for Codeforces handle-account data: `studentIdentity` and handle. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/web/response/CodeforcesOdsBatchUpsertResponse.java` | web | HTTP response DTO for Codeforces ODS batch upsert. |
 
 ## Resource File Responsibilities
@@ -112,6 +124,7 @@ src/test/java/com/custacm/platform/trainingdata/codeforces/
 | `src/main/resources/db/migration/V011__create_codeforces_dwd_dwm_dws_tables.sql` | Creates Codeforces DWD, DWM, and DWS warehouse tables with initial UTC-named columns. |
 | `src/main/resources/db/migration/V012__rename_codeforces_warehouse_time_columns_to_utc_plus8.sql` | Renames DWD/DWM/DWS warehouse time columns to explicit UTC+8 semantics. |
 | `src/main/resources/db/migration/V013__reshape_codeforces_dws_daily_rating_summary.sql` | Reshapes Codeforces DWS from handle/date/rating rows into handle/date wide rows with fixed rating count columns. |
+| `src/main/resources/db/migration/V014__create_codeforces_handle_account.sql` | Creates `codeforces_handle_account`, keyed by `student_identity` with unique `codeforces_handle`. |
 | `src/main/resources/fixtures/codeforces/README.md` | Documents fixture source, purpose, and local API replay command. |
 | `src/main/resources/fixtures/codeforces/submissions_multi_user_1000.json` | Large stable submission array fixture for local ingest and chain tests. |
 | `src/main/resources/fixtures/codeforces/submissions_multi_user_1000.metadata.json` | Metadata for the large fixture: capture time, source requests, row counts, handles, and time range. |
@@ -130,6 +143,7 @@ src/test/java/com/custacm/platform/trainingdata/codeforces/
 | DWM handle report | `CodeforcesFirstAcceptedProblemQueryService.summarizeHandleFirstAcceptedProblems` | `CodeforcesHandleFirstAcceptedProblemCriteria` | `CodeforcesFirstAcceptedProblemRepository.findHandleFirstAcceptedProblems` | `dwm_codeforces__handle_problem_first_accepted` | Requested handle, optional UTC+8 first-accepted time range, optional problem rating lower/upper bounds; bounded queries do not include unrated rows; app returns first-accepted problem details with problem metadata and first accepted UTC+8 time. |
 | DWM problem report | `CodeforcesFirstAcceptedProblemQueryService.summarizeProblemFirstAcceptedHandles` | `CodeforcesProblemFirstAcceptedHandleCriteria` | `CodeforcesFirstAcceptedProblemRepository.findProblemFirstAcceptedHandles` | `dwm_codeforces__handle_problem_first_accepted` | Requested problem key, optional UTC+8 first-accepted time range; app returns accepted handle count and handle list with each handle's first accepted UTC+8 time. |
 | DWS app report | `CodeforcesAcceptedSummaryQueryService.summarizeAcceptedProblems` | `CodeforcesAcceptedSummaryCriteria` | `CodeforcesAcceptedSummaryRepository.findDailyRatingAcceptedSummaries` | `dws_codeforces__handle_daily_rating_accepted_summary` | DB filters handle/date and can prune rows by rating columns inside the requested bounds; app-layer aggregation applies the same bounds and returns interval rating totals plus overall total. Unrated is included only when both rating bounds are absent. |
+| Codeforces handle account | `CodeforcesHandleAccountService.getByStudentIdentity` | `studentIdentity` string | `CodeforcesHandleAccountRepository.findByStudentIdentity` | `codeforces_handle_account` | Public lookup returns the Codeforces handle bound to one platform `studentIdentity`. Admin create inserts one `studentIdentity + handle`; admin identity migration updates only the `student_identity` key and leaves `codeforces_handle` unchanged. |
 
 Null time/date bounds mean no lower or upper time/date bound. Null problem rating bounds mean all rated and unrated rows. Setting either `minProblemRating` or `maxProblemRating` filters to the requested inclusive rating interval and excludes unrated rows.
 
@@ -138,16 +152,20 @@ Null time/date bounds mean no lower or upper time/date bound. Null problem ratin
 | File | Responsibility |
 | --- | --- |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/app/service/CodeforcesAcceptedSummaryQueryServiceTest.java` | Verifies DWS query service delegates criteria to its repository, applies problem rating bounds to wide rows, and returns only the app-layer rating/total report. |
+| `src/test/java/com/custacm/platform/trainingdata/codeforces/app/service/CodeforcesHandleAccountServiceTest.java` | Verifies Codeforces handle-account create, lookup, duplicate checks, missing-old-identity handling, and identity migration without handle mutation. |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/app/service/CodeforcesWarehouseQueryServiceTest.java` | Verifies DWD and DWM query services delegate criteria to repositories and return app-layer detail reports where the use case requires records. |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/domain/criteria/CodeforcesAcceptedSummaryCriteriaTest.java` | Verifies DWS criteria field pass-through and default helper behavior. |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/domain/criteria/CodeforcesWarehouseCriteriaTest.java` | Verifies DWD/DWM criteria field pass-through and default helper behavior. |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/domain/model/CodeforcesOdsSubmissionTest.java` | Verifies required ODS submission fields and validation behavior. |
+| `src/test/java/com/custacm/platform/trainingdata/codeforces/domain/model/CodeforcesHandleAccountTest.java` | Verifies Codeforces handle-account required fields and timestamp pass-through. |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/infra/parser/CodeforcesSubmissionParserTest.java` | Verifies parser behavior against fixture data, both Codeforces API-shaped responses and raw arrays. |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/infra/repo/CodeforcesWarehouseSqlTaskTest.java` | Runs ODS/DWD/DWM/DWS SQL tasks against local fixture data and validates the warehouse chain output. |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesAcceptedSummaryRepositoryTest.java` | Verifies DWS JDBC query predicates, rating-column pruning behavior, and wide-row mapping. |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesFirstAcceptedProblemRepositoryTest.java` | Verifies DWM JDBC handle/problem queries, time filters, rating filters, and row mapping. |
+| `src/test/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesHandleAccountRepositoryTest.java` | Verifies `codeforces_handle_account` insert, unique constraints, lookup by identity/handle, and identity-key update behavior. |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesOdsSubmissionWriterTest.java` | Verifies ODS JDBC writer upsert behavior and stored field values. |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesSubmissionRepositoryTest.java` | Verifies DWD JDBC handle/problem queries, time filters, rating filters, and row mapping. |
+| `src/test/java/com/custacm/platform/trainingdata/codeforces/web/CodeforcesHandleAccountControllerTest.java` | Verifies Codeforces handle-account controller request normalization, invalid-request handling, response mapping, and business error-to-HTTP-status mapping. |
 | `src/test/java/com/custacm/platform/trainingdata/codeforces/web/controller/CodeforcesOdsSubmissionIngestControllerTest.java` | Verifies ODS ingest controller success response and bad-request mapping. |
 
 ## Maintenance Rules

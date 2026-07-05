@@ -15,7 +15,7 @@ This is the fast entry point for future agents. It records how to navigate the r
 
 - Root Maven reactor includes `platform-common`, `platform-auth`, and `platform-training-data`.
 - `platform-auth/auth-web` is the first runnable backend implementation. It owns local login, account management, BCrypt password hashes, and RSA JWT issuance.
-- `platform-training-data/training-data-web` is the second runnable backend implementation. It exposes an admin-only Codeforces ODS batch-upsert API and applies Codeforces ODS/DWD/DWM/DWS table migrations.
+- `platform-training-data/training-data-web` is the second runnable backend implementation. It exposes an admin-only Codeforces ODS batch-upsert API, Codeforces handle-account APIs, and applies Codeforces ODS/DWD/DWM/DWS plus handle-account table migrations.
 - `platform-common` currently contains empty shared Maven modules.
 - `platform-blog`, `platform-editor`, `platform-article-storage`, and `frontend` are placeholders.
 - Local deployment is under `deploy/` and currently starts auth MySQL and `custacm-backend`.

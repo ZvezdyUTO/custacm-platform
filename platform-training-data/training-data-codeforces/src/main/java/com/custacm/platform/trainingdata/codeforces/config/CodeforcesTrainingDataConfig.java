@@ -2,16 +2,19 @@ package com.custacm.platform.trainingdata.codeforces.config;
 
 import com.custacm.platform.trainingdata.codeforces.app.service.CodeforcesAcceptedSummaryQueryService;
 import com.custacm.platform.trainingdata.codeforces.app.service.CodeforcesFirstAcceptedProblemQueryService;
+import com.custacm.platform.trainingdata.codeforces.app.service.CodeforcesHandleAccountService;
 import com.custacm.platform.trainingdata.codeforces.app.service.CodeforcesOdsSubmissionIngestService;
 import com.custacm.platform.trainingdata.codeforces.app.service.CodeforcesSubmissionQueryService;
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesAcceptedSummaryRepository;
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesFirstAcceptedProblemRepository;
+import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesHandleAccountRepository;
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesOdsSubmissionWriter;
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesSubmissionRepository;
 import com.custacm.platform.trainingdata.codeforces.domain.parser.CodeforcesSubmissionParser;
 import com.custacm.platform.trainingdata.codeforces.infra.parser.JacksonCodeforcesSubmissionParser;
 import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesAcceptedSummaryRepository;
 import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesFirstAcceptedProblemRepository;
+import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesHandleAccountRepository;
 import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesOdsSubmissionWriter;
 import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesSubmissionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,6 +56,13 @@ public class CodeforcesTrainingDataConfig {
     }
 
     @Bean
+    CodeforcesHandleAccountRepository codeforcesHandleAccountRepository(
+            NamedParameterJdbcTemplate jdbcTemplate
+    ) {
+        return new JdbcCodeforcesHandleAccountRepository(jdbcTemplate);
+    }
+
+    @Bean
     CodeforcesOdsSubmissionIngestService codeforcesOdsSubmissionIngestService(
             CodeforcesSubmissionParser parser,
             CodeforcesOdsSubmissionWriter writer,
@@ -80,5 +90,12 @@ public class CodeforcesTrainingDataConfig {
             CodeforcesFirstAcceptedProblemRepository repository
     ) {
         return new CodeforcesFirstAcceptedProblemQueryService(repository);
+    }
+
+    @Bean
+    CodeforcesHandleAccountService codeforcesHandleAccountService(
+            CodeforcesHandleAccountRepository repository
+    ) {
+        return new CodeforcesHandleAccountService(repository);
     }
 }

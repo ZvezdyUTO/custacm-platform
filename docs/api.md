@@ -87,6 +87,9 @@ player
 | `training-data-web` | `GET` | `/health` | 否 | 训练数据模块健康检查 |
 | `training-data-web` | `GET` | `/module-info` | 否 | 训练数据模块信息 |
 | `training-data-codeforces` | `POST` | `/api/training-data/admin/ods/codeforces/submissions:batch-upsert` | `admin` | 批量写入 Codeforces submission ODS |
+| `training-data-codeforces` | `POST` | `/api/training-data/admin/codeforces/handles` | `admin` | 管理员创建 `studentIdentity + Codeforces handle` 绑定 |
+| `training-data-codeforces` | `GET` | `/api/training-data/codeforces/handles?studentIdentity=...` | 否 | 游客按 `studentIdentity` 查询 Codeforces handle |
+| `training-data-codeforces` | `PATCH` | `/api/training-data/admin/codeforces/handles:change-identity` | `admin` | 管理员迁移 CF handle 绑定的 `studentIdentity`，不修改 handle |
 
 ## GET /health
 
@@ -143,12 +146,13 @@ GET /health
   "service": "training-data-web",
   "features": [
     "oj-warehouse-modules",
-    "codeforces-ods-submission"
+    "codeforces-ods-submission",
+    "codeforces-handle-account"
   ]
 }
 ```
 
-`training-data-web` 启动时也会应用内部 Codeforces ODS/DWD/DWM/DWS 表迁移。DWD/DWM/DWS 转换目前以 `training-data-codeforces` 内的 SQL 任务资源表示，尚未实现 Java SQL-task 执行器或公开 HTTP refresh 入口。
+`training-data-web` 启动时也会应用内部 Codeforces ODS/DWD/DWM/DWS 表迁移和 `codeforces_handle_account` 表迁移。DWD/DWM/DWS 转换目前以 `training-data-codeforces` 内的 SQL 任务资源表示，尚未实现 Java SQL-task 执行器或公开 HTTP refresh 入口。
 
 ## POST /api/auth/login
 
@@ -417,9 +421,84 @@ Content-Type: application/json
 }
 ```
 
+## POST /api/training-data/admin/codeforces/handles
+
+管理员创建一个平台 `studentIdentity` 到 Codeforces handle 的绑定。一个 `studentIdentity` 只能绑定一个 Codeforces handle；一个 Codeforces handle 也只能绑定给一个 `studentIdentity`。
+
+该接口只维护 `training-data-codeforces` 内的 `codeforces_handle_account`，不会创建或修改 auth 登录账号。
+
+### 请求
+
+```http
+POST /api/training-data/admin/codeforces/handles
+Authorization: Bearer <admin_access_token>
+Content-Type: application/json
+
+{
+  "studentIdentity": "112487张三",
+  "handle": "tourist"
+}
+```
+
+### 响应
+
+```json
+{
+  "studentIdentity": "112487张三",
+  "handle": "tourist"
+}
+```
+
+## GET /api/training-data/codeforces/handles
+
+游客按平台 `studentIdentity` 查询已绑定的 Codeforces handle。该接口是 guest endpoint，不需要 JWT，也不会解析请求里的 `Authorization` header。
+
+### 请求
+
+```http
+GET /api/training-data/codeforces/handles?studentIdentity=112487张三
+```
+
+### 响应
+
+```json
+{
+  "studentIdentity": "112487张三",
+  "handle": "tourist"
+}
+```
+
+## PATCH /api/training-data/admin/codeforces/handles:change-identity
+
+管理员迁移 Codeforces handle 绑定的 `studentIdentity`。该操作只更新 `codeforces_handle_account.student_identity`，不会修改 handle，也不会修改 auth 登录账号。
+
+如果 `newStudentIdentity` 已经绑定了 Codeforces handle，返回 `409`。
+
+### 请求
+
+```http
+PATCH /api/training-data/admin/codeforces/handles:change-identity
+Authorization: Bearer <admin_access_token>
+Content-Type: application/json
+
+{
+  "oldStudentIdentity": "112487张三",
+  "newStudentIdentity": "112488张三"
+}
+```
+
+### 响应
+
+```json
+{
+  "studentIdentity": "112488张三",
+  "handle": "tourist"
+}
+```
+
 ## 错误响应
 
-当前 auth 模块的业务错误响应：
+当前 auth 模块和 Codeforces handle-account 接口的业务错误响应：
 
 ```json
 {
@@ -439,5 +518,9 @@ Content-Type: application/json
 | 权限不足或管理员自我降级 | `403` | `AUTH_FORBIDDEN` |
 | 用户不存在 | `404` | `AUTH_USER_NOT_FOUND` |
 | 用户已存在 | `409` | `AUTH_USER_EXISTS` |
+| CF handle 绑定参数不合法 | `400` | `CODEFORCES_HANDLE_ACCOUNT_INVALID_REQUEST` |
+| CF handle 绑定不存在 | `404` | `CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND` |
+| `studentIdentity` 已绑定 CF handle | `409` | `CODEFORCES_HANDLE_ACCOUNT_IDENTITY_EXISTS` |
+| CF handle 已绑定给其它 `studentIdentity` | `409` | `CODEFORCES_HANDLE_ACCOUNT_HANDLE_EXISTS` |
 
 Spring Security 自身拦截的未认证或 token 无效请求可能返回默认 `401` / `403` 响应体。
