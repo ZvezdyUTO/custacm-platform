@@ -1,0 +1,5 @@
+tasks:
+  - id: load-a
+    sql: classpath:sqltask/insert-a.sql
+    dependsOn:
+      - missing-node

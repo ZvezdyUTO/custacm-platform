@@ -11,7 +11,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -112,11 +111,11 @@ public class JdbcCodeforcesSubmissionRepository implements CodeforcesSubmissionR
     ) {
         if (submittedFromUtcPlus8 != null) {
             predicates.add("submitted_at_utc_plus8 >= :submittedFromUtcPlus8");
-            params.addValue("submittedFromUtcPlus8", Timestamp.valueOf(submittedFromUtcPlus8));
+            params.addValue("submittedFromUtcPlus8", submittedFromUtcPlus8);
         }
         if (submittedToUtcPlus8 != null) {
             predicates.add("submitted_at_utc_plus8 <= :submittedToUtcPlus8");
-            params.addValue("submittedToUtcPlus8", Timestamp.valueOf(submittedToUtcPlus8));
+            params.addValue("submittedToUtcPlus8", submittedToUtcPlus8);
         }
     }
 
@@ -137,8 +136,7 @@ public class JdbcCodeforcesSubmissionRepository implements CodeforcesSubmissionR
     }
 
     private static LocalDateTime nullableDateTime(ResultSet rs, String columnName) throws SQLException {
-        Timestamp timestamp = rs.getTimestamp(columnName);
-        return timestamp == null ? null : timestamp.toLocalDateTime();
+        return rs.getObject(columnName, LocalDateTime.class);
     }
 
     private static LocalDate nullableDate(ResultSet rs, String columnName) throws SQLException {

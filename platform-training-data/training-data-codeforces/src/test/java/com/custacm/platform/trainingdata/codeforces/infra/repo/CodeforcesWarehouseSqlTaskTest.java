@@ -1,15 +1,21 @@
 package com.custacm.platform.trainingdata.codeforces.infra.repo;
 
+import com.custacm.platform.common.sqltask.SqlTaskRunStatus;
+import com.custacm.platform.common.sqltask.SqlTaskRunner;
+import com.custacm.platform.trainingdata.codeforces.app.warehouse.CodeforcesWarehouseRefreshService;
 import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesCollectBatch;
 import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesOdsSubmission;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesWarehouseRefreshInterval;
 import com.custacm.platform.trainingdata.codeforces.infra.parser.JacksonCodeforcesSubmissionParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 
@@ -23,6 +29,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -150,20 +157,84 @@ class CodeforcesWarehouseSqlTaskTest {
         assertThat(rating800AcceptedCountOnDate("2024-01-10")).isEqualTo(1);
     }
 
-    private void runWarehouseTasks(String batchId) throws Exception {
-        execute(DWD_SQL, batchId);
-        execute(FIRST_ACCEPTED_SQL, batchId);
-        execute(DAILY_SUMMARY_SQL, batchId);
+    @Test
+    void warehouseRefreshServiceRefreshesCollectedRecentWindowWhenFirstAcceptedDateMoves() {
+        CodeforcesCollectBatch initialBatch = new CodeforcesCollectBatch(
+                "batch-first-accepted-initial",
+                Instant.parse("2026-01-01T00:00:00Z")
+        );
+        writer.upsertBatch(initialBatch, List.of(
+                submission(10L, "alice", "A", "2024-01-10T10:00:00", "OK")
+        ));
+        CodeforcesWarehouseRefreshService service = refreshService();
+
+        assertThat(service.refresh(initialBatch.batchId(), null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+        assertThat(firstAcceptedDate("1000:A")).isEqualTo(LocalDate.parse("2024-01-10"));
+        assertThat(rating800AcceptedCountOnDate("2024-01-10")).isEqualTo(1);
+
+        CodeforcesCollectBatch targetBatch = new CodeforcesCollectBatch(
+                "batch-first-accepted-target",
+                Instant.parse("2026-01-02T00:00:00Z")
+        );
+        writer.upsertBatch(targetBatch, List.of(
+                submission(10L, "alice", "A", "2024-01-10T10:00:00", "OK"),
+                submission(11L, "alice", "A", "2024-01-05T10:00:00", "OK")
+        ));
+
+        assertThat(service.refresh(targetBatch.batchId(), null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+
+        assertThat(firstAcceptedDate("1000:A")).isEqualTo(LocalDate.parse("2024-01-05"));
+        assertThat(rating800AcceptedCountOnDate("2024-01-05")).isEqualTo(1);
+        assertThat(rating800AcceptedCountOnDate("2024-01-10")).isZero();
     }
 
-    private void execute(String location, String batchId) throws Exception {
+    private void runWarehouseTasks(String batchId) throws Exception {
+        Optional<CodeforcesWarehouseRefreshInterval> interval = refreshIntervalRepository().findBatchDateInterval(batchId);
+        execute(DWD_SQL, batchId, interval);
+        execute(FIRST_ACCEPTED_SQL, batchId, interval);
+        execute(DAILY_SUMMARY_SQL, batchId, interval);
+    }
+
+    private void execute(
+            String location,
+            String batchId,
+            Optional<CodeforcesWarehouseRefreshInterval> interval
+    ) throws Exception {
         String sql = new ClassPathResource(location).getContentAsString(StandardCharsets.UTF_8);
-        MapSqlParameterSource parameters = new MapSqlParameterSource("batchId", batchId);
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("batchId", batchId)
+                .addValue(
+                        "refreshFromDateUtcPlus8",
+                        interval.map(CodeforcesWarehouseRefreshInterval::fromDateUtcPlus8)
+                                .map(Date::valueOf)
+                                .orElse(null)
+                )
+                .addValue(
+                        "refreshToDateUtcPlus8",
+                        interval.map(CodeforcesWarehouseRefreshInterval::toDateUtcPlus8)
+                                .map(Date::valueOf)
+                                .orElse(null)
+                );
         for (String statement : sql.split(";")) {
             if (!statement.isBlank()) {
                 namedJdbcTemplate.update(statement, parameters);
             }
         }
+    }
+
+    private CodeforcesWarehouseRefreshService refreshService() {
+        return new CodeforcesWarehouseRefreshService(
+                new SqlTaskRunner(
+                        namedJdbcTemplate,
+                        new DataSourceTransactionManager(dataSource),
+                        new DefaultResourceLoader()
+                ),
+                refreshIntervalRepository()
+        );
+    }
+
+    private JdbcCodeforcesWarehouseRefreshIntervalRepository refreshIntervalRepository() {
+        return new JdbcCodeforcesWarehouseRefreshIntervalRepository(namedJdbcTemplate);
     }
 
     private CodeforcesOdsSubmission submission(
@@ -260,6 +331,16 @@ class CodeforcesWarehouseSqlTaskTest {
                 """, Long.class, problemKey);
     }
 
+    private LocalDate firstAcceptedDate(String problemKey) {
+        Date date = jdbcTemplate.queryForObject("""
+                select first_accepted_date_utc_plus8
+                from dwm_codeforces__handle_problem_first_accepted
+                where author_handle = 'alice'
+                  and problem_key = ?
+                """, Date.class, problemKey);
+        return date == null ? null : date.toLocalDate();
+    }
+
     private List<String> firstAcceptedProblemKeysOnDate(String date) {
         return jdbcTemplate.queryForList("""
                 select problem_key
@@ -270,13 +351,13 @@ class CodeforcesWarehouseSqlTaskTest {
     }
 
     private int rating800AcceptedCountOnDate(String date) {
-        Integer count = jdbcTemplate.queryForObject("""
+        List<Integer> counts = jdbcTemplate.queryForList("""
                 select rating_800_accepted_problem_count
                 from dws_codeforces__handle_daily_rating_accepted_summary
                 where author_handle = 'alice'
                   and accepted_date_utc_plus8 = ?
                 """, Integer.class, Date.valueOf(LocalDate.parse(date)));
-        return count == null ? 0 : count;
+        return counts.isEmpty() ? 0 : counts.get(0);
     }
 
     private int count(String tableName) {

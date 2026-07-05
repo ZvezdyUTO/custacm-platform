@@ -34,8 +34,10 @@ POST  /api/auth/admin/users
 PATCH /api/auth/admin/users/{studentIdentity}
 
 POST  /api/training-data/admin/ods/codeforces/submissions:batch-upsert
+POST  /api/training-data/admin/codeforces/submissions:collect
 POST  /api/training-data/admin/codeforces/handles
 PATCH /api/training-data/admin/codeforces/handles:change-identity
+POST  /api/training-data/admin/codeforces/warehouse:refresh
 GET   /api/training-data/codeforces/handles?studentIdentity=230511213黄炳睿
 GET   /api/training-data/codeforces/accepted-summary?studentIdentity=230511213黄炳睿
 GET   /api/training-data/codeforces/submissions/by-student?studentIdentity=230511213黄炳睿

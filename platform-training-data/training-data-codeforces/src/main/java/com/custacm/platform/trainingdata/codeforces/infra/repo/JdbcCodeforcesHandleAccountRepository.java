@@ -26,6 +26,16 @@ public class JdbcCodeforcesHandleAccountRepository implements CodeforcesHandleAc
     }
 
     @Override
+    public List<CodeforcesHandleAccount> findAll() {
+        return jdbcTemplate.query("""
+                        select student_identity, codeforces_handle, created_at, updated_at
+                        from codeforces_handle_account
+                        order by student_identity
+                        """,
+                ROW_MAPPER);
+    }
+
+    @Override
     public Optional<CodeforcesHandleAccount> findByStudentIdentity(String studentIdentity) {
         List<CodeforcesHandleAccount> accounts = jdbcTemplate.query("""
                         select student_identity, codeforces_handle, created_at, updated_at

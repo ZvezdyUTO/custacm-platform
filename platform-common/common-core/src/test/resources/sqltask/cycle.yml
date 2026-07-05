@@ -1,0 +1,9 @@
+tasks:
+  - id: load-a
+    sql: classpath:sqltask/insert-a.sql
+    dependsOn:
+      - load-b
+  - id: load-b
+    sql: classpath:sqltask/insert-b.sql
+    dependsOn:
+      - load-a

@@ -99,6 +99,27 @@ class JdbcCodeforcesFirstAcceptedProblemRepositoryTest {
                 );
     }
 
+    @Test
+    void preservesStoredUtcPlus8FirstAcceptedLocalDateTime() {
+        CodeforcesProblemFirstAcceptedHandleCriteria query = new CodeforcesProblemFirstAcceptedHandleCriteria(
+                "1000:A",
+                LocalDateTime.parse("2026-07-01T00:00:00"),
+                LocalDateTime.parse("2026-07-02T00:00:00")
+        );
+
+        var firstAcceptedProblems = repository.findProblemFirstAcceptedHandles(query);
+
+        assertThat(firstAcceptedProblems)
+                .extracting(
+                        problem -> problem.firstAcceptedSubmissionId(),
+                        problem -> problem.firstAcceptedAtUtcPlus8()
+                )
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(1001L, LocalDateTime.parse("2026-07-01T10:00:00")),
+                        org.assertj.core.groups.Tuple.tuple(1004L, LocalDateTime.parse("2026-07-01T12:00:00"))
+                );
+    }
+
     private void insertFirstAccepted(
             String handle,
             String problemKey,

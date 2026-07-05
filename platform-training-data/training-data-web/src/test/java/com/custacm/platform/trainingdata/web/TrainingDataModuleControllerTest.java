@@ -19,7 +19,9 @@ class TrainingDataModuleControllerTest {
                 .isEqualTo(List.of(
                         "oj-warehouse-modules",
                         "codeforces-ods-submission",
-                        "codeforces-handle-account"
+                        "codeforces-handle-account",
+                        "codeforces-warehouse-refresh",
+                        "codeforces-submission-collector"
                 ));
     }
 }

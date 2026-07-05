@@ -64,6 +64,19 @@ class JdbcCodeforcesHandleAccountRepositoryTest {
     }
 
     @Test
+    void findsAllHandleAccountsOrderedByStudentIdentity() {
+        repository.save(new CodeforcesHandleAccount("112488李四", "Benq", CREATED_AT, CREATED_AT));
+        repository.save(new CodeforcesHandleAccount("112487张三", "tourist", CREATED_AT, CREATED_AT));
+
+        assertThat(repository.findAll())
+                .extracting(CodeforcesHandleAccount::studentIdentity)
+                .containsExactly("112487张三", "112488李四");
+        assertThat(repository.findAll())
+                .extracting(CodeforcesHandleAccount::handle)
+                .containsExactly("tourist", "Benq");
+    }
+
+    @Test
     void databaseRejectsDuplicateIdentityAndHandle() {
         repository.save(new CodeforcesHandleAccount("112487张三", "tourist", CREATED_AT, CREATED_AT));
 

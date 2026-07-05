@@ -13,7 +13,7 @@ Implemented Codeforces tables:
 - `dwm_codeforces__handle_problem_first_accepted`
 - `dws_codeforces__handle_daily_rating_accepted_summary`
 
-Each implemented OJ is a vertical Maven module and owns its own HTTP ingress, ingest application service, collect batch type, record, parser, writer, fixture, DDL, ODS upsert SQL, DWD/DWM/DWS SQL task resources, Spring config, and tests:
+Each implemented OJ is a vertical Maven module and owns its own HTTP ingress, ingest application service, recent-lookback source collection, collect batch type, record, parser, writer, fixture, DDL, ODS upsert SQL, DWD/DWM/DWS SQL task resources, SQL task manifest, Spring config, and tests:
 
 - `training-data-codeforces`
 
@@ -21,9 +21,11 @@ Do not reintroduce a unified `OdsSubmissionRecord`, `OdsSubmissionWriter`, `Sour
 
 External collectors should post raw submission arrays to the OJ-specific HTTP ingest endpoint with a platform JWT that has the `admin` role. The OJ module creates its own `batch_id`, `fetched_at`, `raw_payload`, and `payload_hash`, then writes through its own writer.
 
-Codeforces DWD/DWM/DWS transforms are idempotent SQL task resources. Java scheduling/execution is not implemented yet, and ADS physical tables are not implemented yet. Future cross-OJ transforms should stay independent until a concrete cross-OJ query or ADS workflow needs a unified view or wide table.
+Codeforces also exposes an admin recent-lookback collection endpoint that calls the public Codeforces `user.status` API for a platform `studentIdentity` and writes matching submissions through the same ODS ingest path. The endpoint accepts `studentIdentity` and `lookbackHours`; the service resolves the identity to its bound Codeforces handle, uses its current execution instant as the right boundary, and collects submissions from that instant back by the requested number of hours. Scheduled collection currently reads all bound handles from `codeforces_handle_account` through the handle-account service and de-duplicates them by handle. Each Codeforces page request uses bounded connect/read timeouts and retries before the current handle is reported as failed.
 
-Codeforces read-side Java repositories can query existing warehouse tables directly when the target table already matches the query grain. Current DWD/DWM/DWS query support is internal Java capability, not a public HTTP API.
+Codeforces DWD/DWM/DWS transforms are idempotent SQL task resources. The current Java execution path is an admin-triggered synchronous refresh endpoint backed by the shared SQL task DAG executor; persistent task run state and ADS physical tables are not implemented yet. The Codeforces collector has a disabled-by-default Spring scheduled trigger that calls the same recent-lookback collection use case; it is not a persistent pipeline scheduler. After collector ODS write, the code intentionally leaves a TODO where the future scheduler/orchestrator call should be added.
+
+Codeforces read-side Java repositories can query existing warehouse tables directly when the target table already matches the query grain. Current DWD/DWM/DWS query support is also exposed through guest HTTP query endpoints.
 
 ## Codeforces Java Package Layout
 
@@ -32,24 +34,35 @@ Codeforces is still one vertical OJ Maven module. The Java packages are split by
 ```text
 codeforces/
   app/
-    result/      # application-level result records returned by use cases
-    service/     # ingest/query use-case orchestration; no SQL construction here
-  config/        # Spring Bean wiring for Codeforces services and adapters
+    account/     # Codeforces handle-account use cases and app errors
+    collector/   # recent-lookback submission collection use case and collection results
+    ingest/      # ODS ingest use case and ingest results
+    query/       # DWD/DWM/DWS read use cases and query results
+    warehouse/   # admin SQL task refresh use case
+  collector/
+    config/      # typed Codeforces source and schedule properties
+  config/        # Spring Bean wiring for Codeforces services, ports, adapters, and shared SQL runner
   domain/
+    collector/   # external Codeforces source client port
     criteria/    # repository query criteria records and default filter helpers
     model/       # ODS/DWD/DWM/DWS records and read models
     parser/      # parser ports consumed by application services
     repo/        # repository/writer interfaces owned by the domain boundary
     value/       # reusable constants such as fixed rating buckets
   infra/
+    collector/   # external Codeforces HTTP clients
     parser/      # external Codeforces payload parsing into OJ-owned records
     repo/        # JDBC implementations and SQL-facing row mapping
+  scheduler/     # Spring scheduled adapters that invoke app use cases
   web/
-    controller/  # OJ-specific HTTP endpoints
-    response/    # HTTP response DTOs
+    account/     # handle-account controller, requests, responses, and error mapping
+    collector/   # submission-collection controller, requests, responses, and error mapping
+    ingest/      # ODS ingest controller and response DTOs
+    query/       # public warehouse query controller and response DTOs
+    warehouse/   # warehouse refresh controller, request DTO, and error mapping
 ```
 
-Tests mirror the same package layout under `src/test/java`.
+Tests mirror the same feature-oriented package layout under `src/test/java`.
 
 ## Warehouse Time Zone
 
@@ -70,6 +83,8 @@ https://codeforces.com/api/user.status?handle=tourist&from=1&count=2
 The reusable local chain-test fixture is `training-data-codeforces/src/main/resources/fixtures/codeforces/submissions_multi_user_1000.json`. It contains 1000 unique submissions captured once from multiple `user.status` requests on `2026-07-03`, with submission times spanning `2022-10-15T14:36:48Z` through `2026-07-03T02:41:35Z`.
 
 Fixture metadata is stored next to the data in `submissions_multi_user_1000.metadata.json`. See [test-data.md](test-data.md) for the source URLs and local API replay command. Do not make default tests or local chain checks refresh this data from Codeforces.
+
+The internal collector uses `user.status` with `handle`, 1-based `from`, and `count` pagination. Codeforces returns newest submissions first and does not accept a time-window parameter, so the collector pages per handle, filters by `creationTimeSeconds` against the service-computed `[now - lookback, now)` window, and stops when a returned page is smaller than the configured page size or when a full page is older than the requested window. Default tests use fake clients or local HTTP servers; they must not call live Codeforces.
 
 ## Codeforces ODS Fields
 
@@ -328,7 +343,7 @@ Date and rating filters affect the selected rows, but report payloads do not ech
 
 ## SQL Task Order
 
-Run the SQL tasks in this order, passing the same named parameter `batchId` to each task:
+Run the SQL tasks in this order. The refresh service passes `batchId` plus the effective UTC+8 refresh interval as `refreshFromDateUtcPlus8` and `refreshToDateUtcPlus8`:
 
 ```text
 sql/dwd/upsert_dwd_codeforces__submission.sql
@@ -336,9 +351,19 @@ sql/dwm/upsert_dwm_codeforces__handle_problem_first_accepted.sql
 sql/dws/upsert_dws_codeforces__handle_daily_rating_accepted_summary.sql
 ```
 
-Each task is designed to be repeatable for the UTC+8 date interval covered by the batch. The interval is the inclusive date range derived from the batch's ODS `creation_time_seconds` values after converting them to UTC+8 local dates, so it covers the full min/max submission time span. Before inserting, DWD deletes rows whose `submitted_date_utc_plus8` is inside that interval, DWM deletes rows whose `first_accepted_date_utc_plus8` is inside that interval, and DWS deletes rows whose `accepted_date_utc_plus8` is inside that interval. The insert side then reloads the same date segment from the lower table. DWM still ranks against all DWD accepted submissions to preserve the global first-accepted rule, then only inserts first-accepted rows whose final first-accepted date falls inside the batch date interval.
+The executable manifest is:
 
-Java code should trigger these SQL files as set-based database work with `batchId`; it should not read rows into Java and transform them one by one.
+```text
+training-data-codeforces/src/main/resources/sql/tasks/codeforces-warehouse-refresh.yml
+```
+
+The shared SQL task runner reads this manifest on every refresh request, rebuilds the adjacency-list graph, checks that it is a DAG, and then executes the topological plan.
+
+Each task is designed to be repeatable for the effective UTC+8 date interval. The initial interval is the inclusive date range derived from the batch's ODS `creation_time_seconds` values after converting them to UTC+8 local dates, so it covers the full min/max submission time span. If the `batchId` has no ODS rows with `creation_time_seconds`, the refresh request is rejected before SQL task execution instead of running a no-op refresh with an empty interval. Before inserting, DWD deletes rows whose `submitted_date_utc_plus8` is inside that interval, DWM deletes rows whose `first_accepted_date_utc_plus8` is inside that interval, and DWS deletes rows whose `accepted_date_utc_plus8` is inside that interval. The insert side then reloads the same date segment from the lower table. DWM still ranks against all DWD accepted submissions to preserve the global first-accepted rule, then only inserts first-accepted rows whose final first-accepted date falls inside the effective interval.
+
+After a successful run, Java compares affected accepted handle/problem pairs against the previous DWM first-accepted dates and the current DWD global first-accepted dates. If a first-accepted fact moved outside the original batch interval, the service expands the effective interval to the min/max affected dates and reruns the same SQL task DAG. It repeats until the interval is stable, which prevents DWS from retaining a stale summary row on the old first-accepted date.
+
+Java code triggers these SQL files as set-based database work and may query interval/impact metadata; it must not read rows into Java and transform them one by one.
 
 ## HTTP Ingest
 
@@ -348,7 +373,49 @@ External collectors can write ODS through HTTP without connecting directly to th
 POST /api/training-data/admin/ods/codeforces/submissions:batch-upsert
 ```
 
-The endpoint requires the platform `admin` role and accepts a JSON array, not a wrapped object. Each array item is the raw source submission object for that OJ. There is no DAG/pipeline endpoint or DWD/DWM/DWS refresh HTTP endpoint in the current slice.
+The endpoint requires the platform `admin` role and accepts a JSON array, not a wrapped object. Each array item is the raw source submission object for that OJ.
+
+## HTTP Collection
+
+Admins can ask the backend to collect Codeforces submissions for a recent lookback window:
+
+```text
+POST /api/training-data/admin/codeforces/submissions:collect
+```
+
+Request body:
+
+```json
+{
+  "studentIdentity": "112487张三",
+  "lookbackHours": 120
+}
+```
+
+`studentIdentity` must have a Codeforces handle binding and `lookbackHours` must be positive. The service computes `[now - lookbackHours, now)` at execution time and compares that window to each source submission's `creationTimeSeconds`. The endpoint is admin-only. A successful run returns aggregate status plus the resolved handle's result and echoes the computed `windowStartInclusive` / `windowEndExclusive` in the response. Each Codeforces page request defaults to `connect-timeout=10s`, `read-timeout=30s`, and `max-request-attempts=3`. If the handle request still fails after those attempts, the collector writes no rows, logs a stable `errorCode` with a handle hash, and returns the failed handle's error code/message in the response.
+
+The current scheduled collection path returns all handles from `codeforces_handle_account` in stable `student_identity` order and de-duplicates by handle before requesting Codeforces. Do not add scheduled collection filtering directly in the HTTP controller; keep that logic in the collection use case or the handle-account read path.
+
+The scheduler path is driven by `platform.training-data.codeforces.collector.schedules` in `application.yml` and disabled by default. The default config file includes a `daily-recent-submissions` schedule with `enabled=false`, `cron="0 0 12 * * *"`, `zone=Asia/Shanghai`, and `lookback=120h`. When that schedule is enabled, the automatic job runs the same collection service and collects from the trigger execution instant back by the configured lookback duration.
+
+After ODS write, the collector currently does not invoke the unfinished downstream scheduler/orchestrator. The source code has a TODO at that handoff point. The existing manual SQL refresh endpoint remains available separately.
+
+After ingest returns a `batchId`, admins can refresh Codeforces DWD/DWM/DWS through:
+
+```text
+POST /api/training-data/admin/codeforces/warehouse:refresh
+```
+
+Request body:
+
+```json
+{
+  "batchId": "external-codeforces-...",
+  "startFromTaskId": "codeforces.dwm.handle_problem_first_accepted"
+}
+```
+
+`startFromTaskId` is optional. When it is present, the runner executes that task and its downstream tasks only; this is the supported manual resume path after a failed node. If the requested `batchId` has no ODS rows with `creation_time_seconds`, the endpoint returns `400` and does not start the SQL task runner. If the refresh detects that first-accepted movement expanded the effective interval, the same resume setting is used for the automatic rerun. Each SQL task uses its own transaction. A node failure stops the DAG immediately, returns `status=FAILED` with `failedTaskId`, marks downstream nodes as `SKIPPED`, and writes an error log with a stable `errorCode`.
 
 ## Adding Another OJ
 
@@ -361,5 +428,6 @@ Add a new OJ-specific slice instead of editing an existing OJ table or using a s
 5. Add `<Oj>SubmissionParser` and a local fixture.
 6. Add a JDBC writer for the new OJ table.
 7. Add OJ-owned DWD/DWM/DWS tables and SQL tasks only after the OJ has a concrete downstream query.
-8. Add parser, writer, controller, SQL task, and domain tests inside that module.
-9. Update this document, module docs, and context-map entries.
+8. Add an OJ-owned SQL task manifest and admin refresh endpoint when the SQL chain needs manual execution.
+9. Add parser, writer, controller, SQL task, refresh, and domain tests inside that module.
+10. Update this document, module docs, and context-map entries.

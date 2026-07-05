@@ -10,7 +10,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +28,7 @@ public class JdbcCodeforcesFirstAcceptedProblemRepository implements CodeforcesF
                     nullableInteger(rs, "problem_rating"),
                     rs.getString("problem_tags_json"),
                     rs.getLong("first_accepted_submission_id"),
-                    rs.getTimestamp("first_accepted_at_utc_plus8").toLocalDateTime(),
+                    rs.getObject("first_accepted_at_utc_plus8", LocalDateTime.class),
                     rs.getDate("first_accepted_date_utc_plus8").toLocalDate(),
                     rs.getString("first_accepted_language")
             );
@@ -110,11 +109,11 @@ public class JdbcCodeforcesFirstAcceptedProblemRepository implements CodeforcesF
     ) {
         if (firstAcceptedFromUtcPlus8 != null) {
             predicates.add("first_accepted_at_utc_plus8 >= :firstAcceptedFromUtcPlus8");
-            params.addValue("firstAcceptedFromUtcPlus8", Timestamp.valueOf(firstAcceptedFromUtcPlus8));
+            params.addValue("firstAcceptedFromUtcPlus8", firstAcceptedFromUtcPlus8);
         }
         if (firstAcceptedToUtcPlus8 != null) {
             predicates.add("first_accepted_at_utc_plus8 <= :firstAcceptedToUtcPlus8");
-            params.addValue("firstAcceptedToUtcPlus8", Timestamp.valueOf(firstAcceptedToUtcPlus8));
+            params.addValue("firstAcceptedToUtcPlus8", firstAcceptedToUtcPlus8);
         }
     }
 

@@ -1,23 +1,5 @@
 delete from dwd_codeforces__submission
-where submitted_date_utc_plus8 between (
-    select min(cast(timestampadd(
-        HOUR,
-        8,
-        timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
-    ) as date))
-    from ods_codeforces__submission batch_ods
-    where batch_ods.batch_id = :batchId
-      and batch_ods.creation_time_seconds is not null
-) and (
-    select max(cast(timestampadd(
-        HOUR,
-        8,
-        timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
-    ) as date))
-    from ods_codeforces__submission batch_ods
-    where batch_ods.batch_id = :batchId
-      and batch_ods.creation_time_seconds is not null
-);
+where submitted_date_utc_plus8 between :refreshFromDateUtcPlus8 and :refreshToDateUtcPlus8;
 
 insert into dwd_codeforces__submission (
     ods_submission_id,
@@ -87,29 +69,11 @@ select
     ods.payload_hash
 from ods_codeforces__submission ods
 where ods.creation_time_seconds is not null
-  and cast(timestampadd(
-        HOUR,
-        8,
-        timestampadd(SECOND, ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
-    ) as date) between (
-        select min(cast(timestampadd(
-            HOUR,
-            8,
-            timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
-        ) as date))
-        from ods_codeforces__submission batch_ods
-        where batch_ods.batch_id = :batchId
-          and batch_ods.creation_time_seconds is not null
-    ) and (
-        select max(cast(timestampadd(
-            HOUR,
-            8,
-            timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
-        ) as date))
-        from ods_codeforces__submission batch_ods
-        where batch_ods.batch_id = :batchId
-          and batch_ods.creation_time_seconds is not null
-    )
+	  and cast(timestampadd(
+	        HOUR,
+	        8,
+	        timestampadd(SECOND, ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+	    ) as date) between :refreshFromDateUtcPlus8 and :refreshToDateUtcPlus8
 on duplicate key update
     ods_submission_id = values(ods_submission_id),
     author_handle = values(author_handle),

@@ -18,3 +18,18 @@ platform:
     jwt:
       public-key: ${AUTH_JWT_PUBLIC_KEY:}
       public-key-path: ${AUTH_JWT_PUBLIC_KEY_PATH:}
+  training-data:
+    codeforces:
+      collector:
+        base-url: https://codeforces.com
+        page-size: 1000
+        connect-timeout: 10s
+        read-timeout: 30s
+        request-interval: 2s
+        max-request-attempts: 3
+        schedules:
+          - name: daily-recent-submissions
+            enabled: false
+            cron: "0 0 12 * * *"
+            zone: Asia/Shanghai
+            lookback: 120h

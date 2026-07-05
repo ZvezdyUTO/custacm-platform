@@ -18,6 +18,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.custacm.platform</groupId>
+            <artifactId>common-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>

@@ -1,0 +1,17 @@
+tasks:
+  - id: load-a
+    description: Load first test row.
+    sql: classpath:sqltask/insert-a.sql
+    timeoutSeconds: 5
+  - id: load-b
+    description: Load second test row.
+    sql: classpath:sqltask/insert-b.sql
+    dependsOn:
+      - load-a
+    timeoutSeconds: 5
+  - id: load-c
+    description: Load third test row.
+    sql: classpath:sqltask/insert-c.sql
+    dependsOn:
+      - load-b
+    timeoutSeconds: 5

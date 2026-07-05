@@ -54,6 +54,22 @@ class TrainingDataSecurityConfigTest {
     }
 
     @Test
+    void codeforcesWarehouseRefreshRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/warehouse:refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void codeforcesSubmissionCollectionRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/submissions:collect")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void odsIngestRejectsPlayerRole() throws Exception {
         mockMvc.perform(post("/api/training-data/admin/ods/codeforces/submissions:batch-upsert")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_player")))
@@ -72,6 +88,24 @@ class TrainingDataSecurityConfigTest {
     }
 
     @Test
+    void codeforcesWarehouseRefreshRejectsPlayerRole() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/warehouse:refresh")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_player")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void codeforcesSubmissionCollectionRejectsPlayerRole() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/submissions:collect")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_player")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void odsIngestAllowsAdminRolePastSecurity() throws Exception {
         mockMvc.perform(post("/api/training-data/admin/ods/codeforces/submissions:batch-upsert")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin")))
@@ -83,6 +117,24 @@ class TrainingDataSecurityConfigTest {
     @Test
     void codeforcesHandleCreateAllowsAdminRolePastSecurity() throws Exception {
         mockMvc.perform(post("/api/training-data/admin/codeforces/handles")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void codeforcesWarehouseRefreshAllowsAdminRolePastSecurity() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/warehouse:refresh")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void codeforcesSubmissionCollectionAllowsAdminRolePastSecurity() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/submissions:collect")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))

@@ -1,0 +1,17 @@
+tasks:
+  - id: codeforces.dwd.submission
+    description: Refresh Codeforces DWD submissions for the ODS batch date interval.
+    sql: classpath:sql/dwd/upsert_dwd_codeforces__submission.sql
+    timeoutSeconds: 60
+  - id: codeforces.dwm.handle_problem_first_accepted
+    description: Refresh Codeforces first-accepted handle/problem facts from DWD.
+    sql: classpath:sql/dwm/upsert_dwm_codeforces__handle_problem_first_accepted.sql
+    dependsOn:
+      - codeforces.dwd.submission
+    timeoutSeconds: 60
+  - id: codeforces.dws.handle_daily_rating_accepted_summary
+    description: Refresh Codeforces handle/date/rating accepted summary from DWM.
+    sql: classpath:sql/dws/upsert_dws_codeforces__handle_daily_rating_accepted_summary.sql
+    dependsOn:
+      - codeforces.dwm.handle_problem_first_accepted
+    timeoutSeconds: 60

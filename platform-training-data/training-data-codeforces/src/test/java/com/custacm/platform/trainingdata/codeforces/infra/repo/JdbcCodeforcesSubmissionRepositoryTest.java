@@ -100,6 +100,27 @@ class JdbcCodeforcesSubmissionRepositoryTest {
                 );
     }
 
+    @Test
+    void preservesStoredUtcPlus8SubmittedLocalDateTime() {
+        CodeforcesProblemSubmissionCriteria query = new CodeforcesProblemSubmissionCriteria(
+                "1000:A",
+                LocalDateTime.parse("2026-07-01T00:00:00"),
+                LocalDateTime.parse("2026-07-02T00:00:00")
+        );
+
+        var submissions = repository.findProblemSubmissions(query);
+
+        assertThat(submissions)
+                .extracting(
+                        submission -> submission.codeforcesSubmissionId(),
+                        submission -> submission.submittedAtUtcPlus8()
+                )
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(1001L, LocalDateTime.parse("2026-07-01T10:00:00")),
+                        org.assertj.core.groups.Tuple.tuple(1004L, LocalDateTime.parse("2026-07-01T10:30:00"))
+                );
+    }
+
     private void insertSubmission(
             long submissionId,
             String handle,

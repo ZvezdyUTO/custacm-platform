@@ -41,11 +41,11 @@ For agent navigation, keep the directory-level map in `docs/agent/context-map.md
 
 `platform-common` is a shared library area, not a service and not a container.
 
-It currently contains only general shared library modules.
+It currently contains general shared library modules and the reusable SQL task execution core.
 
 Current and expected split:
 
-- `common-core`: base types, base exceptions, error codes, general utilities.
+- `common-core`: reusable backend primitives, including the SQL task DAG runner that reads a YAML manifest on every run, rebuilds an adjacency-list graph, validates DAG shape, and executes SQL nodes with one transaction per node.
 - `common-web`: HTTP response helpers, exception handling, request context helpers.
 
 Do not put business concepts such as `User`, `Article`, `TrainingDataset`, or editor documents in common modules.
@@ -120,13 +120,15 @@ Current implementation:
 - stores Codeforces handle/problem first accepted intermediate facts in `dwm_codeforces__handle_problem_first_accepted`;
 - stores Codeforces handle/date/rating accepted summaries in `dws_codeforces__handle_daily_rating_accepted_summary`;
 - stores platform `studentIdentity` to Codeforces handle bindings in `codeforces_handle_account`;
-- keeps Codeforces HTTP ingress, ingest application service, collect batch type, ODS record, parser, writer, handle-account mapping, fixture, DDL, SQL task resources, Spring config, and tests in an independent OJ module;
+- keeps Codeforces HTTP ingress, ingest application service, recent-lookback submission collector, collect batch type, ODS record, parser, writer, handle-account mapping, fixture, DDL, SQL task resources, SQL task manifest, Spring config, and tests in an independent OJ module;
 - parses Codeforces fixture data into OJ-specific ODS records for repeatable tests;
 - writes ODS rows through `CodeforcesOdsSubmissionWriter` and its JDBC implementation;
 - exposes OJ-specific ODS ingest through each OJ module under `training-data-web`;
 - uses platform RSA JWT resource-server validation for protected `/admin/**` and `/player/**` URL tiers, matching the auth module's converter.
 - exposes OJ-specific ODS ingest under `/api/training-data/admin/**`, restricted to the platform `admin` role.
+- exposes Codeforces recent-lookback submission collection under `/api/training-data/admin/codeforces/submissions:collect`, restricted to the platform `admin` role.
 - exposes Codeforces handle-account creation and identity migration under `/api/training-data/admin/codeforces/**`, restricted to the platform `admin` role.
+- exposes Codeforces warehouse refresh under `/api/training-data/admin/codeforces/warehouse:refresh`, restricted to the platform `admin` role.
 - exposes Codeforces handle lookup by `studentIdentity` under `/api/training-data/codeforces/**` as a guest endpoint that does not parse JWTs.
 - exposes Codeforces DWD/DWM/DWS read-side query endpoints under `/api/training-data/codeforces/**` as guest endpoints that do not parse JWTs.
 - applies ODS/DWD/DWM/DWS and Codeforces handle-account table migrations from OJ modules through Flyway at `training-data-web` startup.
@@ -137,16 +139,38 @@ Current training-data module shape:
 platform-training-data/
   training-data-codeforces/
     app/
+      account/
+      collector/
+      ingest/
+      query/
+      warehouse/
+    collector/config/
     config/
     domain/
+      collector/
+      criteria/
+      model/
+      parser/
+      repo/
+      value/
     infra/
+      collector/
+      parser/
+      repo/
+    scheduler/
     web/
+      account/
+      collector/
+      ingest/
+      query/
+      warehouse/
     src/main/resources/db/migration/
     src/main/resources/fixtures/codeforces/
+    src/main/resources/sql/ods/
     src/main/resources/sql/dwd/
     src/main/resources/sql/dwm/
     src/main/resources/sql/dws/
-    src/main/resources/sql/ods/
+    src/main/resources/sql/tasks/
   training-data-web/
 ```
 
@@ -154,11 +178,11 @@ The OJ boundary is vertical. Codeforces owns its entrance and data organization 
 
 ```text
 external source or fixture
- -> OJ HTTP ingress
+ -> OJ HTTP ingress or Codeforces source client
  -> OJ ingest app service
  -> OJ parser/writer
  -> OJ ODS table
- -> OJ SQL task resources
+ -> OJ SQL task manifest and common SQL task runner
  -> OJ DWD/DWM/DWS tables
 ```
 
@@ -172,9 +196,11 @@ studentIdentity
 
 Admin identity migration for this mapping updates only `codeforces_handle_account.student_identity`; it does not update auth accounts and does not change the stored Codeforces handle.
 
-Codeforces DWD/DWM/DWS transforms are SQL task resources. Java scheduling/execution is not implemented yet; later Java code should trigger these SQL files rather than performing row-by-row transformation.
+Codeforces DWD/DWM/DWS transforms are SQL task resources. The current Java execution path is synchronous admin refresh: each request computes the batch's UTC+8 refresh interval from ODS submission times, reads the manifest, rebuilds and validates the DAG, then runs SQL files as set-based database work rather than row-by-row Java transformation. It supports manual resume with `startFromTaskId`, which executes the requested node and its downstream nodes only.
 
-There is currently no shared DAG/task orchestration layer. Do not reintroduce pipeline run state, scheduler, or generic task executors until the data model has a real downstream workflow. OJ-specific DWD/DWM/DWS tables should stay independent until a concrete cross-OJ product query needs a unified view or ADS table.
+Codeforces recent-lookback submission collection is an OJ-owned source-ingestion use case. The admin HTTP entry accepts `studentIdentity` plus a positive lookback duration, resolves the identity to its bound Codeforces handle, and computes the right boundary from the service's current execution instant. The internal handle path pages Codeforces `user.status`, applies bounded connect/read timeouts and retry attempts to each source page request, reports per-handle status, and writes successful matches into ODS. The disabled-by-default Spring scheduled trigger calls the same app service daily at 12:00 by default with a rolling 120-hour lookback and collects all handles currently bound in `codeforces_handle_account`, de-duplicated by handle. It is not the future persistent pipeline scheduler; after ODS write, the code currently leaves a TODO for the future scheduler/orchestrator handoff.
+
+There is currently no persistent pipeline run state or ADS physical table. OJ-specific DWD/DWM/DWS tables should stay independent until a concrete cross-OJ product query needs a unified view or ADS table.
 
 Current physical data layer:
 

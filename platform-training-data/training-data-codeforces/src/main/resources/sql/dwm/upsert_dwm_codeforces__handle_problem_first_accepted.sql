@@ -1,23 +1,5 @@
 delete from dwm_codeforces__handle_problem_first_accepted
-where first_accepted_date_utc_plus8 between (
-    select min(cast(timestampadd(
-        HOUR,
-        8,
-        timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
-    ) as date))
-    from ods_codeforces__submission batch_ods
-    where batch_ods.batch_id = :batchId
-      and batch_ods.creation_time_seconds is not null
-) and (
-    select max(cast(timestampadd(
-        HOUR,
-        8,
-        timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
-    ) as date))
-    from ods_codeforces__submission batch_ods
-    where batch_ods.batch_id = :batchId
-      and batch_ods.creation_time_seconds is not null
-);
+where first_accepted_date_utc_plus8 between :refreshFromDateUtcPlus8 and :refreshToDateUtcPlus8;
 
 insert into dwm_codeforces__handle_problem_first_accepted (
     author_handle,
@@ -64,25 +46,7 @@ from (
       and dwd.submitted_date_utc_plus8 is not null
 ) ranked
 where ranked.accepted_rank = 1
-  and ranked.submitted_date_utc_plus8 between (
-        select min(cast(timestampadd(
-            HOUR,
-            8,
-            timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
-        ) as date))
-        from ods_codeforces__submission batch_ods
-        where batch_ods.batch_id = :batchId
-          and batch_ods.creation_time_seconds is not null
-    ) and (
-        select max(cast(timestampadd(
-            HOUR,
-            8,
-            timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
-        ) as date))
-        from ods_codeforces__submission batch_ods
-        where batch_ods.batch_id = :batchId
-          and batch_ods.creation_time_seconds is not null
-    )
+  and ranked.submitted_date_utc_plus8 between :refreshFromDateUtcPlus8 and :refreshToDateUtcPlus8
 on duplicate key update
     problem_contest_id = values(problem_contest_id),
     problem_index = values(problem_index),
