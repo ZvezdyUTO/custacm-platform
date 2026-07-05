@@ -1,17 +1,22 @@
 delete from dws_codeforces__handle_daily_rating_accepted_summary
-where not exists (
-    select 1
-    from (
-        select
-            first_accepted.author_handle,
-            first_accepted.first_accepted_date_utc_plus8 as accepted_date_utc_plus8
-        from dwm_codeforces__handle_problem_first_accepted first_accepted
-        group by
-            first_accepted.author_handle,
-            first_accepted.first_accepted_date_utc_plus8
-    ) current_summary
-    where current_summary.author_handle = dws_codeforces__handle_daily_rating_accepted_summary.author_handle
-      and current_summary.accepted_date_utc_plus8 = dws_codeforces__handle_daily_rating_accepted_summary.accepted_date_utc_plus8
+where accepted_date_utc_plus8 between (
+    select min(cast(timestampadd(
+        HOUR,
+        8,
+        timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+    ) as date))
+    from ods_codeforces__submission batch_ods
+    where batch_ods.batch_id = :batchId
+      and batch_ods.creation_time_seconds is not null
+) and (
+    select max(cast(timestampadd(
+        HOUR,
+        8,
+        timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+    ) as date))
+    from ods_codeforces__submission batch_ods
+    where batch_ods.batch_id = :batchId
+      and batch_ods.creation_time_seconds is not null
 );
 
 insert into dws_codeforces__handle_daily_rating_accepted_summary (
@@ -80,6 +85,25 @@ select
     coalesce(sum(case when first_accepted.problem_rating = 3500 then 1 else 0 end), 0) as rating_3500_accepted_problem_count,
     coalesce(sum(case when first_accepted.problem_rating is null then 1 else 0 end), 0) as unrated_accepted_problem_count
 from dwm_codeforces__handle_problem_first_accepted first_accepted
+where first_accepted.first_accepted_date_utc_plus8 between (
+        select min(cast(timestampadd(
+            HOUR,
+            8,
+            timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+        ) as date))
+        from ods_codeforces__submission batch_ods
+        where batch_ods.batch_id = :batchId
+          and batch_ods.creation_time_seconds is not null
+    ) and (
+        select max(cast(timestampadd(
+            HOUR,
+            8,
+            timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+        ) as date))
+        from ods_codeforces__submission batch_ods
+        where batch_ods.batch_id = :batchId
+          and batch_ods.creation_time_seconds is not null
+    )
 group by
     first_accepted.author_handle,
     first_accepted.first_accepted_date_utc_plus8

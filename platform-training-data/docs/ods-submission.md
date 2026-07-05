@@ -328,7 +328,7 @@ Date and rating filters affect the selected rows, but report payloads do not ech
 
 ## SQL Task Order
 
-Run the SQL tasks in this order:
+Run the SQL tasks in this order, passing the same named parameter `batchId` to each task:
 
 ```text
 sql/dwd/upsert_dwd_codeforces__submission.sql
@@ -336,7 +336,9 @@ sql/dwm/upsert_dwm_codeforces__handle_problem_first_accepted.sql
 sql/dws/upsert_dws_codeforces__handle_daily_rating_accepted_summary.sql
 ```
 
-Each task is designed to be repeatable. DWD uses `insert ... select ... on duplicate key update`; DWM/DWS tasks delete target-grain rows that no longer exist upstream, then upsert the current derived result. Java code should trigger these SQL files as set-based database work; it should not read rows into Java and transform them one by one.
+Each task is designed to be repeatable for the UTC+8 date interval covered by the batch. The interval is the inclusive date range derived from the batch's ODS `creation_time_seconds` values after converting them to UTC+8 local dates, so it covers the full min/max submission time span. Before inserting, DWD deletes rows whose `submitted_date_utc_plus8` is inside that interval, DWM deletes rows whose `first_accepted_date_utc_plus8` is inside that interval, and DWS deletes rows whose `accepted_date_utc_plus8` is inside that interval. The insert side then reloads the same date segment from the lower table. DWM still ranks against all DWD accepted submissions to preserve the global first-accepted rule, then only inserts first-accepted rows whose final first-accepted date falls inside the batch date interval.
+
+Java code should trigger these SQL files as set-based database work with `batchId`; it should not read rows into Java and transform them one by one.
 
 ## HTTP Ingest
 

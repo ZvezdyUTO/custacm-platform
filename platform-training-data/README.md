@@ -16,7 +16,7 @@ ods_codeforces__submission
  -> dws_codeforces__handle_daily_rating_accepted_summary
 ```
 
-每个 OJ 是独立数仓域，入口和数据组织也在各自 Maven 模块里；ADS、Java SQL-task 执行器、调度器、DAG 和 HTTP refresh 入口还没有实现。
+每个 OJ 是独立数仓域，入口和数据组织也在各自 Maven 模块里；ADS、Java SQL-task 执行器、调度器、DAG 和 HTTP refresh 入口还没有实现。当前 Codeforces DWD/DWM/DWS SQL 任务资源需要执行方传入同一个 `batchId`，任务会用该 batch 的提交时间推导 UTC+8 日期闭区间，并按区间删除上层表后从下层表回填。
 
 外置采集器可通过 OJ-specific HTTP 接口写入原始 submission 数组：
 

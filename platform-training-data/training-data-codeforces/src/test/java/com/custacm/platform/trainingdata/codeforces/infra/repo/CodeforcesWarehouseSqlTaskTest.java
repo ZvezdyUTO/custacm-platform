@@ -1,12 +1,14 @@
 package com.custacm.platform.trainingdata.codeforces.infra.repo;
 
 import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesCollectBatch;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesOdsSubmission;
 import com.custacm.platform.trainingdata.codeforces.infra.parser.JacksonCodeforcesSubmissionParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
@@ -19,6 +21,8 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +36,7 @@ class CodeforcesWarehouseSqlTaskTest {
             "sql/dws/upsert_dws_codeforces__handle_daily_rating_accepted_summary.sql";
 
     private JdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate namedJdbcTemplate;
     private DataSource dataSource;
     private JdbcCodeforcesOdsSubmissionWriter writer;
 
@@ -44,7 +49,8 @@ class CodeforcesWarehouseSqlTaskTest {
                 ""
         );
         jdbcTemplate = new JdbcTemplate(dataSource);
-        writer = new JdbcCodeforcesOdsSubmissionWriter(new NamedParameterJdbcTemplate(dataSource));
+        namedJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
+        writer = new JdbcCodeforcesOdsSubmissionWriter(namedJdbcTemplate);
         try (Connection connection = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V010__create_ods_codeforces_submission.sql"));
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V011__create_codeforces_dwd_dwm_dws_tables.sql"));
@@ -64,8 +70,8 @@ class CodeforcesWarehouseSqlTaskTest {
         assertThat(records).hasSize(1000);
         writer.upsertBatch(batch, records);
 
-        runWarehouseTasks();
-        runWarehouseTasks();
+        runWarehouseTasks(batch.batchId());
+        runWarehouseTasks(batch.batchId());
 
         assertThat(count("ods_codeforces__submission")).isEqualTo(records.size());
         assertThat(count("dwd_codeforces__submission")).isEqualTo(records.size());
@@ -108,16 +114,169 @@ class CodeforcesWarehouseSqlTaskTest {
                 .isEqualTo(LocalDate.parse("2026-05-24"));
     }
 
-    private void runWarehouseTasks() throws Exception {
-        execute(DWD_SQL);
-        execute(FIRST_ACCEPTED_SQL);
-        execute(DAILY_SUMMARY_SQL);
+    @Test
+    void warehouseSqlTasksRefreshBatchDateIntervalWithoutLosingGlobalFirstAccepted() throws Exception {
+        CodeforcesCollectBatch initialBatch = new CodeforcesCollectBatch(
+                "batch-initial",
+                Instant.parse("2026-01-01T00:00:00Z")
+        );
+        writer.upsertBatch(initialBatch, List.of(
+                submission(1L, "alice", "A", "2024-01-01T10:00:00", "OK"),
+                submission(2L, "alice", "B", "2024-01-05T10:00:00", "OK"),
+                submission(3L, "alice", "C", "2024-01-10T10:00:00", "OK")
+        ));
+        runWarehouseTasks(initialBatch.batchId());
+
+        insertStaleDwdSubmission(999L, "2024-01-05T08:00:00");
+
+        CodeforcesCollectBatch targetBatch = new CodeforcesCollectBatch(
+                "batch-target",
+                Instant.parse("2026-01-02T00:00:00Z")
+        );
+        writer.upsertBatch(targetBatch, List.of(
+                submission(4L, "alice", "A", "2024-01-05T12:00:00", "OK"),
+                submission(5L, "alice", "D", "2024-01-05T13:00:00", "OK")
+        ));
+
+        runWarehouseTasks(targetBatch.batchId());
+
+        assertThat(submissionIdsOnDate("2024-01-05"))
+                .containsExactlyInAnyOrder(2L, 4L, 5L);
+        assertThat(firstAcceptedSubmissionId("1000:A")).isEqualTo(1L);
+        assertThat(firstAcceptedProblemKeysOnDate("2024-01-05"))
+                .containsExactlyInAnyOrder("1000:B", "1000:D");
+        assertThat(rating800AcceptedCountOnDate("2024-01-01")).isEqualTo(1);
+        assertThat(rating800AcceptedCountOnDate("2024-01-05")).isEqualTo(2);
+        assertThat(rating800AcceptedCountOnDate("2024-01-10")).isEqualTo(1);
     }
 
-    private void execute(String location) throws Exception {
-        try (Connection connection = dataSource.getConnection()) {
-            ScriptUtils.executeSqlScript(connection, new ClassPathResource(location));
+    private void runWarehouseTasks(String batchId) throws Exception {
+        execute(DWD_SQL, batchId);
+        execute(FIRST_ACCEPTED_SQL, batchId);
+        execute(DAILY_SUMMARY_SQL, batchId);
+    }
+
+    private void execute(String location, String batchId) throws Exception {
+        String sql = new ClassPathResource(location).getContentAsString(StandardCharsets.UTF_8);
+        MapSqlParameterSource parameters = new MapSqlParameterSource("batchId", batchId);
+        for (String statement : sql.split(";")) {
+            if (!statement.isBlank()) {
+                namedJdbcTemplate.update(statement, parameters);
+            }
         }
+    }
+
+    private CodeforcesOdsSubmission submission(
+            long submissionId,
+            String handle,
+            String problemIndex,
+            String submittedAtUtcPlus8,
+            String verdict
+    ) {
+        LocalDateTime submittedAt = LocalDateTime.parse(submittedAtUtcPlus8);
+        return new CodeforcesOdsSubmission(
+                submissionId,
+                1000L,
+                submittedAt.toEpochSecond(ZoneOffset.ofHours(8)),
+                null,
+                1000L,
+                problemIndex,
+                "Problem " + problemIndex,
+                "PROGRAMMING",
+                null,
+                800,
+                "[]",
+                handle,
+                "PRACTICE",
+                "{\"members\":[{\"handle\":\"" + handle + "\"}]}",
+                "C++23",
+                verdict,
+                "TESTS",
+                1,
+                46,
+                1024L,
+                "unused-batch-id",
+                Instant.parse("2026-01-01T00:00:00Z"),
+                "{\"id\":" + submissionId + "}",
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        );
+    }
+
+    private void insertStaleDwdSubmission(long submissionId, String submittedAtUtcPlus8) {
+        LocalDateTime submittedAt = LocalDateTime.parse(submittedAtUtcPlus8);
+        jdbcTemplate.update("""
+                insert into dwd_codeforces__submission (
+                    ods_submission_id,
+                    codeforces_submission_id,
+                    author_handle,
+                    submitted_at_utc_plus8,
+                    submitted_date_utc_plus8,
+                    problem_key,
+                    problem_contest_id,
+                    problem_index,
+                    problem_name,
+                    problem_rating,
+                    programming_language,
+                    verdict,
+                    is_accepted,
+                    ods_batch_id,
+                    ods_fetched_at,
+                    ods_payload_hash
+                )
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                submissionId,
+                submissionId,
+                "alice",
+                Timestamp.valueOf(submittedAt),
+                Date.valueOf(submittedAt.toLocalDate()),
+                "1000:STALE",
+                1000L,
+                "STALE",
+                "Stale Problem",
+                800,
+                "C++23",
+                "OK",
+                1,
+                "stale-batch",
+                Timestamp.from(Instant.parse("2026-01-03T00:00:00Z")),
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+    }
+
+    private List<Long> submissionIdsOnDate(String date) {
+        return jdbcTemplate.queryForList("""
+                select codeforces_submission_id
+                from dwd_codeforces__submission
+                where submitted_date_utc_plus8 = ?
+                """, Long.class, Date.valueOf(LocalDate.parse(date)));
+    }
+
+    private Long firstAcceptedSubmissionId(String problemKey) {
+        return jdbcTemplate.queryForObject("""
+                select first_accepted_submission_id
+                from dwm_codeforces__handle_problem_first_accepted
+                where author_handle = 'alice'
+                  and problem_key = ?
+                """, Long.class, problemKey);
+    }
+
+    private List<String> firstAcceptedProblemKeysOnDate(String date) {
+        return jdbcTemplate.queryForList("""
+                select problem_key
+                from dwm_codeforces__handle_problem_first_accepted
+                where author_handle = 'alice'
+                  and first_accepted_date_utc_plus8 = ?
+                """, String.class, Date.valueOf(LocalDate.parse(date)));
+    }
+
+    private int rating800AcceptedCountOnDate(String date) {
+        Integer count = jdbcTemplate.queryForObject("""
+                select rating_800_accepted_problem_count
+                from dws_codeforces__handle_daily_rating_accepted_summary
+                where author_handle = 'alice'
+                  and accepted_date_utc_plus8 = ?
+                """, Integer.class, Date.valueOf(LocalDate.parse(date)));
+        return count == null ? 0 : count;
     }
 
     private int count(String tableName) {

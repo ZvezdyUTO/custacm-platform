@@ -137,9 +137,9 @@ src/test/java/com/custacm/platform/trainingdata/codeforces/
 | `src/main/resources/fixtures/codeforces/submissions_multi_user_1000.metadata.json` | Metadata for the large fixture: capture time, source requests, row counts, handles, and time range. |
 | `src/main/resources/fixtures/codeforces/submissions_tourist.json` | Small Codeforces API-shaped parser fixture. |
 | `src/main/resources/sql/ods/upsert_ods_codeforces__submission.sql` | Idempotent ODS batch upsert SQL keyed by Codeforces submission id. |
-| `src/main/resources/sql/dwd/upsert_dwd_codeforces__submission.sql` | Set-based ODS-to-DWD transform; derives problem key, accepted flag, and UTC+8 submission time/date. |
-| `src/main/resources/sql/dwm/upsert_dwm_codeforces__handle_problem_first_accepted.sql` | Set-based DWD-to-DWM transform; keeps first accepted submission per handle/problem and deletes stale rows. |
-| `src/main/resources/sql/dws/upsert_dws_codeforces__handle_daily_rating_accepted_summary.sql` | Set-based DWM-to-DWS transform; aggregates first accepted problems into one handle/date row with fixed rating count columns. |
+| `src/main/resources/sql/dwd/upsert_dwd_codeforces__submission.sql` | Batch-parameterized ODS-to-DWD transform; derives the batch UTC+8 date interval from ODS `creation_time_seconds`, deletes DWD rows in that date interval, and reloads ODS rows for the same date segment. |
+| `src/main/resources/sql/dwm/upsert_dwm_codeforces__handle_problem_first_accepted.sql` | Batch-parameterized DWD-to-DWM transform; deletes DWM rows in the batch UTC+8 date interval, ranks all accepted DWD submissions to preserve global first-accepted semantics, and reloads first-accepted rows whose final date is in the interval. |
+| `src/main/resources/sql/dws/upsert_dws_codeforces__handle_daily_rating_accepted_summary.sql` | Batch-parameterized DWM-to-DWS transform; deletes DWS rows in the batch UTC+8 date interval and aggregates DWM rows in that interval into one handle/date wide row. |
 
 ## Query Capability Index
 

@@ -1,3 +1,24 @@
+delete from dwd_codeforces__submission
+where submitted_date_utc_plus8 between (
+    select min(cast(timestampadd(
+        HOUR,
+        8,
+        timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+    ) as date))
+    from ods_codeforces__submission batch_ods
+    where batch_ods.batch_id = :batchId
+      and batch_ods.creation_time_seconds is not null
+) and (
+    select max(cast(timestampadd(
+        HOUR,
+        8,
+        timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+    ) as date))
+    from ods_codeforces__submission batch_ods
+    where batch_ods.batch_id = :batchId
+      and batch_ods.creation_time_seconds is not null
+);
+
 insert into dwd_codeforces__submission (
     ods_submission_id,
     codeforces_submission_id,
@@ -31,22 +52,16 @@ select
     ods.codeforces_submission_id,
     ods.author_handle,
     ods.contest_id,
-    case
-        when ods.creation_time_seconds is null then null
-        else timestampadd(
-            HOUR,
-            8,
-            timestampadd(SECOND, ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
-        )
-    end,
-    case
-        when ods.creation_time_seconds is null then null
-        else cast(timestampadd(
-            HOUR,
-            8,
-            timestampadd(SECOND, ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
-        ) as date)
-    end,
+    timestampadd(
+        HOUR,
+        8,
+        timestampadd(SECOND, ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+    ),
+    cast(timestampadd(
+        HOUR,
+        8,
+        timestampadd(SECOND, ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+    ) as date),
     ods.relative_time_seconds,
     case
         when ods.problem_contest_id is null or ods.problem_index is null or trim(ods.problem_index) = '' then null
@@ -71,6 +86,30 @@ select
     ods.fetched_at,
     ods.payload_hash
 from ods_codeforces__submission ods
+where ods.creation_time_seconds is not null
+  and cast(timestampadd(
+        HOUR,
+        8,
+        timestampadd(SECOND, ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+    ) as date) between (
+        select min(cast(timestampadd(
+            HOUR,
+            8,
+            timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+        ) as date))
+        from ods_codeforces__submission batch_ods
+        where batch_ods.batch_id = :batchId
+          and batch_ods.creation_time_seconds is not null
+    ) and (
+        select max(cast(timestampadd(
+            HOUR,
+            8,
+            timestampadd(SECOND, batch_ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+        ) as date))
+        from ods_codeforces__submission batch_ods
+        where batch_ods.batch_id = :batchId
+          and batch_ods.creation_time_seconds is not null
+    )
 on duplicate key update
     ods_submission_id = values(ods_submission_id),
     author_handle = values(author_handle),
