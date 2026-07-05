@@ -145,10 +145,13 @@ The task SQL is:
 training-data-codeforces/src/main/resources/sql/dwd/upsert_dwd_codeforces__submission.sql
 ```
 
-Internal Java query boundary:
+Public HTTP and Java query boundary:
 
 ```text
-CodeforcesSubmissionQueryService
+GET /api/training-data/codeforces/submissions/by-student
+GET /api/training-data/codeforces/submissions/by-problem
+ -> CodeforcesWarehouseQueryController
+ -> CodeforcesSubmissionQueryService
  -> CodeforcesSubmissionRepository
  -> JdbcCodeforcesSubmissionRepository
  -> dwd_codeforces__submission
@@ -214,10 +217,13 @@ The task SQL is:
 training-data-codeforces/src/main/resources/sql/dwm/upsert_dwm_codeforces__handle_problem_first_accepted.sql
 ```
 
-Internal Java query boundary:
+Public HTTP and Java query boundary:
 
 ```text
-CodeforcesFirstAcceptedProblemQueryService
+GET /api/training-data/codeforces/first-accepted/by-student
+GET /api/training-data/codeforces/first-accepted/by-problem
+ -> CodeforcesWarehouseQueryController
+ -> CodeforcesFirstAcceptedProblemQueryService
  -> CodeforcesFirstAcceptedProblemRepository
  -> JdbcCodeforcesFirstAcceptedProblemRepository
  -> dwm_codeforces__handle_problem_first_accepted
@@ -289,10 +295,12 @@ The task SQL is:
 training-data-codeforces/src/main/resources/sql/dws/upsert_dws_codeforces__handle_daily_rating_accepted_summary.sql
 ```
 
-Internal Java query boundary:
+Public HTTP and Java query boundary:
 
 ```text
-CodeforcesAcceptedSummaryQueryService
+GET /api/training-data/codeforces/accepted-summary
+ -> CodeforcesWarehouseQueryController
+ -> CodeforcesAcceptedSummaryQueryService
  -> CodeforcesAcceptedSummaryRepository
  -> JdbcCodeforcesAcceptedSummaryRepository
  -> dws_codeforces__handle_daily_rating_accepted_summary

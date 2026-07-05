@@ -8,7 +8,7 @@ Current state:
 - Implemented Codeforces storage targets are `ods_codeforces__submission`, `dwd_codeforces__submission`, `dwm_codeforces__handle_problem_first_accepted`, and `dws_codeforces__handle_daily_rating_accepted_summary`.
 - Implemented Codeforces handle-account storage target is `codeforces_handle_account`, keyed by `student_identity` with a unique immutable Codeforces handle.
 - Codeforces owns its own HTTP ingress, ingest application service, collect batch type, ODS record, parser, writer, handle-account mapping, fixture, DDL, ODS upsert SQL, DWD/DWM/DWS SQL task resources, Spring config, and tests.
-- `training-data-web` exposes module health/info, OJ-specific ODS batch-upsert endpoints under `/api/training-data/admin/**`, Codeforces admin handle-account write endpoints, and a public Codeforces handle lookup endpoint.
+- `training-data-web` exposes module health/info, OJ-specific ODS batch-upsert endpoints under `/api/training-data/admin/**`, Codeforces admin handle-account write endpoints, public Codeforces handle lookup, and public Codeforces DWD/DWM/DWS query endpoints.
 - OJ-specific ODS batch-upsert endpoints require the platform `admin` role and must stay under the admin URL tier.
 - Codeforces handle-account creation and identity migration require the platform `admin` role. Public Codeforces handle lookup by `studentIdentity` is a guest endpoint and must not parse JWTs.
 - HTTP authorization follows [../docs/authorization.md](../docs/authorization.md): `/admin/**` is admin-only, `/player/**` is player/admin, and guest endpoints must not parse JWTs.

@@ -89,6 +89,11 @@ player
 | `training-data-codeforces` | `POST` | `/api/training-data/admin/ods/codeforces/submissions:batch-upsert` | `admin` | 批量写入 Codeforces submission ODS |
 | `training-data-codeforces` | `POST` | `/api/training-data/admin/codeforces/handles` | `admin` | 管理员创建 `studentIdentity + Codeforces handle` 绑定 |
 | `training-data-codeforces` | `GET` | `/api/training-data/codeforces/handles?studentIdentity=...` | 否 | 游客按 `studentIdentity` 查询 Codeforces handle |
+| `training-data-codeforces` | `GET` | `/api/training-data/codeforces/accepted-summary` | 否 | 游客按 `studentIdentity` 查询 Codeforces 区间 rating AC 汇总 |
+| `training-data-codeforces` | `GET` | `/api/training-data/codeforces/submissions/by-student` | 否 | 游客按 `studentIdentity` 查询 Codeforces 提交明细 |
+| `training-data-codeforces` | `GET` | `/api/training-data/codeforces/submissions/by-problem` | 否 | 游客按 `problemKey` 查询 Codeforces 提交明细 |
+| `training-data-codeforces` | `GET` | `/api/training-data/codeforces/first-accepted/by-student` | 否 | 游客按 `studentIdentity` 查询 Codeforces 首 AC 题目明细 |
+| `training-data-codeforces` | `GET` | `/api/training-data/codeforces/first-accepted/by-problem` | 否 | 游客按 `problemKey` 查询 Codeforces 首 AC handle 列表 |
 | `training-data-codeforces` | `PATCH` | `/api/training-data/admin/codeforces/handles:change-identity` | `admin` | 管理员迁移 CF handle 绑定的 `studentIdentity`，不修改 handle |
 
 ## GET /health
@@ -467,6 +472,150 @@ GET /api/training-data/codeforces/handles?studentIdentity=112487张三
   "handle": "tourist"
 }
 ```
+
+## GET /api/training-data/codeforces/accepted-summary
+
+游客按平台 `studentIdentity` 查询 Codeforces DWS 区间 rating AC 汇总。接口不需要 JWT，也不会解析 `Authorization` header。
+
+可选参数：
+
+- `acceptedFromDateUtcPlus8` / `acceptedToDateUtcPlus8`：ISO 日期，例如 `2026-07-01`。
+- `minProblemRating` / `maxProblemRating`：整数 rating 边界。设置任一边界时不包含 unrated。
+
+```http
+GET /api/training-data/codeforces/accepted-summary?studentIdentity=112487张三&acceptedFromDateUtcPlus8=2026-07-01&acceptedToDateUtcPlus8=2026-07-31&minProblemRating=800&maxProblemRating=1600
+```
+
+```json
+{
+  "studentIdentity": "112487张三",
+  "authorHandle": "tourist",
+  "totalAcceptedProblemCount": 3,
+  "ratingCounts": [
+    { "problemRating": "800", "acceptedProblemCount": 2 },
+    { "problemRating": "1600", "acceptedProblemCount": 1 }
+  ]
+}
+```
+
+## GET /api/training-data/codeforces/submissions/by-student
+
+游客按平台 `studentIdentity` 查询 Codeforces DWD 提交明细。接口不需要 JWT，也不会解析 `Authorization` header。
+
+可选参数：
+
+- `submittedFromUtcPlus8` / `submittedToUtcPlus8`：ISO 本地时间，例如 `2026-07-01T00:00:00`。
+- `minProblemRating` / `maxProblemRating`：整数 rating 边界。设置任一边界时不包含 unrated。
+
+```http
+GET /api/training-data/codeforces/submissions/by-student?studentIdentity=112487张三&submittedFromUtcPlus8=2026-07-01T00:00:00&submittedToUtcPlus8=2026-07-31T23:59:59
+```
+
+响应：
+
+```json
+{
+  "studentIdentity": "112487张三",
+  "authorHandle": "tourist",
+  "submissions": [
+    {
+      "codeforcesSubmissionId": 379398914,
+      "studentIdentity": "112487张三",
+      "authorHandle": "tourist",
+      "submittedAtUtcPlus8": "2026-07-01T12:00:00",
+      "submittedDateUtcPlus8": "2026-07-01",
+      "problemKey": "2237:G",
+      "problemRating": 2900,
+      "verdict": "OK",
+      "accepted": true
+    }
+  ]
+}
+```
+
+提交明细响应还会包含 contest、problem、language、testset、耗时和内存等字段；上例只展示主要字段。
+
+## GET /api/training-data/codeforces/submissions/by-problem
+
+游客按 Codeforces `problemKey` 查询 DWD 提交明细。接口不需要 JWT，也不会解析 `Authorization` header。
+
+```http
+GET /api/training-data/codeforces/submissions/by-problem?problemKey=2237:G&submittedFromUtcPlus8=2026-07-01T00:00:00&submittedToUtcPlus8=2026-07-31T23:59:59
+```
+
+响应结构：
+
+```json
+{
+  "problemKey": "2237:G",
+  "submissions": [
+    {
+      "codeforcesSubmissionId": 379398914,
+      "studentIdentity": "112487张三",
+      "authorHandle": "tourist",
+      "problemKey": "2237:G",
+      "accepted": true
+    }
+  ]
+}
+```
+
+如果结果里存在未绑定 `studentIdentity` 的 Codeforces handle，返回 `404` 和 `CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND`。
+
+## GET /api/training-data/codeforces/first-accepted/by-student
+
+游客按平台 `studentIdentity` 查询 Codeforces DWM 首 AC 题目明细。接口不需要 JWT，也不会解析 `Authorization` header。
+
+可选参数：
+
+- `firstAcceptedFromUtcPlus8` / `firstAcceptedToUtcPlus8`：ISO 本地时间，例如 `2026-07-01T00:00:00`。
+- `minProblemRating` / `maxProblemRating`：整数 rating 边界。设置任一边界时不包含 unrated。
+
+```http
+GET /api/training-data/codeforces/first-accepted/by-student?studentIdentity=112487张三&firstAcceptedFromUtcPlus8=2026-07-01T00:00:00&firstAcceptedToUtcPlus8=2026-07-31T23:59:59
+```
+
+```json
+{
+  "studentIdentity": "112487张三",
+  "authorHandle": "tourist",
+  "totalAcceptedProblemCount": 1,
+  "problems": [
+    {
+      "problemKey": "2237:G",
+      "problemRating": 2900,
+      "firstAcceptedSubmissionId": 379398914,
+      "firstAcceptedAtUtcPlus8": "2026-07-01T12:00:00",
+      "firstAcceptedDateUtcPlus8": "2026-07-01",
+      "firstAcceptedLanguage": "C++23"
+    }
+  ]
+}
+```
+
+## GET /api/training-data/codeforces/first-accepted/by-problem
+
+游客按 Codeforces `problemKey` 查询 DWM 首次通过该题的 handle 列表。接口不需要 JWT，也不会解析 `Authorization` header。
+
+```http
+GET /api/training-data/codeforces/first-accepted/by-problem?problemKey=2237:G&firstAcceptedFromUtcPlus8=2026-07-01T00:00:00&firstAcceptedToUtcPlus8=2026-07-31T23:59:59
+```
+
+```json
+{
+  "problemKey": "2237:G",
+  "acceptedHandleCount": 1,
+  "acceptedHandles": [
+    {
+      "studentIdentity": "112487张三",
+      "authorHandle": "tourist",
+      "firstAcceptedAtUtcPlus8": "2026-07-01T12:00:00"
+    }
+  ]
+}
+```
+
+如果结果里存在未绑定 `studentIdentity` 的 Codeforces handle，返回 `404` 和 `CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND`。
 
 ## PATCH /api/training-data/admin/codeforces/handles:change-identity
 

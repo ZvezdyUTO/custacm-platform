@@ -96,4 +96,28 @@ class TrainingDataSecurityConfigTest {
                         .header("Authorization", "Bearer not-a-jwt"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void codeforcesWarehouseQueryEndpointsArePublicAndIgnoreBearerToken() throws Exception {
+        mockMvc.perform(get("/api/training-data/codeforces/accepted-summary")
+                        .param("studentIdentity", "112487张三")
+                        .header("Authorization", "Bearer not-a-jwt"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/training-data/codeforces/submissions/by-student")
+                        .param("studentIdentity", "112487张三")
+                        .header("Authorization", "Bearer not-a-jwt"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/training-data/codeforces/submissions/by-problem")
+                        .param("problemKey", "1000:A")
+                        .header("Authorization", "Bearer not-a-jwt"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/training-data/codeforces/first-accepted/by-student")
+                        .param("studentIdentity", "112487张三")
+                        .header("Authorization", "Bearer not-a-jwt"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/training-data/codeforces/first-accepted/by-problem")
+                        .param("problemKey", "1000:A")
+                        .header("Authorization", "Bearer not-a-jwt"))
+                .andExpect(status().isNotFound());
+    }
 }

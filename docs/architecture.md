@@ -128,6 +128,7 @@ Current implementation:
 - exposes OJ-specific ODS ingest under `/api/training-data/admin/**`, restricted to the platform `admin` role.
 - exposes Codeforces handle-account creation and identity migration under `/api/training-data/admin/codeforces/**`, restricted to the platform `admin` role.
 - exposes Codeforces handle lookup by `studentIdentity` under `/api/training-data/codeforces/**` as a guest endpoint that does not parse JWTs.
+- exposes Codeforces DWD/DWM/DWS read-side query endpoints under `/api/training-data/codeforces/**` as guest endpoints that do not parse JWTs.
 - applies ODS/DWD/DWM/DWS and Codeforces handle-account table migrations from OJ modules through Flyway at `training-data-web` startup.
 
 Current training-data module shape:
