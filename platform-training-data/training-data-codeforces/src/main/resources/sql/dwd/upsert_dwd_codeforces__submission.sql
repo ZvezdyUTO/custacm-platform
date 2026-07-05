@@ -3,8 +3,8 @@ insert into dwd_codeforces__submission (
     codeforces_submission_id,
     author_handle,
     contest_id,
-    submitted_at,
-    submitted_date_utc,
+    submitted_at_utc_plus8,
+    submitted_date_utc_plus8,
     relative_time_seconds,
     problem_key,
     problem_contest_id,
@@ -33,11 +33,19 @@ select
     ods.contest_id,
     case
         when ods.creation_time_seconds is null then null
-        else timestampadd(SECOND, ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+        else timestampadd(
+            HOUR,
+            8,
+            timestampadd(SECOND, ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+        )
     end,
     case
         when ods.creation_time_seconds is null then null
-        else cast(timestampadd(SECOND, ods.creation_time_seconds, timestamp '1970-01-01 00:00:00') as date)
+        else cast(timestampadd(
+            HOUR,
+            8,
+            timestampadd(SECOND, ods.creation_time_seconds, timestamp '1970-01-01 00:00:00')
+        ) as date)
     end,
     ods.relative_time_seconds,
     case
@@ -67,8 +75,8 @@ on duplicate key update
     ods_submission_id = values(ods_submission_id),
     author_handle = values(author_handle),
     contest_id = values(contest_id),
-    submitted_at = values(submitted_at),
-    submitted_date_utc = values(submitted_date_utc),
+    submitted_at_utc_plus8 = values(submitted_at_utc_plus8),
+    submitted_date_utc_plus8 = values(submitted_date_utc_plus8),
     relative_time_seconds = values(relative_time_seconds),
     problem_key = values(problem_key),
     problem_contest_id = values(problem_contest_id),

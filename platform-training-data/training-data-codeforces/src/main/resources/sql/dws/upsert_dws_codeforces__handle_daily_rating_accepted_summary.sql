@@ -4,51 +4,113 @@ where not exists (
     from (
         select
             first_accepted.author_handle,
-            first_accepted.first_accepted_date_utc as accepted_date_utc,
-            case
-                when first_accepted.problem_rating is null then 'UNRATED'
-                else concat('', first_accepted.problem_rating)
-            end as problem_rating_key
+            first_accepted.first_accepted_date_utc_plus8 as accepted_date_utc_plus8
         from dwm_codeforces__handle_problem_first_accepted first_accepted
         group by
             first_accepted.author_handle,
-            first_accepted.first_accepted_date_utc,
-            case
-                when first_accepted.problem_rating is null then 'UNRATED'
-                else concat('', first_accepted.problem_rating)
-            end
+            first_accepted.first_accepted_date_utc_plus8
     ) current_summary
     where current_summary.author_handle = dws_codeforces__handle_daily_rating_accepted_summary.author_handle
-      and current_summary.accepted_date_utc = dws_codeforces__handle_daily_rating_accepted_summary.accepted_date_utc
-      and current_summary.problem_rating_key = dws_codeforces__handle_daily_rating_accepted_summary.problem_rating_key
+      and current_summary.accepted_date_utc_plus8 = dws_codeforces__handle_daily_rating_accepted_summary.accepted_date_utc_plus8
 );
 
 insert into dws_codeforces__handle_daily_rating_accepted_summary (
     author_handle,
-    accepted_date_utc,
-    problem_rating_key,
-    problem_rating,
-    accepted_problem_count
+    accepted_date_utc_plus8,
+    rating_800_accepted_problem_count,
+    rating_900_accepted_problem_count,
+    rating_1000_accepted_problem_count,
+    rating_1100_accepted_problem_count,
+    rating_1200_accepted_problem_count,
+    rating_1300_accepted_problem_count,
+    rating_1400_accepted_problem_count,
+    rating_1500_accepted_problem_count,
+    rating_1600_accepted_problem_count,
+    rating_1700_accepted_problem_count,
+    rating_1800_accepted_problem_count,
+    rating_1900_accepted_problem_count,
+    rating_2000_accepted_problem_count,
+    rating_2100_accepted_problem_count,
+    rating_2200_accepted_problem_count,
+    rating_2300_accepted_problem_count,
+    rating_2400_accepted_problem_count,
+    rating_2500_accepted_problem_count,
+    rating_2600_accepted_problem_count,
+    rating_2700_accepted_problem_count,
+    rating_2800_accepted_problem_count,
+    rating_2900_accepted_problem_count,
+    rating_3000_accepted_problem_count,
+    rating_3100_accepted_problem_count,
+    rating_3200_accepted_problem_count,
+    rating_3300_accepted_problem_count,
+    rating_3400_accepted_problem_count,
+    rating_3500_accepted_problem_count,
+    unrated_accepted_problem_count
 )
 select
     first_accepted.author_handle,
-    first_accepted.first_accepted_date_utc,
-    case
-        when first_accepted.problem_rating is null then 'UNRATED'
-        else concat('', first_accepted.problem_rating)
-    end as problem_rating_key,
-    first_accepted.problem_rating,
-    count(*) as accepted_problem_count
+    first_accepted.first_accepted_date_utc_plus8,
+    coalesce(sum(case when first_accepted.problem_rating = 800 then 1 else 0 end), 0) as rating_800_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 900 then 1 else 0 end), 0) as rating_900_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 1000 then 1 else 0 end), 0) as rating_1000_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 1100 then 1 else 0 end), 0) as rating_1100_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 1200 then 1 else 0 end), 0) as rating_1200_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 1300 then 1 else 0 end), 0) as rating_1300_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 1400 then 1 else 0 end), 0) as rating_1400_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 1500 then 1 else 0 end), 0) as rating_1500_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 1600 then 1 else 0 end), 0) as rating_1600_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 1700 then 1 else 0 end), 0) as rating_1700_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 1800 then 1 else 0 end), 0) as rating_1800_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 1900 then 1 else 0 end), 0) as rating_1900_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 2000 then 1 else 0 end), 0) as rating_2000_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 2100 then 1 else 0 end), 0) as rating_2100_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 2200 then 1 else 0 end), 0) as rating_2200_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 2300 then 1 else 0 end), 0) as rating_2300_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 2400 then 1 else 0 end), 0) as rating_2400_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 2500 then 1 else 0 end), 0) as rating_2500_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 2600 then 1 else 0 end), 0) as rating_2600_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 2700 then 1 else 0 end), 0) as rating_2700_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 2800 then 1 else 0 end), 0) as rating_2800_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 2900 then 1 else 0 end), 0) as rating_2900_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 3000 then 1 else 0 end), 0) as rating_3000_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 3100 then 1 else 0 end), 0) as rating_3100_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 3200 then 1 else 0 end), 0) as rating_3200_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 3300 then 1 else 0 end), 0) as rating_3300_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 3400 then 1 else 0 end), 0) as rating_3400_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating = 3500 then 1 else 0 end), 0) as rating_3500_accepted_problem_count,
+    coalesce(sum(case when first_accepted.problem_rating is null then 1 else 0 end), 0) as unrated_accepted_problem_count
 from dwm_codeforces__handle_problem_first_accepted first_accepted
 group by
     first_accepted.author_handle,
-    first_accepted.first_accepted_date_utc,
-    case
-        when first_accepted.problem_rating is null then 'UNRATED'
-        else concat('', first_accepted.problem_rating)
-    end,
-    first_accepted.problem_rating
+    first_accepted.first_accepted_date_utc_plus8
 on duplicate key update
-    problem_rating = values(problem_rating),
-    accepted_problem_count = values(accepted_problem_count),
+    rating_800_accepted_problem_count = values(rating_800_accepted_problem_count),
+    rating_900_accepted_problem_count = values(rating_900_accepted_problem_count),
+    rating_1000_accepted_problem_count = values(rating_1000_accepted_problem_count),
+    rating_1100_accepted_problem_count = values(rating_1100_accepted_problem_count),
+    rating_1200_accepted_problem_count = values(rating_1200_accepted_problem_count),
+    rating_1300_accepted_problem_count = values(rating_1300_accepted_problem_count),
+    rating_1400_accepted_problem_count = values(rating_1400_accepted_problem_count),
+    rating_1500_accepted_problem_count = values(rating_1500_accepted_problem_count),
+    rating_1600_accepted_problem_count = values(rating_1600_accepted_problem_count),
+    rating_1700_accepted_problem_count = values(rating_1700_accepted_problem_count),
+    rating_1800_accepted_problem_count = values(rating_1800_accepted_problem_count),
+    rating_1900_accepted_problem_count = values(rating_1900_accepted_problem_count),
+    rating_2000_accepted_problem_count = values(rating_2000_accepted_problem_count),
+    rating_2100_accepted_problem_count = values(rating_2100_accepted_problem_count),
+    rating_2200_accepted_problem_count = values(rating_2200_accepted_problem_count),
+    rating_2300_accepted_problem_count = values(rating_2300_accepted_problem_count),
+    rating_2400_accepted_problem_count = values(rating_2400_accepted_problem_count),
+    rating_2500_accepted_problem_count = values(rating_2500_accepted_problem_count),
+    rating_2600_accepted_problem_count = values(rating_2600_accepted_problem_count),
+    rating_2700_accepted_problem_count = values(rating_2700_accepted_problem_count),
+    rating_2800_accepted_problem_count = values(rating_2800_accepted_problem_count),
+    rating_2900_accepted_problem_count = values(rating_2900_accepted_problem_count),
+    rating_3000_accepted_problem_count = values(rating_3000_accepted_problem_count),
+    rating_3100_accepted_problem_count = values(rating_3100_accepted_problem_count),
+    rating_3200_accepted_problem_count = values(rating_3200_accepted_problem_count),
+    rating_3300_accepted_problem_count = values(rating_3300_accepted_problem_count),
+    rating_3400_accepted_problem_count = values(rating_3400_accepted_problem_count),
+    rating_3500_accepted_problem_count = values(rating_3500_accepted_problem_count),
+    unrated_accepted_problem_count = values(unrated_accepted_problem_count),
     updated_at = current_timestamp(6);

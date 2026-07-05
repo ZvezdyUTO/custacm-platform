@@ -1,8 +1,8 @@
-package com.custacm.platform.trainingdata.codeforces.infra;
+package com.custacm.platform.trainingdata.codeforces.infra.repo;
 
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesCollectBatch;
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesOdsSubmission;
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesOdsSubmissionWriter;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesCollectBatch;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesOdsSubmission;
+import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesOdsSubmissionWriter;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -11,10 +11,13 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 public class JdbcCodeforcesOdsSubmissionWriter implements CodeforcesOdsSubmissionWriter {
     private static final String UPSERT_SQL_LOCATION = "sql/ods/upsert_ods_codeforces__submission.sql";
+    private static final ZoneOffset WAREHOUSE_ZONE_OFFSET = ZoneOffset.ofHours(8);
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final String upsertSql;
@@ -77,6 +80,9 @@ public class JdbcCodeforcesOdsSubmissionWriter implements CodeforcesOdsSubmissio
     }
 
     private static Timestamp timestamp(java.time.Instant instant) {
-        return instant == null ? null : Timestamp.from(instant);
+        if (instant == null) {
+            return null;
+        }
+        return Timestamp.valueOf(LocalDateTime.ofInstant(instant, WAREHOUSE_ZONE_OFFSET));
     }
 }

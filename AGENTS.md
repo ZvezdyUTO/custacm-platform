@@ -49,6 +49,7 @@ Current phase: build an evolvable backend framework, not the full product.
 
 - Treat `docs/README.md` as the documentation index and `docs/agent/README.md` as the fast context entry for future agents.
 - Before editing a module, read the nearest module `AGENTS.md`.
+- Every non-placeholder module with source code must have a module-level `README.md` for humans and agents. It must include the module responsibility, directory layout, dependency/layer rules, and a file-level responsibility list. When generating, moving, deleting, or materially changing module files, create or update that module README in the same change.
 - Before opening an MR, update `CHANGELOG.md` using `docs/agent/changelog.md`; it is written by agents but must read naturally for humans.
 - When changing code, scripts, CI, deployment configuration, or module boundaries, update the matching docs listed in `docs/doc-sync-map.tsv`.
 - Keep `docs/agent/context-map.md` current when top-level directories, runnable services, or module responsibilities change.
@@ -60,6 +61,8 @@ Current phase: build an evolvable backend framework, not the full product.
 - Do not commit unless the user explicitly asks.
 - Do not push unless the user explicitly asks.
 - If the user says to push, treat that as permission to commit and push.
+- PRs/MRs opened by anyone other than the project owner must not be merged until the project owner explicitly confirms approval.
+- PRs/MRs opened by the project owner do not need an additional review confirmation; the owner's explicit merge instruction is enough.
 - MR titles and descriptions must be written in Chinese.
 
 ## Verification

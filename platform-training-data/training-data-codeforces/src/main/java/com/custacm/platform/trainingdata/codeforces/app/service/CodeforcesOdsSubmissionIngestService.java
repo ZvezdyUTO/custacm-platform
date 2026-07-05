@@ -1,14 +1,16 @@
-package com.custacm.platform.trainingdata.codeforces.app;
+package com.custacm.platform.trainingdata.codeforces.app.service;
 
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesCollectBatch;
-import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesOdsSubmissionWriter;
-import com.custacm.platform.trainingdata.codeforces.infra.CodeforcesSubmissionParser;
+import com.custacm.platform.trainingdata.codeforces.app.result.CodeforcesOdsBatchUpsertResult;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesCollectBatch;
+import com.custacm.platform.trainingdata.codeforces.domain.parser.CodeforcesSubmissionParser;
+import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesOdsSubmissionWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 public class CodeforcesOdsSubmissionIngestService {
@@ -24,7 +26,7 @@ public class CodeforcesOdsSubmissionIngestService {
             CodeforcesOdsSubmissionWriter writer,
             ObjectMapper objectMapper
     ) {
-        this(parser, writer, objectMapper, Clock.systemUTC());
+        this(parser, writer, objectMapper, Clock.system(ZoneOffset.ofHours(8)));
     }
 
     public CodeforcesOdsSubmissionIngestService(

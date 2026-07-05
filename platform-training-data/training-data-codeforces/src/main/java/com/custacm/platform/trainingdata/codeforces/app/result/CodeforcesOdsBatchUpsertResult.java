@@ -1,8 +1,8 @@
-package com.custacm.platform.trainingdata.codeforces.web;
+package com.custacm.platform.trainingdata.codeforces.app.result;
 
 import java.time.Instant;
 
-public record CodeforcesOdsBatchUpsertResponse(
+public record CodeforcesOdsBatchUpsertResult(
         String batchId,
         String tableName,
         int writtenRows,

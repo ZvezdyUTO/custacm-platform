@@ -5,7 +5,7 @@ spring:
   application:
     name: training-data-web
   datasource:
-    url: ${TRAINING_DATA_DB_URL:jdbc:mysql://localhost:3306/custacm_training?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC}
+    url: ${TRAINING_DATA_DB_URL:jdbc:mysql://localhost:3306/custacm_training?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
     username: ${TRAINING_DATA_DB_USERNAME:root}
     password: ${TRAINING_DATA_DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
