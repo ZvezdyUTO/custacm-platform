@@ -154,7 +154,7 @@ CodeforcesSubmissionQueryService
  -> dwd_codeforces__submission
 ```
 
-The DWD query model supports two atomic reads:
+At the app layer, personal DWD reads accept platform `studentIdentity`; the service resolves it through `codeforces_handle_account` and then builds repository handle criteria. The DWD repository query model supports two atomic reads:
 
 - by requested `authorHandle`, optional inclusive UTC+8 submitted time range, and optional problem rating lower/upper bounds;
 - by requested `problemKey`, plus optional inclusive UTC+8 submitted time range, across all handles.
@@ -163,8 +163,8 @@ Null time bounds mean no lower or upper time limit. Null problem rating bounds m
 
 The repository returns DWD atomic submission rows. The app service returns report records that keep matching submission details:
 
-- handle query: requested handle and matching submission detail items;
-- problem query: requested problem key and matching submission detail items across handles.
+- personal query: requested `studentIdentity`, resolved handle, and matching submission detail items with `studentIdentity + authorHandle`;
+- problem query: requested problem key and matching submission detail items across handles with `studentIdentity + authorHandle`; unbound result handles fail the app query.
 
 Time and rating filters affect the selected rows, but report payloads do not echo those request criteria.
 
@@ -223,7 +223,7 @@ CodeforcesFirstAcceptedProblemQueryService
  -> dwm_codeforces__handle_problem_first_accepted
 ```
 
-The DWM query model supports two atomic reads:
+At the app layer, personal DWM reads accept platform `studentIdentity`; the service resolves it through `codeforces_handle_account` and then builds repository handle criteria. The DWM repository query model supports two atomic reads:
 
 - by requested `authorHandle`, optional inclusive UTC+8 first-accepted time range, and optional problem rating lower/upper bounds;
 - by requested `problemKey`, plus optional inclusive UTC+8 first-accepted time range, across all handles.
@@ -232,8 +232,8 @@ Null time bounds mean no lower or upper time limit. Null problem rating bounds m
 
 The repository returns DWM atomic first-accepted rows. The app service returns report records that keep the current query's required detail list:
 
-- handle query: requested handle, accepted problem total, and first-accepted problem detail items;
-- problem query: requested problem key, accepted handle count, and accepted handle list with each handle's first accepted UTC+8 time.
+- personal query: requested `studentIdentity`, resolved handle, accepted problem total, and first-accepted problem detail items;
+- problem query: requested problem key, accepted handle count, and accepted `studentIdentity + authorHandle` list with each handle's first accepted UTC+8 time; unbound result handles fail the app query.
 
 Time and rating filters affect the selected rows, but report payloads do not echo those request criteria.
 
@@ -298,7 +298,7 @@ CodeforcesAcceptedSummaryQueryService
  -> dws_codeforces__handle_daily_rating_accepted_summary
 ```
 
-The query model supports:
+At the app layer, DWS reads accept platform `studentIdentity`; the service resolves it through `codeforces_handle_account` and then builds repository handle criteria. The repository query model supports:
 
 - requested `authorHandle`;
 - optional inclusive UTC+8 date range;
@@ -312,7 +312,7 @@ author_handle + accepted_date_utc_plus8
 
 The app service returns only one aggregated report with:
 
-- the requested handle;
+- the requested `studentIdentity` and resolved handle;
 - interval-level rating totals derived from the wide rating count columns;
 - total accepted problem count for the requested interval.
 

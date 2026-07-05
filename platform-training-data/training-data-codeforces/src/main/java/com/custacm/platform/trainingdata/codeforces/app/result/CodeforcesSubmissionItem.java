@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 public record CodeforcesSubmissionItem(
         long codeforcesSubmissionId,
+        String studentIdentity,
         String authorHandle,
         Long contestId,
         LocalDateTime submittedAtUtcPlus8,

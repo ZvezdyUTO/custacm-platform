@@ -46,6 +46,14 @@ public class CodeforcesHandleAccountService {
                 ));
     }
 
+    public CodeforcesHandleAccount getByHandle(String handle) {
+        return repository.findByHandle(handle)
+                .orElseThrow(() -> new CodeforcesHandleAccountException(
+                        CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND,
+                        "Codeforces handle account not found"
+                ));
+    }
+
     public CodeforcesHandleAccount changeStudentIdentity(String oldStudentIdentity, String newStudentIdentity) {
         repository.findByStudentIdentity(oldStudentIdentity)
                 .orElseThrow(() -> new CodeforcesHandleAccountException(

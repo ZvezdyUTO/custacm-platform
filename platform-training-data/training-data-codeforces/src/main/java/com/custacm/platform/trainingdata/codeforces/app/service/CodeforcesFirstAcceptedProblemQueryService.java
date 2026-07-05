@@ -5,21 +5,42 @@ import com.custacm.platform.trainingdata.codeforces.app.result.CodeforcesProblem
 import com.custacm.platform.trainingdata.codeforces.domain.criteria.CodeforcesHandleFirstAcceptedProblemCriteria;
 import com.custacm.platform.trainingdata.codeforces.domain.criteria.CodeforcesProblemFirstAcceptedHandleCriteria;
 import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesFirstAcceptedProblem;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesHandleAccount;
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesFirstAcceptedProblemRepository;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CodeforcesFirstAcceptedProblemQueryService {
     private final CodeforcesFirstAcceptedProblemRepository repository;
+    private final CodeforcesHandleAccountService handleAccountService;
 
-    public CodeforcesFirstAcceptedProblemQueryService(CodeforcesFirstAcceptedProblemRepository repository) {
+    public CodeforcesFirstAcceptedProblemQueryService(
+            CodeforcesFirstAcceptedProblemRepository repository,
+            CodeforcesHandleAccountService handleAccountService
+    ) {
         this.repository = repository;
+        this.handleAccountService = handleAccountService;
     }
 
-    public CodeforcesHandleFirstAcceptedProblemReport summarizeHandleFirstAcceptedProblems(
-            CodeforcesHandleFirstAcceptedProblemCriteria query
+    public CodeforcesHandleFirstAcceptedProblemReport summarizeStudentFirstAcceptedProblems(
+            String studentIdentity,
+            LocalDateTime firstAcceptedFromUtcPlus8,
+            LocalDateTime firstAcceptedToUtcPlus8,
+            Integer minProblemRating,
+            Integer maxProblemRating
     ) {
+        CodeforcesHandleAccount account = handleAccountService.getByStudentIdentity(studentIdentity);
+        CodeforcesHandleFirstAcceptedProblemCriteria query = new CodeforcesHandleFirstAcceptedProblemCriteria(
+                account.handle(),
+                firstAcceptedFromUtcPlus8,
+                firstAcceptedToUtcPlus8,
+                minProblemRating,
+                maxProblemRating
+        );
         List<CodeforcesHandleFirstAcceptedProblemReport.CodeforcesFirstAcceptedProblemItem> problems =
                 repository.findHandleFirstAcceptedProblems(query).stream()
                         .sorted(Comparator
@@ -28,7 +49,8 @@ public class CodeforcesFirstAcceptedProblemQueryService {
                         .map(CodeforcesFirstAcceptedProblemQueryService::toProblemItem)
                         .toList();
         return new CodeforcesHandleFirstAcceptedProblemReport(
-                query.authorHandle(),
+                account.studentIdentity(),
+                account.handle(),
                 problems.size(),
                 problems
         );
@@ -37,22 +59,36 @@ public class CodeforcesFirstAcceptedProblemQueryService {
     public CodeforcesProblemFirstAcceptedHandleReport summarizeProblemFirstAcceptedHandles(
             CodeforcesProblemFirstAcceptedHandleCriteria query
     ) {
+        List<CodeforcesFirstAcceptedProblem> rows = repository.findProblemFirstAcceptedHandles(query);
+        Map<String, String> studentIdentityByHandle = studentIdentityByHandle(rows);
         List<CodeforcesProblemFirstAcceptedHandleReport.CodeforcesFirstAcceptedHandle> acceptedHandles =
-                repository.findProblemFirstAcceptedHandles(query).stream()
-                .sorted(Comparator
-                        .comparing(CodeforcesFirstAcceptedProblem::firstAcceptedAtUtcPlus8)
-                        .thenComparing(CodeforcesFirstAcceptedProblem::authorHandle))
-                .map(row -> new CodeforcesProblemFirstAcceptedHandleReport.CodeforcesFirstAcceptedHandle(
-                        row.authorHandle(),
-                        row.firstAcceptedAtUtcPlus8()
-                ))
-                .distinct()
-                .toList();
+                rows.stream()
+                        .sorted(Comparator
+                                .comparing(CodeforcesFirstAcceptedProblem::firstAcceptedAtUtcPlus8)
+                                .thenComparing(CodeforcesFirstAcceptedProblem::authorHandle))
+                        .map(row -> new CodeforcesProblemFirstAcceptedHandleReport.CodeforcesFirstAcceptedHandle(
+                                studentIdentityByHandle.get(row.authorHandle()),
+                                row.authorHandle(),
+                                row.firstAcceptedAtUtcPlus8()
+                        ))
+                        .distinct()
+                        .toList();
         return new CodeforcesProblemFirstAcceptedHandleReport(
                 query.problemKey(),
                 acceptedHandles.size(),
                 acceptedHandles
         );
+    }
+
+    private Map<String, String> studentIdentityByHandle(List<CodeforcesFirstAcceptedProblem> rows) {
+        Map<String, String> studentIdentityByHandle = new LinkedHashMap<>();
+        for (CodeforcesFirstAcceptedProblem row : rows) {
+            studentIdentityByHandle.computeIfAbsent(
+                    row.authorHandle(),
+                    handle -> handleAccountService.getByHandle(handle).studentIdentity()
+            );
+        }
+        return studentIdentityByHandle;
     }
 
     private static CodeforcesHandleFirstAcceptedProblemReport.CodeforcesFirstAcceptedProblemItem toProblemItem(

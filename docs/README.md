@@ -22,6 +22,8 @@ This repository is expected to be developed by agents. Documentation is part of 
 | Operations | [logging.md](logging.md), [server-deployment.md](server-deployment.md), [../deploy/README.md](../deploy/README.md), [../deploy/UPDATE.md](../deploy/UPDATE.md) | Runtime, logging, deployment, and update workflows. |
 | Module docs | `*/README.md`, `*/AGENTS.md`, `*/TESTING.md`, `platform-training-data/docs/*.md` | Local module context, warehouse contracts, fixtures, and test coverage notes. |
 
+Training-data module details start at [../platform-training-data/README.md](../platform-training-data/README.md). Codeforces warehouse table grain, app query semantics, and SQL task resources are maintained in [../platform-training-data/docs/ods-submission.md](../platform-training-data/docs/ods-submission.md).
+
 ## Update Rule
 
 When changing code, scripts, CI, deployment configuration, or module boundaries, update the matching docs in [doc-sync-map.tsv](doc-sync-map.tsv). The CI job runs [../scripts/check-doc-sync.sh](../scripts/check-doc-sync.sh) to enforce this for PRs.

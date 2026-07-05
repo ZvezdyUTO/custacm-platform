@@ -34,4 +34,6 @@ codeforces_handle_account
 
 管理员可以创建绑定和迁移绑定的 `studentIdentity`，但该接口不修改 handle，也不修改 auth 登录账号。游客可以按 `studentIdentity` 查询已绑定的 Codeforces handle。
 
+Codeforces 内部 DWD/DWM/DWS app 查询以平台 `studentIdentity` 作为个人维度入口；app service 会先解析到绑定的 Codeforces handle，再复用按 `author_handle` 建模的仓储和数仓表查询。问题维度查询结果也会反查 `studentIdentity`，遇到未绑定 handle 会失败。
+
 ODS 字段核对、DWD/DWM/DWS 表粒度、SQL 任务资源和写入接口说明见 [docs/ods-submission.md](docs/ods-submission.md)。本地链路测试数据见 [docs/test-data.md](docs/test-data.md)。

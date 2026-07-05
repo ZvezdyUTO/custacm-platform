@@ -1,5 +1,6 @@
 package com.custacm.platform.trainingdata.codeforces.app.service;
 
+import com.custacm.platform.trainingdata.codeforces.app.CodeforcesHandleAccountException;
 import com.custacm.platform.trainingdata.codeforces.app.result.CodeforcesHandleFirstAcceptedProblemReport;
 import com.custacm.platform.trainingdata.codeforces.app.result.CodeforcesHandleSubmissionReport;
 import com.custacm.platform.trainingdata.codeforces.app.result.CodeforcesProblemFirstAcceptedHandleReport;
@@ -10,24 +11,32 @@ import com.custacm.platform.trainingdata.codeforces.domain.criteria.CodeforcesHa
 import com.custacm.platform.trainingdata.codeforces.domain.criteria.CodeforcesProblemFirstAcceptedHandleCriteria;
 import com.custacm.platform.trainingdata.codeforces.domain.criteria.CodeforcesProblemSubmissionCriteria;
 import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesFirstAcceptedProblem;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesHandleAccount;
 import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesSubmission;
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesFirstAcceptedProblemRepository;
+import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesHandleAccountRepository;
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesSubmissionRepository;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CodeforcesWarehouseQueryServiceTest {
     @Test
-    void returnsHandleSubmissionDetails() {
+    void returnsStudentSubmissionDetails() {
         LocalDateTime from = LocalDateTime.parse("2026-07-01T00:00:00");
         LocalDateTime to = LocalDateTime.parse("2026-07-01T23:59:59");
-        CodeforcesHandleSubmissionCriteria query = new CodeforcesHandleSubmissionCriteria(
+        String studentIdentity = "112487张三";
+        CodeforcesHandleSubmissionCriteria expectedRepositoryQuery = new CodeforcesHandleSubmissionCriteria(
                 "tourist",
                 from,
                 to,
@@ -37,7 +46,7 @@ class CodeforcesWarehouseQueryServiceTest {
         CodeforcesSubmissionRepository repository = new CodeforcesSubmissionRepository() {
             @Override
             public List<CodeforcesSubmission> findHandleSubmissions(CodeforcesHandleSubmissionCriteria actualQuery) {
-                assertThat(actualQuery).isEqualTo(query);
+                assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
                 return List.of(
                         submission(1, "tourist", 800, false),
                         submission(2, "tourist", 800, true),
@@ -51,16 +60,29 @@ class CodeforcesWarehouseQueryServiceTest {
                 throw new UnsupportedOperationException("not used");
             }
         };
-        CodeforcesSubmissionQueryService service = new CodeforcesSubmissionQueryService(repository);
+        CodeforcesHandleAccountService handleAccountService = handleAccountService(
+                account(studentIdentity, "tourist")
+        );
+        CodeforcesSubmissionQueryService service = new CodeforcesSubmissionQueryService(
+                repository,
+                handleAccountService
+        );
 
-        CodeforcesHandleSubmissionReport report = service.listHandleSubmissions(query);
+        CodeforcesHandleSubmissionReport report = service.listStudentSubmissions(
+                studentIdentity,
+                from,
+                to,
+                null,
+                null
+        );
 
+        assertThat(report.studentIdentity()).isEqualTo(studentIdentity);
         assertThat(report.authorHandle()).isEqualTo("tourist");
         assertThat(report.submissions()).containsExactly(
-                submissionItem(1, "tourist", 800, false),
-                submissionItem(2, "tourist", 800, true),
-                submissionItem(3, "tourist", 1200, true),
-                submissionItem(4, "tourist", null, false)
+                submissionItem(1, studentIdentity, "tourist", 800, false),
+                submissionItem(2, studentIdentity, "tourist", 800, true),
+                submissionItem(3, studentIdentity, "tourist", 1200, true),
+                submissionItem(4, studentIdentity, "tourist", null, false)
         );
     }
 
@@ -85,35 +107,96 @@ class CodeforcesWarehouseQueryServiceTest {
                 );
             }
         };
-        CodeforcesSubmissionQueryService service = new CodeforcesSubmissionQueryService(repository);
+        CodeforcesHandleAccountService handleAccountService = handleAccountService(
+                account("112487张三", "alice"),
+                account("112488李四", "bob")
+        );
+        CodeforcesSubmissionQueryService service = new CodeforcesSubmissionQueryService(
+                repository,
+                handleAccountService
+        );
 
         CodeforcesProblemSubmissionReport report = service.listProblemSubmissions(query);
 
         assertThat(report.problemKey()).isEqualTo("1000:A");
         assertThat(report.submissions()).containsExactly(
-                submissionItem(1, "alice", 800, false),
-                submissionItem(2, "alice", 800, true),
-                submissionItem(3, "bob", 800, false)
+                submissionItem(1, "112487张三", "alice", 800, false),
+                submissionItem(2, "112487张三", "alice", 800, true),
+                submissionItem(3, "112488李四", "bob", 800, false)
         );
     }
 
     @Test
-    void returnsHandleFirstAcceptedProblemDetails() {
+    void rejectsUnboundStudentIdentityForSubmissions() {
+        CodeforcesSubmissionRepository repository = new CodeforcesSubmissionRepository() {
+            @Override
+            public List<CodeforcesSubmission> findHandleSubmissions(CodeforcesHandleSubmissionCriteria query) {
+                throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
+            public List<CodeforcesSubmission> findProblemSubmissions(CodeforcesProblemSubmissionCriteria query) {
+                throw new UnsupportedOperationException("not used");
+            }
+        };
+        CodeforcesSubmissionQueryService service = new CodeforcesSubmissionQueryService(
+                repository,
+                handleAccountService()
+        );
+
+        assertThatThrownBy(() -> service.listStudentSubmissions("missing", null, null, null, null))
+                .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
+                        assertThat(ex.errorCode()).isEqualTo(
+                                CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND
+                        ));
+    }
+
+    @Test
+    void rejectsUnboundProblemSubmissionHandle() {
+        CodeforcesProblemSubmissionCriteria query = new CodeforcesProblemSubmissionCriteria("1000:A", null, null);
+        CodeforcesSubmissionRepository repository = new CodeforcesSubmissionRepository() {
+            @Override
+            public List<CodeforcesSubmission> findHandleSubmissions(CodeforcesHandleSubmissionCriteria query) {
+                throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
+            public List<CodeforcesSubmission> findProblemSubmissions(CodeforcesProblemSubmissionCriteria actualQuery) {
+                assertThat(actualQuery).isEqualTo(query);
+                return List.of(submission(1, "unbound", 800, true));
+            }
+        };
+        CodeforcesSubmissionQueryService service = new CodeforcesSubmissionQueryService(
+                repository,
+                handleAccountService()
+        );
+
+        assertThatThrownBy(() -> service.listProblemSubmissions(query))
+                .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
+                        assertThat(ex.errorCode()).isEqualTo(
+                                CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND
+                        ));
+    }
+
+    @Test
+    void returnsStudentFirstAcceptedProblemDetails() {
         LocalDateTime from = LocalDateTime.parse("2026-07-03T00:00:00");
         LocalDateTime to = LocalDateTime.parse("2026-07-03T23:59:59");
-        CodeforcesHandleFirstAcceptedProblemCriteria query = new CodeforcesHandleFirstAcceptedProblemCriteria(
-                "tourist",
-                from,
-                to,
-                null,
-                null
-        );
+        String studentIdentity = "112487张三";
+        CodeforcesHandleFirstAcceptedProblemCriteria expectedRepositoryQuery =
+                new CodeforcesHandleFirstAcceptedProblemCriteria(
+                        "tourist",
+                        from,
+                        to,
+                        null,
+                        null
+                );
         CodeforcesFirstAcceptedProblemRepository repository = new CodeforcesFirstAcceptedProblemRepository() {
             @Override
             public List<CodeforcesFirstAcceptedProblem> findHandleFirstAcceptedProblems(
                     CodeforcesHandleFirstAcceptedProblemCriteria actualQuery
             ) {
-                assertThat(actualQuery).isEqualTo(query);
+                assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
                 return List.of(
                         firstAccepted("tourist", "1000:A", 800, "2026-07-03T09:00:00"),
                         firstAccepted("tourist", "1000:B", 800, "2026-07-03T10:00:00"),
@@ -129,11 +212,21 @@ class CodeforcesWarehouseQueryServiceTest {
                 throw new UnsupportedOperationException("not used");
             }
         };
+        CodeforcesHandleAccountService handleAccountService = handleAccountService(
+                account(studentIdentity, "tourist")
+        );
         CodeforcesFirstAcceptedProblemQueryService service =
-                new CodeforcesFirstAcceptedProblemQueryService(repository);
+                new CodeforcesFirstAcceptedProblemQueryService(repository, handleAccountService);
 
-        var report = service.summarizeHandleFirstAcceptedProblems(query);
+        var report = service.summarizeStudentFirstAcceptedProblems(
+                studentIdentity,
+                from,
+                to,
+                null,
+                null
+        );
 
+        assertThat(report.studentIdentity()).isEqualTo(studentIdentity);
         assertThat(report.authorHandle()).isEqualTo("tourist");
         assertThat(report.totalAcceptedProblemCount()).isEqualTo(4);
         assertThat(report.problems()).containsExactly(
@@ -169,17 +262,51 @@ class CodeforcesWarehouseQueryServiceTest {
                 );
             }
         };
+        CodeforcesHandleAccountService handleAccountService = handleAccountService(
+                account("112488李四", "bob"),
+                account("112487张三", "alice")
+        );
         CodeforcesFirstAcceptedProblemQueryService service =
-                new CodeforcesFirstAcceptedProblemQueryService(repository);
+                new CodeforcesFirstAcceptedProblemQueryService(repository, handleAccountService);
 
         CodeforcesProblemFirstAcceptedHandleReport report = service.summarizeProblemFirstAcceptedHandles(query);
 
         assertThat(report.problemKey()).isEqualTo("1000:A");
         assertThat(report.acceptedHandleCount()).isEqualTo(2);
         assertThat(report.acceptedHandles()).containsExactly(
-                firstAcceptedHandle("alice", "2026-07-04T09:00:00"),
-                firstAcceptedHandle("bob", "2026-07-04T10:00:00")
+                firstAcceptedHandle("112487张三", "alice", "2026-07-04T09:00:00"),
+                firstAcceptedHandle("112488李四", "bob", "2026-07-04T10:00:00")
         );
+    }
+
+    @Test
+    void rejectsUnboundProblemFirstAcceptedHandle() {
+        CodeforcesProblemFirstAcceptedHandleCriteria query =
+                new CodeforcesProblemFirstAcceptedHandleCriteria("1000:A", null, null);
+        CodeforcesFirstAcceptedProblemRepository repository = new CodeforcesFirstAcceptedProblemRepository() {
+            @Override
+            public List<CodeforcesFirstAcceptedProblem> findHandleFirstAcceptedProblems(
+                    CodeforcesHandleFirstAcceptedProblemCriteria query
+            ) {
+                throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
+            public List<CodeforcesFirstAcceptedProblem> findProblemFirstAcceptedHandles(
+                    CodeforcesProblemFirstAcceptedHandleCriteria actualQuery
+            ) {
+                assertThat(actualQuery).isEqualTo(query);
+                return List.of(firstAccepted("unbound", "1000:A", 800, "2026-07-04T10:00:00"));
+            }
+        };
+        CodeforcesFirstAcceptedProblemQueryService service =
+                new CodeforcesFirstAcceptedProblemQueryService(repository, handleAccountService());
+
+        assertThatThrownBy(() -> service.summarizeProblemFirstAcceptedHandles(query))
+                .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
+                        assertThat(ex.errorCode()).isEqualTo(
+                                CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND
+                        ));
     }
 
     private static CodeforcesSubmission submission(
@@ -240,12 +367,14 @@ class CodeforcesWarehouseQueryServiceTest {
 
     private static CodeforcesSubmissionItem submissionItem(
             long codeforcesSubmissionId,
+            String studentIdentity,
             String authorHandle,
             Integer problemRating,
             boolean accepted
     ) {
         return new CodeforcesSubmissionItem(
                 codeforcesSubmissionId,
+                studentIdentity,
                 authorHandle,
                 1000L,
                 LocalDateTime.parse("2026-07-01T12:00:00"),
@@ -293,12 +422,57 @@ class CodeforcesWarehouseQueryServiceTest {
     }
 
     private static CodeforcesProblemFirstAcceptedHandleReport.CodeforcesFirstAcceptedHandle firstAcceptedHandle(
+            String studentIdentity,
             String authorHandle,
             String firstAcceptedAtUtcPlus8
     ) {
         return new CodeforcesProblemFirstAcceptedHandleReport.CodeforcesFirstAcceptedHandle(
+                studentIdentity,
                 authorHandle,
                 LocalDateTime.parse(firstAcceptedAtUtcPlus8)
         );
+    }
+
+    private static CodeforcesHandleAccountService handleAccountService(CodeforcesHandleAccount... accounts) {
+        InMemoryCodeforcesHandleAccountRepository repository = new InMemoryCodeforcesHandleAccountRepository();
+        for (CodeforcesHandleAccount account : accounts) {
+            repository.save(account);
+        }
+        return new CodeforcesHandleAccountService(repository);
+    }
+
+    private static CodeforcesHandleAccount account(String studentIdentity, String handle) {
+        return new CodeforcesHandleAccount(studentIdentity, handle, Instant.EPOCH, Instant.EPOCH);
+    }
+
+    private static final class InMemoryCodeforcesHandleAccountRepository implements CodeforcesHandleAccountRepository {
+        private final Map<String, CodeforcesHandleAccount> accountsByIdentity = new LinkedHashMap<>();
+
+        @Override
+        public Optional<CodeforcesHandleAccount> findByStudentIdentity(String studentIdentity) {
+            return Optional.ofNullable(accountsByIdentity.get(studentIdentity));
+        }
+
+        @Override
+        public Optional<CodeforcesHandleAccount> findByHandle(String handle) {
+            return accountsByIdentity.values().stream()
+                    .filter(account -> account.handle().equals(handle))
+                    .findFirst();
+        }
+
+        @Override
+        public CodeforcesHandleAccount save(CodeforcesHandleAccount account) {
+            accountsByIdentity.put(account.studentIdentity(), account);
+            return account;
+        }
+
+        @Override
+        public CodeforcesHandleAccount updateStudentIdentity(
+                String oldStudentIdentity,
+                String newStudentIdentity,
+                Instant updatedAt
+        ) {
+            throw new UnsupportedOperationException("not used");
+        }
     }
 }

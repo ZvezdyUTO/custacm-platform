@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record CodeforcesHandleFirstAcceptedProblemReport(
+        String studentIdentity,
         String authorHandle,
         int totalAcceptedProblemCount,
         List<CodeforcesFirstAcceptedProblemItem> problems

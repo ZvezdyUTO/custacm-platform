@@ -9,6 +9,7 @@ public record CodeforcesProblemFirstAcceptedHandleReport(
         List<CodeforcesFirstAcceptedHandle> acceptedHandles
 ) {
     public record CodeforcesFirstAcceptedHandle(
+            String studentIdentity,
             String authorHandle,
             LocalDateTime firstAcceptedAtUtcPlus8
     ) {

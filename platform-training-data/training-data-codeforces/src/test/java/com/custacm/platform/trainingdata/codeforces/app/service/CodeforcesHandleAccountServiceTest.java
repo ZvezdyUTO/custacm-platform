@@ -34,6 +34,7 @@ class CodeforcesHandleAccountServiceTest {
         assertThat(account.createdAt()).isEqualTo(NOW);
         assertThat(account.updatedAt()).isEqualTo(NOW);
         assertThat(service.getByStudentIdentity("112487张三")).isEqualTo(account);
+        assertThat(service.getByHandle("tourist")).isEqualTo(account);
     }
 
     @Test
@@ -62,6 +63,11 @@ class CodeforcesHandleAccountServiceTest {
         assertThat(changed.handle()).isEqualTo("tourist");
         assertThat(service.getByStudentIdentity("112488张三").handle()).isEqualTo("tourist");
         assertThatThrownBy(() -> service.getByStudentIdentity("112487张三"))
+                .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
+                        assertThat(ex.errorCode()).isEqualTo(
+                                CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND
+                        ));
+        assertThatThrownBy(() -> service.getByHandle("missing"))
                 .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
                         assertThat(ex.errorCode()).isEqualTo(
                                 CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND

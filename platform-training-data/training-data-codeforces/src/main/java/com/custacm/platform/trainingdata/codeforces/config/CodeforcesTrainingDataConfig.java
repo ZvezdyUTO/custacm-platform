@@ -73,23 +73,26 @@ public class CodeforcesTrainingDataConfig {
 
     @Bean
     CodeforcesAcceptedSummaryQueryService codeforcesAcceptedSummaryQueryService(
-            CodeforcesAcceptedSummaryRepository repository
+            CodeforcesAcceptedSummaryRepository repository,
+            CodeforcesHandleAccountService handleAccountService
     ) {
-        return new CodeforcesAcceptedSummaryQueryService(repository);
+        return new CodeforcesAcceptedSummaryQueryService(repository, handleAccountService);
     }
 
     @Bean
     CodeforcesSubmissionQueryService codeforcesSubmissionQueryService(
-            CodeforcesSubmissionRepository repository
+            CodeforcesSubmissionRepository repository,
+            CodeforcesHandleAccountService handleAccountService
     ) {
-        return new CodeforcesSubmissionQueryService(repository);
+        return new CodeforcesSubmissionQueryService(repository, handleAccountService);
     }
 
     @Bean
     CodeforcesFirstAcceptedProblemQueryService codeforcesFirstAcceptedProblemQueryService(
-            CodeforcesFirstAcceptedProblemRepository repository
+            CodeforcesFirstAcceptedProblemRepository repository,
+            CodeforcesHandleAccountService handleAccountService
     ) {
-        return new CodeforcesFirstAcceptedProblemQueryService(repository);
+        return new CodeforcesFirstAcceptedProblemQueryService(repository, handleAccountService);
     }
 
     @Bean

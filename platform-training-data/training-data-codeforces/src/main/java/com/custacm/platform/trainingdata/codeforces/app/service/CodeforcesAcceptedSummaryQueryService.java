@@ -2,23 +2,42 @@ package com.custacm.platform.trainingdata.codeforces.app.service;
 
 import com.custacm.platform.trainingdata.codeforces.app.result.CodeforcesAcceptedSummaryReport;
 import com.custacm.platform.trainingdata.codeforces.domain.criteria.CodeforcesAcceptedSummaryCriteria;
-import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesAcceptedSummaryRepository;
 import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesDailyRatingAcceptedSummary;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesHandleAccount;
+import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesAcceptedSummaryRepository;
 import com.custacm.platform.trainingdata.codeforces.domain.value.CodeforcesProblemRatingBuckets;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CodeforcesAcceptedSummaryQueryService {
     private final CodeforcesAcceptedSummaryRepository repository;
+    private final CodeforcesHandleAccountService handleAccountService;
 
-    public CodeforcesAcceptedSummaryQueryService(CodeforcesAcceptedSummaryRepository repository) {
+    public CodeforcesAcceptedSummaryQueryService(
+            CodeforcesAcceptedSummaryRepository repository,
+            CodeforcesHandleAccountService handleAccountService
+    ) {
         this.repository = repository;
+        this.handleAccountService = handleAccountService;
     }
 
-    public CodeforcesAcceptedSummaryReport summarizeAcceptedProblems(
-            CodeforcesAcceptedSummaryCriteria query
+    public CodeforcesAcceptedSummaryReport summarizeStudentAcceptedProblems(
+            String studentIdentity,
+            LocalDate acceptedFromDateUtcPlus8,
+            LocalDate acceptedToDateUtcPlus8,
+            Integer minProblemRating,
+            Integer maxProblemRating
     ) {
+        CodeforcesHandleAccount account = handleAccountService.getByStudentIdentity(studentIdentity);
+        CodeforcesAcceptedSummaryCriteria query = new CodeforcesAcceptedSummaryCriteria(
+                account.handle(),
+                acceptedFromDateUtcPlus8,
+                acceptedToDateUtcPlus8,
+                minProblemRating,
+                maxProblemRating
+        );
         List<CodeforcesDailyRatingAcceptedSummary> rows = repository.findDailyRatingAcceptedSummaries(query);
         List<CodeforcesAcceptedSummaryReport.CodeforcesRatingAcceptedCount> ratingCounts = ratingCounts(
                 rows,
@@ -26,7 +45,8 @@ public class CodeforcesAcceptedSummaryQueryService {
                 query.maxProblemRating()
         );
         return new CodeforcesAcceptedSummaryReport(
-                query.authorHandle(),
+                account.studentIdentity(),
+                account.handle(),
                 totalCount(ratingCounts),
                 ratingCounts
         );
