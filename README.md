@@ -5,7 +5,7 @@
 ## Current Scope
 
 - `platform-common`：公共模块；当前保留基础公共能力，不承载业务身份模型。
-- `platform-auth`：Keycloak-backed 鉴权模块，包含 JWT 解析、角色归一和当前学生身份接口。
+- `platform-auth`：平台自有用户管理和鉴权模块，包含本地账号、BCrypt 密码哈希、RSA JWT 签发/解析和当前用户接口。
 - `platform-training-data`：训练数据模块第一版，包含 Codeforces 垂直 OJ 数仓模块、submission ODS 存储、DWD 明细、DWM 中间事实和 DWS 汇总 SQL 任务。
 - `platform-blog`：Blog / 内容模块占位。
 - `platform-editor`：编辑器接入模块占位。
@@ -42,17 +42,16 @@ curl http://localhost:8081/health
 curl http://localhost:8081/module-info
 ```
 
-登录、注册、密码重置和 token 签发由 Keycloak 负责；后端不实现本地密码登录。
+`auth-web` 负责登录、密码哈希、管理员用户管理和 token 签发；当前没有公开注册入口。
 
-学生身份使用单个不可变字符串：
+用户业务身份使用单个不可变字符串：
 
 ```text
-student_identity = 固定位数学号 + 姓名
-例：112487张三
+studentIdentity = 固定位数学号 + 姓名
+例：230511213黄炳睿
 ```
 
-Keycloak 用户属性和 JWT claim 均使用 `student_identity`。
-平台业务代码里的用户 ID 就是 `studentIdentity`，不再另建用户 ID。
+登录名就是 `studentIdentity`。账号表使用单个 `role` 字段，取值为 `admin`、`player` 或 `disable`；`disable` 账号不能登录。JWT 使用 `sub` 承载 `studentIdentity`，使用 `role` 承载 `admin` 或 `player`。未登录访问者是 `guest`，不需要 JWT；公共游客接口也不会解析 JWT。HTTP 接口按 `/admin/**`、`/player/**` 和游客公开路径分层，规则见 [docs/authorization.md](docs/authorization.md)。
 
 ## Run Training Data
 
@@ -68,4 +67,4 @@ curl http://localhost:8082/module-info
 ```
 
 训练数据第一版实现 Codeforces 独立 OJ 数仓链路：ODS 原始提交、DWD 标准提交明细、DWM handle-题目首次通过和 DWS handle-日期-rating 汇总。
-ODS 写入接口需要 Keycloak JWT 中带平台 `admin` 角色。`training-data-web` 默认连接 MySQL，并通过 Flyway 应用 OJ 模块里的 ODS/DWD/DWM/DWS 建表脚本；DWD/DWM/DWS 转换目前以幂等 SQL 任务文件形式提供，Java SQL-task 执行器和 HTTP refresh 入口尚未实现。
+ODS 写入接口位于 `/api/training-data/admin/ods/codeforces/submissions:batch-upsert`，需要平台 JWT 中带 `admin` 角色。`training-data-web` 默认连接 MySQL，并通过 Flyway 应用 OJ 模块里的 ODS/DWD/DWM/DWS 建表脚本；DWD/DWM/DWS 转换目前以幂等 SQL 任务文件形式提供，Java SQL-task 执行器和 HTTP refresh 入口尚未实现。

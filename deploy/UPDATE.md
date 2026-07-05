@@ -4,12 +4,11 @@
 
 ## Current Shape
 
-当前 Compose 有 3 个容器：
+当前 Compose 有 2 个容器：
 
 ```text
-keycloak-db       Keycloak 的 PostgreSQL
-keycloak          登录、用户管理、JWT 签发
-custacm-backend   当前业务后端容器，实际运行 platform-auth/auth-web
+auth-db          platform-auth 使用的 MySQL
+custacm-backend  当前业务后端容器，实际运行 platform-auth/auth-web
 ```
 
 当前可单独更新的业务模块：
@@ -26,10 +25,13 @@ auth-web -> platform-auth/auth-web -> custacm-backend
 
 ## Full Deploy
 
-第一次部署、环境变量变更、Compose 结构变更时，用全量部署：
+第一次部署、环境变量变更、Compose 结构变更、JWT 密钥文件路径变更时，用全量部署：
 
 ```bash
 cp deploy/.env.example deploy/.env
+mkdir -p deploy/secrets
+openssl genrsa -out deploy/secrets/auth-private-key.pem 2048
+openssl rsa -in deploy/secrets/auth-private-key.pem -pubout -out deploy/secrets/auth-public-key.pem
 vim deploy/.env
 ./scripts/deploy.sh
 ```
@@ -68,7 +70,7 @@ git pull origin main
 
 后端 Maven 构建在 Dockerfile 的 build stage 中执行，服务器不需要安装 Maven/JDK。
 
-`--no-deps` 表示只重启这个业务容器，不重启 Keycloak 和 PostgreSQL。
+`--no-deps` 表示只重启这个业务容器，不重启 `auth-db`。
 
 查看当前支持的模块：
 
@@ -127,14 +129,15 @@ Dockerfile
 pom.xml
 deploy/docker-compose.yml
 deploy/.env.example
-deploy/keycloak/*
 scripts/deploy.sh
 scripts/server-deploy.sh
   -> ./scripts/deploy.sh
 
 platform-auth/pom.xml
+platform-auth/auth-domain/*
+platform-auth/auth-app/*
 platform-auth/auth-core/*
-platform-auth/auth-interface/*
+platform-auth/auth-infra/*
 platform-auth/auth-web/*
   -> ./scripts/update-module.sh auth-web
 
@@ -152,7 +155,7 @@ docs / README / frontend / 其他未映射路径
 ./scripts/update-module.sh auth-web
 ```
 
-改了 `platform-auth/auth-core`，并且只影响 auth 后端：
+改了 `platform-auth/auth-domain`、`auth-app`、`auth-core` 或 `auth-infra`，并且只影响 auth 后端：
 
 ```bash
 ./scripts/update-module.sh auth-web
@@ -164,13 +167,11 @@ docs / README / frontend / 其他未映射路径
 ./scripts/deploy.sh
 ```
 
-改了 `deploy/keycloak/custacm-realm.json`：
+改了 JWT 密钥内容时，不需要重新构建镜像，但需要重启依赖这些密钥的服务：
 
 ```bash
-./scripts/deploy.sh
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml restart custacm-backend
 ```
-
-注意：Keycloak 使用数据库持久化。已有 realm 不一定会被 `--import-realm` 覆盖。开发环境如果要强制重新导入 realm，需要清理 Keycloak 数据库 volume；这会删除本地 Keycloak 用户和配置。
 
 ## Add A New Business Container
 
@@ -191,13 +192,11 @@ custacm-blog-web:
       APP_PORT: 8082
   environment:
     BLOG_WEB_PORT: 8082
-    KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI}
-    KEYCLOAK_JWK_SET_URI: ${KEYCLOAK_JWK_SET_URI}
+    AUTH_JWT_PUBLIC_KEY_PATH: /run/secrets/auth-public-key.pem
+  volumes:
+    - ${AUTH_JWT_PUBLIC_KEY_HOST_PATH}:/run/secrets/auth-public-key.pem:ro
   ports:
     - "8082:8082"
-  depends_on:
-    keycloak:
-      condition: service_started
 ```
 
 2. 在 `scripts/update-module.sh` 的 `case` 里加映射。

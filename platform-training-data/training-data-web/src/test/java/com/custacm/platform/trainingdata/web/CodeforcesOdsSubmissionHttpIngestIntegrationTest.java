@@ -5,10 +5,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.charset.StandardCharsets;
@@ -25,8 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "spring.datasource.url=jdbc:h2:mem:cf_ods_http_ingest;MODE=MySQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1",
                 "spring.datasource.username=sa",
                 "spring.datasource.password=",
-                "spring.datasource.driver-class-name=org.h2.Driver",
-                "spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://localhost/unused-test-jwks"
+                "spring.datasource.driver-class-name=org.h2.Driver"
         }
 )
 @AutoConfigureMockMvc
@@ -38,6 +39,9 @@ class CodeforcesOdsSubmissionHttpIngestIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @MockBean
+    private JwtDecoder jwtDecoder;
 
     @Test
     void postsLocalFixtureThroughAdminHttpEndpointAndUpsertsIdempotently() throws Exception {
@@ -63,7 +67,7 @@ class CodeforcesOdsSubmissionHttpIngestIntegrationTest {
     }
 
     private void postFixture(String payload) throws Exception {
-        mockMvc.perform(post("/api/training-data/ods/codeforces/submissions:batch-upsert")
+        mockMvc.perform(post("/api/training-data/admin/ods/codeforces/submissions:batch-upsert")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))

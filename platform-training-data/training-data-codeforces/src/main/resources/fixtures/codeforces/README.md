@@ -32,7 +32,7 @@ Files:
 Use the array fixture for local API testing:
 
 ```bash
-curl -X POST "http://localhost:8082/api/training-data/ods/codeforces/submissions:batch-upsert" \
+curl -X POST "http://localhost:8082/api/training-data/admin/ods/codeforces/submissions:batch-upsert" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   --data-binary @platform-training-data/training-data-codeforces/src/main/resources/fixtures/codeforces/submissions_multi_user_1000.json

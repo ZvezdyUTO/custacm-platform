@@ -101,7 +101,7 @@ src/test/java/com/custacm/platform/trainingdata/codeforces/
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesFirstAcceptedProblemRepository.java` | infra | JDBC implementation for DWM first-accepted queries; builds optional time/rating predicates and maps rows to DWM models. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesOdsSubmissionWriter.java` | infra | JDBC writer for ODS upsert; loads `sql/ods/upsert_ods_codeforces__submission.sql`, maps ODS records to named parameters, and writes UTC+8 local `fetched_at`. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/infra/repo/JdbcCodeforcesSubmissionRepository.java` | infra | JDBC implementation for DWD submission queries; builds optional time/rating predicates and maps rows to DWD models. |
-| `src/main/java/com/custacm/platform/trainingdata/codeforces/web/controller/CodeforcesOdsSubmissionIngestController.java` | web | HTTP endpoint for `POST /api/training-data/ods/codeforces/submissions:batch-upsert`; converts invalid bodies to `400`. |
+| `src/main/java/com/custacm/platform/trainingdata/codeforces/web/controller/CodeforcesOdsSubmissionIngestController.java` | web | HTTP endpoint for `POST /api/training-data/admin/ods/codeforces/submissions:batch-upsert`; converts invalid bodies to `400`. |
 | `src/main/java/com/custacm/platform/trainingdata/codeforces/web/response/CodeforcesOdsBatchUpsertResponse.java` | web | HTTP response DTO for Codeforces ODS batch upsert. |
 
 ## Resource File Responsibilities

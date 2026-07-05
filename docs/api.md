@@ -4,10 +4,10 @@
 
 当前阶段有两个可运行后端模块：
 
-- `platform-auth/auth-web`：默认端口 `8081`，负责 Keycloak JWT 解析和当前用户身份接口。
+- `platform-auth/auth-web`：默认端口 `8081`，负责本地账号、登录、RSA JWT 签发和用户管理。
 - `platform-training-data/training-data-web`：默认端口 `8082`，负责训练数据 ODS 批量写入入口。
 
-登录、注册、密码重置、会话管理和 token 签发均由 Keycloak 负责，平台后端只校验 Keycloak JWT 并返回或使用平台业务身份。
+当前后端没有自定义统一响应包裹，接口直接返回业务 JSON。错误响应使用稳定 `code` 和 `message`。
 
 ## 基础信息
 
@@ -18,13 +18,26 @@ auth-web:          http://localhost:8081
 training-data-web: http://localhost:8082
 ```
 
-部署后端口由对应模块配置控制。当前 Compose 部署只覆盖 `auth-web`；`training-data-web` 的容器化部署还未接入 `deploy/`。
-
-当前后端没有自定义统一响应包裹，接口直接返回业务 JSON。
+部署后端口由对应模块配置控制。当前 Compose 部署覆盖 `auth-web` 和它的 MySQL `auth-db`；`training-data-web` 的容器化部署还未接入 `deploy/`。
 
 ## 鉴权规则
 
-除健康检查和模块信息接口外，`/api/**` 接口都需要 Keycloak Bearer Token。训练数据 ODS 批量写入接口还要求 token 中的平台角色为 `admin`。
+HTTP 接口按 URL 分为三层，完整规则见 [authorization.md](authorization.md)。
+
+```text
+/admin/**   -> 必须携带平台 Bearer Token，且 role=admin
+/player/**  -> 必须携带平台 Bearer Token，role=player 或 admin
+其它路径     -> 游客接口，不需要 JWT，也不解析 JWT
+```
+
+各模块应把受保护接口放在自己的模块 API 前缀下：
+
+```text
+/api/<module>/admin/**
+/api/<module>/player/**
+```
+
+游客接口即使收到 `Authorization` 请求头，也按未登录游客请求处理。凡是需要当前登录用户身份的接口，都必须放在 `/player/**` 或 `/admin/**` 下。
 
 请求头格式：
 
@@ -32,29 +45,30 @@ training-data-web: http://localhost:8082
 Authorization: Bearer <access_token>
 ```
 
-后端从 JWT 中读取：
+JWT 由 `auth-web` 使用 RSA 私钥签发，其它后端使用同一对密钥的公钥验证。JWT 业务字段为：
 
-- `student_identity`：平台业务用户 ID，对外字段名为 `studentIdentity`。
-- `realm_access.roles`：Keycloak realm 角色。
-- `resource_access.*.roles`：Keycloak client/resource 角色。
+- `sub`：平台业务用户 ID，对外字段名为 `studentIdentity`。
+- `role`：单个 JWT 业务角色，当前只会是 `admin` 或 `player`。
 
-平台当前只识别两个业务角色：
+平台角色：
 
 ```text
 admin
-student
+player
 ```
 
-如果同一个 token 同时包含 `admin` 和 `student`，后端按 `admin` 处理。
+账号管理接口中的账号 `role` 可为 `admin`、`player` 或 `disable`。`disable` 账号不能登录，因此不会拿到 JWT。未登录访问者没有 `role` 值；公开接口不需要 JWT，也不解析 JWT。
 
-`student_identity` 是一个不可变字符串，格式为：
+`admin` 包含 `player` 能力，因此管理员可以访问 `/player/**` 接口。
+
+`studentIdentity` 是一个不可变字符串，通常格式为：
 
 ```text
 固定位数学号 + 姓名
-例：112487张三
+例：230511213黄炳睿
 ```
 
-平台业务代码只使用 `studentIdentity` 作为用户 ID，不再另建本地用户 ID。
+平台业务代码只使用 `studentIdentity` 作为用户 ID，不再另建用户 ID。
 
 ## 接口列表
 
@@ -62,10 +76,17 @@ student
 | --- | --- | --- | --- | --- |
 | `auth-web` | `GET` | `/health` | 否 | 鉴权模块健康检查 |
 | `auth-web` | `GET` | `/module-info` | 否 | 鉴权模块信息 |
-| `auth-web` | `GET` | `/api/auth/me` | 是 | 查询当前登录用户的平台身份 |
+| `auth-web` | `POST` | `/api/auth/login` | 否 | 使用 `studentIdentity` + 密码登录 |
+| `auth-web` | `GET` | `/api/auth/player/me` | `player` 或 `admin` | 查询当前登录用户的平台身份 |
+| `auth-web` | `PATCH` | `/api/auth/player/me/password` | `player` 或 `admin` | 当前用户修改自己的密码 |
+| `auth-web` | `POST` | `/api/auth/admin/users` | `admin` | 管理员创建单个用户 |
+| `auth-web` | `POST` | `/api/auth/admin/users:batch-create` | `admin` | 管理员批量创建用户 |
+| `auth-web` | `GET` | `/api/auth/admin/users` | `admin` | 管理员查看用户列表 |
+| `auth-web` | `PATCH` | `/api/auth/admin/users/{studentIdentity}` | `admin` | 管理员更新用户角色或重置密码 |
+| `auth-web` | `DELETE` | `/api/auth/admin/users/{studentIdentity}` | `admin` | 管理员真实删除用户 |
 | `training-data-web` | `GET` | `/health` | 否 | 训练数据模块健康检查 |
 | `training-data-web` | `GET` | `/module-info` | 否 | 训练数据模块信息 |
-| `training-data-codeforces` | `POST` | `/api/training-data/ods/codeforces/submissions:batch-upsert` | `admin` | 批量写入 Codeforces submission ODS |
+| `training-data-codeforces` | `POST` | `/api/training-data/admin/ods/codeforces/submissions:batch-upsert` | `admin` | 批量写入 Codeforces submission ODS |
 
 ## GET /health
 
@@ -95,22 +116,9 @@ GET /health
 }
 ```
 
-### 字段说明
-
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `status` | `string` | 服务状态，当前正常时为 `UP` |
-| `service` | `string` | 当前 Spring Boot 服务名 |
-
 ## GET /module-info
 
 模块信息接口，用于确认当前后端容器实际运行的模块和基础能力。
-
-### 请求
-
-```http
-GET /module-info
-```
 
 ### auth-web 响应
 
@@ -119,19 +127,13 @@ GET /module-info
   "module": "platform-auth",
   "service": "auth-web",
   "features": [
-    "keycloak-jwt",
+    "local-login",
+    "rsa-jwt",
+    "user-management",
     "current-user"
   ]
 }
 ```
-
-### 字段说明
-
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `module` | `string` | 当前业务模块 |
-| `service` | `string` | 当前 Spring Boot 服务名 |
-| `features` | `string[]` | 当前模块已经提供的能力 |
 
 ### training-data-web 响应
 
@@ -146,18 +148,48 @@ GET /module-info
 }
 ```
 
-`training-data-web` 启动时也会应用内部 Codeforces ODS/DWD/DWM/DWS 数仓表迁移。DWS 当前是 handle/date 粒度的内部宽表，每个固定 rating 桶和 unrated 各占一个计数列。DWD/DWM/DWS 转换目前以 `training-data-codeforces` 内的 SQL 任务资源表示，尚未实现 Java SQL-task 执行器或公开 HTTP refresh 入口。
+`training-data-web` 启动时也会应用内部 Codeforces ODS/DWD/DWM/DWS 表迁移。DWD/DWM/DWS 转换目前以 `training-data-codeforces` 内的 SQL 任务资源表示，尚未实现 Java SQL-task 执行器或公开 HTTP refresh 入口。
 
-## GET /api/auth/me
+## POST /api/auth/login
 
-查询当前请求 token 对应的平台用户身份。
-
-该接口不签发 token，也不查询本地用户表。它只把 Keycloak JWT 中的平台身份信息转换为业务响应。
+使用平台本地账号登录。当前没有公开注册入口；账号由管理员创建或批量导入。
 
 ### 请求
 
 ```http
-GET /api/auth/me
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "studentIdentity": "230511213黄炳睿",
+  "password": "playerPass123"
+}
+```
+
+### 响应
+
+```json
+{
+  "tokenType": "Bearer",
+  "accessToken": "<jwt>",
+  "expiresInSeconds": 7200,
+  "user": {
+    "studentIdentity": "230511213黄炳睿",
+    "role": "player"
+  }
+}
+```
+
+登录失败会返回 `401` 和 `AUTH_INVALID_CREDENTIALS`。同一 `studentIdentity` 输错后 5 秒内再次登录会返回 `429` 和 `AUTH_LOGIN_RATE_LIMITED`。
+
+## GET /api/auth/player/me
+
+查询当前请求 token 对应的平台用户身份。
+
+### 请求
+
+```http
+GET /api/auth/player/me
 Authorization: Bearer <access_token>
 ```
 
@@ -165,38 +197,182 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "studentIdentity": "112487张三",
-  "role": "student"
+  "studentIdentity": "230511213黄炳睿",
+  "role": "player"
 }
 ```
 
-### 字段说明
+## PATCH /api/auth/player/me/password
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `studentIdentity` | `string` | 平台业务用户 ID，来自 JWT claim `student_identity` |
-| `role` | `string` | 平台业务角色，当前只能是 `admin` 或 `student` |
+当前登录用户修改自己的密码。
 
-### curl 示例
+### 请求
 
-```bash
-curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-  http://localhost:8081/api/auth/me
+```http
+PATCH /api/auth/player/me/password
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "oldPassword": "playerPass123",
+  "newPassword": "newPlayerPass123",
+  "confirmNewPassword": "newPlayerPass123"
+}
 ```
 
-## POST /api/training-data/ods/codeforces/submissions:batch-upsert
+`newPassword` 和 `confirmNewPassword` 必须一致，否则返回 `400` 和 `AUTH_INVALID_REQUEST`。
+
+### 响应
+
+```http
+204 No Content
+```
+
+## 管理员用户管理接口
+
+所有 `/api/auth/admin/**` 接口都要求当前 token 的 `role` 为 `admin`。
+
+管理员可以创建、批量创建、禁用、启用、调整其它账号角色、重置密码和真实删除用户。禁用通过把账号 `role` 设置为 `disable` 完成；重新启用时需要把 `role` 设置回 `admin` 或 `player`。角色更新和密码重置统一通过 `PATCH /api/auth/admin/users/{studentIdentity}` 完成。管理员不能把自己降级为 `player` 或 `disable`，也不能删除自己。
+
+创建用户时 `password` 为空字符串、空白字符串或未传时，后端会生成 16 位随机密码。更新用户时 `newPassword` 为空字符串或空白字符串表示生成随机新密码；`newPassword` 未传或为 `null` 表示不修改密码。创建和修改密码成功时，响应会在 `plainPassword` 返回本次生效的明文密码；该明文只在本次响应中返回，数据库仍只保存哈希。
+
+管理员写操作返回操作结果对象：
+
+```json
+{
+  "success": true,
+  "studentIdentity": "230511213黄炳睿",
+  "user": {
+    "studentIdentity": "230511213黄炳睿",
+    "role": "player",
+    "createdAt": "2026-07-04T12:00:00Z",
+    "updatedAt": "2026-07-04T12:00:00Z"
+  },
+  "plainPassword": "playerPass123",
+  "errorCode": null,
+  "message": "user created"
+}
+```
+
+`plainPassword` 只在创建或重置密码时有值；只改角色、删除用户、失败结果中为 `null`。
+
+### POST /api/auth/admin/users
+
+```http
+POST /api/auth/admin/users
+Authorization: Bearer <admin_access_token>
+Content-Type: application/json
+
+{
+  "studentIdentity": "230511213黄炳睿",
+  "password": "playerPass123",
+  "role": "player"
+}
+```
+
+响应 `201`：
+
+```json
+{
+  "success": true,
+  "studentIdentity": "230511213黄炳睿",
+  "user": {
+    "studentIdentity": "230511213黄炳睿",
+    "role": "player",
+    "createdAt": "2026-07-04T12:00:00Z",
+    "updatedAt": "2026-07-04T12:00:00Z"
+  },
+  "plainPassword": "playerPass123",
+  "errorCode": null,
+  "message": "user created"
+}
+```
+
+### POST /api/auth/admin/users:batch-create
+
+```http
+POST /api/auth/admin/users:batch-create
+Authorization: Bearer <admin_access_token>
+Content-Type: application/json
+
+{
+  "users": [
+    {
+      "studentIdentity": "230511213黄炳睿",
+      "password": "playerPass123",
+      "role": "player"
+    }
+  ]
+}
+```
+
+响应 `201`，返回每条创建命令的结果数组。批量创建允许部分成功；失败项不会影响后续项继续处理。
+
+```json
+[
+  {
+    "success": true,
+    "studentIdentity": "230511213黄炳睿",
+    "user": {
+      "studentIdentity": "230511213黄炳睿",
+      "role": "player",
+      "createdAt": "2026-07-04T12:00:00Z",
+      "updatedAt": "2026-07-04T12:00:00Z"
+    },
+    "plainPassword": "generatedOrProvidedPassword",
+    "errorCode": null,
+    "message": "user created"
+  },
+  {
+    "success": false,
+    "studentIdentity": "existing-user",
+    "user": null,
+    "plainPassword": null,
+    "errorCode": "AUTH_USER_EXISTS",
+    "message": "user already exists"
+  }
+]
+```
+
+### GET /api/auth/admin/users
+
+响应 `200`，返回用户数组。
+
+### PATCH /api/auth/admin/users/{studentIdentity}
+
+请求体支持部分更新，`role` 和 `newPassword` 至少传一个：
+
+```json
+{
+  "role": "disable",
+  "newPassword": "newPlayerPass123"
+}
+```
+
+`role` 当前只允许 `admin`、`player` 或 `disable`。`disable` 表示账号禁用，不能登录。
+更新接口里的 `role` 为空或 `guest` 时表示不修改角色。管理员不能把自己降级为 `player` 或 `disable`。
+
+响应 `200`，返回操作结果对象。若本次修改了密码，`plainPassword` 为本次生效的明文密码；若只改角色，`plainPassword` 为 `null`。
+
+### DELETE /api/auth/admin/users/{studentIdentity}
+
+真实删除用户。该操作不会清理其它业务模块里已经引用此 `studentIdentity` 的历史数据。
+
+响应 `200`，返回删除操作结果对象，其中 `user` 是删除前的用户信息，`plainPassword` 为 `null`。
+
+## POST /api/training-data/admin/ods/codeforces/submissions:batch-upsert
 
 批量写入 Codeforces submission ODS。请求体直接是 Codeforces 原始 submission 数组，不包 `{ data: [...] }`。
 
 后端会生成 `batchId` / `fetchedAt`，按每条 submission 计算 `rawPayload` 和 `payloadHash`，然后幂等写入 `ods_codeforces__submission`。
 
-下游 DWD/DWM/DWS 转换目前不是 HTTP API。它们以模块资源中的幂等 SQL 任务文件存在，后续 Java 调度只需要按固定顺序触发这些 SQL；其中 DWS 会生成 handle/date 粒度的 rating 宽表汇总。
+下游 DWD/DWM/DWS 转换目前不是 HTTP API。它们以模块资源中的幂等 SQL 任务文件存在，后续 Java 调度只需要按固定顺序触发这些 SQL。
 
 ### 请求
 
 ```http
-POST /api/training-data/ods/codeforces/submissions:batch-upsert
-Authorization: Bearer <access_token>
+POST /api/training-data/admin/ods/codeforces/submissions:batch-upsert
+Authorization: Bearer <admin_access_token>
 Content-Type: application/json
 
 [
@@ -241,28 +417,27 @@ Content-Type: application/json
 }
 ```
 
-## 错误行为
+## 错误响应
 
-当前错误响应还没有平台统一错误格式，认证相关错误主要由 Spring Security 处理。
+当前 auth 模块的业务错误响应：
 
-| 场景 | 当前行为 |
-| --- | --- |
-| 未携带 `Authorization` | 返回认证失败响应，通常为 `401` |
-| Bearer token 无效或过期 | 返回认证失败响应，通常为 `401` |
-| token 缺少 `student_identity` | 当前代码会拒绝解析该 token，后续统一错误格式时再固化响应体 |
-| token 缺少 `admin` / `student` 平台角色 | 当前代码会拒绝解析该 token，后续统一错误格式时再固化响应体 |
-| 使用 `student` 角色调用 ODS ingest | 返回 `403` |
-| ODS ingest 请求体不是数组，或缺少 OJ 必填字段 | 返回 `400` |
+```json
+{
+  "code": "AUTH_INVALID_CREDENTIALS",
+  "message": "invalid student identity or password"
+}
+```
 
-## 非平台后端接口
+常见错误：
 
-以下能力不属于 `custacm-platform` 后端 API：
+| 场景 | HTTP 状态 | code |
+| --- | --- | --- |
+| 请求参数不合法 | `400` | `AUTH_INVALID_REQUEST` |
+| 登录名或密码错误 | `401` | `AUTH_INVALID_CREDENTIALS` |
+| 登录重试冷却中 | `429` | `AUTH_LOGIN_RATE_LIMITED` |
+| 账号已禁用 | `403` | `AUTH_USER_DISABLED` |
+| 权限不足或管理员自我降级 | `403` | `AUTH_FORBIDDEN` |
+| 用户不存在 | `404` | `AUTH_USER_NOT_FOUND` |
+| 用户已存在 | `409` | `AUTH_USER_EXISTS` |
 
-- 登录
-- 注册
-- 退出登录
-- 密码重置
-- token 签发和刷新
-- Keycloak 用户管理
-
-这些能力由 Keycloak 和后续前端 OIDC 流程处理。平台后端只接收并校验 Keycloak 已签发的 JWT。
+Spring Security 自身拦截的未认证或 token 无效请求可能返回默认 `401` / `403` 响应体。

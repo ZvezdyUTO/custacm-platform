@@ -4,9 +4,23 @@ server:
 spring:
   application:
     name: auth-web
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/custacm}
-          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/custacm/protocol/openid-connect/certs}
+  datasource:
+    url: ${AUTH_DB_URL:jdbc:mysql://localhost:3306/custacm_auth?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${AUTH_DB_USERNAME:custacm_auth}
+    password: ${AUTH_DB_PASSWORD:change-me-auth-db-password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+platform:
+  auth:
+    jwt:
+      private-key: ${AUTH_JWT_PRIVATE_KEY:}
+      private-key-path: ${AUTH_JWT_PRIVATE_KEY_PATH:}
+      public-key: ${AUTH_JWT_PUBLIC_KEY:}
+      public-key-path: ${AUTH_JWT_PUBLIC_KEY_PATH:}
+      access-token-ttl: ${AUTH_JWT_ACCESS_TOKEN_TTL:2h}
+    bootstrap-admin:
+      student-identity: ${AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY:}
+      password: ${AUTH_BOOTSTRAP_ADMIN_PASSWORD:}

@@ -8,6 +8,7 @@ Use the smallest check that proves the changed surface, then run broader checks 
 | Backend logging code or `logback-spring.xml` | `mvn clean verify`, `./scripts/check-test-policy.sh`, and `git diff --check` |
 | Dockerfile or package/image behavior | `mvn clean package -DskipTests` |
 | Compose or env example changes | `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config` |
+| Auto-update classification changes | `./scripts/auto-update-main.sh classify <changed-file>...` with representative paths |
 | Documentation sync rules | `./scripts/check-doc-sync.sh origin/main WORKTREE` |
 | Docs-only changes | No Maven required unless examples/config changed |
 
@@ -32,4 +33,4 @@ The protected `main` branch requires the `verify` check to pass before ordinary 
 - contain `*Test.java` files and generated Surefire plus JaCoCo reports, or
 - be explicitly listed in [../test-policy-allowlist.tsv](../test-policy-allowlist.tsv).
 
-The current allowlist is for DTO-only modules without behavior. New business logic should add focused tests instead of expanding the allowlist.
+The allowlist should stay narrow and only cover modules without executable behavior. New business logic should add focused tests instead of expanding the allowlist.

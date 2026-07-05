@@ -10,5 +10,6 @@ target/
 logs/
 
 deploy/.env
+deploy/secrets/*.pem
 deploy/.auto-update-main.state
 deploy/.auto-update-main.lock/

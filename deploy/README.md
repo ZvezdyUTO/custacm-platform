@@ -2,9 +2,8 @@
 
 本目录提供服务器 / 开发环境的一键部署编排。当前会启动：
 
-- `keycloak-db`：Keycloak 使用的 PostgreSQL
-- `keycloak`：官方 Keycloak 镜像，导入 `custacm` realm
-- `custacm-backend`：当前 Spring Boot 后端
+- `auth-db`：`platform-auth` 使用的 MySQL
+- `custacm-backend`：当前 Spring Boot 后端，运行 `platform-auth/auth-web`
 
 ## Quick Start
 
@@ -12,13 +11,18 @@
 
 ```bash
 cp deploy/.env.example deploy/.env
+mkdir -p deploy/secrets
+openssl genrsa -out deploy/secrets/auth-private-key.pem 2048
+openssl rsa -in deploy/secrets/auth-private-key.pem -pubout -out deploy/secrets/auth-public-key.pem
 ```
 
 编辑 `deploy/.env`，至少修改：
 
 ```env
-KEYCLOAK_ADMIN_PASSWORD=change-me-admin-password
-KEYCLOAK_DB_PASSWORD=change-me-keycloak-db-password
+AUTH_DB_PASSWORD=change-me-auth-db-password
+AUTH_DB_ROOT_PASSWORD=change-me-auth-root-password
+AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY=root
+AUTH_BOOTSTRAP_ADMIN_PASSWORD=change-me-root-password
 ```
 
 启动：
@@ -32,47 +36,43 @@ KEYCLOAK_DB_PASSWORD=change-me-keycloak-db-password
 
 默认地址：
 
-- Keycloak: http://localhost:8180
 - Backend health: http://localhost:8081/health
-- Realm: `custacm`
-- Public client: `custacm-web`
-- Realm roles: `admin`, `student`
-- Student identity claim: `student_identity`
+- Login API: http://localhost:8081/api/auth/login
+- Auth database: MySQL service `auth-db`, database `custacm_auth`
 - Backend logs: `../logs/combined.log`, `../logs/error.log`
 
-业务接口只暴露一个 `role` 字符串。正常用户只应分配一个平台角色；如果同时存在 `admin` 和 `student`，后端按 `admin` 处理。
+## Auth Model
 
-## Student Identity
+平台自己管理账号、密码和 JWT：
 
-学生身份是一个不可变字符串：
+- 登录名是 `studentIdentity`，一个不可变字符串，例如 `230511213黄炳睿`。
+- 账号角色为 `admin`、`player` 或 `disable`；`disable` 账号不能登录。`guest` 表示未登录访问者，不需要 JWT，也不进账号表。
+- 密码使用 BCrypt 哈希存储。
+- `auth-web` 使用 RSA 私钥签发 JWT，其它后端使用 RSA 公钥验证 JWT。
+- JWT 只放标准时间字段、`sub`（用户 ID）和 `role`（`admin` / `player`）。
+- 默认 access token 有效期为 `2h`，没有 refresh token。
 
-```text
-student_identity = 固定位数学号 + 姓名
-例：112487张三
-```
+## JWT Key Settings
 
-在 Keycloak 用户属性里设置：
-
-```text
-student_identity=112487张三
-```
-
-`custacm-web` client 已配置 protocol mapper，会把这个用户属性写入 access token、ID token 和 userinfo。
-
-## JWT Settings
-
-后端通过以下环境变量校验 Keycloak JWT：
+Compose 默认把本地 PEM 文件挂到容器内：
 
 ```env
-KEYCLOAK_ISSUER_URI=http://localhost:8180/realms/custacm
-KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/custacm/protocol/openid-connect/certs
+AUTH_JWT_PRIVATE_KEY_HOST_PATH=./secrets/auth-private-key.pem
+AUTH_JWT_PUBLIC_KEY_HOST_PATH=./secrets/auth-public-key.pem
+AUTH_JWT_ACCESS_TOKEN_TTL=2h
 ```
 
-`issuer-uri` 使用浏览器和 token 中可见的公网地址；`jwk-set-uri` 使用 Docker 内网地址，供后端容器拉取 Keycloak 公钥。
+这些 PEM 文件是本地秘密，不要提交。其它需要验证平台 JWT 的后端只需要同一份公钥。
+
+## Bootstrap Admin
+
+首次启动时，如果 `AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY` 和 `AUTH_BOOTSTRAP_ADMIN_PASSWORD` 都已设置，`auth-web` 会在账号不存在时创建一个 `admin` 账号。已有账号不会被覆盖。
+
+部署后应尽快登录并修改初始管理员密码。
 
 ## Notes
 
 - 不要提交 `deploy/.env`。
+- 不要提交 `deploy/secrets/*.pem`。
 - 不要提交 `logs/` 下的运行时日志。
-- 当前 Keycloak 使用 `start-dev --import-realm`，适合第一阶段开箱即用。
-- 正式生产环境后续应切换到 `start --optimized`、HTTPS 反向代理、独立数据库备份和 Admin Console 访问隔离。
+- 如果修改数据库密码、JWT 密钥路径或 Compose 结构，需要执行全量部署。
