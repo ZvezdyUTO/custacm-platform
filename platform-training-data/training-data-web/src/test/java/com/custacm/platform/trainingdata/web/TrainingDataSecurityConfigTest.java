@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -70,6 +71,32 @@ class TrainingDataSecurityConfigTest {
     }
 
     @Test
+    void codeforcesSubmissionCollectionJobStartRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/submissions:collect-batch-jobs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void codeforcesSubmissionCollectionJobReadRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/training-data/admin/codeforces/submissions/collect-batch-jobs/job-1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void codeforcesSubmissionCollectionJobListRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/training-data/admin/codeforces/submissions/collect-batch-jobs"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void codeforcesStudentDataPurgeRequiresAuthentication() throws Exception {
+        mockMvc.perform(delete("/api/training-data/admin/codeforces/users/112487张三/data"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void odsIngestRejectsPlayerRole() throws Exception {
         mockMvc.perform(post("/api/training-data/admin/ods/codeforces/submissions:batch-upsert")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_player")))
@@ -106,6 +133,36 @@ class TrainingDataSecurityConfigTest {
     }
 
     @Test
+    void codeforcesSubmissionCollectionJobStartRejectsPlayerRole() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/submissions:collect-batch-jobs")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_player")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void codeforcesSubmissionCollectionJobReadRejectsPlayerRole() throws Exception {
+        mockMvc.perform(get("/api/training-data/admin/codeforces/submissions/collect-batch-jobs/job-1")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_player"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void codeforcesSubmissionCollectionJobListRejectsPlayerRole() throws Exception {
+        mockMvc.perform(get("/api/training-data/admin/codeforces/submissions/collect-batch-jobs")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_player"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void codeforcesStudentDataPurgeRejectsPlayerRole() throws Exception {
+        mockMvc.perform(delete("/api/training-data/admin/codeforces/users/112487张三/data")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_player"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void odsIngestAllowsAdminRolePastSecurity() throws Exception {
         mockMvc.perform(post("/api/training-data/admin/ods/codeforces/submissions:batch-upsert")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin")))
@@ -138,6 +195,36 @@ class TrainingDataSecurityConfigTest {
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void codeforcesSubmissionCollectionJobStartAllowsAdminRolePastSecurity() throws Exception {
+        mockMvc.perform(post("/api/training-data/admin/codeforces/submissions:collect-batch-jobs")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void codeforcesSubmissionCollectionJobReadAllowsAdminRolePastSecurity() throws Exception {
+        mockMvc.perform(get("/api/training-data/admin/codeforces/submissions/collect-batch-jobs/job-1")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin"))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void codeforcesSubmissionCollectionJobListAllowsAdminRolePastSecurity() throws Exception {
+        mockMvc.perform(get("/api/training-data/admin/codeforces/submissions/collect-batch-jobs")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin"))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void codeforcesStudentDataPurgeAllowsAdminRolePastSecurity() throws Exception {
+        mockMvc.perform(delete("/api/training-data/admin/codeforces/users/112487张三/data")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin"))))
                 .andExpect(status().isNotFound());
     }
 

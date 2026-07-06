@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 public record CodeforcesProblemSubmissionCriteria(
         String problemKey,
         LocalDateTime submittedFromUtcPlus8,
-        LocalDateTime submittedToUtcPlus8
+        LocalDateTime submittedToUtcPlus8,
+        int limit,
+        long offset
 ) {
 }

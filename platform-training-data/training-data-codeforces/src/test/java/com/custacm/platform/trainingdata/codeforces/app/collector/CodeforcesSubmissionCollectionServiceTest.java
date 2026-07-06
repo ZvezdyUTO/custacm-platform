@@ -106,6 +106,28 @@ class CodeforcesSubmissionCollectionServiceTest {
     }
 
     @Test
+    void configuredCollectionOnlyUsesAccountsMarkedNeedCollect() throws Exception {
+        FakeSourceClient sourceClient = new FakeSourceClient();
+        sourceClient.addPage("alice", page(submission(701, "alice", "2026-07-01T00:00:00Z")));
+        sourceClient.addPage("bob", page(submission(702, "bob", "2026-07-01T00:00:00Z")));
+        RecordingWriter writer = new RecordingWriter();
+        FakeHandleAccountRepository repository = new FakeHandleAccountRepository(Map.of(
+                "112487张三", "alice",
+                "112488李四", "bob"
+        ));
+        repository.setNeedCollect("112488李四", false);
+        CodeforcesSubmissionCollectionService service = service(repository, sourceClient, writer, 100);
+
+        var result = service.collectRecentWindowForConfiguredHandles(LOOKBACK);
+
+        assertThat(result.requestedHandleCount()).isEqualTo(1);
+        assertThat(result.handles()).extracting("handle").containsExactly("alice");
+        assertThat(sourceClient.calls()).containsExactly(new SourceCall("alice", 1, 100));
+        assertThat(writer.records).extracting(CodeforcesOdsSubmission::authorHandle)
+                .containsExactly("alice");
+    }
+
+    @Test
     void paginatesUntilAFullPageIsOlderThanTheCollectionWindow() throws Exception {
         FakeSourceClient sourceClient = new FakeSourceClient();
         sourceClient.addPage("alice", page(
@@ -381,6 +403,17 @@ class CodeforcesSubmissionCollectionServiceTest {
             ));
         }
 
+        private void setNeedCollect(String studentIdentity, boolean needCollect) {
+            CodeforcesHandleAccount existing = accountsByIdentity.get(studentIdentity);
+            accountsByIdentity.put(studentIdentity, new CodeforcesHandleAccount(
+                    existing.studentIdentity(),
+                    existing.handle(),
+                    needCollect,
+                    existing.createdAt(),
+                    existing.updatedAt()
+            ));
+        }
+
         private void beforeFindAll(Runnable beforeFindAll) {
             this.beforeFindAll = beforeFindAll;
         }
@@ -409,12 +442,13 @@ class CodeforcesSubmissionCollectionServiceTest {
         }
 
         @Override
-        public CodeforcesHandleAccount updateStudentIdentity(
+        public CodeforcesHandleAccount updateStudentIdentityAndNeedCollect(
                 String oldStudentIdentity,
                 String newStudentIdentity,
+                boolean needCollect,
                 Instant updatedAt
         ) {
-            throw new UnsupportedOperationException("updateStudentIdentity is not used by collection tests");
+            throw new UnsupportedOperationException("updateStudentIdentityAndNeedCollect is not used by collection tests");
         }
     }
 

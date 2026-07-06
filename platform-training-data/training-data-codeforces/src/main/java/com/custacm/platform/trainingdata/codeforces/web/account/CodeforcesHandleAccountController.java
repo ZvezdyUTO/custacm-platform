@@ -34,7 +34,7 @@ public class CodeforcesHandleAccountController {
                 .body(toResponse(service.create(studentIdentity, handle)));
     }
 
-    @GetMapping("/api/training-data/codeforces/handles")
+    @GetMapping(value = "/api/training-data/codeforces/handles", params = "studentIdentity")
     public ResponseEntity<CodeforcesHandleAccountResponse> getByStudentIdentity(
             @RequestParam("studentIdentity") String studentIdentity
     ) {
@@ -54,12 +54,13 @@ public class CodeforcesHandleAccountController {
         String newStudentIdentity = requireRequestText(request.newStudentIdentity(), "newStudentIdentity");
         return ResponseEntity.ok(toResponse(service.changeStudentIdentity(
                 oldStudentIdentity,
-                newStudentIdentity
+                newStudentIdentity,
+                request.needCollect()
         )));
     }
 
     private static CodeforcesHandleAccountResponse toResponse(CodeforcesHandleAccount account) {
-        return new CodeforcesHandleAccountResponse(account.studentIdentity(), account.handle());
+        return new CodeforcesHandleAccountResponse(account.studentIdentity(), account.handle(), account.needCollect());
     }
 
     private static String requireRequestText(String value, String fieldName) {

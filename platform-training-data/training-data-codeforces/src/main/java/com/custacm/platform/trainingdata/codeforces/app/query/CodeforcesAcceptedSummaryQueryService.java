@@ -10,6 +10,7 @@ import com.custacm.platform.trainingdata.codeforces.domain.value.CodeforcesProbl
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class CodeforcesAcceptedSummaryQueryService {
@@ -32,6 +33,43 @@ public class CodeforcesAcceptedSummaryQueryService {
             Integer maxProblemRating
     ) {
         CodeforcesHandleAccount account = handleAccountService.getByStudentIdentity(studentIdentity);
+        return summarizeAccountAcceptedProblems(
+                account,
+                acceptedFromDateUtcPlus8,
+                acceptedToDateUtcPlus8,
+                minProblemRating,
+                maxProblemRating
+        );
+    }
+
+    public List<CodeforcesAcceptedSummaryReport> summarizeAutoCollectAcceptedProblems(
+            LocalDate acceptedFromDateUtcPlus8,
+            LocalDate acceptedToDateUtcPlus8,
+            Integer minProblemRating,
+            Integer maxProblemRating
+    ) {
+        return handleAccountService.listAll().stream()
+                .filter(CodeforcesHandleAccount::needCollect)
+                .map(account -> summarizeAccountAcceptedProblems(
+                        account,
+                        acceptedFromDateUtcPlus8,
+                        acceptedToDateUtcPlus8,
+                        minProblemRating,
+                        maxProblemRating
+                ))
+                .sorted(Comparator.comparingInt(CodeforcesAcceptedSummaryReport::totalAcceptedProblemCount)
+                        .reversed()
+                        .thenComparing(CodeforcesAcceptedSummaryReport::studentIdentity))
+                .toList();
+    }
+
+    private CodeforcesAcceptedSummaryReport summarizeAccountAcceptedProblems(
+            CodeforcesHandleAccount account,
+            LocalDate acceptedFromDateUtcPlus8,
+            LocalDate acceptedToDateUtcPlus8,
+            Integer minProblemRating,
+            Integer maxProblemRating
+    ) {
         CodeforcesAcceptedSummaryCriteria query = new CodeforcesAcceptedSummaryCriteria(
                 account.handle(),
                 acceptedFromDateUtcPlus8,

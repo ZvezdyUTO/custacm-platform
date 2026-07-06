@@ -25,7 +25,7 @@ platform:
         page-size: 1000
         connect-timeout: 10s
         read-timeout: 30s
-        request-interval: 2s
+        request-interval: 4s
         max-request-attempts: 3
         schedules:
           - name: daily-recent-submissions

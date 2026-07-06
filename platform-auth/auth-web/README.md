@@ -20,7 +20,7 @@ auth-web/
 
 - May depend on `auth-domain`, `auth-app`, `auth-core`, and `auth-infra`.
 - Controllers stay thin: validate HTTP request shape, extract current JWT user when needed, and call app services.
-- Public endpoints must not parse JWTs. Player/admin endpoints must be under `/api/auth/player/**` or `/api/auth/admin/**`.
+- Public endpoints must not parse JWTs. The user-list read endpoint is `/api/auth/users`; player/admin mutation endpoints stay under `/api/auth/player/**` or `/api/auth/admin/**`.
 - Password hashing, persistence, token issuing, and bootstrap admin wiring are configured here but implemented in lower modules.
 - Auth HTTP request/response records live in this module because no other backend module consumes them directly.
 
@@ -28,9 +28,9 @@ auth-web/
 
 - `AuthWebApplication.java` - Spring Boot entrypoint.
 - `AuthController.java` - public login plus `/api/auth/player/**` current-user and own-password endpoints.
-- `AdminUserController.java` - `/api/auth/admin/**` user-management endpoints, with operation-result responses and one PATCH user-update endpoint for role changes and password resets.
+- `AdminUserController.java` - user-management endpoints; `GET /api/auth/users` is public read, while mutation endpoints remain admin-only and use operation-result responses.
 - `AuthModuleController.java` - `/health` and `/module-info`.
-- `AuthSecurityConfig.java` - uses `PlatformSecurityConfig` for admin/player protected chains and guest public chain.
+- `AuthSecurityConfig.java` - configures the admin/player protected chain plus the guest public chain.
 - `AuthApplicationConfig.java` - wires repository, password hasher, JWT issuer/decoder, services, and bootstrap admin.
 - `AuthProperties.java` - typed runtime properties for JWT keys, token TTL, and bootstrap admin.
 - `AuthExceptionHandler.java` - maps auth service exceptions to documented error responses.

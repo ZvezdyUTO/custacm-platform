@@ -15,6 +15,7 @@ public class JdbcCodeforcesHandleAccountRepository implements CodeforcesHandleAc
     private static final RowMapper<CodeforcesHandleAccount> ROW_MAPPER = (rs, rowNum) -> new CodeforcesHandleAccount(
             rs.getString("student_identity"),
             rs.getString("codeforces_handle"),
+            rs.getBoolean("need_collect"),
             rs.getTimestamp("created_at").toInstant(),
             rs.getTimestamp("updated_at").toInstant()
     );
@@ -28,7 +29,7 @@ public class JdbcCodeforcesHandleAccountRepository implements CodeforcesHandleAc
     @Override
     public List<CodeforcesHandleAccount> findAll() {
         return jdbcTemplate.query("""
-                        select student_identity, codeforces_handle, created_at, updated_at
+                        select student_identity, codeforces_handle, need_collect, created_at, updated_at
                         from codeforces_handle_account
                         order by student_identity
                         """,
@@ -38,7 +39,7 @@ public class JdbcCodeforcesHandleAccountRepository implements CodeforcesHandleAc
     @Override
     public Optional<CodeforcesHandleAccount> findByStudentIdentity(String studentIdentity) {
         List<CodeforcesHandleAccount> accounts = jdbcTemplate.query("""
-                        select student_identity, codeforces_handle, created_at, updated_at
+                        select student_identity, codeforces_handle, need_collect, created_at, updated_at
                         from codeforces_handle_account
                         where student_identity = :studentIdentity
                         """,
@@ -50,7 +51,7 @@ public class JdbcCodeforcesHandleAccountRepository implements CodeforcesHandleAc
     @Override
     public Optional<CodeforcesHandleAccount> findByHandle(String handle) {
         List<CodeforcesHandleAccount> accounts = jdbcTemplate.query("""
-                        select student_identity, codeforces_handle, created_at, updated_at
+                        select student_identity, codeforces_handle, need_collect, created_at, updated_at
                         from codeforces_handle_account
                         where codeforces_handle = :handle
                         """,
@@ -63,9 +64,9 @@ public class JdbcCodeforcesHandleAccountRepository implements CodeforcesHandleAc
     public CodeforcesHandleAccount save(CodeforcesHandleAccount account) {
         jdbcTemplate.update("""
                         insert into codeforces_handle_account (
-                            student_identity, codeforces_handle, created_at, updated_at
+                            student_identity, codeforces_handle, need_collect, created_at, updated_at
                         ) values (
-                            :studentIdentity, :handle, :createdAt, :updatedAt
+                            :studentIdentity, :handle, :needCollect, :createdAt, :updatedAt
                         )
                         """,
                 parameters(account));
@@ -73,20 +74,23 @@ public class JdbcCodeforcesHandleAccountRepository implements CodeforcesHandleAc
     }
 
     @Override
-    public CodeforcesHandleAccount updateStudentIdentity(
+    public CodeforcesHandleAccount updateStudentIdentityAndNeedCollect(
             String oldStudentIdentity,
             String newStudentIdentity,
+            boolean needCollect,
             Instant updatedAt
     ) {
         int updated = jdbcTemplate.update("""
                         update codeforces_handle_account
                         set student_identity = :newStudentIdentity,
+                            need_collect = :needCollect,
                             updated_at = :updatedAt
                         where student_identity = :oldStudentIdentity
                         """,
                 new MapSqlParameterSource()
                         .addValue("oldStudentIdentity", oldStudentIdentity)
                         .addValue("newStudentIdentity", newStudentIdentity)
+                        .addValue("needCollect", needCollect)
                         .addValue("updatedAt", timestamp(updatedAt)));
         if (updated != 1) {
             throw new IllegalStateException("expected to update one Codeforces handle account, updated=" + updated);
@@ -99,6 +103,7 @@ public class JdbcCodeforcesHandleAccountRepository implements CodeforcesHandleAc
         return new MapSqlParameterSource()
                 .addValue("studentIdentity", account.studentIdentity())
                 .addValue("handle", account.handle())
+                .addValue("needCollect", account.needCollect())
                 .addValue("createdAt", timestamp(account.createdAt()))
                 .addValue("updatedAt", timestamp(account.updatedAt()));
     }

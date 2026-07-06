@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/auth/admin")
+@RequestMapping("/api/auth")
 public class AdminUserController {
     private final AdminUserService adminUserService;
 
@@ -30,7 +30,7 @@ public class AdminUserController {
         this.adminUserService = adminUserService;
     }
 
-    @PostMapping("/users")
+    @PostMapping("/admin/users")
     public ResponseEntity<UserOperationResponse> createUser(@RequestBody CreateUserRequest request) {
         if (request == null) {
             throw new AuthServiceException(AuthErrorCode.AUTH_INVALID_REQUEST, "request body must not be empty");
@@ -42,7 +42,7 @@ public class AdminUserController {
         )));
     }
 
-    @PostMapping("/users:batch-create")
+    @PostMapping("/admin/users:batch-create")
     public ResponseEntity<List<UserOperationResponse>> batchCreateUsers(@RequestBody BatchCreateUsersRequest request) {
         List<AdminUserService.CreateUserCommand> commands = request == null || request.users() == null
                 ? null
@@ -66,7 +66,7 @@ public class AdminUserController {
                 .toList());
     }
 
-    @PatchMapping("/users/{studentIdentity}")
+    @PatchMapping("/admin/users/{studentIdentity}")
     public ResponseEntity<UserOperationResponse> updateUser(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable("studentIdentity") String studentIdentity,
@@ -90,7 +90,7 @@ public class AdminUserController {
         return UserRole.fromValue(role);
     }
 
-    @DeleteMapping("/users/{studentIdentity}")
+    @DeleteMapping("/admin/users/{studentIdentity}")
     public ResponseEntity<UserOperationResponse> deleteUser(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable("studentIdentity") String studentIdentity

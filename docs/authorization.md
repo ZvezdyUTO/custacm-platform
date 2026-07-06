@@ -30,16 +30,22 @@ Examples:
 POST  /api/auth/login
 GET   /api/auth/player/me
 PATCH /api/auth/player/me/password
+GET   /api/auth/users
 POST  /api/auth/admin/users
 PATCH /api/auth/admin/users/{studentIdentity}
 
 POST  /api/training-data/admin/ods/codeforces/submissions:batch-upsert
 POST  /api/training-data/admin/codeforces/submissions:collect
+POST  /api/training-data/admin/codeforces/submissions:collect-batch-jobs
+GET   /api/training-data/admin/codeforces/submissions/collect-batch-jobs
+GET   /api/training-data/admin/codeforces/submissions/collect-batch-jobs/{jobId}
 POST  /api/training-data/admin/codeforces/handles
 PATCH /api/training-data/admin/codeforces/handles:change-identity
+DELETE /api/training-data/admin/codeforces/users/{studentIdentity}/data
 POST  /api/training-data/admin/codeforces/warehouse:refresh
 GET   /api/training-data/codeforces/handles?studentIdentity=230511213黄炳睿
 GET   /api/training-data/codeforces/accepted-summary?studentIdentity=230511213黄炳睿
+GET   /api/training-data/codeforces/accepted-summary/auto-collect-users
 GET   /api/training-data/codeforces/submissions/by-student?studentIdentity=230511213黄炳睿
 GET   /api/training-data/codeforces/submissions/by-problem?problemKey=2237:G
 GET   /api/training-data/codeforces/first-accepted/by-student?studentIdentity=230511213黄炳睿

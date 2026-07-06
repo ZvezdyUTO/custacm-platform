@@ -7,6 +7,7 @@ import com.custacm.platform.trainingdata.codeforces.web.account.CodeforcesHandle
 import com.custacm.platform.trainingdata.codeforces.web.account.request.ChangeCodeforcesHandleIdentityRequest;
 import com.custacm.platform.trainingdata.codeforces.web.account.request.CreateCodeforcesHandleAccountRequest;
 import com.custacm.platform.trainingdata.codeforces.web.account.response.CodeforcesHandleAccountErrorResponse;
+import com.custacm.platform.trainingdata.codeforces.web.account.response.CodeforcesHandleAccountResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -32,28 +33,32 @@ class CodeforcesHandleAccountControllerTest {
                 .thenReturn(account("112487张三", "tourist"));
         when(service.getByStudentIdentity("112487张三"))
                 .thenReturn(account("112487张三", "tourist"));
-        when(service.changeStudentIdentity("112487张三", "112488张三"))
-                .thenReturn(account("112488张三", "tourist"));
+        when(service.changeStudentIdentity("112487张三", "112488张三", false))
+                .thenReturn(account("112488张三", "tourist", false));
 
         var created = controller.create(new CreateCodeforcesHandleAccountRequest(" 112487张三 ", " tourist "));
         var queried = controller.getByStudentIdentity(" 112487张三 ");
         var changed = controller.changeStudentIdentity(new ChangeCodeforcesHandleIdentityRequest(
                 " 112487张三 ",
-                " 112488张三 "
+                " 112488张三 ",
+                false
         ));
 
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(created.getBody()).isNotNull();
         assertThat(created.getBody().studentIdentity()).isEqualTo("112487张三");
         assertThat(created.getBody().handle()).isEqualTo("tourist");
+        assertThat(created.getBody().needCollect()).isTrue();
         assertThat(queried.getBody()).isNotNull();
         assertThat(queried.getBody().handle()).isEqualTo("tourist");
+        assertThat(queried.getBody().needCollect()).isTrue();
         assertThat(changed.getBody()).isNotNull();
         assertThat(changed.getBody().studentIdentity()).isEqualTo("112488张三");
         assertThat(changed.getBody().handle()).isEqualTo("tourist");
+        assertThat(changed.getBody().needCollect()).isFalse();
         verify(service).create("112487张三", "tourist");
         verify(service).getByStudentIdentity("112487张三");
-        verify(service).changeStudentIdentity("112487张三", "112488张三");
+        verify(service).changeStudentIdentity("112487张三", "112488张三", false);
     }
 
     @Test
@@ -85,7 +90,8 @@ class CodeforcesHandleAccountControllerTest {
                         ));
         assertThatThrownBy(() -> controller.changeStudentIdentity(new ChangeCodeforcesHandleIdentityRequest(
                 "112487张三",
-                " "
+                " ",
+                null
         )))
                 .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
                         assertThat(ex.errorCode()).isEqualTo(
@@ -117,6 +123,10 @@ class CodeforcesHandleAccountControllerTest {
     }
 
     private static CodeforcesHandleAccount account(String studentIdentity, String handle) {
-        return new CodeforcesHandleAccount(studentIdentity, handle, NOW, NOW);
+        return account(studentIdentity, handle, true);
+    }
+
+    private static CodeforcesHandleAccount account(String studentIdentity, String handle, boolean needCollect) {
+        return new CodeforcesHandleAccount(studentIdentity, handle, needCollect, NOW, NOW);
     }
 }

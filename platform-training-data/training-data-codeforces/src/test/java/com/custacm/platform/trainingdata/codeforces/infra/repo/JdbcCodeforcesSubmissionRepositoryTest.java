@@ -36,6 +36,7 @@ class JdbcCodeforcesSubmissionRepositoryTest {
         try (Connection connection = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V011__create_codeforces_dwd_dwm_dws_tables.sql"));
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V012__rename_codeforces_warehouse_time_columns_to_utc_plus8.sql"));
+            ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V015__add_codeforces_submission_pagination_indexes.sql"));
         }
 
         insertSubmission(1001L, "tourist", "1000:A", "2026-07-01T10:00:00", 800, "OK");
@@ -52,7 +53,9 @@ class JdbcCodeforcesSubmissionRepositoryTest {
                 LocalDateTime.parse("2026-07-01T10:30:00"),
                 LocalDateTime.parse("2026-07-02T12:00:00"),
                 1200,
-                null
+                null,
+                100,
+                0
         );
 
         var submissions = repository.findHandleSubmissions(query);
@@ -69,7 +72,9 @@ class JdbcCodeforcesSubmissionRepositoryTest {
                 null,
                 null,
                 null,
-                800
+                800,
+                100,
+                0
         );
 
         var submissions = repository.findHandleSubmissions(query);
@@ -84,7 +89,9 @@ class JdbcCodeforcesSubmissionRepositoryTest {
         CodeforcesProblemSubmissionCriteria query = new CodeforcesProblemSubmissionCriteria(
                 "1000:A",
                 LocalDateTime.parse("2026-07-01T00:00:00"),
-                LocalDateTime.parse("2026-07-02T00:00:00")
+                LocalDateTime.parse("2026-07-02T00:00:00"),
+                100,
+                0
         );
 
         var submissions = repository.findProblemSubmissions(query);
@@ -95,8 +102,8 @@ class JdbcCodeforcesSubmissionRepositoryTest {
                         submission -> submission.authorHandle()
                 )
                 .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple(1001L, "tourist"),
-                        org.assertj.core.groups.Tuple.tuple(1004L, "other")
+                        org.assertj.core.groups.Tuple.tuple(1004L, "other"),
+                        org.assertj.core.groups.Tuple.tuple(1001L, "tourist")
                 );
     }
 
@@ -105,7 +112,9 @@ class JdbcCodeforcesSubmissionRepositoryTest {
         CodeforcesProblemSubmissionCriteria query = new CodeforcesProblemSubmissionCriteria(
                 "1000:A",
                 LocalDateTime.parse("2026-07-01T00:00:00"),
-                LocalDateTime.parse("2026-07-02T00:00:00")
+                LocalDateTime.parse("2026-07-02T00:00:00"),
+                100,
+                0
         );
 
         var submissions = repository.findProblemSubmissions(query);
@@ -116,9 +125,71 @@ class JdbcCodeforcesSubmissionRepositoryTest {
                         submission -> submission.submittedAtUtcPlus8()
                 )
                 .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple(1001L, LocalDateTime.parse("2026-07-01T10:00:00")),
-                        org.assertj.core.groups.Tuple.tuple(1004L, LocalDateTime.parse("2026-07-01T10:30:00"))
+                        org.assertj.core.groups.Tuple.tuple(1004L, LocalDateTime.parse("2026-07-01T10:30:00")),
+                        org.assertj.core.groups.Tuple.tuple(1001L, LocalDateTime.parse("2026-07-01T10:00:00"))
                 );
+    }
+
+    @Test
+    void countsHandleAndProblemSubmissionsWithSameFilters() {
+        CodeforcesHandleSubmissionCriteria handleQuery = new CodeforcesHandleSubmissionCriteria(
+                "tourist",
+                LocalDateTime.parse("2026-07-01T00:00:00"),
+                LocalDateTime.parse("2026-07-04T00:00:00"),
+                800,
+                1200,
+                100,
+                0
+        );
+        CodeforcesProblemSubmissionCriteria problemQuery = new CodeforcesProblemSubmissionCriteria(
+                "1000:A",
+                LocalDateTime.parse("2026-07-01T00:00:00"),
+                LocalDateTime.parse("2026-07-02T00:00:00"),
+                100,
+                0
+        );
+
+        assertThat(repository.countHandleSubmissions(handleQuery)).isEqualTo(2);
+        assertThat(repository.countProblemSubmissions(problemQuery)).isEqualTo(2);
+    }
+
+    @Test
+    void pagesHandleSubmissionsWithStableSubmittedTimeDescOrder() {
+        CodeforcesHandleSubmissionCriteria query = new CodeforcesHandleSubmissionCriteria(
+                "tourist",
+                null,
+                null,
+                null,
+                null,
+                2,
+                1
+        );
+
+        var submissions = repository.findHandleSubmissions(query);
+
+        assertThat(submissions)
+                .extracting(submission -> submission.codeforcesSubmissionId())
+                .containsExactly(1003L, 1002L);
+    }
+
+    @Test
+    void pagesProblemSubmissionsWithStableSubmittedTimeDescOrder() {
+        CodeforcesProblemSubmissionCriteria query = new CodeforcesProblemSubmissionCriteria(
+                "1000:A",
+                null,
+                null,
+                1,
+                1
+        );
+
+        var submissions = repository.findProblemSubmissions(query);
+
+        assertThat(submissions)
+                .extracting(
+                        submission -> submission.codeforcesSubmissionId(),
+                        submission -> submission.authorHandle()
+                )
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(1004L, "other"));
     }
 
     private void insertSubmission(

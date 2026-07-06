@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -105,6 +106,48 @@ class CodeforcesAcceptedSummaryQueryServiceTest {
     }
 
     @Test
+    void summarizesNeedCollectAccountsAndSortsByTotalDescending() {
+        LocalDate from = LocalDate.parse("2026-07-01");
+        LocalDate to = LocalDate.parse("2026-07-03");
+        List<String> queriedHandles = new ArrayList<>();
+        CodeforcesAcceptedSummaryRepository repository = actualQuery -> {
+            assertThat(actualQuery.acceptedFromDateUtcPlus8()).isEqualTo(from);
+            assertThat(actualQuery.acceptedToDateUtcPlus8()).isEqualTo(to);
+            assertThat(actualQuery.minProblemRating()).isEqualTo(800);
+            assertThat(actualQuery.maxProblemRating()).isEqualTo(1600);
+            queriedHandles.add(actualQuery.authorHandle());
+            return switch (actualQuery.authorHandle()) {
+                case "tourist" -> List.of(row("tourist", "2026-07-01", Map.of("800", 1)));
+                case "Benq" -> List.of(row("Benq", "2026-07-02", Map.of("1200", 3)));
+                default -> throw new AssertionError("unexpected handle " + actualQuery.authorHandle());
+            };
+        };
+        CodeforcesAcceptedSummaryQueryService service = new CodeforcesAcceptedSummaryQueryService(
+                repository,
+                handleAccountService(
+                        account("112487张三", "tourist", true),
+                        account("112488李四", "disabledHandle", false),
+                        account("112489王五", "Benq", true)
+                )
+        );
+
+        List<CodeforcesAcceptedSummaryReport> reports = service.summarizeAutoCollectAcceptedProblems(
+                from,
+                to,
+                800,
+                1600
+        );
+
+        assertThat(queriedHandles).containsExactly("tourist", "Benq");
+        assertThat(reports)
+                .extracting("studentIdentity", "authorHandle", "totalAcceptedProblemCount")
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("112489王五", "Benq", 3),
+                        org.assertj.core.groups.Tuple.tuple("112487张三", "tourist", 1)
+                );
+    }
+
+    @Test
     void rejectsUnboundStudentIdentity() {
         CodeforcesAcceptedSummaryRepository repository = query -> {
             throw new UnsupportedOperationException("not used");
@@ -155,6 +198,10 @@ class CodeforcesAcceptedSummaryQueryServiceTest {
         return new CodeforcesHandleAccount(studentIdentity, handle, Instant.EPOCH, Instant.EPOCH);
     }
 
+    private static CodeforcesHandleAccount account(String studentIdentity, String handle, boolean needCollect) {
+        return new CodeforcesHandleAccount(studentIdentity, handle, needCollect, Instant.EPOCH, Instant.EPOCH);
+    }
+
     private static final class InMemoryCodeforcesHandleAccountRepository implements CodeforcesHandleAccountRepository {
         private final Map<String, CodeforcesHandleAccount> accountsByIdentity = new LinkedHashMap<>();
 
@@ -182,9 +229,10 @@ class CodeforcesAcceptedSummaryQueryServiceTest {
         }
 
         @Override
-        public CodeforcesHandleAccount updateStudentIdentity(
+        public CodeforcesHandleAccount updateStudentIdentityAndNeedCollect(
                 String oldStudentIdentity,
                 String newStudentIdentity,
+                boolean needCollect,
                 Instant updatedAt
         ) {
             throw new UnsupportedOperationException("not used");

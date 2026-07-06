@@ -15,9 +15,10 @@ public interface CodeforcesHandleAccountRepository {
 
     CodeforcesHandleAccount save(CodeforcesHandleAccount account);
 
-    CodeforcesHandleAccount updateStudentIdentity(
+    CodeforcesHandleAccount updateStudentIdentityAndNeedCollect(
             String oldStudentIdentity,
             String newStudentIdentity,
+            boolean needCollect,
             Instant updatedAt
     );
 }

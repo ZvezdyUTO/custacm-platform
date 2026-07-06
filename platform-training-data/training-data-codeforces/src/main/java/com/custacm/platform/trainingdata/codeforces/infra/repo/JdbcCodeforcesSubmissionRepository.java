@@ -50,6 +50,17 @@ public class JdbcCodeforcesSubmissionRepository implements CodeforcesSubmissionR
     }
 
     @Override
+    public long countHandleSubmissions(CodeforcesHandleSubmissionCriteria query) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("authorHandle", query.authorHandle());
+        List<String> predicates = new ArrayList<>();
+        predicates.add("author_handle = :authorHandle");
+        addSubmittedTimePredicates(query.submittedFromUtcPlus8(), query.submittedToUtcPlus8(), predicates, params);
+        addProblemRatingPredicates(query.minProblemRating(), query.maxProblemRating(), predicates, params);
+        return count(predicates, params);
+    }
+
+    @Override
     public List<CodeforcesSubmission> findHandleSubmissions(CodeforcesHandleSubmissionCriteria query) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("authorHandle", query.authorHandle());
@@ -57,7 +68,17 @@ public class JdbcCodeforcesSubmissionRepository implements CodeforcesSubmissionR
         predicates.add("author_handle = :authorHandle");
         addSubmittedTimePredicates(query.submittedFromUtcPlus8(), query.submittedToUtcPlus8(), predicates, params);
         addProblemRatingPredicates(query.minProblemRating(), query.maxProblemRating(), predicates, params);
-        return query(predicates, params);
+        return query(predicates, params, query.limit(), query.offset());
+    }
+
+    @Override
+    public long countProblemSubmissions(CodeforcesProblemSubmissionCriteria query) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("problemKey", query.problemKey());
+        List<String> predicates = new ArrayList<>();
+        predicates.add("problem_key = :problemKey");
+        addSubmittedTimePredicates(query.submittedFromUtcPlus8(), query.submittedToUtcPlus8(), predicates, params);
+        return count(predicates, params);
     }
 
     @Override
@@ -67,10 +88,28 @@ public class JdbcCodeforcesSubmissionRepository implements CodeforcesSubmissionR
         List<String> predicates = new ArrayList<>();
         predicates.add("problem_key = :problemKey");
         addSubmittedTimePredicates(query.submittedFromUtcPlus8(), query.submittedToUtcPlus8(), predicates, params);
-        return query(predicates, params);
+        return query(predicates, params, query.limit(), query.offset());
     }
 
-    private List<CodeforcesSubmission> query(List<String> predicates, MapSqlParameterSource params) {
+    private long count(List<String> predicates, MapSqlParameterSource params) {
+        String sql = """
+                select count(*)
+                from %s
+                where %s
+                """.formatted(TABLE_NAME, String.join(" and ", predicates));
+
+        Long count = jdbcTemplate.queryForObject(sql, params, Long.class);
+        return count == null ? 0 : count;
+    }
+
+    private List<CodeforcesSubmission> query(
+            List<String> predicates,
+            MapSqlParameterSource params,
+            int limit,
+            long offset
+    ) {
+        params.addValue("limit", limit);
+        params.addValue("offset", offset);
         String sql = """
                 select
                     codeforces_submission_id,
@@ -97,7 +136,8 @@ public class JdbcCodeforcesSubmissionRepository implements CodeforcesSubmissionR
                     memory_consumed_bytes
                 from %s
                 where %s
-                order by submitted_at_utc_plus8 asc, codeforces_submission_id asc
+                order by submitted_at_utc_plus8 desc, codeforces_submission_id desc
+                limit :limit offset :offset
                 """.formatted(TABLE_NAME, String.join(" and ", predicates));
 
         return jdbcTemplate.query(sql, params, ROW_MAPPER);

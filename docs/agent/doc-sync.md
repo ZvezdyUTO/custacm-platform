@@ -31,7 +31,7 @@ If a changed file matches the pattern, at least one listed required doc must als
 - Module boundary changed: update [../architecture.md](../architecture.md), [context-map.md](context-map.md), and module `AGENTS.md`.
 - Runnable service status changed: update [README.md](../../README.md), [../architecture.md](../architecture.md), [context-map.md](context-map.md), and [README.md](README.md).
 - Tests changed materially: update the module `TESTING.md`.
-- Deployment or scripts changed: update `deploy/` docs, [../server-deployment.md](../server-deployment.md), or [../../scripts/AGENTS.md](../../scripts/AGENTS.md).
+- Deployment or scripts changed: update `deploy/` docs, [../server-deployment.md](../server-deployment.md), and [../../scripts/AGENTS.md](../../scripts/AGENTS.md) when the runnable container set, one-click deploy flow, module update flow, or seed scripts change.
 - Auto-update path classification changed: update [../../deploy/UPDATE.md](../../deploy/UPDATE.md), [quality-gates.md](quality-gates.md), and [../../scripts/AGENTS.md](../../scripts/AGENTS.md).
 - Logging changed: read and update [../logging.md](../logging.md) if the logging contract changes.
 - PR outcome changed: update [../../CHANGELOG.md](../../CHANGELOG.md) using [changelog.md](changelog.md).

@@ -18,4 +18,4 @@ platform-training-data/*/src/main/resources/logback-spring.xml	docs/logging.md	L
 platform-blog/*	platform-blog/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Blog module changed.
 platform-editor/*	platform-editor/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Editor module changed.
 platform-article-storage/*	platform-article-storage/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Article storage module changed.
-frontend/*	frontend/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Frontend boundary changed.
+frontend/*	frontend/AGENTS.md,frontend/README.md,docs/architecture.md,docs/agent/README.md,docs/agent/context-map.md	Frontend implementation, scripts, or boundary changed.

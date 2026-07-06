@@ -21,8 +21,22 @@ class CodeforcesHandleAccountTest {
 
         assertThat(account.studentIdentity()).isEqualTo("112487张三");
         assertThat(account.handle()).isEqualTo("tourist");
+        assertThat(account.needCollect()).isTrue();
         assertThat(account.createdAt()).isEqualTo(NOW);
         assertThat(account.updatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void keepsExplicitNeedCollectFlag() {
+        CodeforcesHandleAccount account = new CodeforcesHandleAccount(
+                "112487张三",
+                "tourist",
+                false,
+                NOW,
+                NOW
+        );
+
+        assertThat(account.needCollect()).isFalse();
     }
 
     @Test

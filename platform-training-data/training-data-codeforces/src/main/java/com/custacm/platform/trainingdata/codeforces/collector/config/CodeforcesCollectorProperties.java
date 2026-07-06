@@ -17,6 +17,7 @@ public record CodeforcesCollectorProperties(
 ) {
     private static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration DEFAULT_READ_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration DEFAULT_REQUEST_INTERVAL = Duration.ofSeconds(4);
     private static final int DEFAULT_MAX_REQUEST_ATTEMPTS = 3;
 
     public CodeforcesCollectorProperties {
@@ -33,7 +34,7 @@ public record CodeforcesCollectorProperties(
             readTimeout = DEFAULT_READ_TIMEOUT;
         }
         if (requestInterval == null || requestInterval.isNegative()) {
-            requestInterval = Duration.ofSeconds(2);
+            requestInterval = DEFAULT_REQUEST_INTERVAL;
         }
         if (maxRequestAttempts <= 0) {
             maxRequestAttempts = DEFAULT_MAX_REQUEST_ATTEMPTS;

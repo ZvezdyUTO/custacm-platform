@@ -4,6 +4,11 @@ import java.util.List;
 
 public record CodeforcesProblemSubmissionReport(
         String problemKey,
+        int page,
+        int limit,
+        long total,
+        long totalPages,
+        boolean hasMore,
         List<CodeforcesSubmissionItem> submissions
 ) {
 }

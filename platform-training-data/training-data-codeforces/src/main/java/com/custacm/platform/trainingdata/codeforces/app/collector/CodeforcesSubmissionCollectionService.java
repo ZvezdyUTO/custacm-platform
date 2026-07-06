@@ -9,6 +9,7 @@ import com.custacm.platform.trainingdata.codeforces.app.ingest.CodeforcesOdsSubm
 import com.custacm.platform.trainingdata.codeforces.app.ingest.result.CodeforcesOdsBatchUpsertResult;
 import com.custacm.platform.trainingdata.codeforces.collector.config.CodeforcesCollectorProperties;
 import com.custacm.platform.trainingdata.codeforces.domain.collector.CodeforcesSubmissionSourceClient;
+import com.custacm.platform.trainingdata.codeforces.domain.model.CodeforcesHandleAccount;
 import com.custacm.platform.trainingdata.codeforces.infra.collector.CodeforcesApiException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -222,6 +223,7 @@ public class CodeforcesSubmissionCollectionService {
 
     private List<String> listHandlesForCollection() {
         return handleAccountService.listAll().stream()
+                .filter(CodeforcesHandleAccount::needCollect)
                 .map(account -> account.handle().trim())
                 .filter(handle -> !handle.isBlank())
                 .distinct()
