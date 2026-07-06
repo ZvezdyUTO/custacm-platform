@@ -5,6 +5,11 @@ import java.util.List;
 public record CodeforcesHandleSubmissionReport(
         String studentIdentity,
         String authorHandle,
+        int page,
+        int limit,
+        long total,
+        long totalPages,
+        boolean hasMore,
         List<CodeforcesSubmissionItem> submissions
 ) {
 }

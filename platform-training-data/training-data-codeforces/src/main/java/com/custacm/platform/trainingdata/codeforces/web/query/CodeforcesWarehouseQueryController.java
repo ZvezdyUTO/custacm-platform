@@ -20,10 +20,15 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/training-data/codeforces")
 public class CodeforcesWarehouseQueryController {
+    private static final int DEFAULT_PAGE = 1;
+    private static final int DEFAULT_LIMIT = 100;
+    private static final int MAX_LIMIT = 2000;
+
     private final CodeforcesAcceptedSummaryQueryService acceptedSummaryQueryService;
     private final CodeforcesSubmissionQueryService submissionQueryService;
     private final CodeforcesFirstAcceptedProblemQueryService firstAcceptedProblemQueryService;
@@ -57,21 +62,44 @@ public class CodeforcesWarehouseQueryController {
         ));
     }
 
+    @GetMapping("/accepted-summary/auto-collect-users")
+    public ResponseEntity<List<CodeforcesAcceptedSummaryResponse>> summarizeAutoCollectAcceptedProblems(
+            @RequestParam(value = "acceptedFromDateUtcPlus8", required = false) String acceptedFromDateUtcPlus8,
+            @RequestParam(value = "acceptedToDateUtcPlus8", required = false) String acceptedToDateUtcPlus8,
+            @RequestParam(value = "minProblemRating", required = false) Integer minProblemRating,
+            @RequestParam(value = "maxProblemRating", required = false) Integer maxProblemRating
+    ) {
+        return ResponseEntity.ok(acceptedSummaryQueryService.summarizeAutoCollectAcceptedProblems(
+                        parseLocalDate(acceptedFromDateUtcPlus8, "acceptedFromDateUtcPlus8"),
+                        parseLocalDate(acceptedToDateUtcPlus8, "acceptedToDateUtcPlus8"),
+                        minProblemRating,
+                        maxProblemRating
+                ).stream()
+                .map(CodeforcesAcceptedSummaryResponse::from)
+                .toList());
+    }
+
     @GetMapping("/submissions/by-student")
     public ResponseEntity<CodeforcesStudentSubmissionReportResponse> listStudentSubmissions(
             @RequestParam("studentIdentity") String studentIdentity,
             @RequestParam(value = "submittedFromUtcPlus8", required = false) String submittedFromUtcPlus8,
             @RequestParam(value = "submittedToUtcPlus8", required = false) String submittedToUtcPlus8,
             @RequestParam(value = "minProblemRating", required = false) Integer minProblemRating,
-            @RequestParam(value = "maxProblemRating", required = false) Integer maxProblemRating
+            @RequestParam(value = "maxProblemRating", required = false) Integer maxProblemRating,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "limit", required = false) Integer limit
     ) {
+        int normalizedPage = normalizePage(page);
+        int normalizedLimit = normalizeLimit(limit);
         return ResponseEntity.ok(CodeforcesStudentSubmissionReportResponse.from(
                 submissionQueryService.listStudentSubmissions(
                         requireRequestText(studentIdentity, "studentIdentity"),
                         parseLocalDateTime(submittedFromUtcPlus8, "submittedFromUtcPlus8"),
                         parseLocalDateTime(submittedToUtcPlus8, "submittedToUtcPlus8"),
                         minProblemRating,
-                        maxProblemRating
+                        maxProblemRating,
+                        normalizedPage,
+                        normalizedLimit
                 )
         ));
     }
@@ -80,12 +108,18 @@ public class CodeforcesWarehouseQueryController {
     public ResponseEntity<CodeforcesProblemSubmissionReportResponse> listProblemSubmissions(
             @RequestParam("problemKey") String problemKey,
             @RequestParam(value = "submittedFromUtcPlus8", required = false) String submittedFromUtcPlus8,
-            @RequestParam(value = "submittedToUtcPlus8", required = false) String submittedToUtcPlus8
+            @RequestParam(value = "submittedToUtcPlus8", required = false) String submittedToUtcPlus8,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "limit", required = false) Integer limit
     ) {
+        int normalizedPage = normalizePage(page);
+        int normalizedLimit = normalizeLimit(limit);
         CodeforcesProblemSubmissionCriteria query = new CodeforcesProblemSubmissionCriteria(
                 requireRequestText(problemKey, "problemKey"),
                 parseLocalDateTime(submittedFromUtcPlus8, "submittedFromUtcPlus8"),
-                parseLocalDateTime(submittedToUtcPlus8, "submittedToUtcPlus8")
+                parseLocalDateTime(submittedToUtcPlus8, "submittedToUtcPlus8"),
+                normalizedLimit,
+                offset(normalizedPage, normalizedLimit)
         );
         return ResponseEntity.ok(CodeforcesProblemSubmissionReportResponse.from(
                 submissionQueryService.listProblemSubmissions(query)
@@ -154,6 +188,30 @@ public class CodeforcesWarehouseQueryController {
         } catch (DateTimeParseException ex) {
             throw invalidRequest(fieldName + " must be an ISO-8601 local date time");
         }
+    }
+
+    private static int normalizePage(Integer page) {
+        if (page == null) {
+            return DEFAULT_PAGE;
+        }
+        if (page < 1) {
+            throw invalidRequest("page must be greater than or equal to 1");
+        }
+        return page;
+    }
+
+    private static int normalizeLimit(Integer limit) {
+        if (limit == null) {
+            return DEFAULT_LIMIT;
+        }
+        if (limit < 1 || limit > MAX_LIMIT) {
+            throw invalidRequest("limit must be between 1 and " + MAX_LIMIT);
+        }
+        return limit;
+    }
+
+    private static long offset(int page, int limit) {
+        return (long) (page - 1) * limit;
     }
 
     private static CodeforcesHandleAccountException invalidRequest(String message) {

@@ -7,15 +7,8 @@ public record CodeforcesHandleSubmissionCriteria(
         LocalDateTime submittedFromUtcPlus8,
         LocalDateTime submittedToUtcPlus8,
         Integer minProblemRating,
-        Integer maxProblemRating
+        Integer maxProblemRating,
+        int limit,
+        long offset
 ) {
-    public static CodeforcesHandleSubmissionCriteria allForHandle(String authorHandle) {
-        return new CodeforcesHandleSubmissionCriteria(
-                authorHandle,
-                null,
-                null,
-                null,
-                null
-        );
-    }
 }

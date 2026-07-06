@@ -14,27 +14,35 @@ class CodeforcesWarehouseCriteriaTest {
                 LocalDateTime.parse("2026-07-01T00:00:00"),
                 null,
                 null,
-                null
+                null,
+                100,
+                200
         );
 
         assertThat(criteria.authorHandle()).isEqualTo(" tourist ");
         assertThat(criteria.minProblemRating()).isNull();
         assertThat(criteria.maxProblemRating()).isNull();
+        assertThat(criteria.limit()).isEqualTo(100);
+        assertThat(criteria.offset()).isEqualTo(200);
     }
 
     @Test
     void problemSubmissionCriteriaCarriesProblemKeyAndTimeRange() {
-        assertThat(new CodeforcesProblemSubmissionCriteria(" 1000:A ", null, null).problemKey())
+        assertThat(new CodeforcesProblemSubmissionCriteria(" 1000:A ", null, null, 100, 0).problemKey())
                 .isEqualTo(" 1000:A ");
 
         CodeforcesProblemSubmissionCriteria criteria = new CodeforcesProblemSubmissionCriteria(
                 "1000:A",
                 LocalDateTime.parse("2026-07-02T00:00:00"),
-                LocalDateTime.parse("2026-07-01T00:00:00")
+                LocalDateTime.parse("2026-07-01T00:00:00"),
+                50,
+                150
         );
 
         assertThat(criteria.submittedFromUtcPlus8()).isEqualTo(LocalDateTime.parse("2026-07-02T00:00:00"));
         assertThat(criteria.submittedToUtcPlus8()).isEqualTo(LocalDateTime.parse("2026-07-01T00:00:00"));
+        assertThat(criteria.limit()).isEqualTo(50);
+        assertThat(criteria.offset()).isEqualTo(150);
     }
 
     @Test
@@ -59,7 +67,9 @@ class CodeforcesWarehouseCriteriaTest {
                 null,
                 null,
                 1200,
-                null
+                null,
+                100,
+                0
         );
         CodeforcesHandleFirstAcceptedProblemCriteria firstAcceptedCriteria =
                 new CodeforcesHandleFirstAcceptedProblemCriteria(

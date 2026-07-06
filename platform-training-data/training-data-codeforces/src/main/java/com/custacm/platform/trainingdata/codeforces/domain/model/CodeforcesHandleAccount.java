@@ -6,9 +6,14 @@ import java.util.Objects;
 public record CodeforcesHandleAccount(
         String studentIdentity,
         String handle,
+        boolean needCollect,
         Instant createdAt,
         Instant updatedAt
 ) {
+    public CodeforcesHandleAccount(String studentIdentity, String handle, Instant createdAt, Instant updatedAt) {
+        this(studentIdentity, handle, true, createdAt, updatedAt);
+    }
+
     public CodeforcesHandleAccount {
         requireText(studentIdentity, "studentIdentity");
         requireText(handle, "handle");

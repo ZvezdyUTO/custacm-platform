@@ -32,6 +32,7 @@ class CodeforcesHandleAccountServiceTest {
 
         assertThat(account.studentIdentity()).isEqualTo("112487张三");
         assertThat(account.handle()).isEqualTo("tourist");
+        assertThat(account.needCollect()).isTrue();
         assertThat(account.createdAt()).isEqualTo(NOW);
         assertThat(account.updatedAt()).isEqualTo(NOW);
         assertThat(service.getByStudentIdentity("112487张三")).isEqualTo(account);
@@ -58,10 +59,11 @@ class CodeforcesHandleAccountServiceTest {
     void changesStudentIdentityWithoutChangingHandle() {
         service.create("112487张三", "tourist");
 
-        CodeforcesHandleAccount changed = service.changeStudentIdentity("112487张三", "112488张三");
+        CodeforcesHandleAccount changed = service.changeStudentIdentity("112487张三", "112488张三", null);
 
         assertThat(changed.studentIdentity()).isEqualTo("112488张三");
         assertThat(changed.handle()).isEqualTo("tourist");
+        assertThat(changed.needCollect()).isTrue();
         assertThat(service.getByStudentIdentity("112488张三").handle()).isEqualTo("tourist");
         assertThatThrownBy(() -> service.getByStudentIdentity("112487张三"))
                 .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
@@ -76,16 +78,29 @@ class CodeforcesHandleAccountServiceTest {
     }
 
     @Test
+    void changesNeedCollectWithoutChangingIdentity() {
+        service.create("112487张三", "tourist");
+
+        CodeforcesHandleAccount changed = service.changeStudentIdentity("112487张三", "112487张三", false);
+
+        assertThat(changed.studentIdentity()).isEqualTo("112487张三");
+        assertThat(changed.handle()).isEqualTo("tourist");
+        assertThat(changed.needCollect()).isFalse();
+        assertThat(changed.updatedAt()).isEqualTo(NOW);
+        assertThat(service.getByStudentIdentity("112487张三").needCollect()).isFalse();
+    }
+
+    @Test
     void rejectsMissingOldIdentityOrConflictingNewIdentity() {
         service.create("112487张三", "tourist");
         service.create("112488李四", "Benq");
 
-        assertThatThrownBy(() -> service.changeStudentIdentity("missing", "112489王五"))
+        assertThatThrownBy(() -> service.changeStudentIdentity("missing", "112489王五", null))
                 .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
                         assertThat(ex.errorCode()).isEqualTo(
                                 CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND
                         ));
-        assertThatThrownBy(() -> service.changeStudentIdentity("112487张三", "112488李四"))
+        assertThatThrownBy(() -> service.changeStudentIdentity("112487张三", "112488李四", null))
                 .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
                         assertThat(ex.errorCode()).isEqualTo(
                                 CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_IDENTITY_EXISTS
@@ -119,15 +134,17 @@ class CodeforcesHandleAccountServiceTest {
         }
 
         @Override
-        public CodeforcesHandleAccount updateStudentIdentity(
+        public CodeforcesHandleAccount updateStudentIdentityAndNeedCollect(
                 String oldStudentIdentity,
                 String newStudentIdentity,
+                boolean needCollect,
                 Instant updatedAt
         ) {
             CodeforcesHandleAccount existing = accountsByIdentity.remove(oldStudentIdentity);
             CodeforcesHandleAccount updated = new CodeforcesHandleAccount(
                     newStudentIdentity,
                     existing.handle(),
+                    needCollect,
                     existing.createdAt(),
                     updatedAt
             );

@@ -47,11 +47,18 @@ vim deploy/.env
 At minimum, change:
 
 ```env
+AUTH_DB_VOLUME_NAME=custacm-platform_auth-db-data
+TRAINING_DATA_DB_VOLUME_NAME=custacm-platform_training-data-db-data
 AUTH_DB_PASSWORD=change-me-auth-db-password
 AUTH_DB_ROOT_PASSWORD=change-me-auth-root-password
+TRAINING_DATA_DB_PASSWORD=change-me-training-data-db-password
+TRAINING_DATA_DB_ROOT_PASSWORD=change-me-training-data-root-password
 AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY=root
 AUTH_BOOTSTRAP_ADMIN_PASSWORD=change-me-root-password
 ```
+
+The two `*_VOLUME_NAME` values are the persistent MySQL Docker volume names. Keep them stable across deploys.
+Changing them makes Compose mount a different database volume, which can look like the database was reset.
 
 Deploy:
 
@@ -69,6 +76,13 @@ cd /opt/custacm-platform
 ```
 
 The script fetches `origin/main`, fast-forwards the worktree, creates `logs/`, builds the Docker images, starts Compose, and checks `/health`.
+It also runs the one-shot `frontend-build` service before `docker compose up`
+so the Nginx frontend container can serve the latest `frontend/dist` without a
+custom frontend image rebuild.
+
+Daily deploys and container restarts preserve MySQL data because `auth-db` and `training-data-db`
+store `/var/lib/mysql` in the named volumes from `deploy/.env`. Do not use
+`docker compose down --volumes`, `docker volume rm`, or `docker volume prune` unless you explicitly intend to wipe local data.
 
 For local testing without a remote:
 
@@ -128,9 +142,29 @@ Show recent entries from error.log.
 After deployment:
 
 ```bash
+curl -fsS http://localhost:3000/
 curl -fsS http://localhost:8081/health
+curl -fsS http://localhost:8082/health
 test -f logs/combined.log
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 ```
 
-The log MCP should be able to list `combined.log` and `error.log` after the backend has written log entries.
+The front-end container serves the built React workbench and proxies same-origin
+`/api/auth/**` and `/api/training-data/**` requests to the backend services.
+For frontend-only changes after a deploy, use:
+
+```bash
+./scripts/update-module.sh frontend
+```
+
+That command rebuilds `frontend/dist`, keeps the fixed Nginx container, and
+reloads Nginx instead of rebuilding backend images.
+
+To load local Codeforces fixture data through real HTTP APIs after the first
+deploy:
+
+```bash
+./scripts/seed-local-codeforces-data.sh
+```
+
+The log MCP should be able to list `combined.log` and `error.log` after the backend services have written log entries.

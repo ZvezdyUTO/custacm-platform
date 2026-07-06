@@ -7,6 +7,7 @@ import com.custacm.platform.trainingdata.codeforces.app.query.CodeforcesFirstAcc
 import com.custacm.platform.trainingdata.codeforces.app.account.CodeforcesHandleAccountService;
 import com.custacm.platform.trainingdata.codeforces.app.ingest.CodeforcesOdsSubmissionIngestService;
 import com.custacm.platform.trainingdata.codeforces.app.collector.CodeforcesSubmissionCollectionService;
+import com.custacm.platform.trainingdata.codeforces.app.purge.CodeforcesStudentDataPurgeService;
 import com.custacm.platform.trainingdata.codeforces.app.query.CodeforcesSubmissionQueryService;
 import com.custacm.platform.trainingdata.codeforces.app.warehouse.CodeforcesWarehouseRefreshService;
 import com.custacm.platform.trainingdata.codeforces.domain.collector.CodeforcesSubmissionSourceClient;
@@ -14,6 +15,7 @@ import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesAccept
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesFirstAcceptedProblemRepository;
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesHandleAccountRepository;
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesOdsSubmissionWriter;
+import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesStudentDataPurgeRepository;
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesSubmissionRepository;
 import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesWarehouseRefreshIntervalRepository;
 import com.custacm.platform.trainingdata.codeforces.domain.parser.CodeforcesSubmissionParser;
@@ -23,8 +25,10 @@ import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesAcc
 import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesFirstAcceptedProblemRepository;
 import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesHandleAccountRepository;
 import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesOdsSubmissionWriter;
+import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesStudentDataPurgeRepository;
 import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesSubmissionRepository;
 import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesWarehouseRefreshIntervalRepository;
+import com.custacm.platform.trainingdata.codeforces.app.collector.job.CodeforcesSubmissionCollectionJobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +38,9 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.client.RestClient;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Configuration
 @EnableConfigurationProperties(CodeforcesCollectorProperties.class)
@@ -81,6 +88,14 @@ public class CodeforcesTrainingDataConfig {
             NamedParameterJdbcTemplate jdbcTemplate
     ) {
         return new JdbcCodeforcesWarehouseRefreshIntervalRepository(jdbcTemplate);
+    }
+
+    @Bean
+    CodeforcesStudentDataPurgeRepository codeforcesStudentDataPurgeRepository(
+            NamedParameterJdbcTemplate jdbcTemplate,
+            PlatformTransactionManager transactionManager
+    ) {
+        return new JdbcCodeforcesStudentDataPurgeRepository(jdbcTemplate, transactionManager);
     }
 
     @Bean
@@ -135,6 +150,30 @@ public class CodeforcesTrainingDataConfig {
         );
     }
 
+    @Bean(destroyMethod = "shutdown")
+    ExecutorService codeforcesSubmissionCollectionJobExecutor() {
+        return Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "codeforces-collection-job");
+            thread.setDaemon(false);
+            return thread;
+        });
+    }
+
+    @Bean
+    CodeforcesSubmissionCollectionJobService codeforcesSubmissionCollectionJobService(
+            CodeforcesSubmissionCollectionService collectionService,
+            CodeforcesWarehouseRefreshService warehouseRefreshService,
+            ExecutorService codeforcesSubmissionCollectionJobExecutor,
+            CodeforcesCollectorProperties properties
+    ) {
+        return new CodeforcesSubmissionCollectionJobService(
+                collectionService,
+                warehouseRefreshService,
+                codeforcesSubmissionCollectionJobExecutor,
+                properties.requestInterval()
+        );
+    }
+
     @Bean
     CodeforcesAcceptedSummaryQueryService codeforcesAcceptedSummaryQueryService(
             CodeforcesAcceptedSummaryRepository repository,
@@ -172,5 +211,12 @@ public class CodeforcesTrainingDataConfig {
             CodeforcesWarehouseRefreshIntervalRepository intervalRepository
     ) {
         return new CodeforcesWarehouseRefreshService(sqlTaskRunner, intervalRepository);
+    }
+
+    @Bean
+    CodeforcesStudentDataPurgeService codeforcesStudentDataPurgeService(
+            CodeforcesStudentDataPurgeRepository repository
+    ) {
+        return new CodeforcesStudentDataPurgeService(repository);
     }
 }

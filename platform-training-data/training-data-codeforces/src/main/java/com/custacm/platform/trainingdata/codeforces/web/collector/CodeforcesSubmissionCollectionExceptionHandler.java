@@ -1,13 +1,14 @@
 package com.custacm.platform.trainingdata.codeforces.web.collector;
 
-import com.custacm.platform.trainingdata.codeforces.web.collector.CodeforcesSubmissionCollectionController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestControllerAdvice(assignableTypes = CodeforcesSubmissionCollectionController.class)
 public class CodeforcesSubmissionCollectionExceptionHandler {
@@ -22,6 +23,15 @@ public class CodeforcesSubmissionCollectionExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(Map.of(
                         "code", INVALID_REQUEST_ERROR_CODE,
+                        "message", ex.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<Map<String, String>> handleNoSuchElementException(NoSuchElementException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of(
+                        "code", "CODEFORCES_SUBMISSION_COLLECTION_JOB_NOT_FOUND",
                         "message", ex.getMessage()
                 ));
     }

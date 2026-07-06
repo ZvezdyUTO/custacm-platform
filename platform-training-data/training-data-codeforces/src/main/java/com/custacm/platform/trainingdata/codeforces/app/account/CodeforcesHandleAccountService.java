@@ -36,7 +36,7 @@ public class CodeforcesHandleAccountService {
             );
         }
         Instant now = clock.instant();
-        return repository.save(new CodeforcesHandleAccount(studentIdentity, handle, now, now));
+        return repository.save(new CodeforcesHandleAccount(studentIdentity, handle, true, now, now));
     }
 
     public List<CodeforcesHandleAccount> listAll() {
@@ -59,18 +59,32 @@ public class CodeforcesHandleAccountService {
                 ));
     }
 
-    public CodeforcesHandleAccount changeStudentIdentity(String oldStudentIdentity, String newStudentIdentity) {
-        repository.findByStudentIdentity(oldStudentIdentity)
+    public CodeforcesHandleAccount changeStudentIdentity(
+            String oldStudentIdentity,
+            String newStudentIdentity,
+            Boolean needCollect
+    ) {
+        CodeforcesHandleAccount existing = repository.findByStudentIdentity(oldStudentIdentity)
                 .orElseThrow(() -> new CodeforcesHandleAccountException(
                         CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND,
                         "Codeforces handle account not found"
                 ));
-        if (repository.findByStudentIdentity(newStudentIdentity).isPresent()) {
+        boolean identityChanged = !oldStudentIdentity.equals(newStudentIdentity);
+        if (identityChanged && repository.findByStudentIdentity(newStudentIdentity).isPresent()) {
             throw new CodeforcesHandleAccountException(
                     CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_IDENTITY_EXISTS,
                     "newStudentIdentity already has a Codeforces handle"
             );
         }
-        return repository.updateStudentIdentity(oldStudentIdentity, newStudentIdentity, clock.instant());
+        boolean updatedNeedCollect = needCollect == null ? existing.needCollect() : needCollect;
+        if (!identityChanged && needCollect == null) {
+            return existing;
+        }
+        return repository.updateStudentIdentityAndNeedCollect(
+                oldStudentIdentity,
+                newStudentIdentity,
+                updatedNeedCollect,
+                clock.instant()
+        );
     }
 }

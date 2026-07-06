@@ -77,8 +77,9 @@ class AuthWebIntegrationTest {
                 .get("plainPassword").asText();
 
         String playerToken = login("230511213黄炳睿", playerPassword);
-        mockMvc.perform(get("/api/auth/admin/users").header("Authorization", bearer(playerToken)))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/auth/users").header("Authorization", bearer(playerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].studentIdentity", hasItem("230511213黄炳睿")));
 
         mockMvc.perform(patch("/api/auth/player/me/password")
                         .header("Authorization", bearer(playerToken))
@@ -114,6 +115,10 @@ class AuthWebIntegrationTest {
     void guestEndpointsIgnoreBearerToken() throws Exception {
         mockMvc.perform(get("/health").header("Authorization", "Bearer not-a-jwt"))
                 .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/auth/users").header("Authorization", "Bearer not-a-jwt"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].studentIdentity", hasItem("root")));
 
         mockMvc.perform(post("/api/auth/login")
                         .header("Authorization", "Bearer not-a-jwt")
@@ -182,7 +187,7 @@ class AuthWebIntegrationTest {
                 .andExpect(jsonPath("$[1].user.studentIdentity").value(third))
                 .andExpect(jsonPath("$[1].plainPassword").exists());
 
-        mockMvc.perform(get("/api/auth/admin/users").header("Authorization", bearer(adminToken)))
+        mockMvc.perform(get("/api/auth/users").header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].studentIdentity", hasItem(first)))
                 .andExpect(jsonPath("$[*].studentIdentity", hasItem(second)));

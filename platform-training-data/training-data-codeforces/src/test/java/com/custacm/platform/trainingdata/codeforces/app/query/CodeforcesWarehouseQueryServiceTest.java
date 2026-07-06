@@ -42,18 +42,29 @@ class CodeforcesWarehouseQueryServiceTest {
                 from,
                 to,
                 null,
-                null
+                null,
+                2,
+                2
         );
         CodeforcesSubmissionRepository repository = new CodeforcesSubmissionRepository() {
+            @Override
+            public long countHandleSubmissions(CodeforcesHandleSubmissionCriteria actualQuery) {
+                assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
+                return 4;
+            }
+
             @Override
             public List<CodeforcesSubmission> findHandleSubmissions(CodeforcesHandleSubmissionCriteria actualQuery) {
                 assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
                 return List.of(
-                        submission(1, "tourist", 800, false),
-                        submission(2, "tourist", 800, true),
                         submission(3, "tourist", 1200, true),
                         submission(4, "tourist", null, false)
                 );
+            }
+
+            @Override
+            public long countProblemSubmissions(CodeforcesProblemSubmissionCriteria query) {
+                throw new UnsupportedOperationException("not used");
             }
 
             @Override
@@ -74,14 +85,19 @@ class CodeforcesWarehouseQueryServiceTest {
                 from,
                 to,
                 null,
-                null
+                null,
+                2,
+                2
         );
 
         assertThat(report.studentIdentity()).isEqualTo(studentIdentity);
         assertThat(report.authorHandle()).isEqualTo("tourist");
+        assertThat(report.page()).isEqualTo(2);
+        assertThat(report.limit()).isEqualTo(2);
+        assertThat(report.total()).isEqualTo(4);
+        assertThat(report.totalPages()).isEqualTo(2);
+        assertThat(report.hasMore()).isFalse();
         assertThat(report.submissions()).containsExactly(
-                submissionItem(1, studentIdentity, "tourist", 800, false),
-                submissionItem(2, studentIdentity, "tourist", 800, true),
                 submissionItem(3, studentIdentity, "tourist", 1200, true),
                 submissionItem(4, studentIdentity, "tourist", null, false)
         );
@@ -91,11 +107,22 @@ class CodeforcesWarehouseQueryServiceTest {
     void returnsProblemSubmissionDetails() {
         LocalDateTime from = LocalDateTime.parse("2026-07-02T00:00:00");
         LocalDateTime to = LocalDateTime.parse("2026-07-02T23:59:59");
-        CodeforcesProblemSubmissionCriteria query = new CodeforcesProblemSubmissionCriteria("1000:A", from, to);
+        CodeforcesProblemSubmissionCriteria query = new CodeforcesProblemSubmissionCriteria("1000:A", from, to, 2, 0);
         CodeforcesSubmissionRepository repository = new CodeforcesSubmissionRepository() {
+            @Override
+            public long countHandleSubmissions(CodeforcesHandleSubmissionCriteria query) {
+                throw new UnsupportedOperationException("not used");
+            }
+
             @Override
             public List<CodeforcesSubmission> findHandleSubmissions(CodeforcesHandleSubmissionCriteria query) {
                 throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
+            public long countProblemSubmissions(CodeforcesProblemSubmissionCriteria actualQuery) {
+                assertThat(actualQuery).isEqualTo(query);
+                return 3;
             }
 
             @Override
@@ -103,8 +130,7 @@ class CodeforcesWarehouseQueryServiceTest {
                 assertThat(actualQuery).isEqualTo(query);
                 return List.of(
                         submission(1, "alice", 800, false),
-                        submission(2, "alice", 800, true),
-                        submission(3, "bob", 800, false)
+                        submission(2, "alice", 800, true)
                 );
             }
         };
@@ -120,18 +146,91 @@ class CodeforcesWarehouseQueryServiceTest {
         CodeforcesProblemSubmissionReport report = service.listProblemSubmissions(query);
 
         assertThat(report.problemKey()).isEqualTo("1000:A");
+        assertThat(report.page()).isEqualTo(1);
+        assertThat(report.limit()).isEqualTo(2);
+        assertThat(report.total()).isEqualTo(3);
+        assertThat(report.totalPages()).isEqualTo(2);
+        assertThat(report.hasMore()).isTrue();
         assertThat(report.submissions()).containsExactly(
                 submissionItem(1, "112487张三", "alice", 800, false),
-                submissionItem(2, "112487张三", "alice", 800, true),
-                submissionItem(3, "112488李四", "bob", 800, false)
+                submissionItem(2, "112487张三", "alice", 800, true)
         );
+    }
+
+    @Test
+    void returnsEmptySubmissionPageWhenOffsetIsPastTotal() {
+        LocalDateTime from = LocalDateTime.parse("2026-07-01T00:00:00");
+        LocalDateTime to = LocalDateTime.parse("2026-07-01T23:59:59");
+        String studentIdentity = "112487张三";
+        CodeforcesHandleSubmissionCriteria expectedRepositoryQuery = new CodeforcesHandleSubmissionCriteria(
+                "tourist",
+                from,
+                to,
+                null,
+                null,
+                1,
+                1
+        );
+        CodeforcesSubmissionRepository repository = new CodeforcesSubmissionRepository() {
+            @Override
+            public long countHandleSubmissions(CodeforcesHandleSubmissionCriteria actualQuery) {
+                assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
+                return 1;
+            }
+
+            @Override
+            public List<CodeforcesSubmission> findHandleSubmissions(CodeforcesHandleSubmissionCriteria query) {
+                throw new AssertionError("page rows should not be queried when offset is past total");
+            }
+
+            @Override
+            public long countProblemSubmissions(CodeforcesProblemSubmissionCriteria query) {
+                throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
+            public List<CodeforcesSubmission> findProblemSubmissions(CodeforcesProblemSubmissionCriteria query) {
+                throw new UnsupportedOperationException("not used");
+            }
+        };
+        CodeforcesSubmissionQueryService service = new CodeforcesSubmissionQueryService(
+                repository,
+                handleAccountService(account(studentIdentity, "tourist"))
+        );
+
+        CodeforcesHandleSubmissionReport report = service.listStudentSubmissions(
+                studentIdentity,
+                from,
+                to,
+                null,
+                null,
+                2,
+                1
+        );
+
+        assertThat(report.page()).isEqualTo(2);
+        assertThat(report.limit()).isEqualTo(1);
+        assertThat(report.total()).isEqualTo(1);
+        assertThat(report.totalPages()).isEqualTo(1);
+        assertThat(report.hasMore()).isFalse();
+        assertThat(report.submissions()).isEmpty();
     }
 
     @Test
     void rejectsUnboundStudentIdentityForSubmissions() {
         CodeforcesSubmissionRepository repository = new CodeforcesSubmissionRepository() {
             @Override
+            public long countHandleSubmissions(CodeforcesHandleSubmissionCriteria query) {
+                throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
             public List<CodeforcesSubmission> findHandleSubmissions(CodeforcesHandleSubmissionCriteria query) {
+                throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
+            public long countProblemSubmissions(CodeforcesProblemSubmissionCriteria query) {
                 throw new UnsupportedOperationException("not used");
             }
 
@@ -145,7 +244,7 @@ class CodeforcesWarehouseQueryServiceTest {
                 handleAccountService()
         );
 
-        assertThatThrownBy(() -> service.listStudentSubmissions("missing", null, null, null, null))
+        assertThatThrownBy(() -> service.listStudentSubmissions("missing", null, null, null, null, 1, 100))
                 .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
                         assertThat(ex.errorCode()).isEqualTo(
                                 CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_NOT_FOUND
@@ -154,11 +253,22 @@ class CodeforcesWarehouseQueryServiceTest {
 
     @Test
     void rejectsUnboundProblemSubmissionHandle() {
-        CodeforcesProblemSubmissionCriteria query = new CodeforcesProblemSubmissionCriteria("1000:A", null, null);
+        CodeforcesProblemSubmissionCriteria query = new CodeforcesProblemSubmissionCriteria("1000:A", null, null, 100, 0);
         CodeforcesSubmissionRepository repository = new CodeforcesSubmissionRepository() {
+            @Override
+            public long countHandleSubmissions(CodeforcesHandleSubmissionCriteria query) {
+                throw new UnsupportedOperationException("not used");
+            }
+
             @Override
             public List<CodeforcesSubmission> findHandleSubmissions(CodeforcesHandleSubmissionCriteria query) {
                 throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
+            public long countProblemSubmissions(CodeforcesProblemSubmissionCriteria actualQuery) {
+                assertThat(actualQuery).isEqualTo(query);
+                return 1;
             }
 
             @Override
@@ -473,9 +583,10 @@ class CodeforcesWarehouseQueryServiceTest {
         }
 
         @Override
-        public CodeforcesHandleAccount updateStudentIdentity(
+        public CodeforcesHandleAccount updateStudentIdentityAndNeedCollect(
                 String oldStudentIdentity,
                 String newStudentIdentity,
+                boolean needCollect,
                 Instant updatedAt
         ) {
             throw new UnsupportedOperationException("not used");

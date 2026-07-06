@@ -40,23 +40,35 @@ class JdbcCodeforcesHandleAccountRepositoryTest {
                     connection,
                     new ClassPathResource("db/migration/V014__create_codeforces_handle_account.sql")
             );
+            ScriptUtils.executeSqlScript(
+                    connection,
+                    new ClassPathResource("db/migration/V016__add_codeforces_handle_account_need_collect.sql")
+            );
         }
     }
 
     @Test
     void savesFindsAndChangesStudentIdentityWithoutChangingHandle() {
-        repository.save(new CodeforcesHandleAccount("112487张三", "tourist", CREATED_AT, CREATED_AT));
+        repository.save(new CodeforcesHandleAccount("112487张三", "tourist", false, CREATED_AT, CREATED_AT));
 
         CodeforcesHandleAccount byIdentity = repository.findByStudentIdentity("112487张三").orElseThrow();
         CodeforcesHandleAccount byHandle = repository.findByHandle("tourist").orElseThrow();
 
         assertThat(byIdentity.handle()).isEqualTo("tourist");
+        assertThat(byIdentity.needCollect()).isFalse();
         assertThat(byHandle.studentIdentity()).isEqualTo("112487张三");
+        assertThat(byHandle.needCollect()).isFalse();
 
-        CodeforcesHandleAccount changed = repository.updateStudentIdentity("112487张三", "112488张三", UPDATED_AT);
+        CodeforcesHandleAccount changed = repository.updateStudentIdentityAndNeedCollect(
+                "112487张三",
+                "112488张三",
+                true,
+                UPDATED_AT
+        );
 
         assertThat(changed.studentIdentity()).isEqualTo("112488张三");
         assertThat(changed.handle()).isEqualTo("tourist");
+        assertThat(changed.needCollect()).isTrue();
         assertThat(changed.createdAt()).isEqualTo(CREATED_AT);
         assertThat(changed.updatedAt()).isEqualTo(UPDATED_AT);
         assertThat(repository.findByStudentIdentity("112487张三")).isEmpty();
@@ -74,6 +86,16 @@ class JdbcCodeforcesHandleAccountRepositoryTest {
         assertThat(repository.findAll())
                 .extracting(CodeforcesHandleAccount::handle)
                 .containsExactly("tourist", "Benq");
+    }
+
+    @Test
+    void databaseDefaultsNeedCollectToTrueForExistingInsertShape() {
+        jdbcTemplate.update("""
+                insert into codeforces_handle_account (student_identity, codeforces_handle, created_at, updated_at)
+                values ('112487张三', 'tourist', current_timestamp, current_timestamp)
+                """);
+
+        assertThat(repository.findByStudentIdentity("112487张三").orElseThrow().needCollect()).isTrue();
     }
 
     @Test

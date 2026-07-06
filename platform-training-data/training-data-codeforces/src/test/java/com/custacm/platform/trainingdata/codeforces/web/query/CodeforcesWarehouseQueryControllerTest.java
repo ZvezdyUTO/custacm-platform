@@ -82,38 +82,159 @@ class CodeforcesWarehouseQueryControllerTest {
     }
 
     @Test
+    void summarizesAutoCollectAcceptedProblems() {
+        LocalDate from = LocalDate.parse("2026-07-01");
+        LocalDate to = LocalDate.parse("2026-07-03");
+        when(acceptedSummaryQueryService.summarizeAutoCollectAcceptedProblems(
+                from,
+                to,
+                800,
+                1600
+        )).thenReturn(List.of(
+                new CodeforcesAcceptedSummaryReport(
+                        "112489王五",
+                        "Benq",
+                        4,
+                        List.of(new CodeforcesAcceptedSummaryReport.CodeforcesRatingAcceptedCount("1200", 4))
+                ),
+                new CodeforcesAcceptedSummaryReport(
+                        "112487张三",
+                        "tourist",
+                        2,
+                        List.of(new CodeforcesAcceptedSummaryReport.CodeforcesRatingAcceptedCount("800", 2))
+                )
+        ));
+
+        var response = controller.summarizeAutoCollectAcceptedProblems(
+                " 2026-07-01 ",
+                "2026-07-03",
+                800,
+                1600
+        );
+
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody())
+                .extracting("studentIdentity", "authorHandle", "totalAcceptedProblemCount")
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("112489王五", "Benq", 4),
+                        org.assertj.core.groups.Tuple.tuple("112487张三", "tourist", 2)
+                );
+        verify(acceptedSummaryQueryService).summarizeAutoCollectAcceptedProblems(from, to, 800, 1600);
+        verifyNoInteractions(submissionQueryService, firstAcceptedProblemQueryService);
+    }
+
+    @Test
     void listsStudentAndProblemSubmissions() {
         LocalDateTime from = LocalDateTime.parse("2026-07-01T00:00:00");
         LocalDateTime to = LocalDateTime.parse("2026-07-01T23:59:59");
         CodeforcesSubmissionItem item = submissionItem(1L, "112487张三", "tourist");
-        when(submissionQueryService.listStudentSubmissions("112487张三", from, to, 800, 1600))
-                .thenReturn(new CodeforcesHandleSubmissionReport("112487张三", "tourist", List.of(item)));
+        when(submissionQueryService.listStudentSubmissions("112487张三", from, to, 800, 1600, 2, 50))
+                .thenReturn(new CodeforcesHandleSubmissionReport(
+                        "112487张三",
+                        "tourist",
+                        2,
+                        50,
+                        51,
+                        2,
+                        false,
+                        List.of(item)
+                ));
         CodeforcesProblemSubmissionCriteria problemQuery =
-                new CodeforcesProblemSubmissionCriteria("1000:A", from, to);
+                new CodeforcesProblemSubmissionCriteria("1000:A", from, to, 50, 50);
         when(submissionQueryService.listProblemSubmissions(problemQuery))
-                .thenReturn(new CodeforcesProblemSubmissionReport("1000:A", List.of(item)));
+                .thenReturn(new CodeforcesProblemSubmissionReport(
+                        "1000:A",
+                        2,
+                        50,
+                        51,
+                        2,
+                        false,
+                        List.of(item)
+                ));
 
         var studentResponse = controller.listStudentSubmissions(
                 "112487张三",
                 "2026-07-01T00:00:00",
                 "2026-07-01T23:59:59",
                 800,
-                1600
+                1600,
+                2,
+                50
         );
         var problemResponse = controller.listProblemSubmissions(
                 " 1000:A ",
                 "2026-07-01T00:00:00",
-                "2026-07-01T23:59:59"
+                "2026-07-01T23:59:59",
+                2,
+                50
         );
 
         assertThat(studentResponse.getBody()).isNotNull();
         assertThat(studentResponse.getBody().studentIdentity()).isEqualTo("112487张三");
+        assertThat(studentResponse.getBody().page()).isEqualTo(2);
+        assertThat(studentResponse.getBody().limit()).isEqualTo(50);
+        assertThat(studentResponse.getBody().total()).isEqualTo(51);
+        assertThat(studentResponse.getBody().totalPages()).isEqualTo(2);
+        assertThat(studentResponse.getBody().hasMore()).isFalse();
         assertThat(studentResponse.getBody().submissions()).hasSize(1);
         assertThat(studentResponse.getBody().submissions().getFirst().codeforcesSubmissionId()).isEqualTo(1L);
         assertThat(problemResponse.getBody()).isNotNull();
         assertThat(problemResponse.getBody().problemKey()).isEqualTo("1000:A");
+        assertThat(problemResponse.getBody().page()).isEqualTo(2);
+        assertThat(problemResponse.getBody().limit()).isEqualTo(50);
+        assertThat(problemResponse.getBody().total()).isEqualTo(51);
+        assertThat(problemResponse.getBody().totalPages()).isEqualTo(2);
+        assertThat(problemResponse.getBody().hasMore()).isFalse();
         assertThat(problemResponse.getBody().submissions()).hasSize(1);
-        verify(submissionQueryService).listStudentSubmissions("112487张三", from, to, 800, 1600);
+        verify(submissionQueryService).listStudentSubmissions("112487张三", from, to, 800, 1600, 2, 50);
+        verify(submissionQueryService).listProblemSubmissions(problemQuery);
+    }
+
+    @Test
+    void listsSubmissionsWithDefaultPagination() {
+        CodeforcesSubmissionItem item = submissionItem(1L, "112487张三", "tourist");
+        when(submissionQueryService.listStudentSubmissions("112487张三", null, null, null, null, 1, 100))
+                .thenReturn(new CodeforcesHandleSubmissionReport(
+                        "112487张三",
+                        "tourist",
+                        1,
+                        100,
+                        1,
+                        1,
+                        false,
+                        List.of(item)
+                ));
+        CodeforcesProblemSubmissionCriteria problemQuery =
+                new CodeforcesProblemSubmissionCriteria("1000:A", null, null, 100, 0);
+        when(submissionQueryService.listProblemSubmissions(problemQuery))
+                .thenReturn(new CodeforcesProblemSubmissionReport(
+                        "1000:A",
+                        1,
+                        100,
+                        1,
+                        1,
+                        false,
+                        List.of(item)
+                ));
+
+        var studentResponse = controller.listStudentSubmissions(
+                "112487张三",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        var problemResponse = controller.listProblemSubmissions("1000:A", null, null, null, null);
+
+        assertThat(studentResponse.getBody()).isNotNull();
+        assertThat(studentResponse.getBody().page()).isEqualTo(1);
+        assertThat(studentResponse.getBody().limit()).isEqualTo(100);
+        assertThat(problemResponse.getBody()).isNotNull();
+        assertThat(problemResponse.getBody().page()).isEqualTo(1);
+        assertThat(problemResponse.getBody().limit()).isEqualTo(100);
+        verify(submissionQueryService).listStudentSubmissions("112487张三", null, null, null, null, 1, 100);
         verify(submissionQueryService).listProblemSubmissions(problemQuery);
     }
 
@@ -187,12 +308,12 @@ class CodeforcesWarehouseQueryControllerTest {
 
     @Test
     void rejectsBlankRequiredFieldsAndInvalidDateTimes() {
-        assertThatThrownBy(() -> controller.listStudentSubmissions(" ", null, null, null, null))
+        assertThatThrownBy(() -> controller.listStudentSubmissions(" ", null, null, null, null, null, null))
                 .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
                         assertThat(ex.errorCode()).isEqualTo(
                                 CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_INVALID_REQUEST
                         ));
-        assertThatThrownBy(() -> controller.listProblemSubmissions(" ", null, null))
+        assertThatThrownBy(() -> controller.listProblemSubmissions(" ", null, null, null, null))
                 .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
                         assertThat(ex.errorCode()).isEqualTo(
                                 CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_INVALID_REQUEST
@@ -218,6 +339,30 @@ class CodeforcesWarehouseQueryControllerTest {
                         CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_INVALID_REQUEST
                 ));
         verifyNoInteractions(acceptedSummaryQueryService, submissionQueryService, firstAcceptedProblemQueryService);
+    }
+
+    @Test
+    void rejectsInvalidSubmissionPaginationParameters() {
+        assertInvalidRequest(() -> controller.listStudentSubmissions(
+                "112487张三",
+                null,
+                null,
+                null,
+                null,
+                0,
+                100
+        ));
+        assertInvalidRequest(() -> controller.listProblemSubmissions("1000:A", null, null, 1, 0));
+        assertInvalidRequest(() -> controller.listProblemSubmissions("1000:A", null, null, 1, 2001));
+        verifyNoInteractions(acceptedSummaryQueryService, submissionQueryService, firstAcceptedProblemQueryService);
+    }
+
+    private static void assertInvalidRequest(org.assertj.core.api.ThrowableAssert.ThrowingCallable callable) {
+        assertThatThrownBy(callable)
+                .isInstanceOfSatisfying(CodeforcesHandleAccountException.class, ex ->
+                        assertThat(ex.errorCode()).isEqualTo(
+                                CodeforcesHandleAccountException.ErrorCode.CODEFORCES_HANDLE_ACCOUNT_INVALID_REQUEST
+                        ));
     }
 
     private static CodeforcesSubmissionItem submissionItem(

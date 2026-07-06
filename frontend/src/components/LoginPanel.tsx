@@ -1,0 +1,55 @@
+import { LogIn } from 'lucide-react';
+import { FormEvent, useState } from 'react';
+
+interface LoginPanelProps {
+  isLoading: boolean;
+  errorMessage: string | null;
+  onSubmit: (credentials: { studentIdentity: string; password: string }) => Promise<void>;
+}
+
+export function LoginPanel({ isLoading, errorMessage, onSubmit }: LoginPanelProps) {
+  const [studentIdentity, setStudentIdentity] = useState('');
+  const [password, setPassword] = useState('');
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await onSubmit({ studentIdentity, password });
+  }
+
+  return (
+    <section className="login-panel" aria-labelledby="login-title">
+      <div>
+        <h2 id="login-title">账号登录</h2>
+        <p>使用平台账号登录后，会按账号权限显示可用操作。</p>
+        </div>
+      <form onSubmit={handleSubmit}>
+        <label>
+          学号姓名
+          <input
+            autoComplete="username"
+            onChange={(event) => setStudentIdentity(event.target.value)}
+            placeholder="输入学号姓名"
+            required
+            value={studentIdentity}
+          />
+        </label>
+        <label>
+          密码
+          <input
+            autoComplete="current-password"
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="输入密码"
+            required
+            type="password"
+            value={password}
+          />
+        </label>
+        <button className="primary-button" disabled={isLoading} type="submit">
+          <LogIn size={16} aria-hidden="true" />
+          {isLoading ? '登录中' : '登录'}
+        </button>
+      </form>
+      {errorMessage ? <p className="form-error" role="alert">{errorMessage}</p> : null}
+    </section>
+  );
+}

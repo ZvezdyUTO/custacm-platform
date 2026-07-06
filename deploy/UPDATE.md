@@ -4,17 +4,28 @@
 
 ## Current Shape
 
-当前 Compose 有 2 个容器：
+当前 Compose 有 5 个容器：
 
 ```text
-auth-db          platform-auth 使用的 MySQL
-custacm-backend  当前业务后端容器，实际运行 platform-auth/auth-web
+auth-db                    platform-auth 使用的 MySQL
+custacm-backend            运行 platform-auth/auth-web
+training-data-db           platform-training-data 使用的 MySQL
+custacm-training-data-web  运行 platform-training-data/training-data-web
+custacm-frontend           运行前端静态站点和同源 API 反向代理
+```
+
+另有一个按需运行的一次性构建服务：
+
+```text
+frontend-build             用 node:22-alpine 生成 frontend/dist，不作为常驻容器运行
 ```
 
 当前可单独更新的业务模块：
 
 ```text
 auth-web -> platform-auth/auth-web -> custacm-backend
+training-data-web -> platform-training-data/training-data-web -> custacm-training-data-web
+frontend -> frontend-build 生成 dist -> custacm-frontend reload Nginx
 ```
 
 未来规则保持简单：
@@ -39,8 +50,24 @@ vim deploy/.env
 `deploy.sh` 会执行：
 
 ```bash
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml run --rm frontend-build
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build
 ```
+
+`custacm-frontend` 使用固定 Nginx 镜像并挂载 `frontend/dist`，所以全量
+部署时只有后端镜像需要 build；前端静态产物由 `frontend-build` 生成。
+
+MySQL 数据保存在显式命名的 Docker volume 中：
+
+```text
+AUTH_DB_VOLUME_NAME
+TRAINING_DATA_DB_VOLUME_NAME
+```
+
+默认卷名是 `custacm-platform_auth-db-data` 和 `custacm-platform_training-data-db-data`。
+日常全量部署、模块更新、容器重建、`docker compose restart`、`docker compose down && docker compose up -d`
+都不会删除这些卷。只有显式运行 `docker compose down --volumes`、`docker volume rm` 或 `docker volume prune`
+才会清空数据库。不要把清理 volume 作为普通更新步骤。
 
 服务器上推荐用一键部署入口：
 
@@ -71,6 +98,19 @@ git pull origin main
 后端 Maven 构建在 Dockerfile 的 build stage 中执行，服务器不需要安装 Maven/JDK。
 
 `--no-deps` 表示只重启这个业务容器，不重启 `auth-db`。
+
+只更新 `frontend` 时脚本会执行另一条更轻的路径：
+
+```text
+1. 创建 logs/ 目录
+2. docker compose run --rm frontend-build
+3. docker compose up -d --no-deps custacm-frontend
+4. docker compose exec -T custacm-frontend nginx -s reload
+5. curl / 验证前端容器是否可访问
+```
+
+这条路径不会重建前端镜像，也不会重启后端容器。静态资源来自
+`frontend/dist` 的 bind mount，Nginx reload 用于加载新的代理配置。
 
 查看当前支持的模块：
 
@@ -131,6 +171,8 @@ deploy/docker-compose.yml
 deploy/.env.example
 scripts/deploy.sh
 scripts/server-deploy.sh
+scripts/update-module.sh
+scripts/auto-update-main.sh
   -> ./scripts/deploy.sh
 
 platform-auth/pom.xml
@@ -141,7 +183,15 @@ platform-auth/auth-infra/*
 platform-auth/auth-web/*
   -> ./scripts/update-module.sh auth-web
 
-docs / README / frontend / 其他未映射路径
+platform-training-data/pom.xml
+platform-training-data/training-data-codeforces/*
+platform-training-data/training-data-web/*
+  -> ./scripts/update-module.sh training-data-web
+
+frontend/*
+  -> ./scripts/update-module.sh frontend
+
+docs / README / 其他未映射路径
   -> 只拉代码，不重启容器
 ```
 
@@ -165,6 +215,18 @@ docs / README / frontend / 其他未映射路径
 
 ```bash
 ./scripts/deploy.sh
+```
+
+只改 `frontend`：
+
+```bash
+./scripts/update-module.sh frontend
+```
+
+只改 `platform-training-data/training-data-web` 或 Codeforces 训练数据模块：
+
+```bash
+./scripts/update-module.sh training-data-web
 ```
 
 改了 JWT 密钥内容时，不需要重新构建镜像，但需要重启依赖这些密钥的服务：

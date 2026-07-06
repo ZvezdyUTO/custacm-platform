@@ -32,7 +32,9 @@ public class CodeforcesSubmissionQueryService {
             LocalDateTime submittedFromUtcPlus8,
             LocalDateTime submittedToUtcPlus8,
             Integer minProblemRating,
-            Integer maxProblemRating
+            Integer maxProblemRating,
+            int page,
+            int limit
     ) {
         CodeforcesHandleAccount account = handleAccountService.getByStudentIdentity(studentIdentity);
         CodeforcesHandleSubmissionCriteria query = new CodeforcesHandleSubmissionCriteria(
@@ -40,23 +42,78 @@ public class CodeforcesSubmissionQueryService {
                 submittedFromUtcPlus8,
                 submittedToUtcPlus8,
                 minProblemRating,
-                maxProblemRating
+                maxProblemRating,
+                limit,
+                offset(page, limit)
         );
+        long total = repository.countHandleSubmissions(query);
+        long totalPages = totalPages(total, limit);
+        if (query.offset() >= total) {
+            return new CodeforcesHandleSubmissionReport(
+                    account.studentIdentity(),
+                    account.handle(),
+                    page,
+                    limit,
+                    total,
+                    totalPages,
+                    false,
+                    List.of()
+            );
+        }
         List<CodeforcesSubmission> rows = repository.findHandleSubmissions(query);
         return new CodeforcesHandleSubmissionReport(
                 account.studentIdentity(),
                 account.handle(),
+                page,
+                limit,
+                total,
+                totalPages,
+                page < totalPages,
                 submissionItems(rows, account.studentIdentity())
         );
     }
 
     public CodeforcesProblemSubmissionReport listProblemSubmissions(CodeforcesProblemSubmissionCriteria query) {
+        long total = repository.countProblemSubmissions(query);
+        long totalPages = totalPages(total, query.limit());
+        int page = pageFrom(query);
+        if (query.offset() >= total) {
+            return new CodeforcesProblemSubmissionReport(
+                    query.problemKey(),
+                    page,
+                    query.limit(),
+                    total,
+                    totalPages,
+                    false,
+                    List.of()
+            );
+        }
         List<CodeforcesSubmission> rows = repository.findProblemSubmissions(query);
         Map<String, String> studentIdentityByHandle = studentIdentityByHandle(rows);
         return new CodeforcesProblemSubmissionReport(
                 query.problemKey(),
+                page,
+                query.limit(),
+                total,
+                totalPages,
+                page < totalPages,
                 submissionItems(rows, studentIdentityByHandle)
         );
+    }
+
+    private static long offset(int page, int limit) {
+        return (long) (page - 1) * limit;
+    }
+
+    private static long totalPages(long total, int limit) {
+        if (total == 0) {
+            return 0;
+        }
+        return (total - 1) / limit + 1;
+    }
+
+    private static int pageFrom(CodeforcesProblemSubmissionCriteria query) {
+        return Math.toIntExact(query.offset() / query.limit() + 1);
     }
 
     private static List<CodeforcesSubmissionItem> submissionItems(

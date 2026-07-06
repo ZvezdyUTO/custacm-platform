@@ -2,9 +2,9 @@
 
 ## Phase
 
-The current phase creates a small, evolvable backend skeleton. It should not lock in the final product model yet.
+The current phase creates a small, evolvable backend skeleton plus the first runnable frontend workbench slice. It should not lock in the final product model yet.
 
-The first runnable slice is platform-owned auth. The second runnable slice is the training-data ODS warehouse model. Other product areas are represented by directories only and should be expanded later, one module at a time.
+The first runnable backend slice is platform-owned auth. The second runnable backend slice is the training-data ODS warehouse model. The first runnable frontend slice is a React/Vite training-team admin dashboard that logs in through `auth-web` and reads real `auth-web` / `training-data-web` HTTP APIs. Other product areas are represented by directories only and should be expanded later, one module at a time.
 
 ## Module Map
 
@@ -119,18 +119,19 @@ Current implementation:
 - stores cleaned Codeforces submission details in `dwd_codeforces__submission`;
 - stores Codeforces handle/problem first accepted intermediate facts in `dwm_codeforces__handle_problem_first_accepted`;
 - stores Codeforces handle/date/rating accepted summaries in `dws_codeforces__handle_daily_rating_accepted_summary`;
-- stores platform `studentIdentity` to Codeforces handle bindings in `codeforces_handle_account`;
-- keeps Codeforces HTTP ingress, ingest application service, recent-lookback submission collector, collect batch type, ODS record, parser, writer, handle-account mapping, fixture, DDL, SQL task resources, SQL task manifest, Spring config, and tests in an independent OJ module;
+- stores platform `studentIdentity` to Codeforces handle bindings and automatic-collection flags in `codeforces_handle_account`;
+- keeps Codeforces HTTP ingress, ingest application service, recent-lookback submission collector, in-process collection job service, collect batch type, ODS record, parser, writer, handle-account mapping, fixture, DDL, SQL task resources, SQL task manifest, Spring config, and tests in an independent OJ module;
 - parses Codeforces fixture data into OJ-specific ODS records for repeatable tests;
 - writes ODS rows through `CodeforcesOdsSubmissionWriter` and its JDBC implementation;
 - exposes OJ-specific ODS ingest through each OJ module under `training-data-web`;
 - uses platform RSA JWT resource-server validation for protected `/admin/**` and `/player/**` URL tiers, matching the auth module's converter.
 - exposes OJ-specific ODS ingest under `/api/training-data/admin/**`, restricted to the platform `admin` role.
-- exposes Codeforces recent-lookback submission collection under `/api/training-data/admin/codeforces/submissions:collect`, restricted to the platform `admin` role.
-- exposes Codeforces handle-account creation and identity migration under `/api/training-data/admin/codeforces/**`, restricted to the platform `admin` role.
+- exposes Codeforces recent-lookback submission collection under `/api/training-data/admin/codeforces/submissions:collect`, and browser-resumable in-process collection jobs under `/api/training-data/admin/codeforces/submissions:collect-batch-jobs`, restricted to the platform `admin` role.
+- exposes Codeforces handle-account creation and identity/automatic-collection-flag updates under `/api/training-data/admin/codeforces/**`, restricted to the platform `admin` role.
 - exposes Codeforces warehouse refresh under `/api/training-data/admin/codeforces/warehouse:refresh`, restricted to the platform `admin` role.
+- exposes Codeforces student-data purge under `/api/training-data/admin/codeforces/users/{studentIdentity}/data`, restricted to the platform `admin` role; this deletes the current handle binding plus ODS/DWD/DWM/DWS rows for that handle, but not the auth account.
 - exposes Codeforces handle lookup by `studentIdentity` under `/api/training-data/codeforces/**` as a guest endpoint that does not parse JWTs.
-- exposes Codeforces DWD/DWM/DWS read-side query endpoints under `/api/training-data/codeforces/**` as guest endpoints that do not parse JWTs.
+- exposes Codeforces DWD/DWM/DWS read-side query endpoints under `/api/training-data/codeforces/**` as guest endpoints that do not parse JWTs; DWS includes a `need_collect=true` automatic-collection user summary list sorted by total AC count, and DWD submission detail queries are backend-paginated, newest-first, and return exact total/page metadata.
 - applies ODS/DWD/DWM/DWS and Codeforces handle-account table migrations from OJ modules through Flyway at `training-data-web` startup.
 
 Current training-data module shape:
@@ -194,11 +195,11 @@ studentIdentity
  -> codeforces_handle_account
 ```
 
-Admin identity migration for this mapping updates only `codeforces_handle_account.student_identity`; it does not update auth accounts and does not change the stored Codeforces handle.
+Admin updates for this mapping may change `codeforces_handle_account.student_identity` and `need_collect`; they do not update auth accounts and do not change the stored Codeforces handle.
 
 Codeforces DWD/DWM/DWS transforms are SQL task resources. The current Java execution path is synchronous admin refresh: each request computes the batch's UTC+8 refresh interval from ODS submission times, reads the manifest, rebuilds and validates the DAG, then runs SQL files as set-based database work rather than row-by-row Java transformation. It supports manual resume with `startFromTaskId`, which executes the requested node and its downstream nodes only.
 
-Codeforces recent-lookback submission collection is an OJ-owned source-ingestion use case. The admin HTTP entry accepts `studentIdentity` plus a positive lookback duration, resolves the identity to its bound Codeforces handle, and computes the right boundary from the service's current execution instant. The internal handle path pages Codeforces `user.status`, applies bounded connect/read timeouts and retry attempts to each source page request, reports per-handle status, and writes successful matches into ODS. The disabled-by-default Spring scheduled trigger calls the same app service daily at 12:00 by default with a rolling 120-hour lookback and collects all handles currently bound in `codeforces_handle_account`, de-duplicated by handle. It is not the future persistent pipeline scheduler; after ODS write, the code currently leaves a TODO for the future scheduler/orchestrator handoff.
+Codeforces recent-lookback submission collection is an OJ-owned source-ingestion use case. The admin HTTP entry accepts `studentIdentity` plus a positive lookback duration, resolves the identity to its bound Codeforces handle, and computes the right boundary from the service's current execution instant. The internal handle path pages Codeforces `user.status`, applies bounded connect/read timeouts and retry attempts to each source page request, reports per-handle status, and writes successful matches into ODS. For browser-driven batch collection, `training-data-codeforces` also exposes an in-process collection job service: admins start a job for multiple `studentIdentity` values, then poll job list/detail endpoints for `PENDING` / `RUNNING` / `SUCCESS` / `FAILED` per-user status. These job snapshots survive frontend refresh and page switches but are not persisted across backend restarts and are not a general pipeline run state. The disabled-by-default Spring scheduled trigger calls the same app service daily at 12:00 by default with a rolling 120-hour lookback and collects handles whose `codeforces_handle_account.need_collect` flag is true, de-duplicated by handle. The public automatic-collection DWS summary query reads the same flag, reuses the personal DWS summary logic for each matching binding, and sorts by total accepted problem count. It is not the future persistent pipeline scheduler; after ODS write, the code currently leaves a TODO for the future scheduler/orchestrator handoff.
 
 There is currently no persistent pipeline run state or ADS physical table. OJ-specific DWD/DWM/DWS tables should stay independent until a concrete cross-OJ product query needs a unified view or ADS table.
 
@@ -217,6 +218,24 @@ ADS: not implemented yet
 
 `training-data-web` uses the same file logging contract as other runnable Spring Boot services: `LOG_DIR/combined.log` and `LOG_DIR/error.log`.
 
+### frontend
+
+`frontend` is the first runnable frontend slice. It is a React/Vite/TypeScript single-page app for the training-team management workbench.
+
+Current implementation:
+
+- defaults to a focused training query workspace with single-user detail query and automatic-collection multi-user summary pages. The single-user page filters by `studentIdentity`, date range, and rating range, then shows newest-first Codeforces AC/submission activity, first-accepted, and rating-distribution results. The multi-user page reuses the same date/rating range filters, reads all handle bindings marked for automatic collection, and displays their DWS AC summaries as a total-accepted descending table. The left sidebar exposes icon-assisted function module entries, separated into available and unavailable groups, with only training-data enabled and blog/editor shown as unsupported. Query tabs are URL-addressable as `/query/multiple` and `/query/single`;
+- separates admin-only operations into an admin workspace with left-sidebar pages for user information management, training-data collection, data maintenance, and operation records; the user information page shows all auth users sorted by the numeric `studentIdentity` prefix descending and expands existing-user edits inside that list, including Codeforces handle automatic-collection eligibility, the collection page lists only eligible handle accounts, can start one backend collection job for all listed students with a shared lookback window, can start collection per selected student row, polls a task list with expandable per-user details, and treats a blank lookback field as an unlimited collection window; the maintenance page owns ODS upload, warehouse refresh, and the high-risk user deletion action that clears Codeforces training data before deleting the auth account. Admin pages are URL-addressable as `/admin/users`, `/admin/collection`, `/admin/maintenance`, and `/admin/records`;
+- logs in through `POST /api/auth/login`, stores the returned access token in browser localStorage, and uses it for admin auth/training-data calls;
+- reads public `GET /api/auth/users`, `POST /api/auth/admin/users:batch-create`, `PATCH /api/auth/admin/users/{studentIdentity}`, `DELETE /api/auth/admin/users/{studentIdentity}`, `GET /api/auth/player/me`, Codeforces public single-handle/query endpoints including the automatic-collection accepted-summary list, and admin Codeforces handle/ODS/collector-job/warehouse/purge endpoints through frontend-local API clients;
+- uses Vite dev proxy and the production Nginx frontend container to keep browser requests same-origin;
+- uses the Compose `frontend-build` one-shot service to generate `frontend/dist`, while `custacm-frontend` runs a fixed Nginx image with bind-mounted static assets and proxy config;
+- includes `scripts/seed-local-codeforces-data.sh` to prepare local fixture-backed data through real HTTP APIs;
+- keeps `studentIdentity` as one immutable string in UI data and filtering;
+- provides local frontend verification scripts for lint, unit tests, typecheck, and production build.
+
+It should not move auth ownership, password handling, token issuance, or training-data domain rules into the frontend.
+
 ### Placeholder Modules
 
 These directories exist to preserve product boundaries:
@@ -224,10 +243,12 @@ These directories exist to preserve product boundaries:
 - `platform-blog`: future blog/content module.
 - `platform-editor`: future external editor integration.
 - `platform-article-storage`: future article storage module.
-- `frontend`: future frontend implementation.
-- `deploy`: future Docker/K8s deployment configuration.
 
 Do not add them to the Maven reactor until their first runnable slice is being implemented.
+
+### deploy
+
+`deploy` is the current Docker Compose deployment entry. It starts auth MySQL, `auth-web`, training-data MySQL, `training-data-web`, and the frontend Nginx static/proxy container for the local/single-server phase. Frontend static assets are generated by the one-shot `frontend-build` service and served from the `frontend/dist` bind mount, so frontend-only updates do not require rebuilding a frontend image.
 
 ## Dependency Direction
 
@@ -320,7 +341,7 @@ POST /api/auth/login
 GET  /api/auth/player/me
 PATCH /api/auth/player/me/password
 POST /api/auth/admin/users
-GET  /api/auth/admin/users
+GET  /api/auth/users
 PATCH /api/auth/admin/users/{studentIdentity}
 ```
 
@@ -362,4 +383,12 @@ For local deployment, use:
 ```bash
 cp deploy/.env.example deploy/.env
 ./scripts/deploy.sh
+```
+
+The Compose stack exposes the frontend at `http://localhost:3000/`, auth at
+`http://localhost:8081/`, and training data at `http://localhost:8082/`. For a
+fixture-backed local workbench, run:
+
+```bash
+./scripts/seed-local-codeforces-data.sh
 ```

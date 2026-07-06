@@ -33,6 +33,16 @@ prepare_logs_dir() {
   chmod 0777 "${LOG_DIR}"
 }
 
+build_frontend_assets() {
+  local host_uid host_gid
+  host_uid="$(id -u 2>/dev/null || true)"
+  host_gid="$(id -g 2>/dev/null || true)"
+
+  echo "Building frontend static assets ..."
+  HOST_UID="${host_uid}" HOST_GID="${host_gid}" \
+    docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" run --rm frontend-build
+}
+
 pull_latest() {
   if [[ "${SKIP_GIT_PULL}" == "1" ]]; then
     echo "Skipping git pull because SERVER_DEPLOY_SKIP_GIT_PULL=1."
@@ -75,20 +85,31 @@ health_check() {
   source "${ENV_FILE}"
   set +a
 
-  local health_port="${BACKEND_PORT:-8081}"
-  local health_url="http://localhost:${health_port}/health"
+  local auth_health_url="http://localhost:${BACKEND_PORT:-8081}/health"
+  local training_health_url="http://localhost:${TRAINING_DATA_PORT:-8082}/health"
+  local frontend_url="http://localhost:${FRONTEND_PORT:-3000}/"
 
-  echo "Checking ${health_url} ..."
+  check_url "${auth_health_url}" "custacm-backend"
+  check_url "${training_health_url}" "custacm-training-data-web"
+  check_url "${frontend_url}" "custacm-frontend"
+
+  echo "Server deploy succeeded."
+}
+
+check_url() {
+  local url="$1"
+  local service="$2"
+
+  echo "Checking ${url} ..."
   for _ in {1..30}; do
-    if curl -fsS "${health_url}" >/dev/null; then
-      echo "Server deploy succeeded."
+    if curl -fsS "${url}" >/dev/null; then
       return
     fi
     sleep 2
   done
 
-  echo "Health check failed. Recent backend logs:" >&2
-  docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" logs --tail=120 custacm-backend >&2
+  echo "Health check failed for ${service}. Recent logs:" >&2
+  docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" logs --tail=120 "${service}" >&2
   exit 1
 }
 
@@ -119,6 +140,7 @@ pull_latest
 prepare_logs_dir
 
 echo "Building and starting Docker Compose services ..."
+build_frontend_assets
 docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --build
 
 health_check

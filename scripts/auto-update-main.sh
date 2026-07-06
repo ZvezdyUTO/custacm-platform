@@ -55,16 +55,26 @@ classify_changes() {
   local file
   local needs_full=0
   local needs_auth=0
+  local needs_training=0
+  local needs_frontend=0
   local has_runtime_change=0
 
   for file in "$@"; do
     case "${file}" in
-      Dockerfile|pom.xml|deploy/docker-compose.yml|deploy/.env.example|scripts/deploy.sh|scripts/server-deploy.sh)
+      Dockerfile|pom.xml|deploy/docker-compose.yml|deploy/.env.example|scripts/deploy.sh|scripts/server-deploy.sh|scripts/update-module.sh|scripts/auto-update-main.sh)
         needs_full=1
         has_runtime_change=1
         ;;
       platform-auth/pom.xml|platform-auth/auth-domain/*|platform-auth/auth-app/*|platform-auth/auth-core/*|platform-auth/auth-infra/*|platform-auth/auth-web/*)
         needs_auth=1
+        has_runtime_change=1
+        ;;
+      platform-training-data/pom.xml|platform-training-data/training-data-codeforces/*|platform-training-data/training-data-web/*)
+        needs_training=1
+        has_runtime_change=1
+        ;;
+      frontend/*)
+        needs_frontend=1
         has_runtime_change=1
         ;;
       *)
@@ -74,10 +84,21 @@ classify_changes() {
 
   if [[ "${needs_full}" == "1" ]]; then
     echo "full"
-  elif [[ "${needs_auth}" == "1" ]]; then
-    echo "modules:auth-web"
   elif [[ "${has_runtime_change}" == "0" ]]; then
     echo "none"
+  else
+    local modules=()
+    if [[ "${needs_auth}" == "1" ]]; then
+      modules+=("auth-web")
+    fi
+    if [[ "${needs_training}" == "1" ]]; then
+      modules+=("training-data-web")
+    fi
+    if [[ "${needs_frontend}" == "1" ]]; then
+      modules+=("frontend")
+    fi
+    local IFS=,
+    echo "modules:${modules[*]}"
   fi
 }
 

@@ -21,7 +21,9 @@ Do not reintroduce a unified `OdsSubmissionRecord`, `OdsSubmissionWriter`, `Sour
 
 External collectors should post raw submission arrays to the OJ-specific HTTP ingest endpoint with a platform JWT that has the `admin` role. The OJ module creates its own `batch_id`, `fetched_at`, `raw_payload`, and `payload_hash`, then writes through its own writer.
 
-Codeforces also exposes an admin recent-lookback collection endpoint that calls the public Codeforces `user.status` API for a platform `studentIdentity` and writes matching submissions through the same ODS ingest path. The endpoint accepts `studentIdentity` and `lookbackHours`; the service resolves the identity to its bound Codeforces handle, uses its current execution instant as the right boundary, and collects submissions from that instant back by the requested number of hours. Scheduled collection currently reads all bound handles from `codeforces_handle_account` through the handle-account service and de-duplicates them by handle. Each Codeforces page request uses bounded connect/read timeouts and retries before the current handle is reported as failed.
+Codeforces also exposes an admin recent-lookback collection endpoint that calls the public Codeforces `user.status` API for a platform `studentIdentity` and writes matching submissions through the same ODS ingest path. The endpoint accepts `studentIdentity` and `lookbackHours`; the service resolves the identity to its bound Codeforces handle, uses its current execution instant as the right boundary, and collects submissions from that instant back by the requested number of hours. Browser-driven batch collection uses an in-process job service that runs multiple identities sequentially and exposes job list/detail snapshots for polling; it is not persisted across backend restarts and must not become a general pipeline run-state table. Scheduled collection reads handles whose `codeforces_handle_account.need_collect` flag is true through the handle-account service and de-duplicates them by handle. Each Codeforces page request uses bounded connect/read timeouts and retries before the current handle is reported as failed.
+
+Codeforces exposes an admin student-data purge endpoint for high-risk account cleanup. It accepts a platform `studentIdentity`, resolves the current Codeforces handle binding, deletes that handle's DWS, DWM, DWD, and ODS rows, and then removes the `codeforces_handle_account` row. Missing handle bindings return zero deletion counts. Auth account deletion remains owned by `auth-web`; callers that need full user deletion should clear training data first and then call the auth admin delete endpoint.
 
 Codeforces DWD/DWM/DWS transforms are idempotent SQL task resources. The current Java execution path is an admin-triggered synchronous refresh endpoint backed by the shared SQL task DAG executor; persistent task run state and ADS physical tables are not implemented yet. The Codeforces collector has a disabled-by-default Spring scheduled trigger that calls the same recent-lookback collection use case; it is not a persistent pipeline scheduler. After collector ODS write, the code intentionally leaves a TODO where the future scheduler/orchestrator call should be added.
 
@@ -35,8 +37,9 @@ Codeforces is still one vertical OJ Maven module. The Java packages are split by
 codeforces/
   app/
     account/     # Codeforces handle-account use cases and app errors
-    collector/   # recent-lookback submission collection use case and collection results
+    collector/   # recent-lookback submission collection use case, collection jobs, and collection results
     ingest/      # ODS ingest use case and ingest results
+    purge/       # student-scoped Codeforces data deletion use case
     query/       # DWD/DWM/DWS read use cases and query results
     warehouse/   # admin SQL task refresh use case
   collector/
@@ -58,6 +61,7 @@ codeforces/
     account/     # handle-account controller, requests, responses, and error mapping
     collector/   # submission-collection controller, requests, responses, and error mapping
     ingest/      # ODS ingest controller and response DTOs
+    purge/       # admin student-data purge controller and response DTOs
     query/       # public warehouse query controller and response DTOs
     warehouse/   # warehouse refresh controller, request DTO, and error mapping
 ```
@@ -174,10 +178,11 @@ GET /api/training-data/codeforces/submissions/by-problem
 
 At the app layer, personal DWD reads accept platform `studentIdentity`; the service resolves it through `codeforces_handle_account` and then builds repository handle criteria. The DWD repository query model supports two atomic reads:
 
-- by requested `authorHandle`, optional inclusive UTC+8 submitted time range, and optional problem rating lower/upper bounds;
-- by requested `problemKey`, plus optional inclusive UTC+8 submitted time range, across all handles.
+- by requested `authorHandle`, optional inclusive UTC+8 submitted time range, optional problem rating lower/upper bounds, and backend pagination `limit/offset`;
+- by requested `problemKey`, optional inclusive UTC+8 submitted time range, across all handles, and backend pagination `limit/offset`.
 
 Null time bounds mean no lower or upper time limit. Null problem rating bounds mean all rated and unrated rows. Setting either problem rating bound filters to the requested inclusive rating interval and excludes unrated rows.
+The public HTTP submission detail endpoints accept `page` and `limit`; `page` is 1-based, `limit` defaults to `100`, and `limit` is capped at `2000`. Each response returns exact `total`, `totalPages`, `hasMore`, and the requested page's submission rows.
 
 The repository returns DWD atomic submission rows. The app service returns report records that keep matching submission details:
 
@@ -314,6 +319,7 @@ Public HTTP and Java query boundary:
 
 ```text
 GET /api/training-data/codeforces/accepted-summary
+GET /api/training-data/codeforces/accepted-summary/auto-collect-users
  -> CodeforcesWarehouseQueryController
  -> CodeforcesAcceptedSummaryQueryService
  -> CodeforcesAcceptedSummaryRepository
@@ -321,7 +327,7 @@ GET /api/training-data/codeforces/accepted-summary
  -> dws_codeforces__handle_daily_rating_accepted_summary
 ```
 
-At the app layer, DWS reads accept platform `studentIdentity`; the service resolves it through `codeforces_handle_account` and then builds repository handle criteria. The repository query model supports:
+At the app layer, single-student DWS reads accept platform `studentIdentity`; the service resolves it through `codeforces_handle_account` and then builds repository handle criteria. The automatic-collection list path reads all handle accounts with `need_collect=true`, reuses the same per-account DWS aggregation, and sorts the reports by total accepted problem count descending. The repository query model supports:
 
 - requested `authorHandle`;
 - optional inclusive UTC+8 date range;
@@ -333,7 +339,7 @@ The repository returns DWS atomic rows at the table grain:
 author_handle + accepted_date_utc_plus8
 ```
 
-The app service returns only one aggregated report with:
+The app service returns aggregated reports with:
 
 - the requested `studentIdentity` and resolved handle;
 - interval-level rating totals derived from the wide rating count columns;
@@ -392,13 +398,23 @@ Request body:
 }
 ```
 
-`studentIdentity` must have a Codeforces handle binding and `lookbackHours` must be positive. The service computes `[now - lookbackHours, now)` at execution time and compares that window to each source submission's `creationTimeSeconds`. The endpoint is admin-only. A successful run returns aggregate status plus the resolved handle's result and echoes the computed `windowStartInclusive` / `windowEndExclusive` in the response. Each Codeforces page request defaults to `connect-timeout=10s`, `read-timeout=30s`, and `max-request-attempts=3`. If the handle request still fails after those attempts, the collector writes no rows, logs a stable `errorCode` with a handle hash, and returns the failed handle's error code/message in the response.
+`studentIdentity` must have a Codeforces handle binding and `lookbackHours` must be positive. The service computes `[now - lookbackHours, now)` at execution time and compares that window to each source submission's `creationTimeSeconds`. The endpoint is admin-only. A successful run returns aggregate status plus the resolved handle's result and echoes the computed `windowStartInclusive` / `windowEndExclusive` in the response. Each Codeforces page request defaults to `connect-timeout=10s`, `read-timeout=30s`, `request-interval=4s`, and `max-request-attempts=3`. If the handle request still fails after those attempts, the collector writes no rows, logs a stable `errorCode` with a handle hash, and returns the failed handle's error code/message in the response.
 
-The current scheduled collection path returns all handles from `codeforces_handle_account` in stable `student_identity` order and de-duplicates by handle before requesting Codeforces. Do not add scheduled collection filtering directly in the HTTP controller; keep that logic in the collection use case or the handle-account read path.
+The current scheduled collection path returns only handles with `codeforces_handle_account.need_collect=true` in stable `student_identity` order and de-duplicates by handle before requesting Codeforces. Do not add scheduled collection filtering directly in the HTTP controller; keep that logic in the collection use case or the handle-account read path.
 
 The scheduler path is driven by `platform.training-data.codeforces.collector.schedules` in `application.yml` and disabled by default. The default config file includes a `daily-recent-submissions` schedule with `enabled=false`, `cron="0 0 12 * * *"`, `zone=Asia/Shanghai`, and `lookback=120h`. When that schedule is enabled, the automatic job runs the same collection service and collects from the trigger execution instant back by the configured lookback duration.
 
-After ODS write, the collector currently does not invoke the unfinished downstream scheduler/orchestrator. The source code has a TODO at that handoff point. The existing manual SQL refresh endpoint remains available separately.
+Browser-facing batch collection should use the admin job endpoints:
+
+```text
+POST /api/training-data/admin/codeforces/submissions:collect-batch-jobs
+GET  /api/training-data/admin/codeforces/submissions/collect-batch-jobs
+GET  /api/training-data/admin/codeforces/submissions/collect-batch-jobs/{jobId}
+```
+
+The job service keeps at most 50 snapshots in memory, exposes per-identity `PENDING` / `RUNNING` / `SUCCESS` / `FAILED` state, waits the configured `request-interval` between adjacent identities, and may run `CodeforcesWarehouseRefreshService` after each successful batch when requested. This makes frontend refresh/page switching safe for long collection, but it is still process-local and not durable pipeline state. ODS import and manual warehouse refresh remain synchronous admin endpoints.
+
+After ODS write, the direct collector currently does not invoke the unfinished downstream scheduler/orchestrator. The source code has a TODO at that handoff point. The existing manual SQL refresh endpoint remains available separately.
 
 After ingest returns a `batchId`, admins can refresh Codeforces DWD/DWM/DWS through:
 

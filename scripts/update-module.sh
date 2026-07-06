@@ -13,10 +13,13 @@ Usage:
   ./scripts/update-module.sh list
 
 Current modules:
-  auth-web    platform-auth/auth-web -> custacm-backend
+  auth-web             platform-auth/auth-web -> custacm-backend
+  training-data-web    platform-training-data/training-data-web -> custacm-training-data-web
+  frontend             frontend static build -> custacm-frontend
 
 Run `git pull origin main` before this script when updating from GitHub.
-The Dockerfile builds Maven artifacts inside Docker, so the host only needs Docker.
+Backend Docker images build Maven artifacts inside Docker. Frontend updates use
+the frontend-build service to refresh frontend/dist, then reload Nginx.
 EOF
 }
 
@@ -41,8 +44,26 @@ case "${MODULE_NAME}" in
   auth-web|auth|custacm-backend)
     MODULE_PATH="platform-auth/auth-web"
     SERVICE_NAME="custacm-backend"
+    MODULE_KIND="backend"
     HEALTH_PORT_VAR="BACKEND_PORT"
+    HEALTH_DEFAULT="8081"
     HEALTH_PATH="/health"
+    ;;
+  training-data-web|training-data|custacm-training-data-web)
+    MODULE_PATH="platform-training-data/training-data-web"
+    SERVICE_NAME="custacm-training-data-web"
+    MODULE_KIND="backend"
+    HEALTH_PORT_VAR="TRAINING_DATA_PORT"
+    HEALTH_DEFAULT="8082"
+    HEALTH_PATH="/health"
+    ;;
+  frontend|front|custacm-frontend)
+    MODULE_PATH="frontend"
+    SERVICE_NAME="custacm-frontend"
+    MODULE_KIND="frontend"
+    HEALTH_PORT_VAR="FRONTEND_PORT"
+    HEALTH_DEFAULT="3000"
+    HEALTH_PATH="/"
     ;;
   *)
     echo "Unknown module: ${MODULE_NAME}" >&2
@@ -56,17 +77,32 @@ set -a
 source "${ENV_FILE}"
 set +a
 
-HEALTH_PORT="${!HEALTH_PORT_VAR:-8081}"
+HEALTH_PORT="${!HEALTH_PORT_VAR:-${HEALTH_DEFAULT}}"
 HEALTH_URL="http://localhost:${HEALTH_PORT}${HEALTH_PATH}"
 
 mkdir -p "${LOG_DIR}"
 chmod 0777 "${LOG_DIR}"
 
-echo "Building Docker service ${SERVICE_NAME} ..."
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" build "${SERVICE_NAME}"
+if [[ "${MODULE_KIND}" == "frontend" ]]; then
+  host_uid="$(id -u 2>/dev/null || true)"
+  host_gid="$(id -g 2>/dev/null || true)"
 
-echo "Restarting Docker service ${SERVICE_NAME} ..."
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --no-deps "${SERVICE_NAME}"
+  echo "Building frontend static assets ..."
+  HOST_UID="${host_uid}" HOST_GID="${host_gid}" \
+    docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" run --rm frontend-build
+
+  echo "Ensuring Docker service ${SERVICE_NAME} is running ..."
+  docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --no-deps "${SERVICE_NAME}"
+
+  echo "Reloading Nginx in ${SERVICE_NAME} ..."
+  docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" exec -T "${SERVICE_NAME}" nginx -s reload
+else
+  echo "Building Docker service ${SERVICE_NAME} ..."
+  docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" build "${SERVICE_NAME}"
+
+  echo "Restarting Docker service ${SERVICE_NAME} ..."
+  docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --no-deps "${SERVICE_NAME}"
+fi
 
 echo "Checking ${HEALTH_URL} ..."
 for _ in {1..30}; do
