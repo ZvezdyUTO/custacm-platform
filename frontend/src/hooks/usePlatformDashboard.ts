@@ -2,55 +2,66 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ApiError,
   batchCreateUsers,
+  changeCurrentPassword,
+  changeOjHandleIdentity,
   checkAuthHealth,
   checkTrainingDataHealth,
   collectCodeforcesSubmissions,
-  createCodeforcesHandle,
+  createOjHandleAccount,
   deleteAdminUser,
   getAcceptedSummary,
-  getAutoCollectAcceptedSummaries,
-  getCodeforcesHandle,
-  getCodeforcesSubmissionCollectionJob,
+  getAuthModuleInfo,
   getCurrentUser,
   getFirstAcceptedProblems,
+  getProblemFirstAcceptedHandles,
+  getProblemSubmissions,
   getStudentSubmissions,
+  getTrainingDataModuleInfo,
   listCodeforcesSubmissionCollectionJobs,
+  listOjHandleAccounts,
   listUsers,
   login,
-  purgeCodeforcesStudentData,
-  refreshCodeforcesWarehouse,
+  purgeOjStudentData,
   startCodeforcesSubmissionCollectionJob,
-  upsertCodeforcesSubmissions,
   updateAdminUser,
-  updateCodeforcesHandleAccount,
+  updateOjHandleAccount,
 } from '../api/platform';
 import { defaultLookbackHours, seededStudentIdentities } from '../data/dashboard';
-import type {
-  AuthUser,
-  BatchCollectOptions,
-  BatchCollectSummary,
-  BatchCollectStudentResult,
-  BatchStudentImportRow,
-  BatchStudentImportSummary,
-  CodeforcesAcceptedSummary,
-  FullUserDataDeleteSummary,
-  CodeforcesFirstAcceptedReport,
-  CodeforcesHandleOperationResult,
-  CodeforcesOdsBatchUpsertResponse,
-  CodeforcesSubmissionCollectionJobItem,
-  CodeforcesSubmissionCollectionJobResponse,
-  CodeforcesStudentSubmissionReport,
-  CurrentUser,
-  DashboardOperation,
-  ServiceHealth,
-  SubmissionPageQuery,
-  StudentIdentity,
-  StudentTrainingRecord,
-  TrainingQueryMode,
-  TrainingQueryRange,
-  UserInfoUpdateInput,
-  UserInfoUpdateSummary,
-  WarehouseRefreshResult,
+import {
+  OJ_NAMES,
+  OJ_LABELS,
+  type AuthUser,
+  type BatchCollectOptions,
+  type BatchCollectSummary,
+  type BatchCollectStudentResult,
+  type BatchStudentImportRow,
+  type BatchStudentImportSummary,
+  type ChangeCurrentPasswordRequest,
+  type CodeforcesAcceptedSummary,
+  type OjHandleAccount,
+  type OjHandleAccountMap,
+  type OjStudentDataPurgeResult,
+  type FullUserDataDeleteSummary,
+  type CodeforcesFirstAcceptedReport,
+  type CodeforcesHandleOperationResult,
+  type CodeforcesProblemFirstAcceptedReport,
+  type CodeforcesProblemSubmissionReport,
+  type CodeforcesSubmissionCollectionJobItem,
+  type CodeforcesSubmissionCollectionJobResponse,
+  type CodeforcesStudentSubmissionReport,
+  type CurrentUser,
+  type DashboardOperation,
+  type OjName,
+  type PlatformModuleInfo,
+  type ServiceHealth,
+  type SubmissionPageQuery,
+  type StudentIdentity,
+  type StudentTrainingRecord,
+  type TrainingQueryMode,
+  type TrainingQueryRange,
+  type TrainingDataBatchSummary,
+  type UserInfoUpdateInput,
+  type UserInfoUpdateSummary,
 } from '../types';
 
 const TOKEN_STORAGE_KEY = 'custacm.platform.accessToken';
@@ -69,7 +80,12 @@ interface LoginCredentials {
 }
 
 interface RefreshDashboardOptions {
+  loadMultiUserSummaries?: boolean;
+  loadProblemDetails?: boolean;
   loadStudentDetails?: boolean;
+  ojNameOverride?: OjName;
+  problemKeyOverride?: string;
+  selectedIdentityOverride?: StudentIdentity | null;
 }
 
 const emptyTrainingQuery: TrainingQueryRange = {
@@ -97,7 +113,6 @@ function recentWeekTrainingQuery(now = new Date()): TrainingQueryRange {
   return {
     ...emptyTrainingQuery,
     acceptedFromDateUtcPlus8: formatDateUtcPlus8(start),
-    acceptedToDateUtcPlus8: formatDateUtcPlus8(now),
   };
 }
 
@@ -156,6 +171,7 @@ function batchSummaryFromCollectionJob(job: CodeforcesSubmissionCollectionJobRes
 function collectionJobItemToBatchResult(item: CodeforcesSubmissionCollectionJobItem): BatchCollectStudentResult {
   return {
     studentIdentity: item.studentIdentity,
+    ojName: item.ojName,
     status: batchCollectStatusFromJobItem(item),
     handle: item.handle,
     batchId: item.batchId,
@@ -166,6 +182,51 @@ function collectionJobItemToBatchResult(item: CodeforcesSubmissionCollectionJobI
     refreshStatus: item.refreshStatus,
     refreshMessage: item.refreshMessage,
   };
+}
+
+function handleFrom(account: OjHandleAccount | undefined, ojName: OjName) {
+  return account?.handles[ojName] ?? null;
+}
+
+function handleFromRecord(record: StudentTrainingRecord, ojName: OjName) {
+  return record.handles[ojName] ?? null;
+}
+
+function hasAnyHandle(handles: Partial<Record<OjName, string>>) {
+  return Object.values(handles).some((handle) => typeof handle === 'string' && handle.trim().length > 0);
+}
+
+function normalizeHandles(handles: Partial<Record<OjName, string>> | undefined) {
+  const normalized: Partial<Record<OjName, string>> = {};
+  Object.entries(handles ?? {}).forEach(([ojName, handle]) => {
+    const normalizedHandle = handle?.trim();
+    if (normalizedHandle) {
+      normalized[ojName as OjName] = normalizedHandle;
+    }
+  });
+  return normalized;
+}
+
+function handlesFromImportRow(row: BatchStudentImportRow) {
+  const handles: Partial<Record<OjName, string>> = {
+    ...(row.handles ?? {}),
+  };
+  const codeforcesHandle = row.codeforcesHandle ?? row.handle;
+  if (codeforcesHandle !== undefined) {
+    handles[OJ_NAMES.CODEFORCES] = codeforcesHandle;
+  }
+  if (row.atcoderHandle !== undefined) {
+    handles[OJ_NAMES.ATCODER] = row.atcoderHandle;
+  }
+  return normalizeHandles(handles);
+}
+
+function primaryHandleFrom(handles: Partial<Record<OjName, string>>) {
+  return handles[OJ_NAMES.CODEFORCES] ?? handles[OJ_NAMES.ATCODER] ?? null;
+}
+
+function needCollectFrom(account: OjHandleAccount | undefined) {
+  return account?.needCollect ?? true;
 }
 
 function batchCollectStatusFromJobItem(item: CodeforcesSubmissionCollectionJobItem) {
@@ -195,6 +256,54 @@ function formatError(error: unknown) {
   return error instanceof Error ? error.message : 'unknown error';
 }
 
+function ojLabel(ojName: OjName | null | undefined) {
+  return ojName ? OJ_LABELS[ojName] : '全部 OJ';
+}
+
+function defaultOdsTable(ojName: OjName | null | undefined) {
+  return ojName === OJ_NAMES.ATCODER ? 'ods_atcoder__submission' : 'ods_codeforces__submission';
+}
+
+function aggregatePurgeResults(
+  studentIdentity: StudentIdentity,
+  handles: Partial<Record<OjName, string>>,
+  results: OjStudentDataPurgeResult[],
+): OjStudentDataPurgeResult {
+  return {
+    studentIdentity,
+    ojName: results.length === 1 ? results[0].ojName : null,
+    handle: results.length === 1 ? results[0].handle : primaryHandleFrom(handles),
+    handles,
+    ojResults: results.flatMap((result) => result.ojResults),
+    handleAccountRows: results.reduce((sum, result) => sum + result.handleAccountRows, 0),
+    odsSubmissionRows: results.reduce((sum, result) => sum + result.odsSubmissionRows, 0),
+    dwdSubmissionRows: results.reduce((sum, result) => sum + result.dwdSubmissionRows, 0),
+    dwmFirstAcceptedRows: results.reduce((sum, result) => sum + result.dwmFirstAcceptedRows, 0),
+    dwsAcceptedSummaryRows: results.reduce((sum, result) => sum + result.dwsAcceptedSummaryRows, 0),
+    totalDeletedRows: results.reduce((sum, result) => sum + result.totalDeletedRows, 0),
+  };
+}
+
+async function saveOjHandleAccount(
+  token: string,
+  studentIdentity: StudentIdentity,
+  handles: Partial<Record<OjName, string>>,
+  needCollect?: boolean,
+) {
+  try {
+    const created = await createOjHandleAccount(token, studentIdentity, handles);
+    if (needCollect === undefined || created.needCollect === needCollect) {
+      return created;
+    }
+    return updateOjHandleAccount(token, studentIdentity, needCollect, created.handles);
+  } catch (error) {
+    if (error instanceof ApiError && error.code === 'OJ_HANDLE_ACCOUNT_IDENTITY_EXISTS') {
+      return updateOjHandleAccount(token, studentIdentity, needCollect ?? true, handles);
+    }
+    throw error;
+  }
+}
+
 function nowTime() {
   return new Intl.DateTimeFormat('zh-CN', {
     hour: '2-digit',
@@ -205,6 +314,13 @@ function nowTime() {
 
 function shouldLoadTrainingData(studentIdentity: StudentIdentity) {
   return seededStudentIdentities.includes(studentIdentity) || /^\d{6,}.+/.test(studentIdentity);
+}
+
+function compareAcceptedSummaries(left: CodeforcesAcceptedSummary, right: CodeforcesAcceptedSummary) {
+  const acceptedOrder = right.totalAcceptedProblemCount - left.totalAcceptedProblemCount;
+  return acceptedOrder === 0
+    ? left.studentIdentity.localeCompare(right.studentIdentity, 'zh-CN')
+    : acceptedOrder;
 }
 
 function operation(title: string, detail: string, status: DashboardOperation['status']): DashboardOperation {
@@ -222,24 +338,33 @@ export function usePlatformDashboard() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => readStoredUser());
   const [status, setStatus] = useState<DashboardStatus>(token ? 'loading' : 'signed-out');
   const [health, setHealth] = useState<ServiceHealth[]>([]);
+  const [moduleInfo, setModuleInfo] = useState<PlatformModuleInfo[]>([]);
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [records, setRecords] = useState<StudentTrainingRecord[]>([]);
-  const [autoCollectAcceptedSummaries, setAutoCollectAcceptedSummaries] = useState<CodeforcesAcceptedSummary[]>([]);
+  const [multiUserAcceptedSummaries, setMultiUserAcceptedSummaries] = useState<CodeforcesAcceptedSummary[]>([]);
   const [selectedIdentity, setSelectedIdentity] = useState<StudentIdentity | null>(null);
   const [submissions, setSubmissions] = useState<CodeforcesStudentSubmissionReport | null>(null);
   const [firstAccepted, setFirstAccepted] = useState<CodeforcesFirstAcceptedReport | null>(null);
-  const [lastBatch, setLastBatch] = useState<CodeforcesOdsBatchUpsertResponse | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<WarehouseRefreshResult | null>(null);
+  const [problemKey, setProblemKey] = useState('');
+  const [problemSubmissions, setProblemSubmissions] = useState<CodeforcesProblemSubmissionReport | null>(null);
+  const [problemFirstAccepted, setProblemFirstAccepted] =
+    useState<CodeforcesProblemFirstAcceptedReport | null>(null);
+  const [lastBatch, setLastBatch] = useState<TrainingDataBatchSummary | null>(null);
   const [collectionJob, setCollectionJob] = useState<CodeforcesSubmissionCollectionJobResponse | null>(null);
   const [collectionJobSummary, setCollectionJobSummary] = useState<BatchCollectSummary | null>(null);
   const [collectionJobs, setCollectionJobs] = useState<CodeforcesSubmissionCollectionJobResponse[]>([]);
   const [operations, setOperations] = useState<DashboardOperation[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedOjName, setSelectedOjName] = useState<OjName>(OJ_NAMES.CODEFORCES);
   const [trainingQuery, setTrainingQuery] = useState<TrainingQueryRange>(() => recentWeekTrainingQuery());
   const [submissionPage, setSubmissionPage] = useState(defaultSubmissionPage.page);
   const [submissionLimit, setSubmissionLimit] = useState(defaultSubmissionPage.limit);
+  const [problemSubmissionPage, setProblemSubmissionPage] = useState(defaultSubmissionPage.page);
+  const [problemSubmissionLimit, setProblemSubmissionLimit] = useState(defaultSubmissionPage.limit);
   const [studentDetailsRequested, setStudentDetailsRequested] = useState(false);
+  const [problemDetailsRequested, setProblemDetailsRequested] = useState(false);
   const detailsRequestSeq = useRef(0);
+  const problemRequestSeq = useRef(0);
   const collectionJobPollingRef = useRef<{
     jobId: string;
     promise: Promise<BatchCollectSummary>;
@@ -255,6 +380,24 @@ export function usePlatformDashboard() {
     return nextHealth;
   }, []);
 
+  const refreshModuleInfo = useCallback(async () => {
+    const results = await Promise.allSettled([getAuthModuleInfo(), getTrainingDataModuleInfo()]);
+    const nextInfo = results
+      .filter((result): result is PromiseFulfilledResult<PlatformModuleInfo> => result.status === 'fulfilled')
+      .map((result) => result.value);
+    setModuleInfo(nextInfo);
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        addOperation(
+          index === 0 ? 'auth module-info 加载失败' : 'training-data module-info 加载失败',
+          formatError(result.reason),
+          operationStatusFromError(result.reason),
+        );
+      }
+    });
+    return nextInfo;
+  }, [addOperation]);
+
   const clearStudentDetails = useCallback(() => {
     detailsRequestSeq.current += 1;
     setSubmissions(null);
@@ -262,10 +405,18 @@ export function usePlatformDashboard() {
     setStudentDetailsRequested(false);
   }, []);
 
+  const clearProblemDetails = useCallback(() => {
+    problemRequestSeq.current += 1;
+    setProblemSubmissions(null);
+    setProblemFirstAccepted(null);
+    setProblemDetailsRequested(false);
+  }, []);
+
   const loadStudentDetails = useCallback(async (
     identity: StudentIdentity,
     query: TrainingQueryRange = trainingQuery,
     pagination: SubmissionPageQuery = { page: submissionPage, limit: submissionLimit },
+    ojName: OjName = selectedOjName,
   ) => {
     const requestSeq = detailsRequestSeq.current + 1;
     detailsRequestSeq.current = requestSeq;
@@ -274,9 +425,9 @@ export function usePlatformDashboard() {
     setStudentDetailsRequested(true);
 
     const [summaryResult, submissionsResult, firstAcceptedResult] = await Promise.allSettled([
-      getAcceptedSummary(identity, query),
-      getStudentSubmissions(identity, query, pagination),
-      getFirstAcceptedProblems(identity, query),
+      getAcceptedSummary(identity, query, ojName),
+      getStudentSubmissions(identity, query, pagination, ojName),
+      getFirstAcceptedProblems(identity, query, ojName),
     ]);
 
     if (requestSeq !== detailsRequestSeq.current) {
@@ -321,7 +472,93 @@ export function usePlatformDashboard() {
       setFirstAccepted(null);
     }
     return true;
-  }, [submissionLimit, submissionPage, trainingQuery]);
+  }, [selectedOjName, submissionLimit, submissionPage, trainingQuery]);
+
+  const loadProblemDetails = useCallback(async (
+    key: string = problemKey,
+    query: TrainingQueryRange = trainingQuery,
+    pagination: SubmissionPageQuery = { page: problemSubmissionPage, limit: problemSubmissionLimit },
+    ojName: OjName = selectedOjName,
+  ) => {
+    const normalizedKey = key.trim();
+    if (!normalizedKey) {
+      clearProblemDetails();
+      return false;
+    }
+    const requestSeq = problemRequestSeq.current + 1;
+    problemRequestSeq.current = requestSeq;
+    setProblemSubmissions(null);
+    setProblemFirstAccepted(null);
+    setProblemDetailsRequested(true);
+
+    const [submissionsResult, firstAcceptedResult] = await Promise.allSettled([
+      getProblemSubmissions(normalizedKey, query, pagination, ojName),
+      getProblemFirstAcceptedHandles(normalizedKey, query, ojName),
+    ]);
+
+    if (requestSeq !== problemRequestSeq.current) {
+      return false;
+    }
+
+    if (submissionsResult.status === 'fulfilled') {
+      setProblemSubmissions(submissionsResult.value);
+    } else {
+      setProblemSubmissions(null);
+      addOperation('题目提交查询失败', formatError(submissionsResult.reason), operationStatusFromError(submissionsResult.reason));
+    }
+
+    if (firstAcceptedResult.status === 'fulfilled') {
+      setProblemFirstAccepted(firstAcceptedResult.value);
+    } else {
+      setProblemFirstAccepted(null);
+      addOperation('题目首 AC 查询失败', formatError(firstAcceptedResult.reason), operationStatusFromError(firstAcceptedResult.reason));
+    }
+    return submissionsResult.status === 'fulfilled' || firstAcceptedResult.status === 'fulfilled';
+  }, [
+    addOperation,
+    clearProblemDetails,
+    problemKey,
+    problemSubmissionLimit,
+    problemSubmissionPage,
+    selectedOjName,
+    trainingQuery,
+  ]);
+
+  const loadMultiUserSummaries = useCallback(async (
+    summaryRecords: StudentTrainingRecord[],
+    query: TrainingQueryRange,
+    ojName: OjName,
+  ) => {
+    const candidates = summaryRecords.filter((record) =>
+      record.needCollect === true
+      && shouldLoadTrainingData(record.studentIdentity)
+      && Boolean(handleFromRecord(record, ojName))
+    );
+    if (candidates.length === 0) {
+      setMultiUserAcceptedSummaries([]);
+      return true;
+    }
+
+    const results = await Promise.allSettled(
+      candidates.map((record) => getAcceptedSummary(record.studentIdentity, query, ojName)),
+    );
+    const summaries = results
+      .filter((result): result is PromiseFulfilledResult<CodeforcesAcceptedSummary> => result.status === 'fulfilled')
+      .map((result) => result.value)
+      .sort(compareAcceptedSummaries);
+    setMultiUserAcceptedSummaries(summaries);
+
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        addOperation(
+          '队员统计加载失败',
+          `${candidates[index]?.studentIdentity ?? '未知队员'}: ${formatError(result.reason)}`,
+          operationStatusFromError(result.reason),
+        );
+      }
+    });
+    return true;
+  }, [addOperation]);
 
   const refreshDashboard = useCallback(async (
     queryOverride?: TrainingQueryRange,
@@ -329,14 +566,20 @@ export function usePlatformDashboard() {
     options: RefreshDashboardOptions = {},
   ) => {
     const effectiveQuery = queryOverride ?? trainingQuery;
+    const effectiveOjName = options.ojNameOverride ?? selectedOjName;
+    const requestedProblemKey = options.problemKeyOverride ?? problemKey;
+    const requestedSelectedIdentity = options.selectedIdentityOverride ?? selectedIdentity;
     const effectiveSubmissionPagination = submissionPaginationOverride ?? {
       page: submissionPage,
       limit: submissionLimit,
     };
     const shouldLoadStudentDetails = options.loadStudentDetails ?? studentDetailsRequested;
+    const shouldLoadProblemDetails = options.loadProblemDetails ?? problemDetailsRequested;
+    const shouldLoadMultiUserSummaries = options.loadMultiUserSummaries ?? true;
     setStatus(token ? 'loading' : 'signed-out');
     setErrorMessage(null);
     await refreshHealth();
+    await refreshModuleInfo();
 
     try {
       let userList: AuthUser[] = [];
@@ -365,72 +608,77 @@ export function usePlatformDashboard() {
       const identities = userList.length > 0
         ? Array.from(new Set(userList.map((user) => user.studentIdentity)))
         : seededStudentIdentities;
+      let handleAccountsByIdentity: OjHandleAccountMap = {};
+      let handleListError: unknown = null;
       try {
-        setAutoCollectAcceptedSummaries(await getAutoCollectAcceptedSummaries(effectiveQuery));
+        handleAccountsByIdentity = await listOjHandleAccounts();
       } catch (error) {
-        setAutoCollectAcceptedSummaries([]);
-        addOperation('自动更新用户汇总失败', formatError(error), operationStatusFromError(error));
+        handleListError = error;
+        addOperation('OJ handle 列表加载失败', formatError(error), operationStatusFromError(error));
       }
-      const nextRecords = await Promise.all(
-        identities.map(async (studentIdentity) => {
-          const user = userList.find((item) => item.studentIdentity === studentIdentity);
-          const role = user?.role ?? 'player';
-          const updatedAt = user?.updatedAt ?? new Date().toISOString();
-          if (!shouldLoadTrainingData(studentIdentity)) {
-            return {
-              studentIdentity,
-              role,
-              handle: null,
-              needCollect: null,
-              handleStatus: 'missing',
-              acceptedSummary: null,
-              summaryStatus: 'not-requested',
-              errorMessage: null,
-              updatedAt,
-            } satisfies StudentTrainingRecord;
-          }
-          try {
-            const handle = await getCodeforcesHandle(studentIdentity);
-            return {
-              studentIdentity,
-              role,
-              handle: handle.handle,
-              needCollect: handle.needCollect ?? true,
-              handleStatus: 'bound',
-              acceptedSummary: null,
-              summaryStatus: 'not-requested',
-              errorMessage: null,
-              updatedAt,
-            } satisfies StudentTrainingRecord;
-          } catch (error) {
-            return {
-              studentIdentity,
-              role,
-              handle: null,
-              needCollect: null,
-              handleStatus: error instanceof ApiError && error.status === 404 ? 'missing' : 'error',
-              acceptedSummary: null,
-              summaryStatus: 'not-requested',
-              errorMessage: error instanceof ApiError && error.status === 404 ? null : formatError(error),
-              updatedAt,
-            } satisfies StudentTrainingRecord;
-          }
-        }),
-      );
+      setMultiUserAcceptedSummaries([]);
+      const nextRecords = identities.map((studentIdentity) => {
+        const user = userList.find((item) => item.studentIdentity === studentIdentity);
+        const role = user?.role ?? 'player';
+        const updatedAt = user?.updatedAt ?? new Date().toISOString();
+        if (!shouldLoadTrainingData(studentIdentity)) {
+          return {
+            studentIdentity,
+            role,
+            handle: null,
+            handles: {},
+            needCollect: null,
+            collectionStates: {},
+            handleStatus: 'missing',
+            acceptedSummary: null,
+            summaryStatus: 'not-requested',
+            errorMessage: null,
+            updatedAt,
+          } satisfies StudentTrainingRecord;
+        }
+        const handleAccount = handleAccountsByIdentity[studentIdentity];
+        const handles = handleAccount?.handles ?? {};
+        const selectedHandle = handleFrom(handleAccount, effectiveOjName);
+        return {
+          studentIdentity,
+          role,
+          handle: selectedHandle,
+          handles,
+          needCollect: handleAccount ? needCollectFrom(handleAccount) : null,
+          collectionStates: handleAccount?.collectionStates ?? {},
+          handleStatus: handleListError ? 'error' : selectedHandle ? 'bound' : 'missing',
+          acceptedSummary: null,
+          summaryStatus: 'not-requested',
+          errorMessage: handleListError ? formatError(handleListError) : null,
+          updatedAt,
+        } satisfies StudentTrainingRecord;
+      });
 
       setRecords(nextRecords);
       const nextSelected =
-        selectedIdentity && nextRecords.some((record) => record.studentIdentity === selectedIdentity)
-          ? selectedIdentity
+        requestedSelectedIdentity && nextRecords.some((record) => record.studentIdentity === requestedSelectedIdentity)
+          ? requestedSelectedIdentity
           : null;
       setSelectedIdentity(nextSelected);
       if (!shouldLoadStudentDetails) {
         clearStudentDetails();
       }
+      if (!shouldLoadProblemDetails) {
+        clearProblemDetails();
+      }
       const detailsApplied = nextSelected && shouldLoadStudentDetails
-        ? await loadStudentDetails(nextSelected, effectiveQuery, effectiveSubmissionPagination)
+        ? await loadStudentDetails(nextSelected, effectiveQuery, effectiveSubmissionPagination, effectiveOjName)
         : true;
-      if (detailsApplied) {
+      const problemDetailsApplied = shouldLoadProblemDetails
+        ? await loadProblemDetails(requestedProblemKey, effectiveQuery, {
+          page: problemSubmissionPage,
+          limit: problemSubmissionLimit,
+        }, effectiveOjName)
+        : true;
+      const multiUserSummariesApplied = shouldLoadMultiUserSummaries
+        ? await loadMultiUserSummaries(nextRecords, effectiveQuery, effectiveOjName)
+        : true;
+      if (detailsApplied && problemDetailsApplied && multiUserSummariesApplied) {
         setStatus('ready');
       }
     } catch (error) {
@@ -448,10 +696,19 @@ export function usePlatformDashboard() {
     }
   }, [
     addOperation,
+    clearProblemDetails,
     clearStudentDetails,
     loadStudentDetails,
+    loadProblemDetails,
+    loadMultiUserSummaries,
+    problemDetailsRequested,
+    problemKey,
+    problemSubmissionLimit,
+    problemSubmissionPage,
     refreshHealth,
+    refreshModuleInfo,
     selectedIdentity,
+    selectedOjName,
     studentDetailsRequested,
     submissionLimit,
     submissionPage,
@@ -487,52 +744,86 @@ export function usePlatformDashboard() {
     setStatus('signed-out');
     setUsers([]);
     setRecords([]);
-    setAutoCollectAcceptedSummaries([]);
+    setMultiUserAcceptedSummaries([]);
     setSubmissions(null);
     setFirstAccepted(null);
+    setProblemKey('');
+    setProblemSubmissions(null);
+    setProblemFirstAccepted(null);
     setStudentDetailsRequested(false);
+    setProblemDetailsRequested(false);
+    setSelectedOjName(OJ_NAMES.CODEFORCES);
     setTrainingQuery(recentWeekTrainingQuery());
     setCollectionJob(null);
     setCollectionJobSummary(null);
     setCollectionJobs([]);
     setSubmissionPage(defaultSubmissionPage.page);
     setSubmissionLimit(defaultSubmissionPage.limit);
+    setProblemSubmissionPage(defaultSubmissionPage.page);
+    setProblemSubmissionLimit(defaultSubmissionPage.limit);
     addOperation('退出登录', '已清除本地 access token', 'completed');
   }, [addOperation]);
+
+  const changePassword = useCallback(async (request: ChangeCurrentPasswordRequest) => {
+    if (!token) {
+      throw new Error('需要先登录后才能修改密码。');
+    }
+    setErrorMessage(null);
+    try {
+      await changeCurrentPassword(token, request);
+      addOperation('修改当前账号密码', currentUser?.studentIdentity ?? '当前账号', 'completed');
+    } catch (error) {
+      const message = formatError(error);
+      addOperation('修改当前账号密码失败', message, 'failed');
+      setErrorMessage(message);
+      throw error;
+    }
+  }, [addOperation, currentUser?.studentIdentity, token]);
 
   const chooseIdentity = useCallback(
     async (identity: StudentIdentity) => {
       setSubmissionPage(defaultSubmissionPage.page);
       setSelectedIdentity(identity);
       clearStudentDetails();
-      addOperation('选择选手', identity, 'completed');
+      addOperation('选择队员', identity, 'completed');
     },
     [addOperation, clearStudentDetails],
   );
 
-  const refreshWarehouseBatch = useCallback(async (batchId: string) => {
-    if (!token) {
-      throw new Error('需要先登录 admin 账号才能刷新仓库。');
-    }
-    const result = await refreshCodeforcesWarehouse(token, batchId);
-    setLastRefresh(result);
-    addOperation(
-      'Codeforces 仓库刷新',
-      `${result.status}: ${result.tasks.length} 个 SQL task`,
-      result.status === 'SUCCESS' ? 'completed' : 'failed',
-    );
-    return result;
-  }, [addOperation, token]);
+  const chooseOjName = useCallback((ojName: OjName) => {
+    setSelectedOjName(ojName);
+    clearStudentDetails();
+    clearProblemDetails();
+    setSubmissionPage(defaultSubmissionPage.page);
+    setProblemSubmissionPage(defaultSubmissionPage.page);
+    setMultiUserAcceptedSummaries([]);
+    setRecords((current) => current.map((record) => {
+      const handle = handleFromRecord(record, ojName);
+      return {
+        ...record,
+        handle,
+        handleStatus: record.errorMessage ? 'error' : handle ? 'bound' : 'missing',
+        acceptedSummary: null,
+        summaryStatus: 'not-requested',
+      };
+    }));
+    addOperation('切换 OJ', ojLabel(ojName), 'completed');
+  }, [addOperation, clearProblemDetails, clearStudentDetails]);
 
   const applyTrainingQuery = useCallback(async (
     nextQuery: TrainingQueryRange,
     mode: TrainingQueryMode = 'multiple',
   ) => {
     const shouldLoadStudentDetails = mode === 'single';
+    const shouldLoadProblemDetails = mode === 'problem';
     setTrainingQuery(nextQuery);
     setSubmissionPage(defaultSubmissionPage.page);
+    setProblemSubmissionPage(defaultSubmissionPage.page);
     if (!shouldLoadStudentDetails) {
       clearStudentDetails();
+    }
+    if (!shouldLoadProblemDetails) {
+      clearProblemDetails();
     }
     addOperation(
       '训练数据查询范围更新',
@@ -543,9 +834,11 @@ export function usePlatformDashboard() {
       page: defaultSubmissionPage.page,
       limit: submissionLimit,
     }, {
+      loadMultiUserSummaries: mode === 'multiple',
+      loadProblemDetails: shouldLoadProblemDetails,
       loadStudentDetails: shouldLoadStudentDetails,
     });
-  }, [addOperation, clearStudentDetails, refreshDashboard, submissionLimit]);
+  }, [addOperation, clearProblemDetails, clearStudentDetails, refreshDashboard, submissionLimit]);
 
   const changeSubmissionPage = useCallback(async (nextPage: number, nextLimit: number) => {
     if (!selectedIdentity || !submissions) {
@@ -564,42 +857,55 @@ export function usePlatformDashboard() {
     }
   }, [loadStudentDetails, selectedIdentity, submissions, trainingQuery]);
 
+  const changeProblemSubmissionPage = useCallback(async (nextPage: number, nextLimit: number) => {
+    if (!problemKey.trim() || !problemSubmissions) {
+      return;
+    }
+    const normalizedPage = Math.max(1, nextPage);
+    setStatus('loading');
+    setProblemSubmissionPage(normalizedPage);
+    setProblemSubmissionLimit(nextLimit);
+    const detailsApplied = await loadProblemDetails(problemKey, trainingQuery, {
+      page: normalizedPage,
+      limit: nextLimit,
+    });
+    if (detailsApplied) {
+      setStatus('ready');
+    }
+  }, [loadProblemDetails, problemKey, problemSubmissions, trainingQuery]);
+
+  const changeProblemKey = useCallback((nextProblemKey: string) => {
+    setProblemKey(nextProblemKey);
+    clearProblemDetails();
+    setProblemSubmissionPage(defaultSubmissionPage.page);
+  }, [clearProblemDetails]);
+
   const collectSelectedIdentity = useCallback(async () => {
     if (!token || !selectedIdentity) {
       return;
     }
     try {
-      const result = await collectCodeforcesSubmissions(token, selectedIdentity, defaultLookbackHours);
-      let warehouseStatus = '';
+      const result = await collectCodeforcesSubmissions(token, selectedIdentity, defaultLookbackHours, selectedOjName);
       if (result.batchId) {
         setLastBatch({
           batchId: result.batchId,
-          tableName: result.tableName ?? 'ods_codeforces__submission',
+          tableName: result.tableName ?? defaultOdsTable(result.ojName),
           writtenRows: result.writtenRows,
           fetchedAt: result.fetchedAt ?? new Date().toISOString(),
         });
-        try {
-          const refreshResult = await refreshWarehouseBatch(result.batchId);
-          warehouseStatus = refreshResult.status === 'SUCCESS' ? '，已刷新仓库' : '，仓库刷新失败';
-        } catch (error) {
-          const message = formatError(error);
-          warehouseStatus = '，仓库刷新失败';
-          addOperation('仓库刷新失败', message, 'failed');
-          setErrorMessage(message);
-        }
       }
       addOperation(
-        'Codeforces 最近提交采集',
-        `${selectedIdentity}: ${result.status}, 写入 ${result.writtenRows} 行${warehouseStatus}`,
+        `${ojLabel(result.ojName)} 最近提交采集`,
+        `${selectedIdentity}: ${result.ojName} ${result.status}, 写入 ${result.writtenRows} 行`,
         operationStatusFromCollection(result.status),
       );
       await refreshDashboard();
     } catch (error) {
       const message = formatError(error);
-      addOperation('Codeforces 采集失败', message, 'failed');
+      addOperation(`${ojLabel(selectedOjName)} 采集失败`, message, 'failed');
       setErrorMessage(message);
     }
-  }, [addOperation, refreshDashboard, refreshWarehouseBatch, selectedIdentity, token]);
+  }, [addOperation, refreshDashboard, selectedIdentity, selectedOjName, token]);
 
   const batchImportStudents = useCallback(async (
     rows: BatchStudentImportRow[],
@@ -614,21 +920,22 @@ export function usePlatformDashboard() {
     setStatus('loading');
     setErrorMessage(null);
     try {
-      const userResults = await batchCreateUsers(
-        token,
-        rows.map(({ studentIdentity, role, password }) => ({ studentIdentity, role, password })),
-      );
-      const handleRows = rows.filter((row) => row.handle);
+      const userCommands = rows.map(({ studentIdentity, role, password }) => ({ studentIdentity, role, password }));
+      const userResults = await batchCreateUsers(token, userCommands);
+      const handleRows = rows
+        .map((row) => ({ row, handles: handlesFromImportRow(row) }))
+        .filter(({ handles }) => hasAnyHandle(handles));
       const handleResults: CodeforcesHandleOperationResult[] = [];
 
-      for (const row of handleRows) {
+      for (const { row, handles } of handleRows) {
         try {
-          const result = await createCodeforcesHandle(token, row.studentIdentity, row.handle ?? '');
+          const result = await saveOjHandleAccount(token, row.studentIdentity, handles);
           handleResults.push({
             success: true,
             studentIdentity: result.studentIdentity,
-            handle: result.handle,
-            needCollect: result.needCollect ?? true,
+            handle: primaryHandleFrom(result.handles),
+            handles: result.handles,
+            needCollect: needCollectFrom(result),
             errorCode: null,
             message: 'handle created',
           });
@@ -636,7 +943,8 @@ export function usePlatformDashboard() {
           handleResults.push({
             success: false,
             studentIdentity: row.studentIdentity,
-            handle: row.handle ?? null,
+            handle: primaryHandleFrom(handles),
+            handles,
             needCollect: null,
             errorCode: error instanceof ApiError ? error.code : null,
             message: formatError(error),
@@ -649,7 +957,7 @@ export function usePlatformDashboard() {
       const failedItems = (userResults.length - successfulUsers) + (handleResults.length - successfulHandles);
       addOperation(
         '批量录入学生信息',
-        `账号 ${successfulUsers}/${userResults.length}，CF 绑定 ${successfulHandles}/${handleResults.length}`,
+        `账号 ${successfulUsers}/${userResults.length}，OJ 绑定 ${successfulHandles}/${handleResults.length}`,
         failedItems === 0 ? 'completed' : successfulUsers + successfulHandles === 0 ? 'failed' : 'pending',
       );
       await refreshDashboard();
@@ -682,17 +990,57 @@ export function usePlatformDashboard() {
       });
       let handleResult: CodeforcesHandleOperationResult | null = null;
 
-      if (input.handle) {
+      const requestedHandles = normalizeHandles(input.handles ?? (
+        input.handle ? { [OJ_NAMES.CODEFORCES]: input.handle } : undefined
+      ));
+      const newStudentIdentity = input.newStudentIdentity?.trim() || input.studentIdentity;
+      const migratesHandleIdentity = newStudentIdentity !== input.studentIdentity;
+      if (migratesHandleIdentity) {
         try {
-          const result = await createCodeforcesHandle(token, input.studentIdentity, input.handle);
+          const result = await changeOjHandleIdentity(
+            token,
+            input.studentIdentity,
+            newStudentIdentity,
+            input.needCollect,
+            hasAnyHandle(requestedHandles) ? requestedHandles : undefined,
+          );
+          handleResult = {
+            success: true,
+            studentIdentity: result.studentIdentity,
+            handle: primaryHandleFrom(result.handles),
+            handles: result.handles,
+            needCollect: needCollectFrom(result),
+            errorCode: null,
+            message: 'handle identity changed',
+          };
+        } catch (error) {
+          handleResult = {
+            success: false,
+            studentIdentity: newStudentIdentity,
+            handle: primaryHandleFrom(requestedHandles),
+            handles: requestedHandles,
+            needCollect: input.needCollect ?? null,
+            errorCode: error instanceof ApiError ? error.code : null,
+            message: formatError(error),
+          };
+        }
+      } else if (hasAnyHandle(requestedHandles)) {
+        try {
+          const result = await saveOjHandleAccount(
+            token,
+            input.studentIdentity,
+            requestedHandles,
+            input.needCollect,
+          );
           const effectiveAccount = input.needCollect === undefined || result.needCollect === input.needCollect
             ? result
-            : await updateCodeforcesHandleAccount(token, input.studentIdentity, input.needCollect);
+            : await updateOjHandleAccount(token, input.studentIdentity, input.needCollect);
           handleResult = {
             success: true,
             studentIdentity: effectiveAccount.studentIdentity,
-            handle: effectiveAccount.handle,
-            needCollect: effectiveAccount.needCollect,
+            handle: primaryHandleFrom(effectiveAccount.handles),
+            handles: effectiveAccount.handles,
+            needCollect: needCollectFrom(effectiveAccount),
             errorCode: null,
             message: input.needCollect === false ? 'handle created, collection disabled' : 'handle created',
           };
@@ -700,7 +1048,8 @@ export function usePlatformDashboard() {
           handleResult = {
             success: false,
             studentIdentity: input.studentIdentity,
-            handle: input.handle,
+            handle: primaryHandleFrom(requestedHandles),
+            handles: requestedHandles,
             needCollect: input.needCollect ?? null,
             errorCode: error instanceof ApiError ? error.code : null,
             message: formatError(error),
@@ -708,12 +1057,13 @@ export function usePlatformDashboard() {
         }
       } else if (input.needCollect !== undefined) {
         try {
-          const result = await updateCodeforcesHandleAccount(token, input.studentIdentity, input.needCollect);
+          const result = await updateOjHandleAccount(token, input.studentIdentity, input.needCollect);
           handleResult = {
             success: true,
             studentIdentity: result.studentIdentity,
-            handle: result.handle,
-            needCollect: result.needCollect,
+            handle: primaryHandleFrom(result.handles),
+            handles: result.handles,
+            needCollect: needCollectFrom(result),
             errorCode: null,
             message: 'collection flag updated',
           };
@@ -722,6 +1072,7 @@ export function usePlatformDashboard() {
             success: false,
             studentIdentity: input.studentIdentity,
             handle: null,
+            handles: {},
             needCollect: input.needCollect,
             errorCode: error instanceof ApiError ? error.code : null,
             message: formatError(error),
@@ -732,7 +1083,7 @@ export function usePlatformDashboard() {
       addOperation(
         '修改用户信息',
         `${input.studentIdentity}: ${userResult.user?.role ?? input.role}${
-          handleResult ? `, CF ${handleResult.success ? '绑定成功' : '绑定失败'}` : ''
+          handleResult ? `, OJ ${handleResult.success ? '绑定成功' : '绑定失败'}` : ''
         }`,
         userResult.success && (!handleResult || handleResult.success) ? 'completed' : 'pending',
       );
@@ -757,7 +1108,7 @@ export function usePlatformDashboard() {
     if (latestBatchItem?.batchId) {
       setLastBatch({
         batchId: latestBatchItem.batchId,
-        tableName: latestBatchItem.tableName ?? 'ods_codeforces__submission',
+        tableName: latestBatchItem.tableName ?? defaultOdsTable(latestBatchItem.ojName),
         writtenRows: latestBatchItem.writtenRows,
         fetchedAt: latestBatchItem.fetchedAt ?? new Date().toISOString(),
       });
@@ -779,13 +1130,22 @@ export function usePlatformDashboard() {
     const promise = (async () => {
       try {
         while (true) {
-          const job = await getCodeforcesSubmissionCollectionJob(token, jobId);
+          const jobs = await listCodeforcesSubmissionCollectionJobs(token);
+          setCollectionJobs(jobs);
+          const job = jobs.find((item) => item.jobId === jobId);
+          if (!job) {
+            window.localStorage.removeItem(COLLECTION_JOB_STORAGE_KEY);
+            setCollectionJob(null);
+            setCollectionJobSummary(null);
+            addOperation('OJ 采集任务状态失效', '后端没有找到上次保存的采集任务', 'pending');
+            throw new Error(`Codeforces collection job not found: ${jobId}`);
+          }
           const summary = applyCollectionJobSnapshot(job);
           if (job.status !== 'RUNNING') {
             window.localStorage.removeItem(COLLECTION_JOB_STORAGE_KEY);
             setCollectionJob(null);
             addOperation(
-              'Codeforces 批量采集完成',
+              `${ojLabel(job.ojName)} 批量采集完成`,
               `采集 ${job.collectedCount}/${job.requestedCount}，刷新 ${job.refreshedCount}，写入 ${job.writtenRows} 行`,
               operationStatusFromCollection(job.status),
             );
@@ -797,14 +1157,9 @@ export function usePlatformDashboard() {
           await sleep(COLLECTION_JOB_POLL_INTERVAL_MS);
         }
       } catch (error) {
-        if (options.resumed && error instanceof ApiError && error.status === 404) {
-          window.localStorage.removeItem(COLLECTION_JOB_STORAGE_KEY);
-          setCollectionJob(null);
-          setCollectionJobSummary(null);
-          addOperation('Codeforces 采集任务状态失效', '后端没有找到上次保存的采集任务', 'pending');
-        } else {
+        if (!(options.resumed && error instanceof Error && error.message.includes('collection job not found'))) {
           const message = formatError(error);
-          addOperation('Codeforces 采集任务查询失败', message, 'failed');
+          addOperation('OJ 采集任务查询失败', message, 'failed');
           setErrorMessage(message);
         }
         throw error;
@@ -827,7 +1182,7 @@ export function usePlatformDashboard() {
     }
     const identities = Array.from(new Set(options.studentIdentities.map((item) => item.trim()).filter(Boolean)));
     if (identities.length === 0) {
-      throw new Error('没有可采集的 Codeforces 绑定选手。');
+      throw new Error('没有开启自动采集的 OJ handle 绑定队员。');
     }
 
     const lookbackHours = Math.max(1, Math.floor(options.lookbackHours));
@@ -838,12 +1193,13 @@ export function usePlatformDashboard() {
       studentIdentities: identities,
       lookbackHours,
       refreshWarehouse: options.refreshWarehouse,
+      ojName: options.ojName ?? null,
     });
     window.localStorage.setItem(COLLECTION_JOB_STORAGE_KEY, job.jobId);
     const summary = applyCollectionJobSnapshot(job);
     addOperation(
-      'Codeforces 批量采集已启动',
-      `任务 ${job.jobId}，选手 ${job.requestedCount} 个，窗口 ${lookbackHours} 小时`,
+      `${ojLabel(job.ojName)} 批量采集已启动`,
+      `任务 ${job.jobId}，OJ ${ojLabel(job.ojName)}，队员 ${job.requestedCount} 个，窗口 ${lookbackHours} 小时`,
       'syncing',
     );
     if (job.status !== 'RUNNING') {
@@ -871,7 +1227,13 @@ export function usePlatformDashboard() {
     setStatus('loading');
     setErrorMessage(null);
     try {
-      const trainingDataResult = await purgeCodeforcesStudentData(token, normalizedIdentity);
+      const handleAccountsByIdentity = await listOjHandleAccounts();
+      const handles = normalizeHandles(handleAccountsByIdentity[normalizedIdentity]?.handles);
+      const purgeResults: OjStudentDataPurgeResult[] = [];
+      for (const ojName of Object.keys(handles) as OjName[]) {
+        purgeResults.push(await purgeOjStudentData(token, normalizedIdentity, ojName));
+      }
+      const trainingDataResult = aggregatePurgeResults(normalizedIdentity, handles, purgeResults);
       const authUserResult = await deleteAdminUser(token, normalizedIdentity);
       if (!authUserResult.success) {
         throw new Error(authUserResult.message ?? 'auth 账号删除失败。');
@@ -893,53 +1255,6 @@ export function usePlatformDashboard() {
       throw error;
     }
   }, [addOperation, currentUser?.studentIdentity, refreshDashboard, token]);
-
-  const importOdsFile = useCallback(
-    async (file: File) => {
-      if (!token) {
-        setErrorMessage('需要先登录 admin 账号才能导入 ODS。');
-        return;
-      }
-      try {
-        const text = await file.text();
-        const payload = JSON.parse(text) as unknown;
-        const result = await upsertCodeforcesSubmissions(token, payload);
-        setLastBatch(result);
-        addOperation(
-          'ODS Codeforces 批量 upsert',
-          `写入 ${result.writtenRows} 行，batchId=${result.batchId}`,
-          'completed',
-        );
-        try {
-          await refreshWarehouseBatch(result.batchId);
-        } catch (error) {
-          const message = formatError(error);
-          addOperation('ODS 导入后仓库刷新失败', message, 'failed');
-          setErrorMessage(message);
-        }
-        await refreshDashboard();
-      } catch (error) {
-        const message = formatError(error);
-        addOperation('ODS 导入失败', message, 'failed');
-        setErrorMessage(message);
-      }
-    },
-    [addOperation, refreshDashboard, refreshWarehouseBatch, token],
-  );
-
-  const refreshWarehouse = useCallback(async () => {
-    if (!token || !lastBatch) {
-      return;
-    }
-    try {
-      await refreshWarehouseBatch(lastBatch.batchId);
-      await refreshDashboard();
-    } catch (error) {
-      const message = formatError(error);
-      addOperation('仓库刷新失败', message, 'failed');
-      setErrorMessage(message);
-    }
-  }, [addOperation, lastBatch, refreshDashboard, refreshWarehouseBatch, token]);
 
   const refreshDashboardRef = useRef(refreshDashboard);
 
@@ -1008,8 +1323,8 @@ export function usePlatformDashboard() {
   }, [applyCollectionJobSnapshot, currentUser?.role, token]);
 
   const boundRecords = useMemo(
-    () => records.filter((record) => record.handleStatus === 'bound'),
-    [records],
+    () => records.filter((record) => Boolean(handleFromRecord(record, selectedOjName))),
+    [records, selectedOjName],
   );
 
   return {
@@ -1017,18 +1332,24 @@ export function usePlatformDashboard() {
     currentUser,
     status,
     health,
+    moduleInfo,
     trainingQuery,
+    selectedOjName,
     submissionPage,
     submissionLimit,
+    problemKey,
+    problemSubmissionPage,
+    problemSubmissionLimit,
     users,
     records,
-    autoCollectAcceptedSummaries,
+    multiUserAcceptedSummaries,
     boundRecords,
     selectedIdentity,
     submissions,
     firstAccepted,
+    problemSubmissions,
+    problemFirstAccepted,
     lastBatch,
-    lastRefresh,
     collectionJob,
     collectionJobSummary,
     collectionJobs,
@@ -1036,17 +1357,19 @@ export function usePlatformDashboard() {
     errorMessage,
     signIn,
     signOut,
+    changePassword,
     refreshDashboard,
     applyTrainingQuery,
     changeSubmissionPage,
+    changeProblemSubmissionPage,
+    changeProblemKey,
     chooseIdentity,
+    chooseOjName,
     batchCollectSubmissions,
     batchImportStudents,
     deleteFullUserData,
     updateStudentInfo,
     collectSelectedIdentity,
-    importOdsFile,
-    refreshWarehouse,
   };
 }
 

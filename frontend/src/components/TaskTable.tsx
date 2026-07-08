@@ -37,8 +37,8 @@ export function TaskTable({
           <span />
           <span />
         </div>
-        <strong>正在调用本地后端接口</strong>
-        <p>auth-web 用户列表、training-data handle 和 Codeforces 仓库查询正在刷新。</p>
+        <strong>正在刷新数据</strong>
+        <p>用户、OJ handle 和训练数据正在更新。</p>
       </div>
     );
   }
@@ -131,7 +131,7 @@ export function TaskTable({
       </table>
       <footer className="table-footer">
         <span>
-          当前 {tasks.length} / 共 {totalTasks} 条真实接口数据
+          当前 {tasks.length} / 共 {totalTasks} 条数据
         </span>
         <small>筛选和排序由上方控件即时完成。</small>
       </footer>

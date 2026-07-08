@@ -19,7 +19,7 @@ describe('TaskTable', () => {
       />,
     );
 
-    expect(screen.getByText('正在调用本地后端接口')).not.toBeNull();
+    expect(screen.getByText('正在刷新数据')).not.toBeNull();
   });
 
   it('shows a useful empty state when filters match nothing', () => {

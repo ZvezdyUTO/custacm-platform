@@ -1,16 +1,15 @@
-import { AlertTriangle, ChevronDown, Database, RefreshCw, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, Database, RefreshCw } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { OJ_LABELS, OJ_NAMES, UNLIMITED_LOOKBACK_HOURS } from '../types';
 import type {
   BatchCollectOptions,
   BatchCollectSummary,
   CodeforcesSubmissionCollectionJobResponse,
-  CodeforcesOdsBatchUpsertResponse,
-  FullUserDataDeleteSummary,
+  OjName,
   StudentIdentity,
   StudentTrainingRecord,
 } from '../types';
-import { UNLIMITED_LOOKBACK_HOURS } from '../types';
 
 interface TrainingDataCollectionPanelProps {
   collectableRecords: StudentTrainingRecord[];
@@ -19,17 +18,6 @@ interface TrainingDataCollectionPanelProps {
   collectionJobSummary: BatchCollectSummary | null;
   isRefreshing: boolean;
   onBatchCollect: (options: BatchCollectOptions) => Promise<BatchCollectSummary>;
-}
-
-interface TrainingDataMaintenancePanelProps {
-  canRefreshWarehouse: boolean;
-  currentUserIdentity: StudentIdentity | null;
-  isRefreshing: boolean;
-  lastBatch: CodeforcesOdsBatchUpsertResponse | null;
-  onDeleteFullUserData: (studentIdentity: StudentIdentity) => Promise<FullUserDataDeleteSummary>;
-  onImportOds: () => void;
-  onRefreshWarehouse: () => void;
-  userStudentOptions: StudentIdentity[];
 }
 
 interface CollectionJobsCardProps {
@@ -41,6 +29,7 @@ type CollectionRefreshStatus = BatchCollectSummary['results'][number]['refreshSt
 
 interface CollectionResultTableRow {
   studentIdentity: StudentIdentity;
+  ojName: BatchCollectSummary['results'][number]['ojName'];
   status: CollectionResultStatus;
   handle: string | null;
   batchId: string | null;
@@ -60,6 +49,7 @@ export function TrainingDataCollectionPanel({
   isRefreshing,
   onBatchCollect,
 }: TrainingDataCollectionPanelProps) {
+  const [collectionOjName, setCollectionOjName] = useState<OjName>(OJ_NAMES.CODEFORCES);
   const [collectAllLookbackHours, setCollectAllLookbackHours] = useState('1440');
   const [lookbackHoursByIdentity, setLookbackHoursByIdentity] = useState<Record<StudentIdentity, string>>({});
   const [refreshWarehouseByIdentity, setRefreshWarehouseByIdentity] = useState<Record<StudentIdentity, boolean>>({});
@@ -67,8 +57,8 @@ export function TrainingDataCollectionPanel({
   const [collectSummary, setCollectSummary] = useState<BatchCollectSummary | null>(null);
 
   const collectionRecords = useMemo(
-    () => collectableRecords.filter((record) => record.handleStatus === 'bound' && record.needCollect !== false),
-    [collectableRecords],
+    () => collectableRecords.filter((record) => handleForOj(record, collectionOjName) && record.needCollect !== false),
+    [collectableRecords, collectionOjName],
   );
   const collectionIdentities = useMemo(
     () => collectionRecords.map((record) => record.studentIdentity),
@@ -77,6 +67,7 @@ export function TrainingDataCollectionPanel({
   const isCollectionRunning = collectionJob?.status === 'RUNNING';
   const effectiveCollectSummary = collectSummary ?? collectionJobSummary;
   const canCollectAll = collectionIdentities.length > 0 && !isRefreshing && !isCollectionRunning;
+  const selectedOjLabel = OJ_LABELS[collectionOjName];
   const normalizedCollectAllLookbackHours = parseLookbackHours(collectAllLookbackHours);
   const effectiveCollectAllLookbackHours = normalizedCollectAllLookbackHours ?? UNLIMITED_LOOKBACK_HOURS;
   const collectAllLookbackConfirmationLabel = normalizedCollectAllLookbackHours === null
@@ -130,11 +121,10 @@ export function TrainingDataCollectionPanel({
       ? '不限时间范围'
       : `最近 ${normalizedLookbackHours} 小时`;
     const refreshWarehouse = getRefreshWarehouse(identity);
-
     setCollectError(null);
     setCollectSummary(null);
     if (!confirmHighCostAction(
-      `确认采集 ${identity}${lookbackConfirmationLabel}的 Codeforces 提交？${
+      `确认采集 ${identity}${lookbackConfirmationLabel}的 ${selectedOjLabel} 提交？${
         refreshWarehouse ? '采集成功后会刷新仓库。' : ''
       }`,
     )) {
@@ -145,6 +135,7 @@ export function TrainingDataCollectionPanel({
         studentIdentities: [identity],
         lookbackHours: effectiveLookbackHours,
         refreshWarehouse,
+        ojName: collectionOjName,
       });
       setCollectSummary(summary);
     } catch (error) {
@@ -156,11 +147,11 @@ export function TrainingDataCollectionPanel({
     setCollectError(null);
     setCollectSummary(null);
     if (collectionIdentities.length === 0) {
-      setCollectError('暂无可采集的绑定选手。');
+      setCollectError('暂无可采集的绑定队员。');
       return;
     }
     if (!confirmHighCostAction(
-      `确认采集全部 ${collectionIdentities.length} 个选手${collectAllLookbackConfirmationLabel}的 Codeforces 提交？采集成功后会刷新仓库。`,
+      `确认采集全部 ${collectionIdentities.length} 个队员${collectAllLookbackConfirmationLabel}的 ${selectedOjLabel} 提交？采集成功后会刷新仓库。`,
     )) {
       return;
     }
@@ -169,6 +160,7 @@ export function TrainingDataCollectionPanel({
         studentIdentities: collectionIdentities,
         lookbackHours: effectiveCollectAllLookbackHours,
         refreshWarehouse: true,
+        ojName: collectionOjName,
       });
       setCollectSummary(summary);
     } catch (error) {
@@ -186,10 +178,26 @@ export function TrainingDataCollectionPanel({
             </span>
             <div>
               <h2>训练数据采集</h2>
-              <p>仅列出已开启自动采集的 Codeforces 绑定选手，每行可单独设置回看窗口并执行采集。</p>
+              <p>按 OJ 列出已开启自动采集且已绑定 handle 的队员，每行可单独设置回看窗口并执行采集。</p>
             </div>
           </div>
           <div className="admin-card-header-actions">
+            <label className="query-field collect-oj-field">
+              OJ
+              <select
+                aria-label="采集 OJ"
+                disabled={isRefreshing || isCollectionRunning}
+                value={collectionOjName}
+                onChange={(event) => {
+                  setCollectionOjName(event.target.value as OjName);
+                  setCollectSummary(null);
+                  setCollectError(null);
+                }}
+              >
+                <option value={OJ_NAMES.CODEFORCES}>{OJ_LABELS[OJ_NAMES.CODEFORCES]}</option>
+                <option value={OJ_NAMES.ATCODER}>{OJ_LABELS[OJ_NAMES.ATCODER]}</option>
+              </select>
+            </label>
             <label className="query-field collect-all-lookback-field">
               统一回看小时数
               <input
@@ -220,12 +228,13 @@ export function TrainingDataCollectionPanel({
                 ? '不限'
                 : `最近 ${normalizedLookbackHours} 小时`;
               const canCollect = !isRefreshing && !isCollectionRunning;
+              const selectedHandle = handleForOj(record, collectionOjName);
               return (
                 <li key={identity}>
                   <form className="collect-student-row" onSubmit={(event) => handleCollectOne(event, record)}>
                     <div className="collect-student-main">
                       <strong>{identity}</strong>
-                      <small>{record.handle ? `Codeforces：${record.handle}` : 'Codeforces handle 未解析'}</small>
+                      <small>{selectedHandle ? `${selectedOjLabel}：${selectedHandle}` : `${selectedOjLabel} handle 未解析`}</small>
                     </div>
                     <label className="query-field collect-lookback-field" htmlFor={inputId}>
                       回看小时数
@@ -259,7 +268,7 @@ export function TrainingDataCollectionPanel({
             })}
           </ul>
         ) : (
-          <p className="batch-target-empty" aria-live="polite">暂无开启自动采集的绑定选手</p>
+          <p className="batch-target-empty" aria-live="polite">暂无开启自动采集且绑定 {selectedOjLabel} 的队员</p>
         )}
         {collectError ? (
           <p className="form-error" role="alert">
@@ -290,171 +299,8 @@ export function TrainingDataCollectionPanel({
   );
 }
 
-export function TrainingDataMaintenancePanel({
-  canRefreshWarehouse,
-  currentUserIdentity,
-  isRefreshing,
-  lastBatch,
-  onDeleteFullUserData,
-  onImportOds,
-  onRefreshWarehouse,
-  userStudentOptions,
-}: TrainingDataMaintenancePanelProps) {
-  const [deleteIdentity, setDeleteIdentity] = useState('');
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deleteSummary, setDeleteSummary] = useState<FullUserDataDeleteSummary | null>(null);
-
-  const deletableUserOptions = useMemo(
-    () => userStudentOptions.filter((identity) => identity !== currentUserIdentity),
-    [currentUserIdentity, userStudentOptions],
-  );
-  const hasDeletableUser = deletableUserOptions.length > 0;
-  const deleteTargetIdentity = deleteIdentity && deletableUserOptions.includes(deleteIdentity)
-    ? deleteIdentity
-    : deletableUserOptions[0] ?? '';
-  const canDelete = Boolean(deleteTargetIdentity)
-    && deleteTargetIdentity !== currentUserIdentity
-    && !isRefreshing;
-
-  async function handleDeleteSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setDeleteError(null);
-    setDeleteSummary(null);
-    if (!deleteTargetIdentity) {
-      setDeleteError('请先选择一个用户。');
-      return;
-    }
-    if (deleteTargetIdentity === currentUserIdentity) {
-      setDeleteError('不能删除当前登录用户。');
-      return;
-    }
-    if (!confirmHighCostAction(
-      `确认彻底删除 ${deleteTargetIdentity} 的 Codeforces 训练数据、Codeforces 绑定和 auth 账号？此操作不可恢复。`,
-    )) {
-      return;
-    }
-    try {
-      const summary = await onDeleteFullUserData(deleteTargetIdentity);
-      setDeleteSummary(summary);
-    } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : '彻底删除用户数据失败。');
-    }
-  }
-
-  return (
-    <section className="training-data-maintenance-panel" aria-label="数据维护">
-      <section className="admin-management-card data-warehouse-card">
-        <header>
-          <span className="admin-action-icon">
-            <Upload size={18} aria-hidden="true" />
-          </span>
-          <div>
-            <h2>ODS 导入和仓库刷新</h2>
-            <p>上传 Codeforces 原始 submissions JSON，写入 ODS 后刷新 DWD、DWM、DWS 查询层。</p>
-          </div>
-        </header>
-        <div className="warehouse-action-grid">
-          <button className="primary-button" disabled={isRefreshing} onClick={onImportOds} type="button">
-            <Upload size={16} aria-hidden="true" />
-            上传 ODS JSON
-          </button>
-          <button
-            className="secondary-button"
-            disabled={!canRefreshWarehouse || isRefreshing}
-            onClick={onRefreshWarehouse}
-            type="button"
-          >
-            <RefreshCw size={16} aria-hidden="true" className={isRefreshing ? 'spin' : ''} />
-            刷新最近批次
-          </button>
-        </div>
-        <dl className="warehouse-batch-summary">
-          <div>
-            <dt>最近批次</dt>
-            <dd>{lastBatch?.batchId ?? '暂无'}</dd>
-          </div>
-          <div>
-            <dt>ODS 表</dt>
-            <dd>{lastBatch?.tableName ?? '暂无'}</dd>
-          </div>
-          <div>
-            <dt>写入行数</dt>
-            <dd>{lastBatch?.writtenRows ?? 0}</dd>
-          </div>
-          <div>
-            <dt>批次时间</dt>
-            <dd>{lastBatch ? formatTime(lastBatch.fetchedAt) : '暂无'}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <form className="admin-management-card danger-zone-card" onSubmit={handleDeleteSubmit}>
-        <header>
-          <span className="admin-action-icon danger">
-            <Trash2 size={18} aria-hidden="true" />
-          </span>
-          <div>
-            <h2>彻底删除用户数据</h2>
-            <p>删除当前 Codeforces 训练数据、Codeforces 绑定和 auth 登录账号。</p>
-          </div>
-        </header>
-        <div className="danger-action-grid">
-          <label className="user-edit-field">
-            选择用户
-            <select
-              aria-label="选择删除用户"
-              disabled={!hasDeletableUser || isRefreshing}
-              value={deleteTargetIdentity}
-              onChange={(event) => {
-                setDeleteIdentity(event.target.value);
-                setDeleteError(null);
-                setDeleteSummary(null);
-              }}
-            >
-              {!hasDeletableUser ? <option value="">暂无可删除用户</option> : null}
-              {userStudentOptions.map((identity) => (
-                <option disabled={identity === currentUserIdentity} key={identity} value={identity}>
-                  {identity}
-                  {identity === currentUserIdentity ? '（当前登录）' : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="danger-copy">
-            <AlertTriangle size={16} aria-hidden="true" />
-            <span>操作不可恢复；如果训练数据清理失败，不会继续删除 auth 账号。</span>
-          </div>
-        </div>
-        <div className="admin-card-actions">
-          <button className="danger-button" disabled={!canDelete} type="submit">
-            <Trash2 size={16} aria-hidden="true" />
-            删除用户所有数据
-          </button>
-          <span>{deleteTargetIdentity ? `目标：${deleteTargetIdentity}` : '暂无可删除用户'}</span>
-        </div>
-        {deleteError ? (
-          <p className="form-error" role="alert">
-            {deleteError}
-          </p>
-        ) : null}
-        {deleteSummary ? (
-          <output className="admin-result compact" aria-live="polite">
-            <strong>
-              已删除 {deleteSummary.authUserResult.studentIdentity}，训练数据{' '}
-              {deleteSummary.trainingDataResult.totalDeletedRows} 行
-            </strong>
-            <span>
-              Codeforces handle：{deleteSummary.trainingDataResult.handle ?? '无绑定'}，ODS{' '}
-              {deleteSummary.trainingDataResult.odsSubmissionRows}，DWD{' '}
-              {deleteSummary.trainingDataResult.dwdSubmissionRows}，DWM{' '}
-              {deleteSummary.trainingDataResult.dwmFirstAcceptedRows}，DWS{' '}
-              {deleteSummary.trainingDataResult.dwsAcceptedSummaryRows}
-            </span>
-          </output>
-        ) : null}
-      </form>
-    </section>
-  );
+function handleForOj(record: StudentTrainingRecord, ojName: OjName) {
+  return record.handles[ojName] ?? null;
 }
 
 function CollectionJobsCard({ collectionJobs }: CollectionJobsCardProps) {
@@ -480,7 +326,7 @@ function CollectionJobsCard({ collectionJobs }: CollectionJobsCardProps) {
         </span>
         <div>
           <h2>当前采集任务</h2>
-          <p>展示后端保留的 Codeforces 采集任务，运行中任务会持续刷新状态。</p>
+          <p>展示后端保留的 OJ 采集任务，运行中任务会持续刷新状态。</p>
         </div>
       </header>
       {collectionJobs.length > 0 ? (
@@ -532,6 +378,7 @@ function CollectionJobsCard({ collectionJobs }: CollectionJobsCardProps) {
                       <CollectionResultTable
                         rows={job.items.map((item) => ({
                           studentIdentity: item.studentIdentity,
+                          ojName: item.ojName,
                           status: collectStatusFromJobItem(item),
                           handle: item.handle,
                           batchId: item.batchId,
@@ -565,7 +412,7 @@ function CollectionResultTable({ rows }: { rows: CollectionResultTableRow[] }) {
       <table className="collection-result-table" aria-label="数据采集结果">
         <thead>
           <tr>
-            <th scope="col">选手 / handle</th>
+            <th scope="col">队员 / handle</th>
             <th scope="col">状态</th>
             <th scope="col">写入</th>
             <th scope="col">匹配</th>
@@ -575,10 +422,12 @@ function CollectionResultTable({ rows }: { rows: CollectionResultTableRow[] }) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.studentIdentity}>
-              <td data-label="选手 / handle">
+            <tr key={`${row.studentIdentity}-${row.ojName ?? 'ALL'}`}>
+              <td data-label="队员 / handle">
                 <strong>{row.studentIdentity}</strong>
-                <small>{row.handle ?? row.message ?? collectStatusDescription(row.status)}</small>
+                <small>
+                  {row.ojName ?? '全部 OJ'}：{row.handle ?? row.message ?? collectStatusDescription(row.status)}
+                </small>
               </td>
               <td data-label="状态">
                 <strong className={`result-status result-status-${statusClassName(row.status)}`}>
@@ -691,8 +540,6 @@ function refreshStatusLabel(status: BatchCollectSummary['results'][number]['refr
       return '仓库已刷新';
     case 'FAILED':
       return '仓库刷新失败';
-    case 'SKIPPED':
-      return '仓库刷新跳过';
     case 'NO_BATCH':
       return '无可刷新批次';
     case 'NOT_REQUESTED':

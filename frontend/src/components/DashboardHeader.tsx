@@ -15,7 +15,7 @@ export function DashboardHeader({ isRefreshing, metrics, onRefresh, updatedAt }:
       <div className="title-row">
         <div>
           <h1 id="page-title">custacm wiki</h1>
-          <p>训练数据管理面板用于集中管理账号权限、选手身份、数据采集与维护任务。</p>
+          <p>训练数据管理面板用于集中管理账号权限、队员身份、数据采集与维护任务。</p>
         </div>
         <div className="refresh-meta">
           <span>数据更新时间：{updatedAt}</span>

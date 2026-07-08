@@ -1,53 +1,38 @@
 package com.custacm.platform.trainingdata.codeforces.config;
 
 import com.custacm.platform.common.sqltask.SqlTaskRunner;
-import com.custacm.platform.trainingdata.codeforces.collector.config.CodeforcesCollectorProperties;
-import com.custacm.platform.trainingdata.codeforces.app.query.CodeforcesAcceptedSummaryQueryService;
-import com.custacm.platform.trainingdata.codeforces.app.query.CodeforcesFirstAcceptedProblemQueryService;
-import com.custacm.platform.trainingdata.codeforces.app.account.CodeforcesHandleAccountService;
-import com.custacm.platform.trainingdata.codeforces.app.ingest.CodeforcesOdsSubmissionIngestService;
-import com.custacm.platform.trainingdata.codeforces.app.collector.CodeforcesSubmissionCollectionService;
-import com.custacm.platform.trainingdata.codeforces.app.purge.CodeforcesStudentDataPurgeService;
-import com.custacm.platform.trainingdata.codeforces.app.query.CodeforcesSubmissionQueryService;
-import com.custacm.platform.trainingdata.codeforces.app.warehouse.CodeforcesWarehouseRefreshService;
-import com.custacm.platform.trainingdata.codeforces.domain.collector.CodeforcesSubmissionSourceClient;
-import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesAcceptedSummaryRepository;
-import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesFirstAcceptedProblemRepository;
-import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesHandleAccountRepository;
-import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesOdsSubmissionWriter;
-import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesStudentDataPurgeRepository;
-import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesSubmissionRepository;
-import com.custacm.platform.trainingdata.codeforces.domain.repo.CodeforcesWarehouseRefreshIntervalRepository;
-import com.custacm.platform.trainingdata.codeforces.domain.parser.CodeforcesSubmissionParser;
-import com.custacm.platform.trainingdata.codeforces.infra.collector.RestClientCodeforcesSubmissionSourceClient;
-import com.custacm.platform.trainingdata.codeforces.infra.parser.JacksonCodeforcesSubmissionParser;
-import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesAcceptedSummaryRepository;
-import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesFirstAcceptedProblemRepository;
-import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesHandleAccountRepository;
-import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesOdsSubmissionWriter;
-import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesStudentDataPurgeRepository;
-import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesSubmissionRepository;
-import com.custacm.platform.trainingdata.codeforces.infra.repo.JdbcCodeforcesWarehouseRefreshIntervalRepository;
-import com.custacm.platform.trainingdata.codeforces.app.collector.job.CodeforcesSubmissionCollectionJobService;
+import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountService;
+import com.custacm.platform.trainingdata.common.app.warehouse.OjWarehouseRefreshService;
+import com.custacm.platform.trainingdata.common.collector.job.OjWarehouseRefreshHandler;
+import com.custacm.platform.trainingdata.common.collector.job.SqlTaskOjWarehouseRefreshHandler;
+import com.custacm.platform.trainingdata.common.domain.oj.repo.OjWarehouseRefreshIntervalRepository;
+import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
+import com.custacm.platform.trainingdata.codeforces.app.CodeforcesOdsSubmissionIngestService;
+import com.custacm.platform.trainingdata.codeforces.app.CodeforcesSubmissionCollectionService;
+import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesSubmissionSourceClient;
+import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesOdsSubmissionWriter;
+import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesOdsDataPurgeRepository;
+import com.custacm.platform.trainingdata.codeforces.domain.SubmissionPayloadParser;
+import com.custacm.platform.trainingdata.codeforces.infra.RestClientCodeforcesSubmissionSourceClient;
+import com.custacm.platform.trainingdata.codeforces.infra.JacksonSubmissionPayloadParser;
+import com.custacm.platform.trainingdata.codeforces.infra.JdbcCodeforcesOdsDataPurgeRepository;
+import com.custacm.platform.trainingdata.codeforces.infra.JdbcCodeforcesOdsSubmissionWriter;
+import com.custacm.platform.trainingdata.codeforces.infra.JdbcCodeforcesWarehouseRefreshIntervalRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.client.RestClient;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Configuration
 @EnableConfigurationProperties(CodeforcesCollectorProperties.class)
 public class CodeforcesTrainingDataConfig {
     @Bean
-    CodeforcesSubmissionParser codeforcesSubmissionParser(ObjectMapper objectMapper) {
-        return new JacksonCodeforcesSubmissionParser(objectMapper);
+    SubmissionPayloadParser submissionPayloadParser(ObjectMapper objectMapper) {
+        return new JacksonSubmissionPayloadParser(objectMapper);
     }
 
     @Bean
@@ -56,46 +41,17 @@ public class CodeforcesTrainingDataConfig {
     }
 
     @Bean
-    CodeforcesAcceptedSummaryRepository codeforcesAcceptedSummaryRepository(
-            NamedParameterJdbcTemplate jdbcTemplate
-    ) {
-        return new JdbcCodeforcesAcceptedSummaryRepository(jdbcTemplate);
-    }
-
-    @Bean
-    CodeforcesSubmissionRepository codeforcesSubmissionRepository(
-            NamedParameterJdbcTemplate jdbcTemplate
-    ) {
-        return new JdbcCodeforcesSubmissionRepository(jdbcTemplate);
-    }
-
-    @Bean
-    CodeforcesFirstAcceptedProblemRepository codeforcesFirstAcceptedProblemRepository(
-            NamedParameterJdbcTemplate jdbcTemplate
-    ) {
-        return new JdbcCodeforcesFirstAcceptedProblemRepository(jdbcTemplate);
-    }
-
-    @Bean
-    CodeforcesHandleAccountRepository codeforcesHandleAccountRepository(
-            NamedParameterJdbcTemplate jdbcTemplate
-    ) {
-        return new JdbcCodeforcesHandleAccountRepository(jdbcTemplate);
-    }
-
-    @Bean
-    CodeforcesWarehouseRefreshIntervalRepository codeforcesWarehouseRefreshIntervalRepository(
+    OjWarehouseRefreshIntervalRepository codeforcesWarehouseRefreshIntervalRepository(
             NamedParameterJdbcTemplate jdbcTemplate
     ) {
         return new JdbcCodeforcesWarehouseRefreshIntervalRepository(jdbcTemplate);
     }
 
     @Bean
-    CodeforcesStudentDataPurgeRepository codeforcesStudentDataPurgeRepository(
-            NamedParameterJdbcTemplate jdbcTemplate,
-            PlatformTransactionManager transactionManager
+    CodeforcesOdsDataPurgeRepository codeforcesOdsDataPurgeRepository(
+            NamedParameterJdbcTemplate jdbcTemplate
     ) {
-        return new JdbcCodeforcesStudentDataPurgeRepository(jdbcTemplate, transactionManager);
+        return new JdbcCodeforcesOdsDataPurgeRepository(jdbcTemplate);
     }
 
     @Bean
@@ -116,17 +72,8 @@ public class CodeforcesTrainingDataConfig {
     }
 
     @Bean
-    SqlTaskRunner sqlTaskRunner(
-            NamedParameterJdbcTemplate jdbcTemplate,
-            PlatformTransactionManager transactionManager,
-            ResourceLoader resourceLoader
-    ) {
-        return new SqlTaskRunner(jdbcTemplate, transactionManager, resourceLoader);
-    }
-
-    @Bean
     CodeforcesOdsSubmissionIngestService codeforcesOdsSubmissionIngestService(
-            CodeforcesSubmissionParser parser,
+            SubmissionPayloadParser parser,
             CodeforcesOdsSubmissionWriter writer,
             ObjectMapper objectMapper
     ) {
@@ -135,7 +82,7 @@ public class CodeforcesTrainingDataConfig {
 
     @Bean
     CodeforcesSubmissionCollectionService codeforcesSubmissionCollectionService(
-            CodeforcesHandleAccountService handleAccountService,
+            OjHandleAccountService handleAccountService,
             CodeforcesSubmissionSourceClient sourceClient,
             CodeforcesOdsSubmissionIngestService ingestService,
             ObjectMapper objectMapper,
@@ -150,73 +97,25 @@ public class CodeforcesTrainingDataConfig {
         );
     }
 
-    @Bean(destroyMethod = "shutdown")
-    ExecutorService codeforcesSubmissionCollectionJobExecutor() {
-        return Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "codeforces-collection-job");
-            thread.setDaemon(false);
-            return thread;
-        });
-    }
-
     @Bean
-    CodeforcesSubmissionCollectionJobService codeforcesSubmissionCollectionJobService(
-            CodeforcesSubmissionCollectionService collectionService,
-            CodeforcesWarehouseRefreshService warehouseRefreshService,
-            ExecutorService codeforcesSubmissionCollectionJobExecutor,
-            CodeforcesCollectorProperties properties
+    OjWarehouseRefreshService codeforcesWarehouseRefreshService(
+            SqlTaskRunner sqlTaskRunner,
+            @Qualifier("codeforcesWarehouseRefreshIntervalRepository")
+            OjWarehouseRefreshIntervalRepository intervalRepository
     ) {
-        return new CodeforcesSubmissionCollectionJobService(
-                collectionService,
-                warehouseRefreshService,
-                codeforcesSubmissionCollectionJobExecutor,
-                properties.requestInterval()
+        return new OjWarehouseRefreshService(
+                sqlTaskRunner,
+                intervalRepository,
+                "classpath:sql/tasks/codeforces-warehouse-refresh.yml",
+                "batchId has no Codeforces submissions with creationTimeSeconds"
         );
     }
 
     @Bean
-    CodeforcesAcceptedSummaryQueryService codeforcesAcceptedSummaryQueryService(
-            CodeforcesAcceptedSummaryRepository repository,
-            CodeforcesHandleAccountService handleAccountService
+    OjWarehouseRefreshHandler codeforcesWarehouseRefreshHandler(
+            @Qualifier("codeforcesWarehouseRefreshService")
+            OjWarehouseRefreshService warehouseRefreshService
     ) {
-        return new CodeforcesAcceptedSummaryQueryService(repository, handleAccountService);
-    }
-
-    @Bean
-    CodeforcesSubmissionQueryService codeforcesSubmissionQueryService(
-            CodeforcesSubmissionRepository repository,
-            CodeforcesHandleAccountService handleAccountService
-    ) {
-        return new CodeforcesSubmissionQueryService(repository, handleAccountService);
-    }
-
-    @Bean
-    CodeforcesFirstAcceptedProblemQueryService codeforcesFirstAcceptedProblemQueryService(
-            CodeforcesFirstAcceptedProblemRepository repository,
-            CodeforcesHandleAccountService handleAccountService
-    ) {
-        return new CodeforcesFirstAcceptedProblemQueryService(repository, handleAccountService);
-    }
-
-    @Bean
-    CodeforcesHandleAccountService codeforcesHandleAccountService(
-            CodeforcesHandleAccountRepository repository
-    ) {
-        return new CodeforcesHandleAccountService(repository);
-    }
-
-    @Bean
-    CodeforcesWarehouseRefreshService codeforcesWarehouseRefreshService(
-            SqlTaskRunner sqlTaskRunner,
-            CodeforcesWarehouseRefreshIntervalRepository intervalRepository
-    ) {
-        return new CodeforcesWarehouseRefreshService(sqlTaskRunner, intervalRepository);
-    }
-
-    @Bean
-    CodeforcesStudentDataPurgeService codeforcesStudentDataPurgeService(
-            CodeforcesStudentDataPurgeRepository repository
-    ) {
-        return new CodeforcesStudentDataPurgeService(repository);
+        return new SqlTaskOjWarehouseRefreshHandler(OjNames.CODEFORCES, warehouseRefreshService);
     }
 }

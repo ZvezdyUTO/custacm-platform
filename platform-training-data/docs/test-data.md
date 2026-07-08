@@ -19,7 +19,7 @@ platform-training-data/training-data-codeforces/src/main/resources/fixtures/code
 Shape:
 
 - JSON array of raw Codeforces `Submission` objects.
-- Ready to use as the request body for `POST /api/training-data/admin/ods/codeforces/submissions:batch-upsert`.
+- Used by parser, repository, and warehouse SQL tests as local Codeforces source data.
 - Captured once from the public Codeforces `user.status` API on `2026-07-03`.
 - 1000 unique submissions.
 - Requested handles: `tourist`, `Benq`, `ecnerwala`, `Um_nik`, `jiangly`.
@@ -41,14 +41,7 @@ https://codeforces.com/api/user.status?handle=jiangly&from=1&count=100
 https://codeforces.com/api/user.status?handle=jiangly&from=1001&count=100
 ```
 
-Local API replay:
-
-```bash
-curl -X POST "http://localhost:8082/api/training-data/admin/ods/codeforces/submissions:batch-upsert" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-  -H "Content-Type: application/json" \
-  --data-binary @platform-training-data/training-data-codeforces/src/main/resources/fixtures/codeforces/submissions_multi_user_1000.json
-```
+Local replay should go through the module's tests or seed scripts instead of a manual ODS import HTTP endpoint.
 
 Rules:
 

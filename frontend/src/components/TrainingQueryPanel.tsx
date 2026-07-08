@@ -1,9 +1,15 @@
-import { ChevronLeft, ChevronRight, RefreshCw, RotateCcw, Search } from 'lucide-react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { OJ_LABELS, OJ_NAMES } from '../types';
 import type {
   CodeforcesAcceptedSummary,
+  CodeforcesFirstAcceptedProblem,
   CodeforcesFirstAcceptedReport,
+  CodeforcesProblemFirstAcceptedReport,
+  CodeforcesProblemSubmissionReport,
+  CodeforcesSubmissionItem,
   CodeforcesStudentSubmissionReport,
+  OjName,
   StudentIdentity,
   StudentTrainingRecord,
   TrainingQueryMode,
@@ -11,14 +17,23 @@ import type {
 } from '../types';
 
 interface TrainingQueryPanelProps {
-  autoCollectSummaries: CodeforcesAcceptedSummary[];
+  multiUserSummaries: CodeforcesAcceptedSummary[];
   firstAccepted: CodeforcesFirstAcceptedReport | null;
   isRefreshing: boolean;
+  ojName: OjName;
   onApplyQuery: (query: TrainingQueryRange, mode: TrainingQueryMode) => Promise<void>;
+  onOjNameChange: (ojName: OjName) => void;
+  onProblemKeyChange: (problemKey: string) => void;
+  onProblemSubmissionPageChange: (page: number, limit: number) => Promise<void>;
   onQueryModeChange: (mode: TrainingQueryMode) => void;
   onRefresh: (mode: TrainingQueryMode) => Promise<void>;
   onSubmissionPageChange: (page: number, limit: number) => Promise<void>;
   onSelectedIdentityChange: (studentIdentity: StudentIdentity) => Promise<void>;
+  problemFirstAccepted: CodeforcesProblemFirstAcceptedReport | null;
+  problemKey: string;
+  problemSubmissionLimit: number;
+  problemSubmissionPage: number;
+  problemSubmissions: CodeforcesProblemSubmissionReport | null;
   query: TrainingQueryRange;
   queryMode: TrainingQueryMode;
   record: StudentTrainingRecord | null;
@@ -31,9 +46,9 @@ interface TrainingQueryPanelProps {
 }
 
 const submissionPageSizes = [50, 100, 200];
-const autoSummaryPlayerColumnWidth = 204;
-const autoSummaryTotalColumnWidth = 72;
-const autoSummaryRatingColumnWidth = 56;
+const multiSummaryPlayerColumnWidth = 204;
+const multiSummaryTotalColumnWidth = 72;
+const multiSummaryRatingColumnWidth = 56;
 
 type ActivityView = 'submissions' | 'accepted';
 const emptyTrainingQuery: TrainingQueryRange = {
@@ -60,13 +75,6 @@ function formatQuerySummary(query: TrainingQueryRange) {
     ? `${query.minProblemRating || '不限'} ~ ${query.maxProblemRating || '不限'}`
     : '全 rating';
   return `${dateRange} / ${ratingRange}`;
-}
-
-function isSameQueryRange(left: TrainingQueryRange, right: TrainingQueryRange) {
-  return left.acceptedFromDateUtcPlus8 === right.acceptedFromDateUtcPlus8
-    && left.acceptedToDateUtcPlus8 === right.acceptedToDateUtcPlus8
-    && left.minProblemRating === right.minProblemRating
-    && left.maxProblemRating === right.maxProblemRating;
 }
 
 function getQueryRangeError(query: TrainingQueryRange) {
@@ -178,15 +186,46 @@ function compareRatingBucket(left: string, right: string) {
   return left.localeCompare(right);
 }
 
+function submissionId(submission: CodeforcesSubmissionItem) {
+  return submission.submissionId ?? String(submission.codeforcesSubmissionId ?? '');
+}
+
+function submissionDifficulty(submission: CodeforcesSubmissionItem) {
+  const difficulty = submission.difficulty ?? (
+    submission.problemRating === null || submission.problemRating === undefined
+      ? null
+      : String(submission.problemRating)
+  );
+  return difficulty && difficulty !== 'UNRATED' ? `${difficulty} rating` : difficulty;
+}
+
+function firstAcceptedDifficulty(problem: CodeforcesFirstAcceptedProblem) {
+  const difficulty = problem.difficulty ?? (
+    problem.problemRating === null || problem.problemRating === undefined
+      ? null
+      : String(problem.problemRating)
+  );
+  return difficulty && difficulty !== 'UNRATED' ? `${difficulty} rating` : difficulty;
+}
+
 export function TrainingQueryPanel({
-  autoCollectSummaries = [],
+  multiUserSummaries = [],
   firstAccepted,
   isRefreshing,
+  ojName,
   onApplyQuery,
+  onOjNameChange,
+  onProblemKeyChange,
+  onProblemSubmissionPageChange,
   onQueryModeChange,
   onRefresh,
   onSubmissionPageChange,
   onSelectedIdentityChange,
+  problemFirstAccepted,
+  problemKey,
+  problemSubmissionLimit,
+  problemSubmissionPage,
+  problemSubmissions,
   query,
   queryMode,
   record,
@@ -199,20 +238,30 @@ export function TrainingQueryPanel({
 }: TrainingQueryPanelProps) {
   const [multipleDraft, setMultipleDraft] = useState(query);
   const [singleDraft, setSingleDraft] = useState(emptyTrainingQuery);
+  const [problemDraft, setProblemDraft] = useState(emptyTrainingQuery);
   const [activityView, setActivityView] = useState<ActivityView>('submissions');
+  const [problemActivityView, setProblemActivityView] = useState<ActivityView>('submissions');
+  const hasMountedAutoQueryRef = useRef(false);
+  const lastAutoQueryKeyRef = useRef<string | null>(null);
   const hasSingleQueryResult = Boolean(submissions || firstAccepted);
-  const activeDraft = queryMode === 'single' ? singleDraft : multipleDraft;
-  const appliedQuery = queryMode === 'single' && !hasSingleQueryResult ? emptyTrainingQuery : query;
+  const hasProblemQueryResult = Boolean(problemSubmissions || problemFirstAccepted);
+  const activeDraft = queryMode === 'single'
+    ? singleDraft
+    : queryMode === 'problem' ? problemDraft : multipleDraft;
   const acceptedCount = record?.acceptedSummary?.totalAcceptedProblemCount ?? 0;
-  const autoCollectUserCount = autoCollectSummaries.length;
-  const autoCollectAcceptedCount = autoCollectSummaries.reduce(
+  const multiUserCount = multiUserSummaries.length;
+  const multiUserAcceptedCount = multiUserSummaries.reduce(
     (sum, summary) => sum + summary.totalAcceptedProblemCount,
     0,
   );
   const currentPageSubmissionCount = submissions?.submissions.length ?? 0;
   const submissionCount = submissions?.total ?? currentPageSubmissionCount;
+  const currentProblemPageSubmissionCount = problemSubmissions?.submissions.length ?? 0;
+  const problemSubmissionCount = problemSubmissions?.total ?? currentProblemPageSubmissionCount;
   const firstAcceptedCount = firstAccepted?.totalAcceptedProblemCount ?? 0;
+  const problemAcceptedHandleCount = problemFirstAccepted?.acceptedHandleCount ?? 0;
   const acceptedSubmissions = submissions?.submissions.filter((submission) => submission.accepted).length ?? 0;
+  const acceptedProblemSubmissions = problemSubmissions?.submissions.filter((submission) => submission.accepted).length ?? 0;
   const ratingCounts = record?.acceptedSummary?.ratingCounts ?? [];
   const maxRatingCount = Math.max(...ratingCounts.map((item) => item.acceptedProblemCount), 1);
   const ratingBucketCount = ratingCounts.length;
@@ -224,10 +273,19 @@ export function TrainingQueryPanel({
     () => [...(submissions?.submissions ?? [])].sort((left, right) => {
       const timeOrder = compareTimeDesc(left.submittedAtUtcPlus8, right.submittedAtUtcPlus8);
       return timeOrder === 0
-        ? right.codeforcesSubmissionId - left.codeforcesSubmissionId
+        ? submissionId(right).localeCompare(submissionId(left))
         : timeOrder;
     }),
     [submissions],
+  );
+  const recentProblemSubmissions = useMemo(
+    () => [...(problemSubmissions?.submissions ?? [])].sort((left, right) => {
+      const timeOrder = compareTimeDesc(left.submittedAtUtcPlus8, right.submittedAtUtcPlus8);
+      return timeOrder === 0
+        ? submissionId(right).localeCompare(submissionId(left))
+        : timeOrder;
+    }),
+    [problemSubmissions],
   );
   const latestAcceptedProblems = useMemo(
     () => [...(firstAccepted?.problems ?? [])].sort((left, right) => (
@@ -235,59 +293,86 @@ export function TrainingQueryPanel({
     )),
     [firstAccepted],
   );
-  const autoCollectRatingBuckets = useMemo(() => {
+  const multiUserRatingBuckets = useMemo(() => {
     const buckets = new Set<string>();
-    autoCollectSummaries.forEach((summary) => {
+    multiUserSummaries.forEach((summary) => {
       summary.ratingCounts.forEach((item) => buckets.add(item.problemRating));
     });
     return [...buckets].sort(compareRatingBucket);
-  }, [autoCollectSummaries]);
-  const autoCollectRows = useMemo(() => autoCollectSummaries.map((summary) => ({
+  }, [multiUserSummaries]);
+  const multiUserRows = useMemo(() => multiUserSummaries.map((summary) => ({
     summary,
     counts: new Map(summary.ratingCounts.map((item) => [item.problemRating, item.acceptedProblemCount])),
-  })), [autoCollectSummaries]);
-  const autoSummaryTableWidth = Math.max(
+  })), [multiUserSummaries]);
+  const multiSummaryTableWidth = Math.max(
     760,
-    autoSummaryPlayerColumnWidth
-      + autoSummaryTotalColumnWidth
-      + autoCollectRatingBuckets.length * autoSummaryRatingColumnWidth,
+    multiSummaryPlayerColumnWidth
+      + multiSummaryTotalColumnWidth
+      + multiUserRatingBuckets.length * multiSummaryRatingColumnWidth,
   );
   const firstAcceptedPageCount = latestAcceptedProblems.length;
+  const latestProblemAcceptedHandles = useMemo(
+    () => [...(problemFirstAccepted?.acceptedHandles ?? [])].sort((left, right) => (
+      right.firstAcceptedAtUtcPlus8.localeCompare(left.firstAcceptedAtUtcPlus8)
+    )),
+    [problemFirstAccepted],
+  );
   const visibleSubmissionPage = submissions?.page ?? submissionPage;
   const visibleSubmissionLimit = submissions?.limit ?? submissionLimit;
   const totalSubmissionPages = Math.max(1, submissions?.totalPages ?? 1);
+  const visibleProblemSubmissionPage = problemSubmissions?.page ?? problemSubmissionPage;
+  const visibleProblemSubmissionLimit = problemSubmissions?.limit ?? problemSubmissionLimit;
+  const totalProblemSubmissionPages = Math.max(1, problemSubmissions?.totalPages ?? 1);
   const canGoPreviousSubmissionPage = Boolean(submissions) && visibleSubmissionPage > 1 && !isRefreshing;
   const canGoNextSubmissionPage = Boolean(submissions?.hasMore) && !isRefreshing;
+  const canGoPreviousProblemSubmissionPage =
+    Boolean(problemSubmissions) && visibleProblemSubmissionPage > 1 && !isRefreshing;
+  const canGoNextProblemSubmissionPage = Boolean(problemSubmissions?.hasMore) && !isRefreshing;
   const normalizedDraft = useMemo(() => normalizeQueryRange(activeDraft), [activeDraft]);
-  const appliedQuerySummary = useMemo(() => formatQuerySummary(appliedQuery), [appliedQuery]);
   const draftQuerySummary = useMemo(() => formatQuerySummary(normalizedDraft), [normalizedDraft]);
-  const hasPendingQuery = !isSameQueryRange(normalizedDraft, appliedQuery);
-  const canResetQuery = hasPendingQuery || !isSameQueryRange(appliedQuery, emptyTrainingQuery);
   const queryRangeError = useMemo(() => getQueryRangeError(normalizedDraft), [normalizedDraft]);
+  const canAutoApplyQuery =
+    !isRefreshing
+    && !queryRangeError
+    && (queryMode !== 'single' || Boolean(selectedIdentity))
+    && (queryMode !== 'problem' || Boolean(problemKey.trim()));
+  const autoQueryKey = useMemo(() => JSON.stringify({
+    mode: queryMode,
+    ojName,
+    problemKey: problemKey.trim(),
+    query: normalizedDraft,
+    selectedIdentity,
+  }), [normalizedDraft, ojName, problemKey, queryMode, selectedIdentity]);
 
   useEffect(() => {
     setMultipleDraft(query);
   }, [query]);
 
+  useEffect(() => {
+    if (!hasMountedAutoQueryRef.current) {
+      hasMountedAutoQueryRef.current = true;
+      if (canAutoApplyQuery) {
+        lastAutoQueryKeyRef.current = autoQueryKey;
+      }
+      return;
+    }
+
+    if (!canAutoApplyQuery || lastAutoQueryKeyRef.current === autoQueryKey) {
+      return;
+    }
+
+    lastAutoQueryKeyRef.current = autoQueryKey;
+    void onApplyQuery(normalizedDraft, queryMode);
+  }, [autoQueryKey, canAutoApplyQuery, normalizedDraft, onApplyQuery, queryMode]);
+
   function setActiveDraft(nextDraft: TrainingQueryRange) {
     if (queryMode === 'single') {
       setSingleDraft(nextDraft);
+    } else if (queryMode === 'problem') {
+      setProblemDraft(nextDraft);
     } else {
       setMultipleDraft(nextDraft);
     }
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (queryRangeError) {
-      return;
-    }
-    await onApplyQuery(normalizedDraft, queryMode);
-  }
-
-  async function handleReset() {
-    setActiveDraft(emptyTrainingQuery);
-    await onApplyQuery(emptyTrainingQuery, queryMode);
   }
 
   return (
@@ -314,6 +399,15 @@ export function TrainingQueryPanel({
             >
               单人查询
             </button>
+            <button
+              aria-selected={queryMode === 'problem'}
+              className={queryMode === 'problem' ? 'is-active' : ''}
+              onClick={() => onQueryModeChange('problem')}
+              role="tab"
+              type="button"
+            >
+              题目查询
+            </button>
           </div>
         </div>
         <div className="refresh-meta">
@@ -332,17 +426,29 @@ export function TrainingQueryPanel({
         </div>
       </div>
 
-      <form className={`query-form${queryMode === 'multiple' ? ' multi-query-form' : ''}`} onSubmit={handleSubmit}>
+      <div className={`query-form${queryMode === 'multiple' ? ' multi-query-form' : ''}`}>
+        <label className="query-field query-oj-field compact">
+          <span className="query-field-label">OJ</span>
+          <select
+            aria-label="选择 OJ"
+            disabled={isRefreshing}
+            value={ojName}
+            onChange={(event) => onOjNameChange(event.target.value as OjName)}
+          >
+            <option value={OJ_NAMES.CODEFORCES}>{OJ_LABELS[OJ_NAMES.CODEFORCES]}</option>
+            <option value={OJ_NAMES.ATCODER}>{OJ_LABELS[OJ_NAMES.ATCODER]}</option>
+          </select>
+        </label>
         {queryMode === 'single' ? (
           <label className="query-field wide">
-            选手
+            <span className="query-field-label">队员</span>
             <select
               disabled={studentOptions.length === 0 || isRefreshing}
               value={selectedIdentity ?? ''}
               onChange={(event) => onSelectedIdentityChange(event.target.value)}
             >
               <option disabled value="">
-                {studentOptions.length === 0 ? '等待训练数据' : '请选择选手'}
+                {studentOptions.length === 0 ? '等待训练数据' : '请选择队员'}
               </option>
               {studentOptions.map((studentIdentity) => (
                 <option key={studentIdentity} value={studentIdentity}>
@@ -351,14 +457,24 @@ export function TrainingQueryPanel({
               ))}
             </select>
           </label>
+        ) : queryMode === 'problem' ? (
+          <label className="query-field wide">
+            <span className="query-field-label">题目编号</span>
+            <input
+              disabled={isRefreshing}
+              placeholder={ojName === OJ_NAMES.ATCODER ? '例如 abc443_c' : '例如 2242:C'}
+              value={problemKey}
+              onChange={(event) => onProblemKeyChange(event.target.value)}
+            />
+          </label>
         ) : (
           <div className="query-field wide query-mode-field">
-            <span>自动更新选手</span>
-            <strong>{autoCollectUserCount} 人 / {autoCollectAcceptedCount} 题</strong>
+            <span className="query-field-label">队员统计</span>
+            <strong>{multiUserCount} 人 / {multiUserAcceptedCount} 题</strong>
           </div>
         )}
         <label className="query-field">
-          通过起始日期
+          <span className="query-field-label">通过起始日期</span>
           <input
             aria-describedby={queryRangeError ? 'training-query-range-error' : undefined}
             aria-invalid={queryRangeError ? true : undefined}
@@ -368,7 +484,7 @@ export function TrainingQueryPanel({
           />
         </label>
         <label className="query-field">
-          通过结束日期
+          <span className="query-field-label">通过结束日期</span>
           <input
             aria-describedby={queryRangeError ? 'training-query-range-error' : undefined}
             aria-invalid={queryRangeError ? true : undefined}
@@ -378,7 +494,7 @@ export function TrainingQueryPanel({
           />
         </label>
         <label className="query-field compact">
-          最低 rating
+          <span className="query-field-label">最低 rating</span>
           <input
             aria-describedby={queryRangeError ? 'training-query-range-error' : undefined}
             aria-invalid={queryRangeError ? true : undefined}
@@ -391,7 +507,7 @@ export function TrainingQueryPanel({
           />
         </label>
         <label className="query-field compact">
-          最高 rating
+          <span className="query-field-label">最高 rating</span>
           <input
             aria-describedby={queryRangeError ? 'training-query-range-error' : undefined}
             aria-invalid={queryRangeError ? true : undefined}
@@ -403,61 +519,43 @@ export function TrainingQueryPanel({
             onChange={(event) => setActiveDraft({ ...activeDraft, maxProblemRating: event.target.value })}
           />
         </label>
-        <button
-          className="primary-button"
-          disabled={isRefreshing || (queryMode === 'single' && !selectedIdentity) || Boolean(queryRangeError)}
-          type="submit"
-        >
-          <Search size={16} aria-hidden="true" />
-          查询
-        </button>
-        <button
-          className="secondary-button"
-          disabled={isRefreshing || (queryMode === 'single' && !selectedIdentity) || !canResetQuery}
-          onClick={handleReset}
-          type="button"
-        >
-          <RotateCcw size={15} aria-hidden="true" />
-          重置
-        </button>
-      </form>
+      </div>
 
       <div className="query-summary" role="status">
-        <span>当前范围：{appliedQuerySummary}</span>
+        <span>当前范围：{draftQuerySummary}</span>
         {queryRangeError ? (
           <small className="query-error" id="training-query-range-error" role="alert">
             {queryRangeError}
           </small>
         ) : null}
-        {!queryRangeError && hasPendingQuery ? <small>已编辑为 {draftQuerySummary}，点击查询后生效。</small> : null}
       </div>
 
       {queryMode === 'multiple' ? (
         <article className="multi-summary-panel">
           <header>
             <div>
-              <h2>全部选手做题量统计</h2>
-              <span>{autoCollectUserCount} 人 · 合计 {autoCollectAcceptedCount} 题 · 按通过题目数降序</span>
+              <h2>全部队员做题量统计</h2>
+              <span>{multiUserCount} 人 · 合计 {multiUserAcceptedCount} 题 · 按通过题目数降序</span>
             </div>
           </header>
           <div className="auto-summary-table-scroll">
             <table
               className="auto-summary-table"
-              style={{ width: autoSummaryTableWidth }}
-              aria-label="全部选手做题量统计"
+              style={{ width: multiSummaryTableWidth }}
+              aria-label="全部队员做题量统计"
             >
               <colgroup>
-                <col style={{ width: autoSummaryPlayerColumnWidth }} />
-                <col style={{ width: autoSummaryTotalColumnWidth }} />
-                {autoCollectRatingBuckets.map((bucket) => (
-                  <col key={bucket} style={{ width: autoSummaryRatingColumnWidth }} />
+                <col style={{ width: multiSummaryPlayerColumnWidth }} />
+                <col style={{ width: multiSummaryTotalColumnWidth }} />
+                {multiUserRatingBuckets.map((bucket) => (
+                  <col key={bucket} style={{ width: multiSummaryRatingColumnWidth }} />
                 ))}
               </colgroup>
               <thead>
                 <tr>
-                  <th className="auto-summary-player-col" scope="col">选手</th>
+                  <th className="auto-summary-player-col" scope="col">队员</th>
                   <th className="auto-summary-total-col" scope="col">总计</th>
-                  {autoCollectRatingBuckets.map((bucket) => (
+                  {multiUserRatingBuckets.map((bucket) => (
                     <th
                       className={`auto-summary-rating-col ${ratingToneClass(bucket)}`}
                       key={bucket}
@@ -469,9 +567,9 @@ export function TrainingQueryPanel({
                 </tr>
               </thead>
               <tbody>
-                {autoCollectRows.map(({ summary, counts }) => (
+                {multiUserRows.map(({ summary, counts }) => (
                   <tr key={summary.studentIdentity}>
-                    <th className="auto-summary-player-cell" data-label="选手" scope="row">
+                    <th className="auto-summary-player-cell" data-label="队员" scope="row">
                       <span className="auto-summary-player">
                         <strong>{summary.studentIdentity}</strong>
                         <small>{summary.authorHandle}</small>
@@ -480,7 +578,7 @@ export function TrainingQueryPanel({
                     <td className="auto-summary-total-cell" data-label="总计">
                       <strong>{summary.totalAcceptedProblemCount}</strong>
                     </td>
-                    {autoCollectRatingBuckets.map((bucket) => {
+                    {multiUserRatingBuckets.map((bucket) => {
                       const count = counts.get(bucket);
                       return (
                         <td
@@ -498,10 +596,10 @@ export function TrainingQueryPanel({
                     })}
                   </tr>
                 ))}
-                {autoCollectSummaries.length === 0 ? (
+                {multiUserSummaries.length === 0 ? (
                   <tr>
-                    <td className="submission-empty" colSpan={2 + autoCollectRatingBuckets.length}>
-                      当前范围暂无自动更新选手通过统计。
+                    <td className="submission-empty" colSpan={2 + multiUserRatingBuckets.length}>
+                      当前范围暂无队员通过统计。
                     </td>
                   </tr>
                 ) : null}
@@ -509,13 +607,202 @@ export function TrainingQueryPanel({
             </table>
           </div>
         </article>
+      ) : queryMode === 'problem' ? (
+        hasProblemQueryResult ? (
+          <>
+            <div className="training-stat-grid problem-stat-grid" aria-label="题目维度统计">
+              <article className="training-stat-card identity-card">
+                <span>题目编号</span>
+                <strong>{problemSubmissions?.problemKey ?? problemFirstAccepted?.problemKey ?? problemKey}</strong>
+                <small>{OJ_LABELS[ojName]}</small>
+              </article>
+              <article className="training-stat-card primary">
+                <span>提交总数</span>
+                <strong>{problemSubmissionCount}</strong>
+                <small>本页 {currentProblemPageSubmissionCount} 条 / 通过 {acceptedProblemSubmissions} 条</small>
+              </article>
+              <article className="training-stat-card">
+                <span>首 AC 人数</span>
+                <strong>{problemAcceptedHandleCount}</strong>
+                <small>按当前范围统计</small>
+              </article>
+              <article className="training-stat-card">
+                <span>提交分页</span>
+                <strong>{visibleProblemSubmissionPage}/{totalProblemSubmissionPages}</strong>
+                <small>每页 {visibleProblemSubmissionLimit} 条</small>
+              </article>
+            </div>
+
+            <article className="recent-submission-panel problem-query-panel">
+              <header>
+                <div className="activity-heading">
+                  <div className="activity-switch" role="tablist" aria-label="题目查询记录视图">
+                    <button
+                      aria-selected={problemActivityView === 'submissions'}
+                      className={problemActivityView === 'submissions' ? 'is-active' : ''}
+                      onClick={() => setProblemActivityView('submissions')}
+                      role="tab"
+                      type="button"
+                    >
+                      提交明细
+                    </button>
+                    <button
+                      aria-selected={problemActivityView === 'accepted'}
+                      className={problemActivityView === 'accepted' ? 'is-active' : ''}
+                      onClick={() => setProblemActivityView('accepted')}
+                      role="tab"
+                      type="button"
+                    >
+                      首 AC handle
+                    </button>
+                  </div>
+                </div>
+                <span>
+                  {problemActivityView === 'submissions'
+                    ? `${problemSubmissionCount} 条 · 第 ${visibleProblemSubmissionPage}/${totalProblemSubmissionPages} 页`
+                    : `${problemAcceptedHandleCount} 人`}
+                </span>
+              </header>
+              <div className="submission-table-scroll">
+                {problemActivityView === 'submissions' ? (
+                  <table className="submission-table problem-submission-table" aria-label="题目提交明细">
+                    <thead>
+                      <tr>
+                        <th scope="col">队员</th>
+                        <th scope="col">判题</th>
+                        <th scope="col">提交时间</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentProblemSubmissions.map((submission) => (
+                        <tr key={submissionId(submission)}>
+                          <td data-label="队员">
+                            <div className="submission-problem">
+                              <strong>{submission.studentIdentity}</strong>
+                              <span>
+                                {[
+                                  submission.handle ?? submission.authorHandle,
+                                  submission.language ?? submission.programmingLanguage,
+                                  submissionDifficulty(submission),
+                                ].filter(Boolean).join(' / ') || '无提交元数据'}
+                              </span>
+                            </div>
+                          </td>
+                          <td data-label="判题">
+                            <span className={submission.accepted ? 'submission-verdict accepted' : 'submission-verdict'}>
+                              {formatSubmissionVerdict(submission.verdict, submission.accepted)}
+                            </span>
+                          </td>
+                          <td className="submission-time" data-label="提交时间">
+                            {submission.submittedAtUtcPlus8 ?? '-'}
+                          </td>
+                        </tr>
+                      ))}
+                      {recentProblemSubmissions.length === 0 ? (
+                        <tr>
+                          <td className="submission-empty" colSpan={3}>
+                            当前范围暂无题目提交明细。
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                ) : (
+                  <table className="submission-table accepted-table" aria-label="题目首 AC handle">
+                    <thead>
+                      <tr>
+                        <th scope="col">队员</th>
+                        <th scope="col">handle</th>
+                        <th scope="col">首次通过时间</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {latestProblemAcceptedHandles.map((item) => (
+                        <tr key={`${item.studentIdentity}-${item.handle}`}>
+                          <td data-label="队员">
+                            <strong>{item.studentIdentity}</strong>
+                          </td>
+                          <td data-label="handle">{item.handle}</td>
+                          <td className="submission-time" data-label="首次通过时间">
+                            {item.firstAcceptedAtUtcPlus8}
+                          </td>
+                        </tr>
+                      ))}
+                      {latestProblemAcceptedHandles.length === 0 ? (
+                        <tr>
+                          <td className="submission-empty" colSpan={3}>
+                            当前范围暂无首 AC handle。
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              {problemActivityView === 'submissions' ? (
+                <div className="submission-pagination" aria-label="题目提交记录分页">
+                  <span>
+                    本页 {currentProblemPageSubmissionCount} 条，合计 {problemSubmissionCount} 条
+                  </span>
+                  <label>
+                    每页
+                    <select
+                      aria-label="题目每页提交数"
+                      disabled={isRefreshing || !problemSubmissions}
+                      value={visibleProblemSubmissionLimit}
+                      onChange={(event) => {
+                        void onProblemSubmissionPageChange(1, Number(event.target.value));
+                      }}
+                    >
+                      {submissionPageSizes.map((pageSize) => (
+                        <option key={pageSize} value={pageSize}>
+                          {pageSize}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="submission-page-actions">
+                    <button
+                      className="secondary-button compact"
+                      disabled={!canGoPreviousProblemSubmissionPage}
+                      onClick={() => {
+                        void onProblemSubmissionPageChange(
+                          visibleProblemSubmissionPage - 1,
+                          visibleProblemSubmissionLimit,
+                        );
+                      }}
+                      type="button"
+                    >
+                      <ChevronLeft size={14} aria-hidden="true" />
+                      上一页
+                    </button>
+                    <button
+                      className="secondary-button compact"
+                      disabled={!canGoNextProblemSubmissionPage}
+                      onClick={() => {
+                        void onProblemSubmissionPageChange(
+                          visibleProblemSubmissionPage + 1,
+                          visibleProblemSubmissionLimit,
+                        );
+                      }}
+                      type="button"
+                    >
+                      下一页
+                      <ChevronRight size={14} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </article>
+          </>
+        ) : null
       ) : hasSingleQueryResult ? (
         <>
           <div className="training-stat-grid" aria-label="训练数据统计">
             <article className="training-stat-card identity-card">
               <span>个人信息</span>
-              <strong>{selectedIdentity ?? '未选择选手'}</strong>
-              <small>{record?.handle ?? '未绑定 Codeforces'}</small>
+              <strong>{selectedIdentity ?? '未选择队员'}</strong>
+              <small>{record?.handle ?? `未绑定 ${OJ_LABELS[ojName]}`}</small>
             </article>
             <article className="training-stat-card primary">
               <span>通过题目数</span>
@@ -607,16 +894,16 @@ export function TrainingQueryPanel({
                 </thead>
                 <tbody>
                   {recentSubmissions.map((submission) => (
-                    <tr key={submission.codeforcesSubmissionId}>
+                    <tr key={submissionId(submission)}>
                       <td data-label="题目">
                         <div className="submission-problem">
                           <strong>{submission.problemName ?? '题目名称缺失'}</strong>
                           <span>
                             {[
-                              submission.problemRating ? `${submission.problemRating} rating` : null,
-                              submission.programmingLanguage,
+                              submissionDifficulty(submission),
+                              submission.language ?? submission.programmingLanguage,
                               submission.problemName ? null : submission.problemKey,
-                            ].filter(Boolean).join(' / ') || '无 rating 信息'}
+                            ].filter(Boolean).join(' / ') || '无难度信息'}
                           </span>
                         </div>
                       </td>
@@ -655,9 +942,9 @@ export function TrainingQueryPanel({
                           <strong>{problem.problemName}</strong>
                           <span>
                             {[
-                              problem.problemRating ? `${problem.problemRating} rating` : null,
+                              firstAcceptedDifficulty(problem),
                               problem.firstAcceptedLanguage,
-                            ].filter(Boolean).join(' / ') || '无 rating 信息'}
+                            ].filter(Boolean).join(' / ') || '无难度信息'}
                           </span>
                         </div>
                       </td>

@@ -1,7 +1,8 @@
 package com.custacm.platform.trainingdata.web;
 
 import com.custacm.platform.trainingdata.TrainingDataWebApplication;
-import com.custacm.platform.trainingdata.codeforces.domain.collector.CodeforcesSubmissionSourceClient;
+import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesSubmissionSourceClient;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "spring.datasource.username=sa",
                 "spring.datasource.password=",
                 "spring.datasource.driver-class-name=org.h2.Driver",
-                "platform.training-data.codeforces.collector.request-interval=0s"
+                "platform.training-data.codeforces.collector.request-interval=0s",
+                "platform.training-data.atcoder.problem-list-collector.bootstrap-on-startup=false"
         }
 )
 @AutoConfigureMockMvc
@@ -57,8 +59,8 @@ class CodeforcesSubmissionCollectionHttpIntegrationTest {
     void adminCollectsRecentCodeforcesSubmissionsForStudentIdentity() throws Exception {
         Instant now = Instant.now();
         jdbcTemplate.update("""
-                insert into codeforces_handle_account (student_identity, codeforces_handle)
-                values ('112487张三', 'alice'), ('112488李四', 'broken')
+                insert into oj_handle_account (student_identity, handles_json)
+                values ('112487张三', '{"CODEFORCES":"alice"}'), ('112488李四', '{"CODEFORCES":"broken"}')
                 """);
         when(sourceClient.fetchUserStatus("alice", 1, 1000))
                 .thenReturn(page(
@@ -92,6 +94,13 @@ class CodeforcesSubmissionCollectionHttpIntegrationTest {
                 "select author_handle from ods_codeforces__submission where codeforces_submission_id = 1001",
                 String.class
         )).isEqualTo("alice");
+        JsonNode collectionStates = objectMapper.readTree(jdbcTemplate.queryForObject("""
+                select collection_states_json
+                from oj_handle_account
+                where student_identity = '112487张三'
+                """, String.class));
+        assertThat(collectionStates.path("CODEFORCES").path("historyStartReached").asBoolean()).isTrue();
+        assertThat(collectionStates.path("CODEFORCES").path("lastCollectedAt").asText()).isNotBlank();
     }
 
     private ArrayNode page(Object... submissions) {

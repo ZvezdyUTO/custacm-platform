@@ -2,20 +2,26 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ApiError,
   batchCreateUsers,
-  createCodeforcesHandle,
+  changeCurrentPassword,
+  changeOjHandleIdentity,
+  collectCodeforcesSubmissions,
+  createOjHandleAccount,
   deleteAdminUser,
-  getAutoCollectAcceptedSummaries,
-  getCodeforcesSubmissionCollectionJob,
+  getAuthModuleInfo,
   getFirstAcceptedProblems,
+  getProblemFirstAcceptedHandles,
+  getProblemSubmissions,
   getStudentSubmissions,
+  getTrainingDataModuleInfo,
   listCodeforcesSubmissionCollectionJobs,
+  listOjHandleAccounts,
   listUsers,
-  purgeCodeforcesStudentData,
+  purgeOjStudentData,
   startCodeforcesSubmissionCollectionJob,
   updateAdminUser,
-  updateCodeforcesHandleAccount,
+  updateOjHandleAccount,
 } from '../api/platform';
-import type { TrainingQueryRange } from '../types';
+import { OJ_NAMES, type TrainingQueryRange } from '../types';
 
 const range: TrainingQueryRange = {
   acceptedFromDateUtcPlus8: '2024-01-01',
@@ -54,7 +60,33 @@ describe('platform API query parameters', () => {
 
     const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
     expect(url.pathname).toBe('/api/training-data/codeforces/submissions/by-student');
+    expect(url.searchParams.get('ojName')).toBe(OJ_NAMES.CODEFORCES);
     expect(url.searchParams.get('studentIdentity')).toBe('230511213黄炳睿');
+    expect(url.searchParams.get('submittedFromUtcPlus8')).toBe('2024-01-01T00:00:00');
+    expect(url.searchParams.get('submittedToUtcPlus8')).toBe('2024-01-31T23:59:59');
+    expect(url.searchParams.get('minProblemRating')).toBe('1800');
+    expect(url.searchParams.get('maxProblemRating')).toBe('2400');
+    expect(url.searchParams.get('page')).toBe('2');
+    expect(url.searchParams.get('limit')).toBe('50');
+  });
+
+  it('passes date, rating range and pagination to the problem submission endpoint', async () => {
+    const fetchMock = stubFetch({
+      problemKey: '2242:C',
+      page: 2,
+      limit: 50,
+      total: 120,
+      totalPages: 3,
+      hasMore: true,
+      submissions: [],
+    });
+
+    await getProblemSubmissions('2242:C', range, { page: 2, limit: 50 }, OJ_NAMES.ATCODER);
+
+    const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
+    expect(url.pathname).toBe('/api/training-data/codeforces/submissions/by-problem');
+    expect(url.searchParams.get('ojName')).toBe(OJ_NAMES.ATCODER);
+    expect(url.searchParams.get('problemKey')).toBe('2242:C');
     expect(url.searchParams.get('submittedFromUtcPlus8')).toBe('2024-01-01T00:00:00');
     expect(url.searchParams.get('submittedToUtcPlus8')).toBe('2024-01-31T23:59:59');
     expect(url.searchParams.get('minProblemRating')).toBe('1800');
@@ -75,6 +107,7 @@ describe('platform API query parameters', () => {
 
     const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
     expect(url.pathname).toBe('/api/training-data/codeforces/first-accepted/by-student');
+    expect(url.searchParams.get('ojName')).toBe(OJ_NAMES.CODEFORCES);
     expect(url.searchParams.get('studentIdentity')).toBe('230511213黄炳睿');
     expect(url.searchParams.get('firstAcceptedFromUtcPlus8')).toBe('2024-01-01T00:00:00');
     expect(url.searchParams.get('firstAcceptedToUtcPlus8')).toBe('2024-01-31T23:59:59');
@@ -82,18 +115,23 @@ describe('platform API query parameters', () => {
     expect(url.searchParams.get('maxProblemRating')).toBe('2400');
   });
 
-  it('passes date and rating range to the automatic collection summary endpoint', async () => {
-    const fetchMock = stubFetch([]);
+  it('passes date and rating range to the problem first accepted endpoint', async () => {
+    const fetchMock = stubFetch({
+      problemKey: '2242:C',
+      acceptedHandleCount: 0,
+      acceptedHandles: [],
+    });
 
-    await getAutoCollectAcceptedSummaries(range);
+    await getProblemFirstAcceptedHandles('2242:C', range, OJ_NAMES.ATCODER);
 
     const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
-    expect(url.pathname).toBe('/api/training-data/codeforces/accepted-summary/auto-collect-users');
-    expect(url.searchParams.get('acceptedFromDateUtcPlus8')).toBe('2024-01-01');
-    expect(url.searchParams.get('acceptedToDateUtcPlus8')).toBe('2024-01-31');
+    expect(url.pathname).toBe('/api/training-data/codeforces/first-accepted/by-problem');
+    expect(url.searchParams.get('ojName')).toBe(OJ_NAMES.ATCODER);
+    expect(url.searchParams.get('problemKey')).toBe('2242:C');
+    expect(url.searchParams.get('firstAcceptedFromUtcPlus8')).toBe('2024-01-01T00:00:00');
+    expect(url.searchParams.get('firstAcceptedToUtcPlus8')).toBe('2024-01-31T23:59:59');
     expect(url.searchParams.get('minProblemRating')).toBe('1800');
     expect(url.searchParams.get('maxProblemRating')).toBe('2400');
-    expect(url.searchParams.has('studentIdentity')).toBe(false);
   });
 
   it('lists auth users without requiring an admin token', async () => {
@@ -105,7 +143,33 @@ describe('platform API query parameters', () => {
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(url.pathname).toBe('/api/auth/users');
     expect(url.search).toBe('');
-    expect(init.headers).toEqual({});
+    expect(init.headers).toEqual({ Accept: 'application/json' });
+  });
+
+  it('loads auth module-info through the frontend proxy path', async () => {
+    const fetchMock = stubFetch({
+      module: 'platform-auth',
+      service: 'auth-web',
+      features: ['login'],
+    });
+
+    await getAuthModuleInfo();
+
+    const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
+    expect(url.pathname).toBe('/module-info/auth');
+  });
+
+  it('loads training-data module-info through the frontend proxy path', async () => {
+    const fetchMock = stubFetch({
+      module: 'platform-training-data',
+      service: 'training-data-web',
+      features: ['oj-handles'],
+    });
+
+    await getTrainingDataModuleInfo();
+
+    const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
+    expect(url.pathname).toBe('/module-info/training-data');
   });
 
   it('posts admin batch user creation commands to auth-web', async () => {
@@ -135,38 +199,63 @@ describe('platform API query parameters', () => {
     });
   });
 
-  it('posts Codeforces handle bindings to training-data-web', async () => {
-    const fetchMock = stubFetch({
-      studentIdentity: '230511213黄炳睿',
-      handle: 'tourist',
-      needCollect: true,
-    });
+  it('patches current account password through auth-web', async () => {
+    const fetchMock = stubFetch(null);
 
-    await createCodeforcesHandle('admin-token', '230511213黄炳睿', 'tourist');
+    await changeCurrentPassword('player-token', {
+      oldPassword: 'old-pass',
+      newPassword: 'new-pass',
+      confirmNewPassword: 'new-pass',
+    });
 
     const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(url.pathname).toBe('/api/training-data/admin/codeforces/handles');
+    expect(url.pathname).toBe('/api/auth/player/me/password');
+    expect(init.method).toBe('PATCH');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer player-token');
+    expect(JSON.parse(init.body as string)).toEqual({
+      oldPassword: 'old-pass',
+      newPassword: 'new-pass',
+      confirmNewPassword: 'new-pass',
+    });
+  });
+
+  it('posts OJ handle bindings to training-data-web', async () => {
+    const fetchMock = stubFetch({
+      studentIdentity: '230511213黄炳睿',
+      handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
+      needCollect: true,
+    });
+
+    await createOjHandleAccount('admin-token', '230511213黄炳睿', {
+      [OJ_NAMES.CODEFORCES]: 'tourist',
+    });
+
+    const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(url.pathname).toBe('/api/training-data/admin/oj-handles');
     expect(init.method).toBe('POST');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer admin-token');
     expect(JSON.parse(init.body as string)).toEqual({
       studentIdentity: '230511213黄炳睿',
-      handle: 'tourist',
+      handles: {
+        [OJ_NAMES.CODEFORCES]: 'tourist',
+      },
     });
   });
 
   it('patches Codeforces handle automatic collection flag to training-data-web', async () => {
     const fetchMock = stubFetch({
       studentIdentity: '230511213黄炳睿',
-      handle: 'tourist',
+      handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
       needCollect: false,
     });
 
-    await updateCodeforcesHandleAccount('admin-token', '230511213黄炳睿', false);
+    await updateOjHandleAccount('admin-token', '230511213黄炳睿', false);
 
     const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(url.pathname).toBe('/api/training-data/admin/codeforces/handles:change-identity');
+    expect(url.pathname).toBe('/api/training-data/admin/oj-handles:change-identity');
     expect(init.method).toBe('PATCH');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer admin-token');
     expect(JSON.parse(init.body as string)).toEqual({
@@ -174,6 +263,53 @@ describe('platform API query parameters', () => {
       newStudentIdentity: '230511213黄炳睿',
       needCollect: false,
     });
+  });
+
+  it('patches OJ handle identity migrations to training-data-web', async () => {
+    const fetchMock = stubFetch({
+      studentIdentity: '230511214新同学',
+      handles: {
+        [OJ_NAMES.CODEFORCES]: 'newtourist',
+        [OJ_NAMES.ATCODER]: 'atcoder_id',
+      },
+      needCollect: true,
+    });
+
+    await changeOjHandleIdentity(
+      'admin-token',
+      '230511213黄炳睿',
+      '230511214新同学',
+      true,
+      {
+        [OJ_NAMES.CODEFORCES]: 'newtourist',
+        [OJ_NAMES.ATCODER]: 'atcoder_id',
+      },
+    );
+
+    const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(url.pathname).toBe('/api/training-data/admin/oj-handles:change-identity');
+    expect(init.method).toBe('PATCH');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer admin-token');
+    expect(JSON.parse(init.body as string)).toEqual({
+      oldStudentIdentity: '230511213黄炳睿',
+      newStudentIdentity: '230511214新同学',
+      needCollect: true,
+      handles: {
+        [OJ_NAMES.CODEFORCES]: 'newtourist',
+        [OJ_NAMES.ATCODER]: 'atcoder_id',
+      },
+    });
+  });
+
+  it('loads OJ handle bindings in one frontend query', async () => {
+    const fetchMock = stubFetch({});
+
+    await listOjHandleAccounts();
+
+    const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
+    expect(url.pathname).toBe('/api/training-data/oj-handles');
+    expect(url.search).toBe('');
   });
 
   it('patches admin user role and password updates to auth-web', async () => {
@@ -221,10 +357,21 @@ describe('platform API query parameters', () => {
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer admin-token');
   });
 
-  it('purges Codeforces student data through training-data-web', async () => {
+  it('purges OJ student data through training-data-web', async () => {
     const fetchMock = stubFetch({
       studentIdentity: '230511213黄炳睿',
+      ojName: OJ_NAMES.CODEFORCES,
       handle: 'tourist',
+      handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
+      ojResults: [{
+        ojName: OJ_NAMES.CODEFORCES,
+        handle: 'tourist',
+        odsSubmissionRows: 2,
+        dwdSubmissionRows: 3,
+        dwmFirstAcceptedRows: 4,
+        dwsAcceptedSummaryRows: 5,
+        totalDeletedRows: 14,
+      }],
       handleAccountRows: 1,
       odsSubmissionRows: 2,
       dwdSubmissionRows: 3,
@@ -233,20 +380,76 @@ describe('platform API query parameters', () => {
       totalDeletedRows: 15,
     });
 
-    await purgeCodeforcesStudentData('admin-token', '230511213黄炳睿');
+    await purgeOjStudentData('admin-token', '230511213黄炳睿', OJ_NAMES.CODEFORCES);
 
     const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(url.pathname).toBe(
-      '/api/training-data/admin/codeforces/users/230511213%E9%BB%84%E7%82%B3%E7%9D%BF/data',
+      '/api/training-data/admin/students/230511213%E9%BB%84%E7%82%B3%E7%9D%BF/oj-data',
     );
+    expect(url.searchParams.get('ojName')).toBe(OJ_NAMES.CODEFORCES);
     expect(init.method).toBe('DELETE');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer admin-token');
+  });
+
+  it('passes requested OJ name when purging student data', async () => {
+    const fetchMock = stubFetch({
+      studentIdentity: '230511213黄炳睿',
+      ojName: OJ_NAMES.ATCODER,
+      handle: 'tourist_atcoder',
+      handles: { [OJ_NAMES.ATCODER]: 'tourist_atcoder' },
+      ojResults: [],
+      handleAccountRows: 0,
+      odsSubmissionRows: 0,
+      dwdSubmissionRows: 0,
+      dwmFirstAcceptedRows: 0,
+      dwsAcceptedSummaryRows: 0,
+      totalDeletedRows: 0,
+    });
+
+    await purgeOjStudentData('admin-token', '230511213黄炳睿', OJ_NAMES.ATCODER);
+
+    const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
+    expect(url.searchParams.get('ojName')).toBe(OJ_NAMES.ATCODER);
+  });
+
+  it('collects submissions with an explicit OJ selector by default', async () => {
+    const fetchMock = stubFetch({
+      ojName: OJ_NAMES.CODEFORCES,
+      status: 'SUCCESS',
+      windowStartInclusive: '2026-07-05T00:00:00Z',
+      windowEndExclusive: '2026-07-06T00:00:00Z',
+      requestedHandleCount: 1,
+      succeededHandleCount: 1,
+      failedHandleCount: 0,
+      fetchedSubmissionCount: 2,
+      matchedSubmissionCount: 2,
+      batchId: 'collector-codeforces-1',
+      tableName: 'ods_codeforces__submission',
+      writtenRows: 2,
+      fetchedAt: '2026-07-06T00:00:00Z',
+      message: null,
+      handles: [],
+    });
+
+    await collectCodeforcesSubmissions('admin-token', '230511213黄炳睿', 24);
+
+    const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(url.pathname).toBe('/api/training-data/admin/codeforces/submissions:collect');
+    expect(init.method).toBe('POST');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer admin-token');
+    expect(JSON.parse(init.body as string)).toEqual({
+      studentIdentity: '230511213黄炳睿',
+      lookbackHours: 24,
+      ojName: OJ_NAMES.CODEFORCES,
+    });
   });
 
   it('starts Codeforces submission collection jobs through training-data-web', async () => {
     const fetchMock = stubFetch({
       jobId: 'job-1',
+      ojName: OJ_NAMES.CODEFORCES,
       status: 'RUNNING',
       requestedCount: 1,
       completedCount: 0,
@@ -265,6 +468,7 @@ describe('platform API query parameters', () => {
       studentIdentities: ['230511213黄炳睿'],
       lookbackHours: 24,
       refreshWarehouse: true,
+      ojName: OJ_NAMES.CODEFORCES,
     });
 
     const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
@@ -276,32 +480,8 @@ describe('platform API query parameters', () => {
       studentIdentities: ['230511213黄炳睿'],
       lookbackHours: 24,
       refreshWarehouse: true,
+      ojName: OJ_NAMES.CODEFORCES,
     });
-  });
-
-  it('gets Codeforces submission collection jobs through training-data-web', async () => {
-    const fetchMock = stubFetch({
-      jobId: 'job-1',
-      status: 'SUCCESS',
-      requestedCount: 1,
-      completedCount: 1,
-      collectedCount: 1,
-      failedCount: 0,
-      refreshedCount: 0,
-      writtenRows: 10,
-      batchIds: ['collector-codeforces-1'],
-      startedAt: '2026-07-06T03:00:00Z',
-      finishedAt: '2026-07-06T03:01:00Z',
-      message: '采集任务已完成',
-      items: [],
-    });
-
-    await getCodeforcesSubmissionCollectionJob('admin-token', 'job-1');
-
-    const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
-    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(url.pathname).toBe('/api/training-data/admin/codeforces/submissions/collect-batch-jobs/job-1');
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer admin-token');
   });
 
   it('lists Codeforces submission collection jobs through training-data-web', async () => {
@@ -324,7 +504,7 @@ describe('platform API query parameters', () => {
     ));
 
     try {
-      await getCodeforcesSubmissionCollectionJob('admin-token', 'job-1');
+      await listCodeforcesSubmissionCollectionJobs('admin-token');
       throw new Error('expected request to fail');
     } catch (error) {
       expect(error).toBeInstanceOf(ApiError);

@@ -25,15 +25,8 @@ https://codeforces.com/api/user.status?handle=jiangly&from=1001&count=100
 
 Files:
 
-- `submissions_multi_user_1000.json`: large `result` array, ready to POST to the local ODS ingest endpoint.
+- `submissions_multi_user_1000.json`: large `result` array used by parser, repository, and warehouse SQL tests.
 - `submissions_multi_user_1000.metadata.json`: source URLs, row counts, handles, and time-range metadata.
 - `submissions_tourist.json`: small legacy parser fixture.
 
-Use the array fixture for local API testing:
-
-```bash
-curl -X POST "http://localhost:8082/api/training-data/admin/ods/codeforces/submissions:batch-upsert" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-  -H "Content-Type: application/json" \
-  --data-binary @platform-training-data/training-data-codeforces/src/main/resources/fixtures/codeforces/submissions_multi_user_1000.json
-```
+Use this fixture through local tests or seed scripts; manual ODS import is no longer exposed as an HTTP endpoint.

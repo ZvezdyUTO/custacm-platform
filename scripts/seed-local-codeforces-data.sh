@@ -5,15 +5,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/deploy/.env"
 AUTH_BASE_URL="${AUTH_BASE_URL:-http://localhost:8081}"
 TRAINING_DATA_BASE_URL="${TRAINING_DATA_BASE_URL:-http://localhost:8082}"
-FIXTURE_PATH="${FIXTURE_PATH:-${ROOT_DIR}/platform-training-data/training-data-codeforces/src/main/resources/fixtures/codeforces/submissions_multi_user_1000.json}"
+COLLECT_LOOKBACK_HOURS="${COLLECT_LOOKBACK_HOURS:-72000}"
+COLLECT_POLL_TIMEOUT_MS="${COLLECT_POLL_TIMEOUT_MS:-300000}"
 
 if [[ ! -f "${ENV_FILE}" ]]; then
   echo "Missing ${ENV_FILE}. Copy deploy/.env.example to deploy/.env first." >&2
-  exit 1
-fi
-
-if [[ ! -f "${FIXTURE_PATH}" ]]; then
-  echo "Missing fixture: ${FIXTURE_PATH}" >&2
   exit 1
 fi
 
@@ -25,14 +21,24 @@ fi
 AUTH_BASE_URL="${AUTH_BASE_URL}" \
 TRAINING_DATA_BASE_URL="${TRAINING_DATA_BASE_URL}" \
 ENV_FILE="${ENV_FILE}" \
-FIXTURE_PATH="${FIXTURE_PATH}" \
+COLLECT_LOOKBACK_HOURS="${COLLECT_LOOKBACK_HOURS}" \
+COLLECT_POLL_TIMEOUT_MS="${COLLECT_POLL_TIMEOUT_MS}" \
 node <<'NODE'
 const fs = require('fs');
 
 const envFile = process.env.ENV_FILE;
-const fixturePath = process.env.FIXTURE_PATH;
 const authBaseUrl = process.env.AUTH_BASE_URL;
 const trainingDataBaseUrl = process.env.TRAINING_DATA_BASE_URL;
+const collectLookbackHours = Number(process.env.COLLECT_LOOKBACK_HOURS);
+const collectPollTimeoutMs = Number(process.env.COLLECT_POLL_TIMEOUT_MS);
+
+if (!Number.isFinite(collectLookbackHours) || collectLookbackHours <= 0) {
+  throw new Error('COLLECT_LOOKBACK_HOURS must be a positive number');
+}
+
+if (!Number.isFinite(collectPollTimeoutMs) || collectPollTimeoutMs <= 0) {
+  throw new Error('COLLECT_POLL_TIMEOUT_MS must be a positive number');
+}
 
 const env = Object.fromEntries(
   fs
@@ -80,6 +86,28 @@ function jsonHeaders(token) {
   };
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForCollectionJob(token, jobId) {
+  const deadline = Date.now() + collectPollTimeoutMs;
+  while (Date.now() < deadline) {
+    const jobs = await request(`${trainingDataBaseUrl}/api/training-data/admin/codeforces/submissions/collect-batch-jobs`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!jobs.ok) {
+      throw new Error(`list collection jobs failed: HTTP ${jobs.status}`);
+    }
+    const job = Array.isArray(jobs.body) ? jobs.body.find((item) => item.jobId === jobId) : null;
+    if (job && job.status !== 'RUNNING') {
+      return job;
+    }
+    await sleep(2000);
+  }
+  throw new Error(`collection job ${jobId} did not finish within ${collectPollTimeoutMs}ms`);
+}
+
 async function main() {
   const login = await request(`${authBaseUrl}/api/auth/login`, {
     method: 'POST',
@@ -111,10 +139,10 @@ async function main() {
   let handleCreated = 0;
   let handleSkipped = 0;
   for (const user of sampleUsers) {
-    const createHandle = await request(`${trainingDataBaseUrl}/api/training-data/admin/codeforces/handles`, {
+    const createHandle = await request(`${trainingDataBaseUrl}/api/training-data/admin/oj-handles`, {
       method: 'POST',
       headers: jsonHeaders(token),
-      body: JSON.stringify({ studentIdentity: user.studentIdentity, handle: user.handle }),
+      body: JSON.stringify({ studentIdentity: user.studentIdentity, handles: { CODEFORCES: user.handle } }),
     });
     if (createHandle.status === 201) {
       handleCreated += 1;
@@ -124,28 +152,26 @@ async function main() {
       throw new Error(`create handle ${user.handle} failed: HTTP ${createHandle.status}`);
     }
   }
-  console.log(`Codeforces handles ready: created=${handleCreated}, already-bound=${handleSkipped}`);
+  console.log(`OJ handle bindings ready: created=${handleCreated}, already-bound=${handleSkipped}`);
 
-  const fixture = fs.readFileSync(fixturePath, 'utf8');
-  const upsert = await request(`${trainingDataBaseUrl}/api/training-data/admin/ods/codeforces/submissions:batch-upsert`, {
+  const collectionJob = await request(`${trainingDataBaseUrl}/api/training-data/admin/codeforces/submissions:collect-batch-jobs`, {
     method: 'POST',
     headers: jsonHeaders(token),
-    body: fixture,
+    body: JSON.stringify({
+      studentIdentities: sampleUsers.map((user) => user.studentIdentity),
+      lookbackHours: collectLookbackHours,
+      refreshWarehouse: true,
+      ojName: null,
+    }),
   });
-  if (!upsert.ok) {
-    throw new Error(`ODS upsert failed: HTTP ${upsert.status}`);
+  if (!collectionJob.ok) {
+    throw new Error(`start collection job failed: HTTP ${collectionJob.status}`);
   }
-  console.log(`ODS upsert completed: rows=${upsert.body.writtenRows}, batchId=${upsert.body.batchId}`);
-
-  const refresh = await request(`${trainingDataBaseUrl}/api/training-data/admin/codeforces/warehouse:refresh`, {
-    method: 'POST',
-    headers: jsonHeaders(token),
-    body: JSON.stringify({ batchId: upsert.body.batchId }),
-  });
-  if (!refresh.ok) {
-    throw new Error(`warehouse refresh failed: HTTP ${refresh.status}`);
-  }
-  console.log(`Warehouse refresh completed: status=${refresh.body.status}, tasks=${refresh.body.tasks?.length ?? 0}`);
+  console.log(`Collection job started: jobId=${collectionJob.body.jobId}, requested=${collectionJob.body.requestedCount}`);
+  const completedJob = collectionJob.body.status === 'RUNNING'
+    ? await waitForCollectionJob(token, collectionJob.body.jobId)
+    : collectionJob.body;
+  console.log(`Collection job completed: status=${completedJob.status}, collected=${completedJob.collectedCount}, rows=${completedJob.writtenRows}, refreshed=${completedJob.refreshedCount}`);
 
   for (const user of sampleUsers) {
     const summary = await request(

@@ -2,21 +2,21 @@ import type { DashboardTask } from '../types';
 
 export const dashboardTasksFixture: DashboardTask[] = [
   {
-    id: 'operation-ods-failed',
-    title: 'ODS Codeforces 批量 upsert 失败',
+    id: 'operation-collection-failed',
+    title: 'Codeforces 采集任务失败',
     module: 'ods-import',
     status: 'failed',
     priority: 'P1',
     owner: { name: '接口操作', role: 'admin', avatar: 'API' },
     subjectLabel: '第 55 批',
-    source: 'ODS',
+    source: 'Codeforces',
     updatedAt: '2026-07-06T00:10:00Z',
     action: '结果',
-    detail: '第 55 批 fixture 上传失败。',
+    detail: '第 55 批采集任务失败。',
   },
   {
     id: 'user-bound',
-    title: '选手账号：230511214李明',
+    title: '队员账号：230511214李明',
     module: 'codeforces',
     status: 'completed',
     priority: 'P3',
@@ -30,7 +30,7 @@ export const dashboardTasksFixture: DashboardTask[] = [
   },
   {
     id: 'user-unbound',
-    title: '选手账号：230511213黄炳睿',
+    title: '队员账号：230511213黄炳睿',
     module: 'accounts',
     status: 'pending',
     priority: 'P2',
@@ -40,6 +40,6 @@ export const dashboardTasksFixture: DashboardTask[] = [
     source: 'Auth',
     updatedAt: '2026-07-06T00:07:00Z',
     action: '绑定',
-    detail: 'auth-web 中存在账号，training-data 暂无 Codeforces 绑定。',
+    detail: 'auth-web 中存在账号，training-data 暂无 OJ handle 绑定。',
   },
 ];

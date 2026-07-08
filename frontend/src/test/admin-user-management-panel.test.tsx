@@ -8,9 +8,11 @@ import {
 import type {
   AuthUser,
   BatchStudentImportSummary,
+  FullUserDataDeleteSummary,
   StudentTrainingRecord,
   UserInfoUpdateSummary,
 } from '../types';
+import { OJ_NAMES } from '../types';
 
 const users: AuthUser[] = [
   {
@@ -26,6 +28,7 @@ const records: StudentTrainingRecord[] = [
     studentIdentity: '230511213黄炳睿',
     role: 'player',
     handle: null,
+    handles: {},
     handleStatus: 'missing',
     acceptedSummary: null,
     summaryStatus: 'not-requested',
@@ -38,7 +41,14 @@ const boundRecords: StudentTrainingRecord[] = [
   {
     ...records[0],
     handle: 'tourist',
+    handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
     needCollect: true,
+    collectionStates: {
+      [OJ_NAMES.CODEFORCES]: {
+        historyStartReached: true,
+        lastCollectedAt: '2026-07-08T20:00:00',
+      },
+    },
     handleStatus: 'bound',
   },
 ];
@@ -59,6 +69,7 @@ const importSummary: BatchStudentImportSummary = {
       success: true,
       studentIdentity: '230511213黄炳睿',
       handle: 'tourist',
+      handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
       errorCode: null,
       message: 'handle created',
     },
@@ -94,6 +105,7 @@ const multiImportSummary: BatchStudentImportSummary = {
       success: true,
       studentIdentity: '230511213黄炳睿',
       handle: 'tourist',
+      handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
       errorCode: null,
       message: 'handle created',
     },
@@ -112,8 +124,45 @@ const updateSummary: UserInfoUpdateSummary = {
   handleResult: null,
 };
 
+const deleteSummary: FullUserDataDeleteSummary = {
+  trainingDataResult: {
+    studentIdentity: '230511213黄炳睿',
+    ojName: OJ_NAMES.CODEFORCES,
+    handle: 'tourist',
+    handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
+    ojResults: [
+      {
+        ojName: OJ_NAMES.CODEFORCES,
+        handle: 'tourist',
+        odsSubmissionRows: 5,
+        dwdSubmissionRows: 4,
+        dwmFirstAcceptedRows: 3,
+        dwsAcceptedSummaryRows: 2,
+        totalDeletedRows: 14,
+      },
+    ],
+    handleAccountRows: 0,
+    odsSubmissionRows: 5,
+    dwdSubmissionRows: 4,
+    dwmFirstAcceptedRows: 3,
+    dwsAcceptedSummaryRows: 2,
+    totalDeletedRows: 14,
+  },
+  authUserResult: {
+    success: true,
+    studentIdentity: '230511213黄炳睿',
+    user: null,
+    plainPassword: null,
+    errorCode: null,
+    message: 'deleted',
+  },
+};
+
 describe('AdminUserManagementPanel', () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
 
   it('parses comma-separated student rows with optional Codeforces handles', () => {
     expect(parseBatchStudentInput('230511213黄炳睿,player,,tourist')).toEqual([
@@ -122,6 +171,9 @@ describe('AdminUserManagementPanel', () => {
         role: 'player',
         password: undefined,
         handle: 'tourist',
+        codeforcesHandle: 'tourist',
+        atcoderHandle: undefined,
+        handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
       },
     ]);
   });
@@ -132,13 +184,23 @@ describe('AdminUserManagementPanel', () => {
         currentUserIdentity={null}
         isRefreshing={false}
         onBatchImportStudents={vi.fn().mockResolvedValue(importSummary)}
+        onDeleteFullUserData={vi.fn().mockResolvedValue(deleteSummary)}
         onUpdateStudentInfo={vi.fn().mockResolvedValue(updateSummary)}
         records={records}
         users={users}
       />,
     );
 
-    expect((screen.getByLabelText('文本导入') as HTMLTextAreaElement).value).toBe('');
+    const importTextarea = screen.getByLabelText('文本导入') as HTMLTextAreaElement;
+    expect(importTextarea.value).toBe('');
+    expect(importTextarea.placeholder).toContain('格式：学号姓名, role, password, Codeforces handle, AtCoder handle');
+    expect(importTextarea.placeholder).toContain('230511213队员甲');
+    expect(importTextarea.placeholder).not.toContain('黄炳睿');
+    expect(importTextarea.placeholder).not.toContain('李明');
+    expect(importTextarea.placeholder).not.toContain('王强');
+    expect(screen.queryByText('字段顺序')).toBeNull();
+    expect(screen.queryByText('创建用户信息栏')).toBeNull();
+    expect(screen.getByRole('button', { name: '增加一名队员' })).not.toBeNull();
     expect((screen.getByLabelText('第 1 行学号姓名') as HTMLInputElement).value).toBe('');
     expect((screen.getByLabelText('第 1 行初始密码') as HTMLInputElement).value).toBe('');
     expect((screen.getByLabelText('第 1 行 Codeforces handle') as HTMLInputElement).value).toBe('');
@@ -153,6 +215,7 @@ describe('AdminUserManagementPanel', () => {
         currentUserIdentity={null}
         isRefreshing={false}
         onBatchImportStudents={onBatchImportStudents}
+        onDeleteFullUserData={vi.fn().mockResolvedValue(deleteSummary)}
         onUpdateStudentInfo={vi.fn().mockResolvedValue(updateSummary)}
         records={records}
         users={users}
@@ -168,7 +231,7 @@ describe('AdminUserManagementPanel', () => {
     expect((screen.getByLabelText('第 1 行初始密码') as HTMLInputElement).value).toBe('initialPass123');
     expect((screen.getByLabelText('第 1 行 Codeforces handle') as HTMLInputElement).value).toBe('tourist');
 
-    await user.click(screen.getByRole('button', { name: '创建用户' }));
+    await user.click(screen.getByRole('button', { name: '执行创建' }));
 
     await waitFor(() => {
       expect(onBatchImportStudents).toHaveBeenCalledWith([
@@ -177,6 +240,9 @@ describe('AdminUserManagementPanel', () => {
           role: 'player',
           password: 'initialPass123',
           handle: 'tourist',
+          codeforcesHandle: 'tourist',
+          atcoderHandle: undefined,
+          handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
         },
       ]);
     });
@@ -190,6 +256,7 @@ describe('AdminUserManagementPanel', () => {
         currentUserIdentity={null}
         isRefreshing={false}
         onBatchImportStudents={vi.fn().mockResolvedValue(multiImportSummary)}
+        onDeleteFullUserData={vi.fn().mockResolvedValue(deleteSummary)}
         onUpdateStudentInfo={vi.fn().mockResolvedValue(updateSummary)}
         records={records}
         users={users}
@@ -205,7 +272,7 @@ describe('AdminUserManagementPanel', () => {
       },
     });
     await user.click(screen.getByRole('button', { name: '填入信息栏' }));
-    await user.click(screen.getByRole('button', { name: '创建用户' }));
+    await user.click(screen.getByRole('button', { name: '执行创建' }));
 
     const resultTable = await screen.findByRole('table', { name: '创建用户结果' });
     const dataRows = within(resultTable).getAllByRole('row').slice(1);
@@ -227,6 +294,7 @@ describe('AdminUserManagementPanel', () => {
         currentUserIdentity={null}
         isRefreshing={false}
         onBatchImportStudents={vi.fn().mockResolvedValue(importSummary)}
+        onDeleteFullUserData={vi.fn().mockResolvedValue(deleteSummary)}
         onUpdateStudentInfo={onUpdateStudentInfo}
         records={records}
         users={users}
@@ -234,6 +302,9 @@ describe('AdminUserManagementPanel', () => {
     );
 
     await user.click(screen.getByRole('button', { name: '编辑 230511213黄炳睿' }));
+    expect(screen.getByText('修改用户信息')).not.toBeNull();
+    expect(screen.getByLabelText('修改学号姓名')).not.toBeNull();
+    expect(screen.queryByText('自动生成新密码')).toBeNull();
     fireEvent.change(screen.getByLabelText('修改用户角色'), { target: { value: 'disable' } });
     await user.click(screen.getByRole('button', { name: '保存修改' }));
 
@@ -242,10 +313,38 @@ describe('AdminUserManagementPanel', () => {
         studentIdentity: '230511213黄炳睿',
         role: 'disable',
         newPassword: undefined,
-        handle: undefined,
+        handles: undefined,
       });
     });
     expect(screen.getByText('230511213黄炳睿 / disable')).not.toBeNull();
+  });
+
+  it('deletes a user from the expanded edit panel after confirmation', async () => {
+    const user = userEvent.setup();
+    const confirm = vi.fn().mockReturnValue(true);
+    vi.stubGlobal('confirm', confirm);
+    const onDeleteFullUserData = vi.fn().mockResolvedValue(deleteSummary);
+    render(
+      <AdminUserManagementPanel
+        currentUserIdentity={null}
+        isRefreshing={false}
+        onBatchImportStudents={vi.fn().mockResolvedValue(importSummary)}
+        onDeleteFullUserData={onDeleteFullUserData}
+        onUpdateStudentInfo={vi.fn().mockResolvedValue(updateSummary)}
+        records={boundRecords}
+        users={users}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '编辑 230511213黄炳睿' }));
+    await user.click(screen.getByRole('button', { name: '删除用户信息' }));
+
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('确认彻底删除 230511213黄炳睿'));
+    await waitFor(() => {
+      expect(onDeleteFullUserData).toHaveBeenCalledWith('230511213黄炳睿');
+    });
+    expect(screen.getByText('已删除 230511213黄炳睿，训练数据 14 行')).not.toBeNull();
+    vi.unstubAllGlobals();
   });
 
   it('submits Codeforces automatic collection flag changes for bound users', async () => {
@@ -256,6 +355,7 @@ describe('AdminUserManagementPanel', () => {
         success: true,
         studentIdentity: '230511213黄炳睿',
         handle: 'tourist',
+        handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
         needCollect: false,
         errorCode: null,
         message: 'collection flag updated',
@@ -266,6 +366,7 @@ describe('AdminUserManagementPanel', () => {
         currentUserIdentity={null}
         isRefreshing={false}
         onBatchImportStudents={vi.fn().mockResolvedValue(importSummary)}
+        onDeleteFullUserData={vi.fn().mockResolvedValue(deleteSummary)}
         onUpdateStudentInfo={onUpdateStudentInfo}
         records={boundRecords}
         users={users}
@@ -281,11 +382,65 @@ describe('AdminUserManagementPanel', () => {
         studentIdentity: '230511213黄炳睿',
         role: 'player',
         newPassword: undefined,
-        handle: undefined,
+        handles: undefined,
         needCollect: false,
       });
     });
-    expect(screen.getByText('Codeforces handle：tourist，自动采集：否')).not.toBeNull();
+    expect(screen.getByText('OJ handle：Codeforces：tourist，自动采集：否')).not.toBeNull();
+  });
+
+  it('locks existing handles while allowing missing handle and identity updates', async () => {
+    const user = userEvent.setup();
+    const onUpdateStudentInfo = vi.fn().mockResolvedValue({
+      ...updateSummary,
+      handleResult: {
+        success: true,
+        studentIdentity: '230511214新同学',
+        handle: 'tourist',
+        handles: {
+          [OJ_NAMES.CODEFORCES]: 'tourist',
+          [OJ_NAMES.ATCODER]: 'atcoder_id',
+        },
+        needCollect: true,
+        errorCode: null,
+        message: 'handle identity changed',
+      },
+    } satisfies UserInfoUpdateSummary);
+    render(
+      <AdminUserManagementPanel
+        currentUserIdentity={null}
+        isRefreshing={false}
+        onBatchImportStudents={vi.fn().mockResolvedValue(importSummary)}
+        onDeleteFullUserData={vi.fn().mockResolvedValue(deleteSummary)}
+        onUpdateStudentInfo={onUpdateStudentInfo}
+        records={boundRecords}
+        users={users}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '编辑 230511213黄炳睿' }));
+    const codeforcesInput = screen.getByLabelText('修改用户 Codeforces handle') as HTMLInputElement;
+    expect(codeforcesInput.disabled).toBe(true);
+    expect(codeforcesInput.value).toBe('tourist');
+    await user.clear(screen.getByLabelText('修改学号姓名'));
+    await user.type(screen.getByLabelText('修改学号姓名'), '230511214新同学');
+    await user.type(screen.getByLabelText('修改用户 AtCoder handle'), 'atcoder_id');
+    await user.click(screen.getByRole('button', { name: '保存修改' }));
+
+    await waitFor(() => {
+      expect(onUpdateStudentInfo).toHaveBeenCalledWith({
+        studentIdentity: '230511213黄炳睿',
+        newStudentIdentity: '230511214新同学',
+        role: 'player',
+        newPassword: undefined,
+        handles: {
+          [OJ_NAMES.CODEFORCES]: 'tourist',
+          [OJ_NAMES.ATCODER]: 'atcoder_id',
+        },
+        needCollect: true,
+      });
+    });
+    expect(screen.getByText('OJ handle：Codeforces：tourist / AtCoder：atcoder_id，自动采集：是')).not.toBeNull();
   });
 
   it('lists all users by descending student number at the bottom', () => {
@@ -315,6 +470,7 @@ describe('AdminUserManagementPanel', () => {
         currentUserIdentity="root"
         isRefreshing={false}
         onBatchImportStudents={vi.fn().mockResolvedValue(importSummary)}
+        onDeleteFullUserData={vi.fn().mockResolvedValue(deleteSummary)}
         onUpdateStudentInfo={vi.fn().mockResolvedValue(updateSummary)}
         records={[
           ...boundRecords,
@@ -322,8 +478,15 @@ describe('AdminUserManagementPanel', () => {
             ...records[0],
             studentIdentity: '230511215王强',
             handle: 'wang',
+            handles: { [OJ_NAMES.CODEFORCES]: 'wang' },
             handleStatus: 'bound',
             needCollect: false,
+            collectionStates: {
+              [OJ_NAMES.CODEFORCES]: {
+                historyStartReached: false,
+                lastCollectedAt: null,
+              },
+            },
           },
         ]}
         users={allUsers}
@@ -341,5 +504,15 @@ describe('AdminUserManagementPanel', () => {
     ]);
     expect(bodyRows[0].textContent).toContain('wang');
     expect(bodyRows[0].textContent).toContain('否');
+    expect(bodyRows[0].textContent).toContain('Codeforces：未到最早');
+    expect(bodyRows[0].textContent).toContain('Codeforces：未采集');
+    expect(bodyRows[1]?.textContent).toContain('Codeforces：已到最早');
+    expect(bodyRows[1]?.textContent).toContain('Codeforces：2026/07/08 20:00');
+    expect(screen.queryByRole('columnheader', { name: '创建时间' })).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: '更新时间' })).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: '角色' })).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: '自动采集' })).toBeNull();
+    expect(screen.getByRole('columnheader', { name: '最早采集' })).not.toBeNull();
+    expect(screen.getByRole('columnheader', { name: '最近采集' })).not.toBeNull();
   });
 });

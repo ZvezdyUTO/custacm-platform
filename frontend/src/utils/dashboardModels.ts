@@ -1,3 +1,4 @@
+import { OJ_NAMES } from '../types';
 import type {
   AccountRole,
   AlertItem,
@@ -8,6 +9,7 @@ import type {
   DashboardTask,
   Metric,
   OperationsStatus,
+  PlatformModuleInfo,
   PermissionSummary,
   ServiceHealth,
   StudentTrainingRecord,
@@ -40,13 +42,13 @@ export function buildMetrics(
       id: 'accounts',
       label: '平台账号',
       value: String(users.length),
-      delta: `管理员 ${roleCounts.admin} / 选手 ${roleCounts.player} / 禁用 ${roleCounts.disable}`,
+      delta: `管理员 ${roleCounts.admin} / 队员 ${roleCounts.player} / 禁用 ${roleCounts.disable}`,
       tone: failedServices > 0 ? 'amber' : 'blue',
       iconKey: 'users',
     },
     {
       id: 'handles',
-      label: 'CF 绑定',
+      label: 'OJ 绑定',
       value: String(boundCount),
       delta: `未绑定 ${Math.max(users.length - boundCount, 0)} 个学号姓名`,
       tone: 'green',
@@ -56,7 +58,7 @@ export function buildMetrics(
       id: 'accepted',
       label: '首次通过题目',
       value: String(totalAccepted),
-      delta: firstAccepted ? `当前选手 ${firstAccepted.totalAcceptedProblemCount} 题` : '等待选择选手',
+      delta: firstAccepted ? `当前队员 ${firstAccepted.totalAcceptedProblemCount} 题` : '等待选择队员',
       tone: 'violet',
       iconKey: 'trophy',
     },
@@ -80,7 +82,7 @@ export function buildMetrics(
       id: 'errors',
       label: '接口异常',
       value: String(records.filter((record) => record.handleStatus === 'error' || record.summaryStatus === 'error').length),
-      delta: '来自真实 HTTP 响应',
+      delta: '来自查询结果',
       tone: 'red',
       iconKey: 'key-round',
     },
@@ -91,27 +93,34 @@ export function buildOperationsStatuses(
   health: ServiceHealth[],
   tokenPresent: boolean,
   lastBatchId: string | null,
+  moduleInfo: PlatformModuleInfo[] = [],
 ): OperationsStatus[] {
   const authHealth = health.find((item) => item.service === 'auth-web');
   const trainingDataHealth = health.find((item) => item.service === 'training-data-web');
+  const authModuleInfo = moduleInfo.find((item) => item.service === 'auth-web');
+  const trainingDataModuleInfo = moduleInfo.find((item) => item.service === 'training-data-web');
 
   return [
     {
       id: 'auth-health',
       title: `auth-web ${authHealth?.status ?? 'UNKNOWN'}`,
-      detail: tokenPresent ? '已持有平台 JWT，可调用 admin 接口' : '未登录，只能探活和查看登录入口',
+      detail: authModuleInfo
+        ? `${authModuleInfo.module} / ${authModuleInfo.features.length} features`
+        : tokenPresent ? '已持有平台 JWT，可调用 admin 接口' : '未登录，只能探活和查看登录入口',
       tone: authHealth?.status === 'UP' ? 'green' : 'red',
     },
     {
       id: 'training-health',
       title: `training-data-web ${trainingDataHealth?.status ?? 'UNKNOWN'}`,
-      detail: trainingDataHealth?.detail ?? '等待训练数据服务探活',
+      detail: trainingDataModuleInfo
+        ? `${trainingDataModuleInfo.module} / ${trainingDataModuleInfo.features.length} features`
+        : trainingDataHealth?.detail ?? '等待训练数据服务探活',
       tone: trainingDataHealth?.status === 'UP' ? 'green' : 'red',
     },
     {
       id: 'warehouse-batch',
-      title: lastBatchId ? 'ODS 批次可刷新' : '等待 ODS 批次',
-      detail: lastBatchId ?? '可通过种子脚本或页面上传 Codeforces submission JSON 生成 batchId',
+      title: lastBatchId ? '最近采集批次' : '等待采集批次',
+      detail: lastBatchId ?? '通过训练数据采集生成 batchId 后可查看最近批次',
       tone: lastBatchId ? 'blue' : 'amber',
     },
   ];
@@ -124,7 +133,7 @@ export function buildPermissionSummary(users: AuthUser[]): PermissionSummary {
   return {
     total: String(users.length),
     segments: [
-      { id: 'ok', label: '选手', value: `${counts.player} (${percentage(counts.player, total)})` },
+      { id: 'ok', label: '队员', value: `${counts.player} (${percentage(counts.player, total)})` },
       { id: 'pending', label: '管理员', value: `${counts.admin} (${percentage(counts.admin, total)})` },
       { id: 'danger', label: '禁用', value: `${counts.disable} (${percentage(counts.disable, total)})` },
       {
@@ -151,7 +160,7 @@ export function buildTimeline(operations: DashboardOperation[], records: Student
     .map<TimelineItem>((record) => ({
       id: `record-${record.studentIdentity}`,
       title: record.studentIdentity,
-      meta: record.errorMessage ?? (record.handle ? '训练数据待刷新' : '未绑定 Codeforces handle'),
+      meta: record.errorMessage ?? (record.handle ? '训练数据待刷新' : '未绑定 OJ handle'),
       status: record.errorMessage ? 'failed' : 'pending',
       time: formatShortTime(record.updatedAt),
     }));
@@ -179,7 +188,7 @@ export function buildAlerts(
     .slice(0, 4)
     .map<AlertItem>((record) => ({
       id: `data-${record.studentIdentity}`,
-      title: record.handle ? '训练数据查询异常' : '缺少 Codeforces 绑定',
+      title: record.handle ? '训练数据查询异常' : '缺少 OJ handle 绑定',
       detail: record.errorMessage ?? record.studentIdentity,
       severity: record.errorMessage ? 'error' : 'warning',
       time: formatShortTime(record.updatedAt),
@@ -232,30 +241,51 @@ export function buildTasks(
         },
         subjectLabel: record?.handle ? `${user.studentIdentity} / ${record.handle}` : user.studentIdentity,
         studentIdentity: user.studentIdentity,
-        source: record?.handle ? 'Codeforces' : 'Auth',
+        source: sourceForRecord(record),
         updatedAt: user.updatedAt,
         action: record?.handle ? '查询' : '绑定',
         detail: record?.handle
           ? `DWS 首次通过 ${acceptedCount} 题，handle=${record.handle}`
-          : 'auth-web 中存在账号，training-data 暂无 Codeforces 绑定。',
+          : 'auth-web 中存在账号，training-data 暂无 OJ handle 绑定。',
       };
     });
 
-  const operationRows = operations.slice(0, 4).map<DashboardTask>((operation) => ({
-    id: `operation-${operation.id}`,
-    title: operation.title,
-    module: operation.title.includes('ODS') ? 'ods-import' : 'system',
-    status: operation.status,
-    priority: operation.status === 'failed' ? 'P1' : 'P2',
-    owner: { name: '接口操作', role: 'admin', avatar: 'API' },
-    subjectLabel: operation.detail,
-    source: operation.title.includes('Codeforces') ? 'Codeforces' : 'ODS',
-    updatedAt: new Date().toISOString(),
-    action: '结果',
-    detail: operation.detail,
-  }));
+  const operationRows = operations.slice(0, 4).map<DashboardTask>((operation) => {
+    const isCollectionOperation = operation.title.includes('采集') || operation.title.includes('批次');
+    return {
+      id: `operation-${operation.id}`,
+      title: operation.title,
+      module: isCollectionOperation ? 'ods-import' : 'system',
+      status: operation.status,
+      priority: operation.status === 'failed' ? 'P1' : 'P2',
+      owner: { name: '接口操作', role: 'admin', avatar: 'API' },
+      subjectLabel: operation.detail,
+      source: sourceForOperation(operation, isCollectionOperation),
+      updatedAt: new Date().toISOString(),
+      action: '结果',
+      detail: operation.detail,
+    };
+  });
 
   return [...operationRows, ...userRows];
+}
+
+function sourceForRecord(record: StudentTrainingRecord | undefined) {
+  if (!record?.handle) {
+    return 'Auth';
+  }
+  return record.handles[OJ_NAMES.ATCODER] === record.handle ? 'AtCoder' : 'Codeforces';
+}
+
+function sourceForOperation(operation: DashboardOperation, isCollectionOperation: boolean) {
+  const searchableText = `${operation.title} ${operation.detail}`;
+  if (searchableText.includes('AtCoder')) {
+    return 'AtCoder';
+  }
+  if (searchableText.includes('Codeforces')) {
+    return 'Codeforces';
+  }
+  return isCollectionOperation ? 'ODS' : '系统';
 }
 
 function countRoles(users: AuthUser[]) {
@@ -273,7 +303,7 @@ function percentage(value: number, total: number) {
 }
 
 function roleLabel(role: AccountRole) {
-  return role === 'admin' ? '管理员' : role === 'player' ? '选手' : '禁用';
+  return role === 'admin' ? '管理员' : role === 'player' ? '队员' : '禁用';
 }
 
 function avatarOf(studentIdentity: string) {

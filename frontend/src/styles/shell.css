@@ -21,7 +21,7 @@
 
 .sidebar-brand {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   padding: 2px 0 6px;
@@ -35,8 +35,8 @@
 
 .brand-logo {
   display: block;
-  width: 76px;
-  height: 76px;
+  width: 96px;
+  height: 96px;
   clip-path: circle(46.5% at 50% 50%);
   object-fit: cover;
   object-position: center;
@@ -61,7 +61,7 @@
   display: grid;
   gap: 4px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-panel);
   background: #fff;
   padding: 12px;
 }
@@ -145,7 +145,7 @@
   width: 100%;
   border: 0;
   border-left: 3px solid #d8dee8;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   background: #ffffff;
   padding: 8px 10px;
   font: inherit;
@@ -157,7 +157,7 @@
   width: 34px;
   height: 34px;
   place-items: center;
-  border-radius: 9px;
+  border-radius: var(--radius-panel);
   background: #f2f4f7;
   color: #667085;
 }
@@ -275,7 +275,7 @@
   height: 22px;
   place-items: center;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   color: #475467;
   font-size: 12px;
 }
@@ -292,6 +292,48 @@
   justify-content: flex-end;
 }
 
+.password-menu {
+  position: relative;
+}
+
+.password-change-form {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  gap: 10px;
+  width: min(320px, calc(100vw - 28px));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: #fff;
+  box-shadow: var(--shadow);
+  padding: 12px;
+}
+
+.password-change-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.password-change-form input {
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  padding: 0 10px;
+}
+
+.password-change-form p {
+  margin: 0;
+  color: #b42318;
+  font-size: 12px;
+  font-weight: 650;
+}
+
 .topbar-workspace-switcher {
   display: flex;
   align-items: center;
@@ -304,7 +346,7 @@
   height: 34px;
   place-items: center;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   color: #475467;
 }
 
@@ -334,7 +376,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   padding: 4px 6px;
   text-align: left;
 }

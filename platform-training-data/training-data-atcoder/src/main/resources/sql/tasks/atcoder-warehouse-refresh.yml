@@ -1,0 +1,17 @@
+tasks:
+  - id: atcoder.dwd.submission
+    description: Refresh AtCoder DWD submissions for the ODS batch date interval.
+    sql: classpath:sql/dwd/upsert_dwd_atcoder__submission.sql
+    timeoutSeconds: 60
+  - id: atcoder.dwm.handle_problem_first_accepted
+    description: Refresh AtCoder first-accepted handle/problem facts from DWD.
+    sql: classpath:sql/dwm/upsert_dwm_atcoder__handle_problem_first_accepted.sql
+    dependsOn:
+      - atcoder.dwd.submission
+    timeoutSeconds: 60
+  - id: atcoder.dws.handle_daily_rating_accepted_summary
+    description: Refresh AtCoder handle/date/difficulty accepted summary from DWM.
+    sql: classpath:sql/dws/upsert_dws_atcoder__handle_daily_rating_accepted_summary.sql
+    dependsOn:
+      - atcoder.dwm.handle_problem_first_accepted
+    timeoutSeconds: 60

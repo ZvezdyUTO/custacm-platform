@@ -19,6 +19,21 @@ platform:
       public-key: ${AUTH_JWT_PUBLIC_KEY:}
       public-key-path: ${AUTH_JWT_PUBLIC_KEY_PATH:}
   training-data:
+    collector:
+      job-item-interval: 4s
+      schedules:
+        - name: daily-recent-submissions
+          oj-name: CODEFORCES
+          enabled: true
+          cron: "0 0 12 * * *"
+          zone: Asia/Shanghai
+          lookback: 120h
+        - name: atcoder-daily-recent-submissions
+          oj-name: ATCODER
+          enabled: true
+          cron: "0 15 12 * * *"
+          zone: Asia/Shanghai
+          lookback: 120h
     codeforces:
       collector:
         base-url: https://codeforces.com
@@ -27,9 +42,17 @@ platform:
         read-timeout: 30s
         request-interval: 4s
         max-request-attempts: 3
-        schedules:
-          - name: daily-recent-submissions
-            enabled: false
-            cron: "0 0 12 * * *"
-            zone: Asia/Shanghai
-            lookback: 120h
+    atcoder:
+      collector:
+        base-url: https://kenkoooo.com
+        page-size: 500
+        connect-timeout: 10s
+        read-timeout: 30s
+        request-interval: 2s
+        max-request-attempts: 3
+      problem-list-collector:
+        enabled: true
+        bootstrap-on-startup: true
+        bootstrap-only-when-empty: true
+        cron: "0 30 3 ? * MON"
+        zone: Asia/Shanghai

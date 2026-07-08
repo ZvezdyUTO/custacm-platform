@@ -22,7 +22,9 @@ custacm-platform/
     auth-web/
 
   platform-training-data/
+    training-data-common/
     training-data-codeforces/
+    training-data-atcoder/
     training-data-web/
 
   platform-blog/
@@ -115,58 +117,75 @@ platform-auth/
 
 Current implementation:
 
-- stores raw Codeforces submissions in `ods_codeforces__submission`;
-- stores cleaned Codeforces submission details in `dwd_codeforces__submission`;
+- stores raw Codeforces submissions in `ods_codeforces__submission`, attributed to the collected `user.status` handle for team submissions;
+- stores raw AtCoder submissions from Kenkoooo in `ods_atcoder__submission`;
+- stores raw AtCoder problem-list items from Kenkoooo `resources/problems.json` in `ods_atcoder__problem`;
+- stores cleaned Codeforces submission details in `dwd_codeforces__submission` at `submission + handle` grain;
 - stores Codeforces handle/problem first accepted intermediate facts in `dwm_codeforces__handle_problem_first_accepted`;
 - stores Codeforces handle/date/rating accepted summaries in `dws_codeforces__handle_daily_rating_accepted_summary`;
-- stores platform `studentIdentity` to Codeforces handle bindings and automatic-collection flags in `codeforces_handle_account`;
-- keeps Codeforces HTTP ingress, ingest application service, recent-lookback submission collector, in-process collection job service, collect batch type, ODS record, parser, writer, handle-account mapping, fixture, DDL, SQL task resources, SQL task manifest, Spring config, and tests in an independent OJ module;
+- stores cleaned AtCoder submission details in `dwd_atcoder__submission`;
+- stores AtCoder handle/problem first accepted intermediate facts in `dwm_atcoder__handle_problem_first_accepted`;
+- stores AtCoder handle/date/difficulty accepted summaries in `dws_atcoder__handle_daily_rating_accepted_summary`;
+- stores platform `studentIdentity` to OJ handle bindings in `oj_handle_account`, where `handles_json` is an uppercase OJ-name to handle map, `need_collect` is the current automatic-collection eligibility flag, and `collection_states_json` is an uppercase OJ-name to `{historyStartReached,lastCollectedAt}` map;
+- keeps reusable OJ app/domain/infra code in `training-data-common`: handle-account services/repositories, DWD/DWM/DWS query services/repositories, common same-layer DWD/DWM/DWS table DDL migrations, student-data purge orchestration, submission-collection orchestration, OJ collector dispatch, generic warehouse refresh interval/service/handler contracts, OJ warehouse refresh dispatch, in-process job service, scheduling helpers, lookback window computation, handle resolver/adapter contracts, in-JVM overlap skipping, source request retry/rate limiting, sorted-page window filtering, aggregate result models, scheduled-collection properties/config, required-text argument validation, and tests;
+- keeps Codeforces ingest application service, Codeforces collection adapter/facade, collect batch type, ODS record, parser, writer, Codeforces ODS purge adapter, refresh interval JDBC adapter, fixture, historical DDL/Flyway migrations, SQL task resources, SQL task manifest, Spring config, and tests in an independent OJ module;
+- keeps AtCoder Kenkoooo source client, ODS ingest application service, recent-window submission collection adapter/facade, startup/low-frequency problem-list collection service, collect batch type, submission/problem ODS records, parser, writers, AtCoder ODS purge adapter, AtCoder refresh interval JDBC adapter, ODS landing table migrations, DWD/DWM/DWS SQL task resources, Spring config, and tests in an independent OJ module;
 - parses Codeforces fixture data into OJ-specific ODS records for repeatable tests;
-- writes ODS rows through `CodeforcesOdsSubmissionWriter` and its JDBC implementation;
-- exposes OJ-specific ODS ingest through each OJ module under `training-data-web`;
+- writes Codeforces ODS rows through `CodeforcesOdsSubmissionWriter` and AtCoder ODS rows through `AtcoderOdsSubmissionWriter` / `AtcoderOdsProblemWriter` JDBC implementations;
 - uses platform RSA JWT resource-server validation for protected `/admin/**` and `/player/**` URL tiers, matching the auth module's converter.
-- exposes OJ-specific ODS ingest under `/api/training-data/admin/**`, restricted to the platform `admin` role.
-- exposes Codeforces recent-lookback submission collection under `/api/training-data/admin/codeforces/submissions:collect`, and browser-resumable in-process collection jobs under `/api/training-data/admin/codeforces/submissions:collect-batch-jobs`, restricted to the platform `admin` role.
-- exposes Codeforces handle-account creation and identity/automatic-collection-flag updates under `/api/training-data/admin/codeforces/**`, restricted to the platform `admin` role.
-- exposes Codeforces warehouse refresh under `/api/training-data/admin/codeforces/warehouse:refresh`, restricted to the platform `admin` role.
-- exposes Codeforces student-data purge under `/api/training-data/admin/codeforces/users/{studentIdentity}/data`, restricted to the platform `admin` role; this deletes the current handle binding plus ODS/DWD/DWM/DWS rows for that handle, but not the auth account.
-- exposes Codeforces handle lookup by `studentIdentity` under `/api/training-data/codeforces/**` as a guest endpoint that does not parse JWTs.
-- exposes Codeforces DWD/DWM/DWS read-side query endpoints under `/api/training-data/codeforces/**` as guest endpoints that do not parse JWTs; DWS includes a `need_collect=true` automatic-collection user summary list sorted by total AC count, and DWD submission detail queries are backend-paginated, newest-first, and return exact total/page metadata.
-- applies ODS/DWD/DWM/DWS and Codeforces handle-account table migrations from OJ modules through Flyway at `training-data-web` startup.
+- exposes Codeforces-compatible recent-lookback submission collection under `/api/training-data/admin/codeforces/submissions:collect`, and browser-resumable in-process collection jobs under `/api/training-data/admin/codeforces/submissions:collect-batch-jobs`, restricted to the platform `admin` role; both accept optional `ojName`, where omitted uses the dispatcher default `CODEFORCES` and explicit `ATCODER` selects the Kenkoooo AtCoder collector.
+- exposes OJ handle-account creation and identity/automatic-collection-flag updates under `/api/training-data/admin/oj-handles/**`, restricted to the platform `admin` role.
+- exposes student-data purge under `/api/training-data/admin/students/{studentIdentity}/oj-data`, restricted to the platform `admin` role; `ojName` is a required query parameter and selects one bound OJ. The use case runs in one transaction, deletes DWD/DWM/DWS through the common OJ warehouse purge contract, deletes ODS through the selected OJ-specific purge adapter, and keeps handle-account and auth accounts.
+- exposes the full OJ handle account map, including per-OJ collection states, under `/api/training-data/oj-handles` as a guest endpoint that does not parse JWTs.
+- exposes public DWD/DWM/DWS read-side query endpoints under `/api/training-data/codeforces/**` as guest endpoints that do not parse JWTs; single-user/problem queries accept `ojName` as the OJ pass-through parameter, app services resolve the requested OJ handle from `handles_json`, JDBC selects the same-layer table by the normalized OJ name, and DWD submission detail queries are backend-paginated, newest-first, and return exact total/page metadata.
+- applies ODS/DWD/DWM/DWS and OJ handle-account table migrations from OJ modules and the common module through Flyway at `training-data-web` startup.
 
 Current training-data module shape:
 
 ```text
 platform-training-data/
-  training-data-codeforces/
+  training-data-common/
     app/
       account/
-      collector/
-      ingest/
+      purge/
       query/
       warehouse/
-    collector/config/
-    config/
+    collector/
+      config/
+      dispatch/
+      job/
+      result/
     domain/
-      collector/
-      criteria/
-      model/
-      parser/
-      repo/
-      value/
+      oj/
     infra/
-      collector/
-      parser/
-      repo/
+      oj/
     scheduler/
+    support/
     web/
       account/
       collector/
-      ingest/
+      purge/
       query/
-      warehouse/
+    src/main/resources/db/migration/
+  training-data-codeforces/
+    app/
+    config/
+    domain/
+    infra/
     src/main/resources/db/migration/
     src/main/resources/fixtures/codeforces/
+    src/main/resources/sql/ods/
+    src/main/resources/sql/dwd/
+    src/main/resources/sql/dwm/
+    src/main/resources/sql/dws/
+    src/main/resources/sql/tasks/
+  training-data-atcoder/
+    app/
+    config/
+    domain/
+    infra/
+    web/
+    src/main/resources/db/migration/
     src/main/resources/sql/ods/
     src/main/resources/sql/dwd/
     src/main/resources/sql/dwm/
@@ -175,11 +194,11 @@ platform-training-data/
   training-data-web/
 ```
 
-The OJ boundary is vertical. Codeforces owns its entrance and data organization end to end:
+The OJ boundary is vertical. Codeforces and AtCoder own their OJ-specific ODS contracts, source clients, parsers/writers, source paging rules, refresh interval SQL, and warehouse refresh resources/manifests. Shared OJ app/domain/infra/web contracts, Spring bean wiring, collector dispatch, generic warehouse refresh interval/service/handler contracts, warehouse refresh dispatch, shared SQL task runner bean, and common same-layer DWD/DWM/DWS table DDL come from `training-data-common`:
 
 ```text
 external source or fixture
- -> OJ HTTP ingress or Codeforces source client
+ -> OJ source client or local fixture path
  -> OJ ingest app service
  -> OJ parser/writer
  -> OJ ODS table
@@ -187,34 +206,40 @@ external source or fixture
  -> OJ DWD/DWM/DWS tables
 ```
 
-Codeforces also owns its current handle-account mapping because the only implemented binding is Codeforces-specific:
+`training-data-common` hosts the OJ handle-account app/domain/infra/web implementation; Codeforces supplies the historical Flyway migration that creates the base physical table, and common supplies later generic handle-account extensions such as collection states:
 
 ```text
 studentIdentity
- -> Codeforces handle-account app service
- -> codeforces_handle_account
+ -> OJ handle-account app service
+ -> oj_handle_account.handles_json
+ -> CODEFORCES / ATCODER handle values
 ```
 
-Admin updates for this mapping may change `codeforces_handle_account.student_identity` and `need_collect`; they do not update auth accounts and do not change the stored Codeforces handle.
+Admin updates for this mapping may change `oj_handle_account.student_identity`, `need_collect`, and the stored handle map through merge semantics; they do not update auth accounts. Existing per-OJ collection state is kept when that OJ's handle value is unchanged and reset when the handle value is replaced.
 
-Codeforces DWD/DWM/DWS transforms are SQL task resources. The current Java execution path is synchronous admin refresh: each request computes the batch's UTC+8 refresh interval from ODS submission times, reads the manifest, rebuilds and validates the DAG, then runs SQL files as set-based database work rather than row-by-row Java transformation. It supports manual resume with `startFromTaskId`, which executes the requested node and its downstream nodes only.
+Codeforces and AtCoder DWD/DWM/DWS transforms are SQL task resources. The current Java execution path is internal to collection jobs and enabled scheduled collection: common refresh code asks the OJ-provided interval repository for the batch's effective UTC+8 refresh interval, reads the OJ manifest, rebuilds and validates the DAG, then runs SQL files as set-based database work rather than row-by-row Java transformation. Codeforces derives the interval from ODS submission creation times; AtCoder also folds in existing DWM first-accepted dates touched by accepted submissions in the batch.
 
-Codeforces recent-lookback submission collection is an OJ-owned source-ingestion use case. The admin HTTP entry accepts `studentIdentity` plus a positive lookback duration, resolves the identity to its bound Codeforces handle, and computes the right boundary from the service's current execution instant. The internal handle path pages Codeforces `user.status`, applies bounded connect/read timeouts and retry attempts to each source page request, reports per-handle status, and writes successful matches into ODS. For browser-driven batch collection, `training-data-codeforces` also exposes an in-process collection job service: admins start a job for multiple `studentIdentity` values, then poll job list/detail endpoints for `PENDING` / `RUNNING` / `SUCCESS` / `FAILED` per-user status. These job snapshots survive frontend refresh and page switches but are not persisted across backend restarts and are not a general pipeline run state. The disabled-by-default Spring scheduled trigger calls the same app service daily at 12:00 by default with a rolling 120-hour lookback and collects handles whose `codeforces_handle_account.need_collect` flag is true, de-duplicated by handle. The public automatic-collection DWS summary query reads the same flag, reuses the personal DWS summary logic for each matching binding, and sorts by total accepted problem count. It is not the future persistent pipeline scheduler; after ODS write, the code currently leaves a TODO for the future scheduler/orchestrator handoff.
+Recent-lookback submission collection is an OJ-owned source-ingestion use case behind common HTTP routes and a common dispatcher. The admin HTTP entry accepts `studentIdentity` plus a positive lookback duration, resolves the identity to its bound OJ handle from `handles_json`, and computes the right boundary from the service's current execution instant. The Codeforces internal handle path pages `user.status`; the AtCoder path pages Kenkoooo `user/submissions` with `from_second`. Both apply bounded connect/read timeouts and retry attempts to each source page request, report per-handle status, write successful matches into ODS, and let common code persist successful per-OJ handle collection state. `lastCollectedAt` is the collector execution instant rather than the latest submission time. `historyStartReached` is set only when the OJ adapter can prove the historical left edge was reached: Codeforces reaches the source's final page, while AtCoder starts from `from_second=0`. For browser-driven batch collection, `training-data-common` owns the HTTP controller, in-process collection job service, shared job executor, generic SQL-task warehouse refresh handler, and warehouse-refresh dispatcher bean, while OJ modules supply collection services, interval repositories, SQL resources, and manifests. Codeforces and AtCoder both wire the common refresh handler with their OJ name and manifest. Admins start a job for multiple `studentIdentity` values, then poll the job list endpoint for `PENDING` / `RUNNING` / `SUCCESS` / `FAILED` per-user status; the per-identity wait is configured by `platform.training-data.collector.job-item-interval`. These job snapshots survive frontend refresh and page switches but are not persisted across backend restarts and are not a general pipeline run state. The enabled-by-default Spring scheduled trigger is wired by `training-data-common` and driven by `platform.training-data.collector.schedules`; each entry carries an `ojName`, calls the same app service at its cron, collects handles whose `oj_handle_account.need_collect` flag is true and whose handle map contains that OJ name, de-duplicated by handle, and calls the same warehouse refresh dispatcher bean when the collection result has a `batchId`. The default config includes enabled Codeforces and AtCoder recent-submission schedules. AtCoder problem-list refresh is separate from submission polling: startup bootstrap pulls the list when `ods_atcoder__problem` is empty, and the low-frequency scheduler stays enabled by default under `platform.training-data.atcoder.problem-list-collector`. Automatic collection eligibility is used by scheduled collection only; there is no public automatic-summary query endpoint.
 
-There is currently no persistent pipeline run state or ADS physical table. OJ-specific DWD/DWM/DWS tables should stay independent until a concrete cross-OJ product query needs a unified view or ADS table.
+There is currently no persistent pipeline run state or ADS physical table. OJ-specific DWD/DWM/DWS tables stay as same-layer independent tables with a shared query contract until a concrete cross-OJ product query needs a unified view or ADS table.
 
 Current physical data layer:
 
 ```text
 ODS: ods_codeforces__submission
+ODS: ods_atcoder__submission
+ODS: ods_atcoder__problem
 DWD: dwd_codeforces__submission
 DWM: dwm_codeforces__handle_problem_first_accepted
 DWS: dws_codeforces__handle_daily_rating_accepted_summary
-Codeforces handle account: codeforces_handle_account
+DWD: dwd_atcoder__submission
+DWM: dwm_atcoder__handle_problem_first_accepted
+DWS: dws_atcoder__handle_daily_rating_accepted_summary
+OJ handle account: oj_handle_account
 ADS: not implemented yet
 ```
 
-`training-data-web` owns the runtime datasource, MySQL JDBC driver, and Flyway auto-migration. OJ modules own the actual migration scripts under their own `src/main/resources/db/migration/` directories.
+`training-data-web` owns the runtime datasource, MySQL JDBC driver, and Flyway auto-migration. OJ modules own OJ-specific ODS and historical OJ migration scripts under their own `src/main/resources/db/migration/` directories; `training-data-common` owns common same-layer DWD/DWM/DWS table DDL migrations under its own migration directory.
 
 `training-data-web` uses the same file logging contract as other runnable Spring Boot services: `LOG_DIR/combined.log` and `LOG_DIR/error.log`.
 
@@ -224,13 +249,13 @@ ADS: not implemented yet
 
 Current implementation:
 
-- defaults to a focused training query workspace with single-user detail query and automatic-collection multi-user summary pages. The single-user page filters by `studentIdentity`, date range, and rating range, then shows newest-first Codeforces AC/submission activity, first-accepted, and rating-distribution results. The multi-user page reuses the same date/rating range filters, reads all handle bindings marked for automatic collection, and displays their DWS AC summaries as a total-accepted descending table. The left sidebar exposes icon-assisted function module entries, separated into available and unavailable groups, with only training-data enabled and blog/editor shown as unsupported. Query tabs are URL-addressable as `/query/multiple` and `/query/single`;
-- separates admin-only operations into an admin workspace with left-sidebar pages for user information management, training-data collection, data maintenance, and operation records; the user information page shows all auth users sorted by the numeric `studentIdentity` prefix descending and expands existing-user edits inside that list, including Codeforces handle automatic-collection eligibility, the collection page lists only eligible handle accounts, can start one backend collection job for all listed students with a shared lookback window, can start collection per selected student row, polls a task list with expandable per-user details, and treats a blank lookback field as an unlimited collection window; the maintenance page owns ODS upload, warehouse refresh, and the high-risk user deletion action that clears Codeforces training data before deleting the auth account. Admin pages are URL-addressable as `/admin/users`, `/admin/collection`, `/admin/maintenance`, and `/admin/records`;
+- defaults to a focused training query workspace with multi-user, single-user detail, and problem-level query pages. Query controls apply automatically when OJ, student, problem key, date range, or rating range changes, and refreshing the page loads the default multi-user summary. The single-user page filters by `studentIdentity`, OJ name, date range, and rating range, then shows newest-first Codeforces/AtCoder AC/submission activity, first-accepted, and rating-distribution results. The problem page filters by problem key, OJ name, and range, then shows backend-paginated submissions and first-accepted handles. The multi-user page does not call a backend automatic-summary endpoint; it queries the existing public per-student accepted-summary endpoint for users with automatic collection enabled and a current-OJ handle, then shows the results by accepted problem count. The left sidebar exposes icon-assisted function module entries, separated into available and unavailable groups, with only training-data enabled and blog/editor shown as unsupported. Query tabs are URL-addressable as `/query/multiple`, `/query/single`, and `/query/problem`;
+- separates admin-only operations into an admin workspace with left-sidebar pages for user creation, user modification, training-data collection, and operation records; the user creation page owns text import, editable create rows, auth batch creation, and optional Codeforces/AtCoder OJ handle binding. The user modification page shows all auth users sorted by the numeric `studentIdentity` prefix descending and expands existing-user edits inside that list, including Codeforces/AtCoder OJ handle binding, automatic-collection eligibility, per-OJ history-start coverage status, last collected time from `collectionStates`, and confirmed full user deletion. The collection page lists eligible handle accounts by selected OJ, can start one backend collection job for all listed students with a shared lookback window, can start collection per selected student row, polls a task list with expandable per-user details, and treats a blank lookback field as an unlimited collection window. Admin pages are URL-addressable as `/admin/user-create`, `/admin/user-edit`, `/admin/collection`, and `/admin/records`;
 - logs in through `POST /api/auth/login`, stores the returned access token in browser localStorage, and uses it for admin auth/training-data calls;
-- reads public `GET /api/auth/users`, `POST /api/auth/admin/users:batch-create`, `PATCH /api/auth/admin/users/{studentIdentity}`, `DELETE /api/auth/admin/users/{studentIdentity}`, `GET /api/auth/player/me`, Codeforces public single-handle/query endpoints including the automatic-collection accepted-summary list, and admin Codeforces handle/ODS/collector-job/warehouse/purge endpoints through frontend-local API clients;
+- reads public `GET /api/auth/users`, `GET /api/auth/player/me`, `PATCH /api/auth/player/me/password`, `POST /api/auth/admin/users:batch-create`, `PATCH /api/auth/admin/users/{studentIdentity}`, `DELETE /api/auth/admin/users/{studentIdentity}`, module-info endpoints, public full OJ handle account map endpoint including collection states, public warehouse query endpoints that pass `ojName`, and admin OJ handle create/update/identity-migration, collector-job and purge endpoints through frontend-local API clients;
 - uses Vite dev proxy and the production Nginx frontend container to keep browser requests same-origin;
 - uses the Compose `frontend-build` one-shot service to generate `frontend/dist`, while `custacm-frontend` runs a fixed Nginx image with bind-mounted static assets and proxy config;
-- includes `scripts/seed-local-codeforces-data.sh` to prepare local fixture-backed data through real HTTP APIs;
+- includes `scripts/seed-local-codeforces-data.sh` to create sample users, bind OJ handles, and start Codeforces collection through real HTTP APIs;
 - keeps `studentIdentity` as one immutable string in UI data and filtering;
 - provides local frontend verification scripts for lint, unit tests, typecheck, and production build.
 
@@ -340,7 +365,7 @@ GET  /module-info
 POST /api/auth/login
 GET  /api/auth/player/me
 PATCH /api/auth/player/me/password
-POST /api/auth/admin/users
+POST /api/auth/admin/users:batch-create
 GET  /api/auth/users
 PATCH /api/auth/admin/users/{studentIdentity}
 ```
@@ -364,7 +389,10 @@ Basic endpoints:
 ```text
 GET  /health
 GET  /module-info
-POST /api/training-data/admin/ods/codeforces/submissions:batch-upsert
+POST /api/training-data/admin/codeforces/submissions:collect
+POST /api/training-data/admin/codeforces/submissions:collect-batch-jobs
+GET  /api/training-data/admin/codeforces/submissions/collect-batch-jobs
+DELETE /api/training-data/admin/students/{studentIdentity}/oj-data
 ```
 
 Training-data `/admin/**` endpoints require a platform bearer token with the platform `admin` role. Guest endpoints do not parse JWTs.
@@ -387,7 +415,7 @@ cp deploy/.env.example deploy/.env
 
 The Compose stack exposes the frontend at `http://localhost:3000/`, auth at
 `http://localhost:8081/`, and training data at `http://localhost:8082/`. For a
-fixture-backed local workbench, run:
+sample local workbench, run:
 
 ```bash
 ./scripts/seed-local-codeforces-data.sh

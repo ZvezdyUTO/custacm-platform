@@ -5,20 +5,20 @@
 当前仓库已经包含三个可运行部分：
 
 - `auth-web`：平台自有登录、账号管理、密码哈希和 JWT 签发。
-- `training-data-web`：Codeforces 训练数据写入、采集、清理、刷新和查询。
+- `training-data-web`：Codeforces 训练数据采集、清理、可选采集后刷新和查询。
 - `frontend`：训练队后台工作台，提供训练查询和管理员操作页面。
 
-平台使用 `studentIdentity` 作为业务身份，格式通常是“学号 + 姓名”，例如 `230511213黄炳睿`。管理员负责创建账号、维护 Codeforces handle 绑定、导入或采集训练数据；选手和管理员都可以通过前端查看训练数据。
+平台使用 `studentIdentity` 作为业务身份，格式通常是“学号 + 姓名”，例如 `230511213黄炳睿`。管理员负责创建账号、维护 OJ handle 绑定、采集训练数据；队员和管理员都可以通过前端查看训练数据。
 
 ## 最近支持
 
 - React/Vite 前端工作台，包含登录、训练查询、管理员操作和同源 API 代理。
-- 管理员批量创建账号，并可同时补充 Codeforces handle 绑定。
-- Codeforces ODS 导入、最近提交后台采集任务、采集任务列表和 DWD/DWM/DWS 仓库刷新。
-- 训练查询支持按选手、日期和 rating 范围查看 AC 汇总、提交明细和首 AC 明细。
+- 管理员批量创建账号，并可同时补充 OJ handle 绑定。
+- Codeforces 最近提交后台采集任务、采集任务列表和采集后可选 DWD/DWM/DWS 仓库刷新。
+- 训练查询支持按队员、日期和 rating 范围查看 AC 汇总、提交明细和首 AC 明细。
 - 提交明细支持后端分页，适合查看较大的提交列表。
 - 高成本操作增加确认弹窗，包括训练数据采集和彻底删除用户数据。
-- 管理员可以清理某个用户的 Codeforces 训练数据，并继续删除 auth 账号。
+- 管理员可以清理某个用户的全部或指定 OJ 训练数据，并继续删除 auth 账号。
 
 ## 快速启动
 
@@ -56,7 +56,7 @@ AUTH_BOOTSTRAP_ADMIN_PASSWORD=change-me-root-password
 
 首次登录使用 `deploy/.env` 中配置的 bootstrap admin。部署后建议尽快在前端修改初始管理员密码。
 
-可选：导入本地 Codeforces 演示数据。
+可选：创建本地演示账号和 OJ handle，并启动 Codeforces 采集任务。
 
 ```bash
 ./scripts/seed-local-codeforces-data.sh

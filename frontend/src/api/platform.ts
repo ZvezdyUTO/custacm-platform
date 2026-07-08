@@ -1,24 +1,29 @@
-import type {
-  AdminUserCreateRequest,
-  AdminUserOperationResult,
-  AdminUserUpdateRequest,
-  AuthUser,
-  CodeforcesAcceptedSummary,
-  CodeforcesFirstAcceptedReport,
-  CodeforcesHandleAccount,
-  CodeforcesOdsBatchUpsertResponse,
-  CodeforcesStudentDataPurgeResult,
-  CodeforcesSubmissionCollectionJobResponse,
-  CodeforcesStudentSubmissionReport,
-  CodeforcesSubmissionCollectionResponse,
-  CurrentUser,
-  LoginResponse,
-  ServiceHealth,
-  BatchCollectOptions,
-  SubmissionPageQuery,
-  StudentIdentity,
-  TrainingQueryRange,
-  WarehouseRefreshResult,
+import {
+  OJ_NAMES,
+  type AdminUserCreateRequest,
+  type AdminUserOperationResult,
+  type AdminUserUpdateRequest,
+  type AuthUser,
+  type ChangeCurrentPasswordRequest,
+  type CodeforcesAcceptedSummary,
+  type CodeforcesFirstAcceptedReport,
+  type CodeforcesProblemFirstAcceptedReport,
+  type CodeforcesProblemSubmissionReport,
+  type OjHandleAccount,
+  type OjHandleAccountMap,
+  type OjStudentDataPurgeResult,
+  type CodeforcesSubmissionCollectionJobResponse,
+  type CodeforcesStudentSubmissionReport,
+  type CodeforcesSubmissionCollectionResponse,
+  type CurrentUser,
+  type LoginResponse,
+  type OjName,
+  type PlatformModuleInfo,
+  type ServiceHealth,
+  type BatchCollectOptions,
+  type SubmissionPageQuery,
+  type StudentIdentity,
+  type TrainingQueryRange,
 } from '../types';
 
 const AUTH_API_BASE = import.meta.env.VITE_AUTH_API_BASE ?? '/api/auth';
@@ -26,6 +31,9 @@ const TRAINING_DATA_API_BASE = import.meta.env.VITE_TRAINING_DATA_API_BASE ?? '/
 const AUTH_HEALTH_PATH = import.meta.env.VITE_AUTH_HEALTH_PATH ?? '/health/auth';
 const TRAINING_DATA_HEALTH_PATH =
   import.meta.env.VITE_TRAINING_DATA_HEALTH_PATH ?? '/health/training-data';
+const AUTH_MODULE_INFO_PATH = import.meta.env.VITE_AUTH_MODULE_INFO_PATH ?? '/module-info/auth';
+const TRAINING_DATA_MODULE_INFO_PATH =
+  import.meta.env.VITE_TRAINING_DATA_MODULE_INFO_PATH ?? '/module-info/training-data';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -59,6 +67,25 @@ function jsonHeaders(token?: string): HeadersInit {
   };
 }
 
+function headersWithJsonAccept(headers?: HeadersInit): HeadersInit {
+  if (headers instanceof Headers) {
+    const nextHeaders = new Headers(headers);
+    if (!nextHeaders.has('Accept')) {
+      nextHeaders.set('Accept', 'application/json');
+    }
+    return nextHeaders;
+  }
+  if (Array.isArray(headers)) {
+    return headers.some(([key]) => key.toLowerCase() === 'accept')
+      ? headers
+      : [['Accept', 'application/json'], ...headers];
+  }
+  return {
+    Accept: 'application/json',
+    ...(headers ?? {}),
+  };
+}
+
 async function parseResponseBody(response: Response) {
   const text = await response.text();
   if (text.length === 0) {
@@ -72,7 +99,10 @@ async function parseResponseBody(response: Response) {
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
+  const response = await fetch(url, {
+    ...init,
+    headers: headersWithJsonAccept(init?.headers),
+  });
   const body = await parseResponseBody(response);
   if (!response.ok) {
     const errorBody = typeof body === 'object' && body !== null ? (body as ApiErrorBody) : {};
@@ -164,6 +194,12 @@ export async function checkAuthHealth(): Promise<ServiceHealth> {
   }
 }
 
+export function getAuthModuleInfo() {
+  return requestJson<PlatformModuleInfo>(
+    new URL(AUTH_MODULE_INFO_PATH, window.location.origin).toString(),
+  );
+}
+
 export async function checkTrainingDataHealth(): Promise<ServiceHealth> {
   try {
     const result = await requestJson<{ service: string; status: string }>(
@@ -183,6 +219,12 @@ export async function checkTrainingDataHealth(): Promise<ServiceHealth> {
   }
 }
 
+export function getTrainingDataModuleInfo() {
+  return requestJson<PlatformModuleInfo>(
+    new URL(TRAINING_DATA_MODULE_INFO_PATH, window.location.origin).toString(),
+  );
+}
+
 export function login(studentIdentity: StudentIdentity, password: string) {
   return requestJson<LoginResponse>(buildUrl(AUTH_API_BASE, '/login'), {
     method: 'POST',
@@ -194,6 +236,14 @@ export function login(studentIdentity: StudentIdentity, password: string) {
 export function getCurrentUser(token: string) {
   return requestJson<CurrentUser>(buildUrl(AUTH_API_BASE, '/player/me'), {
     headers: authHeaders(token),
+  });
+}
+
+export function changeCurrentPassword(token: string, request: ChangeCurrentPasswordRequest) {
+  return requestJson<null>(buildUrl(AUTH_API_BASE, '/player/me/password'), {
+    method: 'PATCH',
+    headers: jsonHeaders(token),
+    body: JSON.stringify(request),
   });
 }
 
@@ -232,45 +282,79 @@ export function deleteAdminUser(token: string, studentIdentity: StudentIdentity)
   );
 }
 
-export function getCodeforcesHandle(studentIdentity: StudentIdentity) {
-  return requestJson<CodeforcesHandleAccount>(
-    buildUrl(TRAINING_DATA_API_BASE, '/codeforces/handles', { studentIdentity }),
+export function listOjHandleAccounts() {
+  return requestJson<OjHandleAccountMap>(
+    buildUrl(TRAINING_DATA_API_BASE, '/oj-handles'),
   );
 }
 
-export function createCodeforcesHandle(token: string, studentIdentity: StudentIdentity, handle: string) {
-  return requestJson<CodeforcesHandleAccount>(
-    buildUrl(TRAINING_DATA_API_BASE, '/admin/codeforces/handles'),
+export function createOjHandleAccount(
+  token: string,
+  studentIdentity: StudentIdentity,
+  handles: Partial<Record<OjName, string>>,
+) {
+  return requestJson<OjHandleAccount>(
+    buildUrl(TRAINING_DATA_API_BASE, '/admin/oj-handles'),
     {
       method: 'POST',
       headers: jsonHeaders(token),
-      body: JSON.stringify({ studentIdentity, handle }),
+      body: JSON.stringify({ studentIdentity, handles }),
     },
   );
 }
 
-export function updateCodeforcesHandleAccount(
+export function updateOjHandleAccount(
   token: string,
   studentIdentity: StudentIdentity,
   needCollect: boolean,
+  handles?: Partial<Record<OjName, string>>,
 ) {
-  return requestJson<CodeforcesHandleAccount>(
-    buildUrl(TRAINING_DATA_API_BASE, '/admin/codeforces/handles:change-identity'),
+  return requestJson<OjHandleAccount>(
+    buildUrl(TRAINING_DATA_API_BASE, '/admin/oj-handles:change-identity'),
     {
       method: 'PATCH',
       headers: jsonHeaders(token),
       body: JSON.stringify({
         oldStudentIdentity: studentIdentity,
         newStudentIdentity: studentIdentity,
-        needCollect,
+        needCollect: needCollect,
+        handles,
       }),
     },
   );
 }
 
-export function purgeCodeforcesStudentData(token: string, studentIdentity: StudentIdentity) {
-  return requestJson<CodeforcesStudentDataPurgeResult>(
-    buildUrl(TRAINING_DATA_API_BASE, `/admin/codeforces/users/${encodeURIComponent(studentIdentity)}/data`),
+export function changeOjHandleIdentity(
+  token: string,
+  oldStudentIdentity: StudentIdentity,
+  newStudentIdentity: StudentIdentity,
+  needCollect?: boolean,
+  handles?: Partial<Record<OjName, string>>,
+) {
+  return requestJson<OjHandleAccount>(
+    buildUrl(TRAINING_DATA_API_BASE, '/admin/oj-handles:change-identity'),
+    {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({
+        oldStudentIdentity,
+        newStudentIdentity,
+        needCollect,
+        handles,
+      }),
+    },
+  );
+}
+
+export function purgeOjStudentData(
+  token: string,
+  studentIdentity: StudentIdentity,
+  ojName: OjName,
+) {
+  return requestJson<OjStudentDataPurgeResult>(
+    buildUrl(TRAINING_DATA_API_BASE, `/admin/students/${encodeURIComponent(studentIdentity)}/oj-data`, {
+      ojName,
+    }),
     {
       method: 'DELETE',
       headers: authHeaders(token),
@@ -286,21 +370,15 @@ function dateEnd(value: string) {
   return value ? `${value}T23:59:59` : '';
 }
 
-export function getAcceptedSummary(studentIdentity: StudentIdentity, range?: TrainingQueryRange) {
+export function getAcceptedSummary(
+  studentIdentity: StudentIdentity,
+  range?: TrainingQueryRange,
+  ojName: OjName = OJ_NAMES.CODEFORCES,
+) {
   return requestJson<CodeforcesAcceptedSummary>(
     buildUrl(TRAINING_DATA_API_BASE, '/codeforces/accepted-summary', {
+      ojName,
       studentIdentity,
-      acceptedFromDateUtcPlus8: range?.acceptedFromDateUtcPlus8,
-      acceptedToDateUtcPlus8: range?.acceptedToDateUtcPlus8,
-      minProblemRating: range?.minProblemRating,
-      maxProblemRating: range?.maxProblemRating,
-    }),
-  );
-}
-
-export function getAutoCollectAcceptedSummaries(range?: TrainingQueryRange) {
-  return requestJson<CodeforcesAcceptedSummary[]>(
-    buildUrl(TRAINING_DATA_API_BASE, '/codeforces/accepted-summary/auto-collect-users', {
       acceptedFromDateUtcPlus8: range?.acceptedFromDateUtcPlus8,
       acceptedToDateUtcPlus8: range?.acceptedToDateUtcPlus8,
       minProblemRating: range?.minProblemRating,
@@ -313,9 +391,11 @@ export function getStudentSubmissions(
   studentIdentity: StudentIdentity,
   range?: TrainingQueryRange,
   pagination?: SubmissionPageQuery,
+  ojName: OjName = OJ_NAMES.CODEFORCES,
 ) {
   return requestJson<CodeforcesStudentSubmissionReport>(
     buildUrl(TRAINING_DATA_API_BASE, '/codeforces/submissions/by-student', {
+      ojName,
       studentIdentity,
       submittedFromUtcPlus8: dateStart(range?.acceptedFromDateUtcPlus8 ?? ''),
       submittedToUtcPlus8: dateEnd(range?.acceptedToDateUtcPlus8 ?? ''),
@@ -327,10 +407,52 @@ export function getStudentSubmissions(
   );
 }
 
-export function getFirstAcceptedProblems(studentIdentity: StudentIdentity, range?: TrainingQueryRange) {
+export function getProblemSubmissions(
+  problemKey: string,
+  range?: TrainingQueryRange,
+  pagination?: SubmissionPageQuery,
+  ojName: OjName = OJ_NAMES.CODEFORCES,
+) {
+  return requestJson<CodeforcesProblemSubmissionReport>(
+    buildUrl(TRAINING_DATA_API_BASE, '/codeforces/submissions/by-problem', {
+      ojName,
+      problemKey,
+      submittedFromUtcPlus8: dateStart(range?.acceptedFromDateUtcPlus8 ?? ''),
+      submittedToUtcPlus8: dateEnd(range?.acceptedToDateUtcPlus8 ?? ''),
+      minProblemRating: range?.minProblemRating,
+      maxProblemRating: range?.maxProblemRating,
+      page: pagination?.page,
+      limit: pagination?.limit,
+    }),
+  );
+}
+
+export function getFirstAcceptedProblems(
+  studentIdentity: StudentIdentity,
+  range?: TrainingQueryRange,
+  ojName: OjName = OJ_NAMES.CODEFORCES,
+) {
   return requestJson<CodeforcesFirstAcceptedReport>(
     buildUrl(TRAINING_DATA_API_BASE, '/codeforces/first-accepted/by-student', {
+      ojName,
       studentIdentity,
+      firstAcceptedFromUtcPlus8: dateStart(range?.acceptedFromDateUtcPlus8 ?? ''),
+      firstAcceptedToUtcPlus8: dateEnd(range?.acceptedToDateUtcPlus8 ?? ''),
+      minProblemRating: range?.minProblemRating,
+      maxProblemRating: range?.maxProblemRating,
+    }),
+  );
+}
+
+export function getProblemFirstAcceptedHandles(
+  problemKey: string,
+  range?: TrainingQueryRange,
+  ojName: OjName = OJ_NAMES.CODEFORCES,
+) {
+  return requestJson<CodeforcesProblemFirstAcceptedReport>(
+    buildUrl(TRAINING_DATA_API_BASE, '/codeforces/first-accepted/by-problem', {
+      ojName,
+      problemKey,
       firstAcceptedFromUtcPlus8: dateStart(range?.acceptedFromDateUtcPlus8 ?? ''),
       firstAcceptedToUtcPlus8: dateEnd(range?.acceptedToDateUtcPlus8 ?? ''),
       minProblemRating: range?.minProblemRating,
@@ -343,13 +465,14 @@ export function collectCodeforcesSubmissions(
   token: string,
   studentIdentity: StudentIdentity,
   lookbackHours: number,
+  ojName: OjName = OJ_NAMES.CODEFORCES,
 ) {
   return requestJson<CodeforcesSubmissionCollectionResponse>(
     buildUrl(TRAINING_DATA_API_BASE, '/admin/codeforces/submissions:collect'),
     {
       method: 'POST',
       headers: jsonHeaders(token),
-      body: JSON.stringify({ studentIdentity, lookbackHours }),
+      body: JSON.stringify({ studentIdentity, lookbackHours, ojName }),
     },
   );
 }
@@ -365,42 +488,11 @@ export function startCodeforcesSubmissionCollectionJob(token: string, options: B
   );
 }
 
-export function getCodeforcesSubmissionCollectionJob(token: string, jobId: string) {
-  return requestJson<CodeforcesSubmissionCollectionJobResponse>(
-    buildUrl(TRAINING_DATA_API_BASE, `/admin/codeforces/submissions/collect-batch-jobs/${encodeURIComponent(jobId)}`),
-    {
-      headers: authHeaders(token),
-    },
-  );
-}
-
 export function listCodeforcesSubmissionCollectionJobs(token: string) {
   return requestJson<CodeforcesSubmissionCollectionJobResponse[]>(
     buildUrl(TRAINING_DATA_API_BASE, '/admin/codeforces/submissions/collect-batch-jobs'),
     {
       headers: authHeaders(token),
-    },
-  );
-}
-
-export function upsertCodeforcesSubmissions(token: string, submissions: unknown) {
-  return requestJson<CodeforcesOdsBatchUpsertResponse>(
-    buildUrl(TRAINING_DATA_API_BASE, '/admin/ods/codeforces/submissions:batch-upsert'),
-    {
-      method: 'POST',
-      headers: jsonHeaders(token),
-      body: JSON.stringify(submissions),
-    },
-  );
-}
-
-export function refreshCodeforcesWarehouse(token: string, batchId: string) {
-  return requestJson<WarehouseRefreshResult>(
-    buildUrl(TRAINING_DATA_API_BASE, '/admin/codeforces/warehouse:refresh'),
-    {
-      method: 'POST',
-      headers: jsonHeaders(token),
-      body: JSON.stringify({ batchId }),
     },
   );
 }

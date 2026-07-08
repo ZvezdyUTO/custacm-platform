@@ -24,7 +24,7 @@ const priorities: Array<{ label: string; value: 'all' | Priority }> = [
 const roles: Array<{ label: string; value: 'all' | AccountRole }> = [
   { label: '全部角色', value: 'all' },
   { label: '管理员', value: 'admin' },
-  { label: '选手', value: 'player' },
+  { label: '队员', value: 'player' },
   { label: '禁用', value: 'disable' },
 ];
 
@@ -32,6 +32,7 @@ const sources: Array<{ label: string; value: 'all' | DataSource }> = [
   { label: '全部来源', value: 'all' },
   { label: 'Auth', value: 'Auth' },
   { label: 'Codeforces', value: 'Codeforces' },
+  { label: 'AtCoder', value: 'AtCoder' },
   { label: 'ODS', value: 'ODS' },
   { label: '系统', value: '系统' },
 ];
@@ -134,9 +135,9 @@ export function Toolbar({
           />
         </label>
         <label className="identity-control">
-          当前选手
+          当前队员
           <select
-            aria-label="当前选手"
+            aria-label="当前队员"
             disabled={studentOptions.length === 0}
             value={selectedIdentity ?? ''}
             onChange={(event) => onSelectedIdentityChange(event.target.value)}

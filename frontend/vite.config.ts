@@ -25,6 +25,16 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: () => '/health',
       },
+      '/module-info/auth': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        rewrite: () => '/module-info',
+      },
+      '/module-info/training-data': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+        rewrite: () => '/module-info',
+      },
     },
   },
 });

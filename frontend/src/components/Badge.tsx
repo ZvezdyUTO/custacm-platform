@@ -10,7 +10,7 @@ const statusLabel: Record<TaskStatus, string> = {
 
 const roleLabel: Record<AccountRole, string> = {
   admin: '管理员',
-  player: '选手',
+  player: '队员',
   disable: '禁用',
 };
 

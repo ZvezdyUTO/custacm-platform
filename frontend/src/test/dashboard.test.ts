@@ -28,7 +28,7 @@ describe('dashboard filtering', () => {
     });
 
     expect(result).toHaveLength(1);
-    expect(result[0]?.title).toContain('ODS Codeforces');
+    expect(result[0]?.title).toContain('Codeforces');
   });
 
   it('returns an empty collection for unmatched account searches', () => {

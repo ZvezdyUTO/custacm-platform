@@ -33,6 +33,9 @@
   --violet: #7c4dff;
   --violet-soft: #f1edff;
   --shadow: 0 8px 26px rgba(20, 27, 40, 0.08);
+  --radius-panel: 4px;
+  --radius-control: 3px;
+  --radius-tight: 2px;
 }
 
 * {

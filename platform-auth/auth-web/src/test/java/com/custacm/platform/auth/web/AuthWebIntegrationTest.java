@@ -59,22 +59,22 @@ class AuthWebIntegrationTest {
                 .andExpect(jsonPath("$.studentIdentity").value("root"))
                 .andExpect(jsonPath("$.role").value("admin"));
 
-        MvcResult createPlayerResult = mockMvc.perform(post("/api/auth/admin/users")
+        MvcResult createPlayerResult = mockMvc.perform(post("/api/auth/admin/users:batch-create")
                         .header("Authorization", bearer(adminToken))
                         .contentType("application/json")
-                        .content(json(Map.of(
+                        .content(json(Map.of("users", java.util.List.of(Map.of(
                                 "studentIdentity", "230511213黄炳睿",
                                 "password", "",
                                 "role", "player"
-                        ))))
+                        ))))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.user.studentIdentity").value("230511213黄炳睿"))
-                .andExpect(jsonPath("$.user.role").value("player"))
-                .andExpect(jsonPath("$.plainPassword").exists())
+                .andExpect(jsonPath("$[0].success").value(true))
+                .andExpect(jsonPath("$[0].user.studentIdentity").value("230511213黄炳睿"))
+                .andExpect(jsonPath("$[0].user.role").value("player"))
+                .andExpect(jsonPath("$[0].plainPassword").exists())
                 .andReturn();
         String playerPassword = objectMapper.readTree(createPlayerResult.getResponse().getContentAsString())
-                .get("plainPassword").asText();
+                .get(0).get("plainPassword").asText();
 
         String playerToken = login("230511213黄炳睿", playerPassword);
         mockMvc.perform(get("/api/auth/users").header("Authorization", bearer(playerToken)))
@@ -270,37 +270,47 @@ class AuthWebIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("AUTH_INVALID_CREDENTIALS"));
 
-        mockMvc.perform(post("/api/auth/admin/users")
+        mockMvc.perform(post("/api/auth/admin/users:batch-create")
                         .header("Authorization", bearer(adminToken))
                         .contentType("application/json")
-                        .content(json(Map.of(
+                        .content(json(Map.of("users", java.util.List.of(Map.of(
                                 "studentIdentity", "guest-" + suffix,
                                 "password", "guestPass123",
                                 "role", "guest"
-                        ))))
+                        ))))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$[0].success").value(false))
+                .andExpect(jsonPath("$[0].errorCode").value("AUTH_INVALID_REQUEST"));
+
+        mockMvc.perform(post("/api/auth/admin/users:batch-create")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(Map.of("users", java.util.List.of()))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("AUTH_INVALID_REQUEST"));
 
-        mockMvc.perform(post("/api/auth/admin/users")
+        mockMvc.perform(post("/api/auth/admin/users:batch-create")
                         .header("Authorization", bearer(adminToken))
                         .contentType("application/json")
-                        .content(json(Map.of(
+                        .content(json(Map.of("users", java.util.List.of(Map.of(
                                 "studentIdentity", duplicate,
                                 "password", "duplicatePass123",
                                 "role", "player"
-                        ))))
-                .andExpect(status().isCreated());
+                        ))))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$[0].success").value(true));
 
-        mockMvc.perform(post("/api/auth/admin/users")
+        mockMvc.perform(post("/api/auth/admin/users:batch-create")
                         .header("Authorization", bearer(adminToken))
                         .contentType("application/json")
-                        .content(json(Map.of(
+                        .content(json(Map.of("users", java.util.List.of(Map.of(
                                 "studentIdentity", duplicate,
                                 "password", "duplicatePass123",
                                 "role", "player"
-                        ))))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("AUTH_USER_EXISTS"));
+                        ))))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$[0].success").value(false))
+                .andExpect(jsonPath("$[0].errorCode").value("AUTH_USER_EXISTS"));
 
         mockMvc.perform(patch("/api/auth/admin/users/missing-" + suffix)
                         .header("Authorization", bearer(adminToken))

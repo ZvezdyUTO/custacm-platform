@@ -1,11 +1,20 @@
 export type TaskStatus = 'syncing' | 'pending' | 'failed' | 'completed' | 'disabled';
 export type Priority = 'P0' | 'P1' | 'P2' | 'P3';
 export type AccountRole = 'admin' | 'player' | 'disable';
-export type DataSource = 'Auth' | 'ODS' | 'Codeforces' | '系统';
+export type DataSource = 'Auth' | 'ODS' | 'Codeforces' | 'AtCoder' | '系统';
 export type DashboardView = 'all' | 'accounts' | 'codeforces' | 'ods-import' | 'system';
 export type StudentIdentity = string;
 export type WorkspaceView = 'query' | 'admin';
 export const UNLIMITED_LOOKBACK_HOURS = 1_000_000_000;
+export const OJ_NAMES = {
+  CODEFORCES: 'CODEFORCES',
+  ATCODER: 'ATCODER',
+} as const;
+export type OjName = typeof OJ_NAMES[keyof typeof OJ_NAMES];
+export const OJ_LABELS: Record<OjName, string> = {
+  [OJ_NAMES.CODEFORCES]: 'Codeforces',
+  [OJ_NAMES.ATCODER]: 'AtCoder',
+};
 export type IconKey =
   | 'activity'
   | 'bar-chart'
@@ -105,6 +114,12 @@ export interface ServiceHealth {
   detail: string;
 }
 
+export interface PlatformModuleInfo {
+  module: string;
+  service: ServiceHealth['service'];
+  features: string[];
+}
+
 export interface AuthUser {
   studentIdentity: StudentIdentity;
   role: AccountRole;
@@ -116,6 +131,12 @@ export interface AdminUserCreateRequest {
   studentIdentity: StudentIdentity;
   role: AccountRole;
   password?: string;
+}
+
+export interface ChangeCurrentPasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
 }
 
 export interface AdminUserUpdateRequest {
@@ -134,16 +155,21 @@ export interface AdminUserOperationResult {
 
 export interface BatchStudentImportRow extends AdminUserCreateRequest {
   handle?: string;
+  codeforcesHandle?: string;
+  atcoderHandle?: string;
+  handles?: Partial<Record<OjName, string>>;
 }
 
-export interface CodeforcesHandleOperationResult {
+export interface OjHandleOperationResult {
   success: boolean;
   studentIdentity: StudentIdentity;
   handle: string | null;
+  handles: Partial<Record<OjName, string>>;
   needCollect?: boolean | null;
   errorCode: string | null;
   message: string | null;
 }
+export type CodeforcesHandleOperationResult = OjHandleOperationResult;
 
 export interface BatchStudentImportSummary {
   userResults: AdminUserOperationResult[];
@@ -152,9 +178,11 @@ export interface BatchStudentImportSummary {
 
 export interface UserInfoUpdateInput {
   studentIdentity: StudentIdentity;
+  newStudentIdentity?: StudentIdentity;
   role: AccountRole;
   newPassword?: string;
   handle?: string;
+  handles?: Partial<Record<OjName, string>>;
   needCollect?: boolean;
 }
 
@@ -167,6 +195,7 @@ export interface BatchCollectOptions {
   studentIdentities: StudentIdentity[];
   lookbackHours: number;
   refreshWarehouse: boolean;
+  ojName?: OjName | null;
 }
 
 export interface BatchCollectSummary {
@@ -179,11 +208,12 @@ export interface BatchCollectSummary {
   results: BatchCollectStudentResult[];
 }
 
-export type BatchCollectRefreshStatus = WarehouseRefreshResult['status'] | 'NOT_REQUESTED' | 'NO_BATCH';
+export type BatchCollectRefreshStatus = 'SUCCESS' | 'FAILED' | 'NOT_REQUESTED' | 'NO_BATCH';
 export type BatchCollectStudentStatus = CodeforcesSubmissionCollectionResponse['status'] | 'PENDING' | 'RUNNING';
 
 export interface BatchCollectStudentResult {
   studentIdentity: StudentIdentity;
+  ojName: OjName | null;
   status: BatchCollectStudentStatus;
   handle: string | null;
   batchId: string | null;
@@ -195,9 +225,22 @@ export interface BatchCollectStudentResult {
   refreshMessage: string | null;
 }
 
-export interface CodeforcesStudentDataPurgeResult {
+export interface OjDataPurgeResult {
+  ojName: OjName;
+  handle: string;
+  odsSubmissionRows: number;
+  dwdSubmissionRows: number;
+  dwmFirstAcceptedRows: number;
+  dwsAcceptedSummaryRows: number;
+  totalDeletedRows: number;
+}
+
+export interface OjStudentDataPurgeResult {
   studentIdentity: StudentIdentity;
+  ojName: OjName | null;
   handle: string | null;
+  handles: Partial<Record<OjName, string>>;
+  ojResults: OjDataPurgeResult[];
   handleAccountRows: number;
   odsSubmissionRows: number;
   dwdSubmissionRows: number;
@@ -207,7 +250,7 @@ export interface CodeforcesStudentDataPurgeResult {
 }
 
 export interface FullUserDataDeleteSummary {
-  trainingDataResult: CodeforcesStudentDataPurgeResult;
+  trainingDataResult: OjStudentDataPurgeResult;
   authUserResult: AdminUserOperationResult;
 }
 
@@ -223,11 +266,19 @@ export interface LoginResponse {
   user: CurrentUser;
 }
 
-export interface CodeforcesHandleAccount {
+export interface OjHandleAccount {
   studentIdentity: StudentIdentity;
-  handle: string;
+  handles: Partial<Record<OjName, string>>;
   needCollect: boolean;
+  collectionStates?: Partial<Record<OjName, OjCollectionState>>;
 }
+
+export interface OjCollectionState {
+  historyStartReached: boolean;
+  lastCollectedAt: string | null;
+}
+
+export type OjHandleAccountMap = Record<StudentIdentity, OjHandleAccount>;
 
 export interface CodeforcesAcceptedSummary {
   studentIdentity: StudentIdentity;
@@ -246,7 +297,7 @@ export interface TrainingQueryRange {
   maxProblemRating: string;
 }
 
-export type TrainingQueryMode = 'single' | 'multiple';
+export type TrainingQueryMode = 'single' | 'multiple' | 'problem';
 
 export interface SubmissionPageQuery {
   page: number;
@@ -254,29 +305,34 @@ export interface SubmissionPageQuery {
 }
 
 export interface CodeforcesSubmissionItem {
-  codeforcesSubmissionId: number;
+  submissionId?: string;
+  codeforcesSubmissionId?: number;
   studentIdentity: StudentIdentity;
-  authorHandle: string;
-  contestId: number | null;
+  handle?: string;
+  authorHandle?: string;
+  contestId?: number | null;
   submittedAtUtcPlus8: string | null;
   submittedDateUtcPlus8: string | null;
-  relativeTimeSeconds: number | null;
+  relativeTimeSeconds?: number | null;
   problemKey: string | null;
-  problemContestId: number | null;
+  problemContestId?: number | null;
   problemIndex: string | null;
   problemName: string | null;
-  problemType: string | null;
-  problemPoints: number | null;
-  problemRating: number | null;
-  problemTagsJson: string | null;
-  authorParticipantType: string | null;
-  programmingLanguage: string | null;
+  problemType?: string | null;
+  problemPoints?: number | null;
+  problemRating?: number | null;
+  problemTagsJson?: string | null;
+  authorParticipantType?: string | null;
+  difficulty?: string | null;
+  language?: string | null;
+  programmingLanguage?: string | null;
   verdict: string | null;
   accepted: boolean;
-  testset: string | null;
-  passedTestCount: number | null;
+  testset?: string | null;
+  passedTestCount?: number | null;
   timeConsumedMillis: number | null;
-  memoryConsumedBytes: number | null;
+  memoryConsumedBytes?: number | null;
+  sourceUrl?: string | null;
 }
 
 export interface CodeforcesStudentSubmissionReport {
@@ -290,19 +346,31 @@ export interface CodeforcesStudentSubmissionReport {
   submissions: CodeforcesSubmissionItem[];
 }
 
+export interface CodeforcesProblemSubmissionReport {
+  problemKey: string;
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+  submissions: CodeforcesSubmissionItem[];
+}
+
 export interface CodeforcesFirstAcceptedProblem {
   problemKey: string;
-  problemContestId: number;
-  problemIndex: string;
+  problemContestId?: number;
+  problemIndex: string | null;
   problemName: string;
-  problemType: string | null;
-  problemPoints: number | null;
-  problemRating: number | null;
-  problemTagsJson: string | null;
-  firstAcceptedSubmissionId: number;
+  problemType?: string | null;
+  problemPoints?: number | null;
+  problemRating?: number | null;
+  problemTagsJson?: string | null;
+  difficulty?: string | null;
+  firstAcceptedSubmissionId: string | number;
   firstAcceptedAtUtcPlus8: string;
   firstAcceptedDateUtcPlus8: string;
   firstAcceptedLanguage: string | null;
+  firstAcceptedSourceUrl?: string | null;
 }
 
 export interface CodeforcesFirstAcceptedReport {
@@ -312,39 +380,27 @@ export interface CodeforcesFirstAcceptedReport {
   problems: CodeforcesFirstAcceptedProblem[];
 }
 
-export interface CodeforcesOdsBatchUpsertResponse {
+export interface CodeforcesProblemFirstAcceptedHandle {
+  studentIdentity: StudentIdentity;
+  handle: string;
+  firstAcceptedAtUtcPlus8: string;
+}
+
+export interface CodeforcesProblemFirstAcceptedReport {
+  problemKey: string;
+  acceptedHandleCount: number;
+  acceptedHandles: CodeforcesProblemFirstAcceptedHandle[];
+}
+
+export interface TrainingDataBatchSummary {
   batchId: string;
   tableName: string;
   writtenRows: number;
   fetchedAt: string;
 }
 
-export interface SqlTaskNodeResult {
-  taskId: string;
-  description: string;
-  sqlLocation: string;
-  status: 'SUCCESS' | 'FAILED' | 'SKIPPED';
-  startedAt: string | null;
-  finishedAt: string | null;
-  durationMillis: number | null;
-  affectedRows: number | null;
-  errorCode: string | null;
-  message: string | null;
-}
-
-export interface WarehouseRefreshResult {
-  runId: string;
-  status: 'SUCCESS' | 'FAILED' | 'SKIPPED';
-  manifestLocation: string;
-  startFromTaskId: string | null;
-  failedTaskId: string | null;
-  startedAt: string;
-  finishedAt: string | null;
-  durationMillis: number | null;
-  tasks: SqlTaskNodeResult[];
-}
-
 export interface CodeforcesSubmissionCollectionResponse {
+  ojName: OjName;
   status: 'SUCCESS' | 'PARTIAL_SUCCESS' | 'FAILED' | 'SKIPPED';
   windowStartInclusive: string;
   windowEndExclusive: string;
@@ -379,6 +435,7 @@ export type CodeforcesSubmissionCollectionJobRefreshStatus = BatchCollectRefresh
 
 export interface CodeforcesSubmissionCollectionJobItem {
   studentIdentity: StudentIdentity;
+  ojName: OjName | null;
   itemStatus: CodeforcesSubmissionCollectionJobItemStatus;
   collectionStatus: CodeforcesSubmissionCollectionResponse['status'] | null;
   handle: string | null;
@@ -395,6 +452,7 @@ export interface CodeforcesSubmissionCollectionJobItem {
 
 export interface CodeforcesSubmissionCollectionJobResponse {
   jobId: string;
+  ojName: OjName | null;
   status: CodeforcesSubmissionCollectionJobStatus;
   requestedCount: number;
   completedCount: number;
@@ -413,7 +471,9 @@ export interface StudentTrainingRecord {
   studentIdentity: StudentIdentity;
   role: AccountRole;
   handle: string | null;
+  handles: Partial<Record<OjName, string>>;
   needCollect?: boolean | null;
+  collectionStates?: Partial<Record<OjName, OjCollectionState>>;
   handleStatus: 'bound' | 'missing' | 'error';
   acceptedSummary: CodeforcesAcceptedSummary | null;
   summaryStatus: 'loaded' | 'missing' | 'error' | 'not-requested';

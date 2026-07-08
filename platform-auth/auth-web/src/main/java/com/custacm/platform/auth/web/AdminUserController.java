@@ -6,7 +6,6 @@ import com.custacm.platform.auth.app.service.AdminUserService;
 import com.custacm.platform.auth.core.CurrentUser;
 import com.custacm.platform.auth.core.CurrentUserExtractor;
 import com.custacm.platform.auth.domain.model.UserRole;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -30,18 +29,6 @@ public class AdminUserController {
         this.adminUserService = adminUserService;
     }
 
-    @PostMapping("/admin/users")
-    public ResponseEntity<UserOperationResponse> createUser(@RequestBody CreateUserRequest request) {
-        if (request == null) {
-            throw new AuthServiceException(AuthErrorCode.AUTH_INVALID_REQUEST, "request body must not be empty");
-        }
-        return ResponseEntity.status(HttpStatus.CREATED).body(UserResponseMapper.toOperationResponse(adminUserService.createUser(
-                request.studentIdentity(),
-                request.password(),
-                UserRole.fromValue(request.role())
-        )));
-    }
-
     @PostMapping("/admin/users:batch-create")
     public ResponseEntity<List<UserOperationResponse>> batchCreateUsers(@RequestBody BatchCreateUsersRequest request) {
         List<AdminUserService.CreateUserCommand> commands = request == null || request.users() == null
@@ -56,7 +43,7 @@ public class AdminUserController {
         List<UserOperationResponse> responses = adminUserService.createUsers(commands).stream()
                 .map(UserResponseMapper::toOperationResponse)
                 .toList();
-        return ResponseEntity.status(HttpStatus.CREATED).body(responses);
+        return ResponseEntity.status(201).body(responses);
     }
 
     @GetMapping("/users")

@@ -23,7 +23,7 @@ export function StateStrip({ isRefreshing, statuses }: StateStripProps) {
             <Icon size={17} aria-hidden="true" />
             <div>
               <strong>{isRefreshing && index === 0 ? '刷新中：正在汇总任务视图' : status.title}</strong>
-              <span>{isRefreshing && index === 0 ? '同步任务、权限异常和 ODS 导入状态正在重新计算' : status.detail}</span>
+              <span>{isRefreshing && index === 0 ? '同步任务、权限异常和采集状态正在重新计算' : status.detail}</span>
             </div>
           </article>
         );

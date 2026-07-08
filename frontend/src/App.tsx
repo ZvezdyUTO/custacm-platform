@@ -1,13 +1,12 @@
-import type { ChangeEvent } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
   ClipboardList,
   Database,
   Edit3,
   RefreshCw,
-  Users,
-  Wrench,
+  UserCog,
+  UserPlus,
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -18,7 +17,7 @@ import { SidePanel } from './components/SidePanel';
 import { StateStrip } from './components/StateStrip';
 import { TaskTable } from './components/TaskTable';
 import { Toolbar } from './components/Toolbar';
-import { TrainingDataCollectionPanel, TrainingDataMaintenancePanel } from './components/TrainingDataOpsPanel';
+import { TrainingDataCollectionPanel } from './components/TrainingDataOpsPanel';
 import { TrainingQueryPanel } from './components/TrainingQueryPanel';
 import { usePlatformDashboard } from './hooks/usePlatformDashboard';
 import { filterAndSortTasks } from './hooks/useDashboardFilters';
@@ -44,12 +43,12 @@ import {
 const tabs: Array<{ id: DashboardView; label: string }> = [
   { id: 'all', label: '全部数据项' },
   { id: 'accounts', label: '账号权限' },
-  { id: 'codeforces', label: 'Codeforces' },
-  { id: 'ods-import', label: 'ODS 导入' },
+  { id: 'codeforces', label: 'OJ 数据' },
+  { id: 'ods-import', label: '采集批次' },
   { id: 'system', label: '系统状态' },
 ];
 
-type AdminWorkspaceView = 'users' | 'collection' | 'maintenance' | 'records';
+type AdminWorkspaceView = 'user-create' | 'user-edit' | 'collection' | 'records';
 
 interface AppRouteState {
   adminView: AdminWorkspaceView;
@@ -58,9 +57,9 @@ interface AppRouteState {
 }
 
 const adminTabs: Array<{ id: AdminWorkspaceView; label: string; detail: string }> = [
-  { id: 'users', label: '用户信息', detail: '创建账号、角色、密码、CF 绑定' },
+  { id: 'user-create', label: '创建用户', detail: '批量创建账号、补充 OJ 绑定' },
+  { id: 'user-edit', label: '修改用户', detail: '角色、密码、OJ 绑定、删除账号' },
   { id: 'collection', label: '数据采集', detail: '提交采集、采集任务列表' },
-  { id: 'maintenance', label: '数据维护', detail: 'ODS 导入、仓库刷新、删除数据' },
   { id: 'records', label: '操作记录', detail: '服务健康、系统任务、异常记录' },
 ];
 
@@ -77,9 +76,9 @@ const backendModuleIcons: Record<(typeof backendModuleItems)[number]['id'], Luci
 };
 
 const adminTabIcons: Record<AdminWorkspaceView, LucideIcon> = {
-  users: Users,
+  'user-create': UserPlus,
+  'user-edit': UserCog,
   collection: RefreshCw,
-  maintenance: Wrench,
   records: ClipboardList,
 };
 
@@ -93,7 +92,7 @@ const defaultFilters: Filters = {
 };
 
 const defaultRouteState: AppRouteState = {
-  adminView: 'users',
+  adminView: 'user-create',
   queryMode: 'multiple',
   workspaceView: 'query',
 };
@@ -110,14 +109,14 @@ function routeStateFromPath(pathname: string): AppRouteState {
   if (workspace === 'admin') {
     return {
       ...defaultRouteState,
-      adminView: isAdminWorkspaceView(page) ? page : 'users',
+      adminView: adminWorkspaceViewFromPath(page),
       workspaceView: 'admin',
     };
   }
   if (workspace === 'query') {
     return {
       ...defaultRouteState,
-      queryMode: page === 'single' ? 'single' : 'multiple',
+      queryMode: page === 'single' || page === 'problem' ? page : 'multiple',
       workspaceView: 'query',
     };
   }
@@ -131,8 +130,15 @@ function routePathFromState(routeState: AppRouteState) {
   return `/query/${routeState.queryMode}`;
 }
 
+function adminWorkspaceViewFromPath(value: string | undefined): AdminWorkspaceView {
+  if (value === 'users') {
+    return 'user-edit';
+  }
+  return isAdminWorkspaceView(value) ? value : defaultRouteState.adminView;
+}
+
 function isAdminWorkspaceView(value: string | undefined): value is AdminWorkspaceView {
-  return value === 'users' || value === 'collection' || value === 'maintenance' || value === 'records';
+  return value === 'user-create' || value === 'user-edit' || value === 'collection' || value === 'records';
 }
 
 export function App() {
@@ -141,16 +147,23 @@ export function App() {
     currentUser,
     status,
     health,
+    moduleInfo,
     trainingQuery,
+    selectedOjName,
     submissionPage,
     submissionLimit,
+    problemKey,
+    problemSubmissionPage,
+    problemSubmissionLimit,
     users,
     records,
-    autoCollectAcceptedSummaries,
+    multiUserAcceptedSummaries,
     boundRecords,
     selectedIdentity,
     submissions,
     firstAccepted,
+    problemSubmissions,
+    problemFirstAccepted,
     lastBatch,
     collectionJob,
     collectionJobSummary,
@@ -159,24 +172,25 @@ export function App() {
     errorMessage,
     signIn,
     signOut,
+    changePassword,
     refreshDashboard,
     applyTrainingQuery,
     changeSubmissionPage,
+    changeProblemSubmissionPage,
+    changeProblemKey,
     chooseIdentity,
+    chooseOjName,
     batchCollectSubmissions,
     batchImportStudents,
     deleteFullUserData,
-    importOdsFile,
-    refreshWarehouse,
     updateStudentInfo,
   } = usePlatformDashboard();
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [routeState, setRouteState] = useState<AppRouteState>(() => readRouteState());
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [actionNotice, setActionNotice] = useState('已加载真实接口数据，等待本地后端响应。');
+  const [actionNotice, setActionNotice] = useState('');
   const isRefreshing = status === 'loading';
   const isAdmin = currentUser?.role === 'admin';
   const { adminView, queryMode, workspaceView } = routeState;
@@ -214,8 +228,8 @@ export function App() {
   );
   const visibleTasks = useMemo(() => filterAndSortTasks(tasks, filters), [filters, tasks]);
   const stateStatuses = useMemo(
-    () => buildOperationsStatuses(health, Boolean(token), lastBatch?.batchId ?? null),
-    [health, lastBatch, token],
+    () => buildOperationsStatuses(health, Boolean(token), lastBatch?.batchId ?? null, moduleInfo),
+    [health, lastBatch, moduleInfo, token],
   );
   const permissionSummary = useMemo(() => buildPermissionSummary(users), [users]);
   const timeline = useMemo(() => buildTimeline(operations, records), [operations, records]);
@@ -231,11 +245,6 @@ export function App() {
     },
     [boundRecords, records],
   );
-  const collectableRecords = useMemo(
-    () => boundRecords
-      .filter((record) => record.needCollect !== false),
-    [boundRecords],
-  );
   const updatedAt = new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -245,6 +254,7 @@ export function App() {
     second: '2-digit',
     hour12: false,
   }).format(new Date());
+  const operationNotice = errorMessage ? `接口提示：${errorMessage}` : actionNotice;
 
   function handleSelect(id: string) {
     setSelectedIds((current) => {
@@ -273,8 +283,10 @@ export function App() {
   }
 
   async function handleRefresh(mode: TrainingQueryMode = 'multiple') {
-    setActionNotice('正在通过真实 HTTP 接口刷新数据。');
+    setActionNotice('');
     await refreshDashboard(undefined, undefined, {
+      loadMultiUserSummaries: mode === 'multiple',
+      loadProblemDetails: mode === 'problem',
       loadStudentDetails: mode === 'single',
     });
   }
@@ -290,13 +302,8 @@ export function App() {
     await chooseIdentity(studentIdentity);
   }
 
-  async function handleRefreshWarehouse() {
-    setActionNotice('正在调用 admin warehouse:refresh 接口。');
-    await refreshWarehouse();
-  }
-
   async function handleBatchImportStudents(rows: BatchStudentImportRow[]) {
-    setActionNotice(`正在批量创建 ${rows.length} 个学生账号并写入 Codeforces 绑定。`);
+    setActionNotice(`正在批量创建 ${rows.length} 个学生账号并写入 OJ handle 绑定。`);
     return batchImportStudents(rows);
   }
 
@@ -308,28 +315,14 @@ export function App() {
   async function handleBatchCollect(options: BatchCollectOptions) {
     const lookbackLabel = options.lookbackHours >= UNLIMITED_LOOKBACK_HOURS ? '不限时间范围' : `最近 ${options.lookbackHours} 小时`;
     setActionNotice(
-      `正在按${lookbackLabel}批量采集 ${options.studentIdentities.length} 个选手。`,
+      `正在按${lookbackLabel}批量采集 ${options.studentIdentities.length} 个队员。`,
     );
     return batchCollectSubmissions(options);
   }
 
   async function handleDeleteFullUserData(studentIdentity: StudentIdentity) {
-    setActionNotice(`正在彻底删除 ${studentIdentity} 的训练数据和 auth 账号。`);
+    setActionNotice('');
     return deleteFullUserData(studentIdentity);
-  }
-
-  function handleImportClick() {
-    fileInputRef.current?.click();
-  }
-
-  async function handleOdsFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) {
-      return;
-    }
-    setActionNotice(`正在上传 ${file.name} 到 Codeforces ODS upsert 接口，成功后刷新仓库。`);
-    await importOdsFile(file);
   }
 
   function exportVisibleTasks() {
@@ -457,6 +450,7 @@ export function App() {
     <AppShell
       currentUser={currentUser}
       currentPage={currentPage}
+      onChangePassword={currentUser ? changePassword : undefined}
       onSignIn={() => setIsLoginOpen(true)}
       onSignOut={currentUser ? signOut : undefined}
       sidebarContent={sidebarContent}
@@ -488,16 +482,6 @@ export function App() {
       )}
     >
       <main className="dashboard-main">
-        <input
-          accept="application/json,.json"
-          aria-label="上传 Codeforces ODS JSON"
-          aria-hidden="true"
-          className="visually-hidden"
-          onChange={handleOdsFileChange}
-          ref={fileInputRef}
-          tabIndex={-1}
-          type="file"
-        />
         {isLoginOpen ? (
           <div className="login-dialog-backdrop">
             <section
@@ -522,16 +506,25 @@ export function App() {
         {workspaceView === 'query' ? (
           <section id="workspace-panel-query" role="tabpanel" aria-labelledby="workspace-tab-query">
             <TrainingQueryPanel
-              autoCollectSummaries={autoCollectAcceptedSummaries}
+              multiUserSummaries={multiUserAcceptedSummaries}
               firstAccepted={firstAccepted}
               isRefreshing={isRefreshing}
+              ojName={selectedOjName}
               onApplyQuery={applyTrainingQuery}
+              onOjNameChange={chooseOjName}
+              onProblemKeyChange={changeProblemKey}
+              onProblemSubmissionPageChange={changeProblemSubmissionPage}
               onQueryModeChange={(mode) => navigateRoute({ queryMode: mode, workspaceView: 'query' })}
               onRefresh={handleRefresh}
               onSubmissionPageChange={changeSubmissionPage}
               onSelectedIdentityChange={handleChooseIdentity}
               query={trainingQuery}
               queryMode={queryMode}
+              problemFirstAccepted={problemFirstAccepted}
+              problemKey={problemKey}
+              problemSubmissionLimit={problemSubmissionLimit}
+              problemSubmissionPage={problemSubmissionPage}
+              problemSubmissions={problemSubmissions}
               record={selectedRecord}
               selectedIdentity={selectedIdentity}
               submissionLimit={submissionLimit}
@@ -540,9 +533,11 @@ export function App() {
               submissions={submissions}
               updatedAt={updatedAt}
             />
-            <div className="operation-toast" role="status" aria-live="polite">
-              {errorMessage ? `接口提示：${errorMessage}` : actionNotice}
-            </div>
+            {operationNotice ? (
+              <div className="operation-toast" role="status" aria-live="polite">
+                {operationNotice}
+              </div>
+            ) : null}
           </section>
         ) : (
           <section
@@ -561,27 +556,37 @@ export function App() {
             {token && !isAdmin ? (
               <section className="admin-gate">
                 <h1>需要管理员权限</h1>
-                <p>当前账号只能查看训练数据查询页，导入、采集和仓库刷新只对 admin 开放。</p>
+                <p>当前账号只能查看训练数据查询页，用户管理和采集操作只对 admin 开放。</p>
               </section>
             ) : null}
 
             {isAdmin ? (
               <>
-                <div className="admin-header">
-                  <div>
-                    <h1>管理员操作</h1>
-                    <p>用户信息、数据采集、数据维护和运行记录分开处理，避免把创建、查询和高风险动作混在同一屏。</p>
-                  </div>
-                </div>
-
-                {adminView === 'users' ? (
-                  <section id="admin-panel-users" role="tabpanel" aria-labelledby="admin-tab-users">
+                {adminView === 'user-create' ? (
+                  <section id="admin-panel-user-create" role="tabpanel" aria-labelledby="admin-tab-user-create">
                     <AdminUserManagementPanel
                       currentUserIdentity={currentUser?.studentIdentity ?? null}
                       isRefreshing={isRefreshing}
                       onBatchImportStudents={handleBatchImportStudents}
+                      onDeleteFullUserData={handleDeleteFullUserData}
                       onUpdateStudentInfo={handleUpdateStudentInfo}
                       records={records}
+                      view="create"
+                      users={users}
+                    />
+                  </section>
+                ) : null}
+
+                {adminView === 'user-edit' ? (
+                  <section id="admin-panel-user-edit" role="tabpanel" aria-labelledby="admin-tab-user-edit">
+                    <AdminUserManagementPanel
+                      currentUserIdentity={currentUser?.studentIdentity ?? null}
+                      isRefreshing={isRefreshing}
+                      onBatchImportStudents={handleBatchImportStudents}
+                      onDeleteFullUserData={handleDeleteFullUserData}
+                      onUpdateStudentInfo={handleUpdateStudentInfo}
+                      records={records}
+                      view="edit"
                       users={users}
                     />
                   </section>
@@ -590,27 +595,12 @@ export function App() {
                 {adminView === 'collection' ? (
                   <section id="admin-panel-collection" role="tabpanel" aria-labelledby="admin-tab-collection">
                     <TrainingDataCollectionPanel
-                      collectableRecords={collectableRecords}
+                      collectableRecords={records}
                       collectionJob={collectionJob}
                       collectionJobs={collectionJobs}
                       collectionJobSummary={collectionJobSummary}
                       isRefreshing={isRefreshing}
                       onBatchCollect={handleBatchCollect}
-                    />
-                  </section>
-                ) : null}
-
-                {adminView === 'maintenance' ? (
-                  <section id="admin-panel-maintenance" role="tabpanel" aria-labelledby="admin-tab-maintenance">
-                    <TrainingDataMaintenancePanel
-                      canRefreshWarehouse={Boolean(lastBatch)}
-                      currentUserIdentity={currentUser?.studentIdentity ?? null}
-                      isRefreshing={isRefreshing}
-                      lastBatch={lastBatch}
-                      onDeleteFullUserData={handleDeleteFullUserData}
-                      onImportOds={handleImportClick}
-                      onRefreshWarehouse={handleRefreshWarehouse}
-                      userStudentOptions={users.map((user) => user.studentIdentity)}
                     />
                   </section>
                 ) : null}
@@ -677,9 +667,11 @@ export function App() {
                   </section>
                 ) : null}
 
-                <div className="operation-toast" role="status" aria-live="polite">
-                  {errorMessage ? `接口提示：${errorMessage}` : actionNotice}
-                </div>
+                {operationNotice ? (
+                  <div className="operation-toast" role="status" aria-live="polite">
+                    {operationNotice}
+                  </div>
+                ) : null}
               </>
             ) : null}
           </section>

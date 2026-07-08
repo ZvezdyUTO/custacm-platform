@@ -1,0 +1,42 @@
+create table if not exists ods_atcoder__submission (
+    id bigint primary key auto_increment,
+    atcoder_submission_id bigint not null,
+    epoch_second bigint not null,
+    problem_id varchar(128) null,
+    contest_id varchar(128) null,
+    user_id varchar(128) not null,
+    language varchar(255) null,
+    point decimal(12, 4) null,
+    source_code_length int null,
+    result varchar(64) null,
+    execution_time_millis int null,
+    batch_id varchar(128) not null,
+    fetched_at datetime(6) not null,
+    raw_payload longtext not null,
+    payload_hash char(64) not null,
+    created_at datetime(6) not null default current_timestamp(6),
+    updated_at datetime(6) not null default current_timestamp(6),
+    unique key uk_ods_atcoder_submission_source (atcoder_submission_id),
+    index idx_ods_atcoder_submission_user_time (user_id, epoch_second),
+    index idx_ods_atcoder_submission_problem_time (problem_id, epoch_second),
+    index idx_ods_atcoder_submission_contest_problem (contest_id, problem_id),
+    index idx_ods_atcoder_submission_batch (batch_id)
+);
+
+create table if not exists ods_atcoder__problem (
+    id bigint primary key auto_increment,
+    problem_id varchar(128) not null,
+    contest_id varchar(128) null,
+    problem_index varchar(64) null,
+    problem_name varchar(255) null,
+    title varchar(512) null,
+    batch_id varchar(128) not null,
+    fetched_at datetime(6) not null,
+    raw_payload longtext not null,
+    payload_hash char(64) not null,
+    created_at datetime(6) not null default current_timestamp(6),
+    updated_at datetime(6) not null default current_timestamp(6),
+    unique key uk_ods_atcoder_problem_source (problem_id),
+    index idx_ods_atcoder_problem_contest_index (contest_id, problem_index),
+    index idx_ods_atcoder_problem_batch (batch_id)
+);

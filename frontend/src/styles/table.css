@@ -1,7 +1,7 @@
 .table-panel,
 .side-section {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-panel);
   background: #fff;
 }
 
@@ -134,7 +134,7 @@
   align-items: center;
   min-height: 24px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-tight);
   padding: 0 7px;
   font-size: 12px;
   font-weight: 650;
@@ -299,7 +299,7 @@
 .loading-bars span {
   height: 10px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--radius-tight);
   background: #e8edf5;
 }
 

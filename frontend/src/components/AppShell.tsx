@@ -1,10 +1,13 @@
 import {
+  KeyRound,
   LogIn,
   LogOut,
+  Save,
   ShieldCheck,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
-import type { CurrentUser } from '../types';
+import type { FormEvent, ReactNode } from 'react';
+import { useState } from 'react';
+import type { ChangeCurrentPasswordRequest, CurrentUser } from '../types';
 
 interface CurrentPageMeta {
   detail: string;
@@ -16,6 +19,7 @@ interface AppShellProps {
   children: ReactNode;
   currentUser?: CurrentUser | null;
   currentPage: CurrentPageMeta;
+  onChangePassword?: (request: ChangeCurrentPasswordRequest) => Promise<void>;
   onSignIn?: () => void;
   onSignOut?: () => void;
   sidebarContent: ReactNode;
@@ -26,6 +30,7 @@ export function AppShell({
   children,
   currentPage,
   currentUser,
+  onChangePassword,
   onSignIn,
   onSignOut,
   sidebarContent,
@@ -78,6 +83,9 @@ export function AppShell({
                 </span>
               </button>
             )}
+            {currentUser && onChangePassword ? (
+              <PasswordChangeMenu onChangePassword={onChangePassword} />
+            ) : null}
             {currentUser && onSignOut ? (
               <button className="secondary-button compact" type="button" onClick={onSignOut}>
                 <LogOut size={15} aria-hidden="true" />
@@ -92,8 +100,95 @@ export function AppShell({
   );
 }
 
+interface PasswordChangeMenuProps {
+  onChangePassword: (request: ChangeCurrentPasswordRequest) => Promise<void>;
+}
+
+function PasswordChangeMenu({ onChangePassword }: PasswordChangeMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    if (!newPassword || newPassword !== confirmNewPassword) {
+      setError('两次输入的新密码必须一致。');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await onChangePassword({ oldPassword, newPassword, confirmNewPassword });
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setIsOpen(false);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : '修改密码失败。');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="password-menu">
+      <button
+        aria-expanded={isOpen}
+        className="secondary-button compact"
+        onClick={() => setIsOpen((current) => !current)}
+        type="button"
+      >
+        <KeyRound size={15} aria-hidden="true" />
+        改密码
+      </button>
+      {isOpen ? (
+        <form className="password-change-form" onSubmit={handleSubmit}>
+          <label>
+            旧密码
+            <input
+              autoComplete="current-password"
+              required
+              value={oldPassword}
+              onChange={(event) => setOldPassword(event.target.value)}
+              type="password"
+            />
+          </label>
+          <label>
+            新密码
+            <input
+              autoComplete="new-password"
+              required
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              type="password"
+            />
+          </label>
+          <label>
+            确认新密码
+            <input
+              autoComplete="new-password"
+              required
+              value={confirmNewPassword}
+              onChange={(event) => setConfirmNewPassword(event.target.value)}
+              type="password"
+            />
+          </label>
+          {error ? <p role="alert">{error}</p> : null}
+          <button className="primary-button compact" disabled={isSubmitting} type="submit">
+            <Save size={14} aria-hidden="true" />
+            保存
+          </button>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
 function roleLabel(role: CurrentUser['role']) {
-  return role === 'admin' ? '管理员' : '选手';
+  return role === 'admin' ? '管理员' : '队员';
 }
 
 function avatarOf(studentIdentity: string) {

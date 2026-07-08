@@ -1,11 +1,14 @@
 import { FileText, Plus, Save, Trash2, UserCog, UserPlus, Users } from 'lucide-react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { OJ_LABELS, OJ_NAMES } from '../types';
 import type {
   AccountRole,
   AuthUser,
   BatchStudentImportRow,
   BatchStudentImportSummary,
+  FullUserDataDeleteSummary,
+  OjName,
   StudentIdentity,
   StudentTrainingRecord,
   UserInfoUpdateInput,
@@ -13,27 +16,38 @@ import type {
 } from '../types';
 
 const roleOptions: Array<{ label: string; value: AccountRole }> = [
-  { label: '选手', value: 'player' },
+  { label: '队员', value: 'player' },
   { label: '管理员', value: 'admin' },
   { label: '禁用', value: 'disable' },
 ];
+const studentImportPlaceholder = [
+  '格式：学号姓名, role, password, Codeforces handle, AtCoder handle',
+  '230511213队员甲,player,,tourist,',
+  '230511214队员乙,player,initialPass123,jiangly,',
+  '230511215队员丙,admin,,,atcoder_user',
+].join('\n');
 
 interface EditableStudentRow {
   id: string;
   studentIdentity: string;
   role: AccountRole;
   password: string;
-  handle: string;
+  codeforcesHandle: string;
+  atcoderHandle: string;
 }
 
 interface AdminUserManagementPanelProps {
   currentUserIdentity: StudentIdentity | null;
   isRefreshing: boolean;
   onBatchImportStudents: (rows: BatchStudentImportRow[]) => Promise<BatchStudentImportSummary>;
+  onDeleteFullUserData: (studentIdentity: StudentIdentity) => Promise<FullUserDataDeleteSummary>;
   onUpdateStudentInfo: (input: UserInfoUpdateInput) => Promise<UserInfoUpdateSummary>;
   records: StudentTrainingRecord[];
+  view?: AdminUserManagementView;
   users: AuthUser[];
 }
+
+type AdminUserManagementView = 'all' | 'create' | 'edit';
 
 let nextEditableRowId = 0;
 
@@ -63,8 +77,10 @@ export function AdminUserManagementPanel({
   currentUserIdentity,
   isRefreshing,
   onBatchImportStudents,
+  onDeleteFullUserData,
   onUpdateStudentInfo,
   records,
+  view = 'all',
   users,
 }: AdminUserManagementPanelProps) {
   const [studentInput, setStudentInput] = useState('');
@@ -90,19 +106,34 @@ export function AdminUserManagementPanel({
   );
   const [editRole, setEditRole] = useState<AccountRole>('player');
   const [editPassword, setEditPassword] = useState('');
-  const [generatePassword, setGeneratePassword] = useState(false);
-  const [editHandle, setEditHandle] = useState('');
+  const [editNewStudentIdentity, setEditNewStudentIdentity] = useState('');
+  const [editCodeforcesHandle, setEditCodeforcesHandle] = useState('');
+  const [editAtcoderHandle, setEditAtcoderHandle] = useState('');
   const [editNeedCollect, setEditNeedCollect] = useState(true);
   const [editError, setEditError] = useState<string | null>(null);
   const [editSummary, setEditSummary] = useState<UserInfoUpdateSummary | null>(null);
-  const existingHandle = selectedRecord?.handle ?? '';
-  const canEditNeedCollect = Boolean(existingHandle || editHandle.trim());
+  const [editDeleteError, setEditDeleteError] = useState<string | null>(null);
+  const [editDeleteSummary, setEditDeleteSummary] = useState<FullUserDataDeleteSummary | null>(null);
+  const existingCodeforcesHandle = selectedRecord?.handles[OJ_NAMES.CODEFORCES] ?? '';
+  const existingAtcoderHandle = selectedRecord?.handles[OJ_NAMES.ATCODER] ?? '';
+  const hasExistingHandle = Boolean(existingCodeforcesHandle || existingAtcoderHandle);
+  const canEditNeedCollect = Boolean(
+    hasExistingHandle || editCodeforcesHandle.trim() || editAtcoderHandle.trim(),
+  );
   const userSuccessCount = createSummary?.userResults.filter((item) => item.success).length ?? 0;
   const handleSuccessCount = createSummary?.handleResults.filter((item) => item.success).length ?? 0;
   const createResultRows = useMemo(
     () => (createSummary ? buildCreateResultRows(createSummary) : []),
     [createSummary],
   );
+  const shouldShowCreate = view === 'all' || view === 'create';
+  const shouldShowEdit = view === 'all' || view === 'edit';
+  const panelLabel = view === 'create'
+    ? '创建用户'
+    : view === 'edit'
+      ? '修改用户信息'
+      : '用户信息管理';
+  const overviewHeading = view === 'edit' ? '修改用户信息' : '所有用户';
 
   useEffect(() => {
     if (!selectedUser) {
@@ -110,12 +141,15 @@ export function AdminUserManagementPanel({
     }
     setEditRole(selectedUser.role);
     setEditPassword('');
-    setGeneratePassword(false);
-    setEditHandle(selectedRecord?.handle ?? '');
+    setEditNewStudentIdentity(selectedUser.studentIdentity);
+    setEditCodeforcesHandle(existingCodeforcesHandle);
+    setEditAtcoderHandle(existingAtcoderHandle);
     setEditNeedCollect(selectedRecord?.needCollect ?? true);
     setEditError(null);
     setEditSummary(null);
-  }, [selectedRecord?.handle, selectedRecord?.needCollect, selectedUser]);
+    setEditDeleteError(null);
+    setEditDeleteSummary(null);
+  }, [existingAtcoderHandle, existingCodeforcesHandle, selectedRecord?.needCollect, selectedUser]);
 
   function handleTextImport() {
     setCreateError(null);
@@ -169,18 +203,30 @@ export function AdminUserManagementPanel({
       setEditError('请先选择一个用户。');
       return;
     }
-    const nextHandle = editHandle.trim();
-    if (existingHandle && nextHandle !== existingHandle) {
-      setEditError('当前接口只支持新增未绑定 handle，暂不支持修改已有 handle。');
+    const nextStudentIdentity = editNewStudentIdentity.trim();
+    if (!nextStudentIdentity) {
+      setEditError('OJ 绑定学号姓名不能为空。');
       return;
     }
+    const nextCodeforcesHandle = editCodeforcesHandle.trim();
+    const nextAtcoderHandle = editAtcoderHandle.trim();
+    const nextHandles = normalizeHandles({
+      ...(nextCodeforcesHandle ? { [OJ_NAMES.CODEFORCES]: nextCodeforcesHandle } : {}),
+      ...(nextAtcoderHandle ? { [OJ_NAMES.ATCODER]: nextAtcoderHandle } : {}),
+    });
+    const shouldUpdateHandles = Object.keys(nextHandles).length > 0
+      && (!selectedRecord || !areHandlesEqual(nextHandles, selectedRecord.handles));
+    const shouldMigrateIdentity = nextStudentIdentity !== selectedUser.studentIdentity;
 
     const payload: UserInfoUpdateInput = {
       studentIdentity: selectedUser.studentIdentity,
       role: editRole,
-      newPassword: generatePassword ? '' : editPassword.trim() || undefined,
-      handle: existingHandle ? undefined : nextHandle || undefined,
+      newPassword: editPassword.trim() || undefined,
+      handles: shouldUpdateHandles || shouldMigrateIdentity ? nextHandles : undefined,
     };
+    if (shouldMigrateIdentity) {
+      payload.newStudentIdentity = nextStudentIdentity;
+    }
     if (canEditNeedCollect) {
       payload.needCollect = editNeedCollect;
     }
@@ -188,56 +234,67 @@ export function AdminUserManagementPanel({
       const summary = await onUpdateStudentInfo(payload);
       setEditSummary(summary);
       setEditPassword('');
-      setGeneratePassword(false);
     } catch (error) {
       setEditError(error instanceof Error ? error.message : '修改用户信息失败。');
     }
   }
 
+  async function handleEditDelete(studentIdentity: StudentIdentity) {
+    setEditDeleteError(null);
+    setEditDeleteSummary(null);
+    if (studentIdentity === currentUserIdentity) {
+      setEditDeleteError('不能删除当前登录用户。');
+      return;
+    }
+    if (!confirmHighCostAction(
+      `确认彻底删除 ${studentIdentity} 的全部 OJ 训练数据和 auth 账号？OJ handle 绑定会保留。此操作不可恢复。`,
+    )) {
+      return;
+    }
+    try {
+      const summary = await onDeleteFullUserData(studentIdentity);
+      setEditDeleteSummary(summary);
+    } catch (error) {
+      setEditDeleteError(error instanceof Error ? error.message : '删除用户信息失败。');
+    }
+  }
+
   return (
-    <section className="admin-user-management-panel" aria-label="用户信息管理">
-      <form className="admin-management-card user-create-card" onSubmit={handleCreateSubmit}>
+    <section className="admin-user-management-panel" aria-label={panelLabel}>
+      {shouldShowCreate ? (
+        <form className="admin-management-card user-create-card" onSubmit={handleCreateSubmit}>
         <header>
           <span className="admin-action-icon">
             <UserPlus size={18} aria-hidden="true" />
           </span>
           <div>
             <h2>创建用户</h2>
-            <p>文本导入会先填入信息栏；提交时创建账号，并为填写 handle 的行新增 Codeforces 绑定。</p>
+            <p>文本导入会先填入信息栏；提交时创建账号，并为填写 handle 的行新增 OJ handle 绑定。</p>
           </div>
         </header>
 
         <div className="user-create-import-grid">
-          <label className="batch-textarea-field">
-            文本导入
+          <div className="batch-textarea-field">
+            <label htmlFor="student-batch-import">文本导入</label>
             <textarea
               aria-describedby={createError ? 'create-user-error' : undefined}
               aria-invalid={createError ? true : undefined}
+              id="student-batch-import"
+              placeholder={studentImportPlaceholder}
               rows={7}
               value={studentInput}
               onChange={(event) => setStudentInput(event.target.value)}
             />
-          </label>
-          <div className="import-format-panel">
-            <div>
-              <span>字段顺序</span>
-              <code>学号姓名, role, password, handle</code>
+            <div className="batch-textarea-actions">
+              <button className="secondary-button" disabled={isRefreshing} onClick={handleTextImport} type="button">
+                <FileText size={16} aria-hidden="true" />
+                填入信息栏
+              </button>
             </div>
-            <button className="secondary-button" disabled={isRefreshing} onClick={handleTextImport} type="button">
-              <FileText size={16} aria-hidden="true" />
-              填入信息栏
-            </button>
           </div>
         </div>
 
-        <div className="editable-user-list" aria-label="创建用户信息栏">
-          <div className="editable-user-list-header">
-            <strong>创建用户信息栏</strong>
-            <button className="secondary-button compact" disabled={isRefreshing} onClick={addCreateRow} type="button">
-              <Plus size={14} aria-hidden="true" />
-              增加一行
-            </button>
-          </div>
+        <div className="editable-user-list" aria-label="创建用户行列表">
           {createRows.map((row, index) => (
             <div className="editable-user-row" key={row.id}>
               <label>
@@ -273,11 +330,20 @@ export function AdminUserManagementPanel({
                 />
               </label>
               <label>
-                Codeforces handle
+                Codeforces
                 <input
                   aria-label={`第 ${index + 1} 行 Codeforces handle`}
-                  value={row.handle}
-                  onChange={(event) => updateCreateRow(row.id, 'handle', event.target.value)}
+                  value={row.codeforcesHandle}
+                  onChange={(event) => updateCreateRow(row.id, 'codeforcesHandle', event.target.value)}
+                  placeholder="可选"
+                />
+              </label>
+              <label>
+                AtCoder
+                <input
+                  aria-label={`第 ${index + 1} 行 AtCoder handle`}
+                  value={row.atcoderHandle}
+                  onChange={(event) => updateCreateRow(row.id, 'atcoderHandle', event.target.value)}
                   placeholder="可选"
                 />
               </label>
@@ -294,11 +360,17 @@ export function AdminUserManagementPanel({
           ))}
         </div>
 
-        <div className="admin-card-actions">
-          <button className="primary-button" disabled={isRefreshing} type="submit">
-            <UserPlus size={16} aria-hidden="true" />
-            创建用户
-          </button>
+        <div className="admin-card-actions create-user-actions">
+          <div className="create-user-submit-actions">
+            <button className="primary-button" disabled={isRefreshing} type="submit">
+              <UserPlus size={16} aria-hidden="true" />
+              执行创建
+            </button>
+            <button className="secondary-button compact" disabled={isRefreshing} onClick={addCreateRow} type="button">
+              <Plus size={14} aria-hidden="true" />
+              增加一名队员
+            </button>
+          </div>
           <span>{createRows.length} 行待提交</span>
         </div>
 
@@ -325,7 +397,7 @@ export function AdminUserManagementPanel({
                   <tr>
                     <th scope="col">学号姓名</th>
                     <th scope="col">账号</th>
-                    <th scope="col">Codeforces handle</th>
+                    <th scope="col">OJ handle</th>
                     <th scope="col">初始密码</th>
                   </tr>
                 </thead>
@@ -357,16 +429,18 @@ export function AdminUserManagementPanel({
             </div>
           </section>
         ) : null}
-      </form>
+        </form>
+      ) : null}
 
-      <section className="admin-management-card user-overview-card" aria-labelledby="all-users-heading">
+      {shouldShowEdit ? (
+        <section className="admin-management-card user-overview-card" aria-labelledby="all-users-heading">
         <header>
           <span className="admin-action-icon">
             <Users size={18} aria-hidden="true" />
           </span>
           <div>
-            <h2 id="all-users-heading">所有用户</h2>
-            <p>按学号姓名中的学号前缀降序展示；在列表中直接修改角色、密码、Codeforces handle 和自动采集状态。</p>
+            <h2 id="all-users-heading">{overviewHeading}</h2>
+            <p>按学号姓名中的学号前缀降序展示；在列表中直接修改角色、密码、OJ handle、自动采集状态，并查看历史最早数据覆盖情况。</p>
           </div>
         </header>
 
@@ -379,28 +453,24 @@ export function AdminUserManagementPanel({
           <table className="user-overview-table" aria-label="所有用户">
             <colgroup>
               <col className="user-col-identity" />
-              <col className="user-col-role" />
               <col className="user-col-handle" />
-              <col className="user-col-collect" />
-              <col className="user-col-created" />
-              <col className="user-col-updated" />
+              <col className="user-col-history" />
+              <col className="user-col-collected" />
               <col className="user-col-action" />
             </colgroup>
             <thead>
               <tr>
                 <th scope="col">学号姓名</th>
-                <th scope="col">角色</th>
-                <th scope="col">Codeforces handle</th>
-                <th scope="col">自动采集</th>
-                <th scope="col">创建时间</th>
-                <th scope="col">更新时间</th>
+                <th scope="col">OJ handle</th>
+                <th scope="col">最早采集</th>
+                <th scope="col">最近采集</th>
                 <th scope="col">操作</th>
               </tr>
             </thead>
             <tbody>
               {sortedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>暂无用户</td>
+                  <td colSpan={5}>暂无用户</td>
                 </tr>
               ) : (
                 sortedUsers.map((user, index) => {
@@ -415,12 +485,16 @@ export function AdminUserManagementPanel({
                         <td data-label="学号姓名">
                           <strong>{user.studentIdentity}</strong>
                           {user.studentIdentity === currentUserIdentity ? <small>当前登录</small> : null}
+                          <span className="user-overview-tags" aria-label={`${user.studentIdentity} 标签`}>
+                            <span className={`user-overview-tag user-role-${user.role}`}>{roleLabel(user.role)}</span>
+                            <span className={`user-overview-tag user-collect-${needCollectTone(record)}`}>
+                              自动采集：{formatNeedCollect(record)}
+                            </span>
+                          </span>
                         </td>
-                        <td data-label="角色">{roleLabel(user.role)}</td>
-                        <td data-label="Codeforces handle">{record?.handle ?? '-'}</td>
-                        <td data-label="自动采集">{formatNeedCollect(record)}</td>
-                        <td data-label="创建时间">{formatTime(user.createdAt)}</td>
-                        <td data-label="更新时间">{formatTime(user.updatedAt)}</td>
+                        <td data-label="OJ handle">{formatHandles(record?.handles)}</td>
+                        <td data-label="最早采集">{formatHistoryCoverage(record)}</td>
+                        <td data-label="最近采集">{formatLastCollectedAt(record)}</td>
                         <td data-label="操作">
                           <button
                             aria-controls={editPanelId}
@@ -438,14 +512,24 @@ export function AdminUserManagementPanel({
                       </tr>
                       {isEditing ? (
                         <tr className="user-overview-edit-row" id={editPanelId}>
-                          <td colSpan={7}>
+                          <td colSpan={5}>
                             <form className="user-list-edit-form" onSubmit={handleEditSubmit}>
                               <div className="user-list-edit-header">
-                                <strong>修改 {user.studentIdentity}</strong>
+                                <strong>修改用户信息</strong>
                                 <span>最后更新：{formatTime(user.updatedAt)}</span>
                               </div>
 
                               <div className="user-edit-grid">
+                                <label className="user-edit-field user-edit-identity-field">
+                                  修改学号姓名
+                                  <input
+                                    aria-label="修改学号姓名"
+                                    disabled={isRefreshing}
+                                    onChange={(event) => setEditNewStudentIdentity(event.target.value)}
+                                    placeholder={user.studentIdentity}
+                                    value={editNewStudentIdentity}
+                                  />
+                                </label>
                                 <label className="user-edit-field">
                                   角色
                                   <select
@@ -465,30 +549,31 @@ export function AdminUserManagementPanel({
                                   新密码
                                   <input
                                     aria-label="修改用户新密码"
-                                    disabled={generatePassword || isRefreshing}
+                                    disabled={isRefreshing}
                                     onChange={(event) => setEditPassword(event.target.value)}
                                     placeholder="不填则不修改"
                                     type="text"
                                     value={editPassword}
                                   />
                                 </label>
-                                <label className="checkbox-field user-edit-checkbox">
-                                  <input
-                                    checked={generatePassword}
-                                    disabled={isRefreshing}
-                                    onChange={(event) => setGeneratePassword(event.target.checked)}
-                                    type="checkbox"
-                                  />
-                                  自动生成新密码
-                                </label>
-                                <label className="user-edit-field wide">
+                                <label className="user-edit-field">
                                   Codeforces handle
                                   <input
                                     aria-label="修改用户 Codeforces handle"
-                                    disabled={Boolean(existingHandle) || isRefreshing}
-                                    onChange={(event) => setEditHandle(event.target.value)}
-                                    placeholder={existingHandle ? '已绑定' : '可选'}
-                                    value={editHandle}
+                                    disabled={Boolean(existingCodeforcesHandle) || isRefreshing}
+                                    onChange={(event) => setEditCodeforcesHandle(event.target.value)}
+                                    placeholder="可选"
+                                    value={editCodeforcesHandle}
+                                  />
+                                </label>
+                                <label className="user-edit-field">
+                                  AtCoder handle
+                                  <input
+                                    aria-label="修改用户 AtCoder handle"
+                                    disabled={Boolean(existingAtcoderHandle) || isRefreshing}
+                                    onChange={(event) => setEditAtcoderHandle(event.target.value)}
+                                    placeholder="可选"
+                                    value={editAtcoderHandle}
                                   />
                                 </label>
                                 <label className="checkbox-field user-edit-checkbox">
@@ -503,16 +588,32 @@ export function AdminUserManagementPanel({
                                 </label>
                               </div>
 
-                              <div className="admin-card-actions">
+                              <div className="admin-card-actions user-edit-actions">
                                 <button className="primary-button" disabled={isRefreshing} type="submit">
                                   <Save size={16} aria-hidden="true" />
                                   保存修改
+                                </button>
+                                <button
+                                  className="danger-button subtle"
+                                  disabled={isRefreshing || user.studentIdentity === currentUserIdentity}
+                                  onClick={() => {
+                                    void handleEditDelete(user.studentIdentity);
+                                  }}
+                                  type="button"
+                                >
+                                  <Trash2 size={16} aria-hidden="true" />
+                                  删除用户信息
                                 </button>
                               </div>
 
                               {editError ? (
                                 <p className="form-error" role="alert">
                                   {editError}
+                                </p>
+                              ) : null}
+                              {editDeleteError ? (
+                                <p className="form-error" role="alert">
+                                  {editDeleteError}
                                 </p>
                               ) : null}
                               {editSummary ? (
@@ -526,9 +627,9 @@ export function AdminUserManagementPanel({
                                   ) : null}
                                   {editSummary.handleResult ? (
                                     <span>
-                                      Codeforces handle：
+                                      OJ handle：
                                       {editSummary.handleResult.success
-                                        ? `${editSummary.handleResult.handle}${
+                                        ? `${formatHandles(editSummary.handleResult.handles)}${
                                           editSummary.handleResult.needCollect === null
                                           || editSummary.handleResult.needCollect === undefined
                                             ? ''
@@ -537,6 +638,14 @@ export function AdminUserManagementPanel({
                                         : editSummary.handleResult.errorCode ?? editSummary.handleResult.message}
                                     </span>
                                   ) : null}
+                                </output>
+                              ) : null}
+                              {editDeleteSummary ? (
+                                <output className="admin-result compact" aria-live="polite">
+                                  <strong>
+                                    已删除 {editDeleteSummary.authUserResult.studentIdentity}，训练数据{' '}
+                                    {editDeleteSummary.trainingDataResult.totalDeletedRows} 行
+                                  </strong>
                                 </output>
                               ) : null}
                             </form>
@@ -550,7 +659,8 @@ export function AdminUserManagementPanel({
             </tbody>
           </table>
         </div>
-      </section>
+        </section>
+      ) : null}
     </section>
   );
 }
@@ -572,11 +682,17 @@ function parseJsonStudentRows(value: string): BatchStudentImportRow[] {
       throw new Error(`第 ${index + 1} 条不是对象。`);
     }
     const source = row as Record<string, unknown>;
+    const codeforcesHandle = toStringField(source.codeforcesHandle) || toStringField(source.handle);
+    const atcoderHandle = toStringField(source.atcoderHandle);
     return normalizeStudentRow({
       studentIdentity: toStringField(source.studentIdentity),
       role: toStringField(source.role) || 'player',
       password: toStringField(source.password),
-      handle: toStringField(source.handle),
+      handles: normalizeHandles({
+        ...toHandlesRecord(source.handles),
+        ...(codeforcesHandle ? { [OJ_NAMES.CODEFORCES]: codeforcesHandle } : {}),
+        ...(atcoderHandle ? { [OJ_NAMES.ATCODER]: atcoderHandle } : {}),
+      }),
     }, index + 1);
   });
 
@@ -588,17 +704,31 @@ function parseJsonStudentRows(value: string): BatchStudentImportRow[] {
 
 function parseDelimitedStudentRow(line: string, lineNumber: number): BatchStudentImportRow[] {
   const columns = line.includes('\t') ? line.split('\t') : line.split(',');
-  const [studentIdentity = '', role = 'player', password = '', handle = ''] = columns.map((item) => item.trim());
+  const [
+    studentIdentity = '',
+    role = 'player',
+    password = '',
+    codeforcesHandle = '',
+    atcoderHandle = '',
+  ] = columns.map((item) => item.trim());
 
   if (studentIdentity.toLowerCase() === 'studentidentity' || studentIdentity === '学号姓名') {
     return [];
   }
 
-  return [normalizeStudentRow({ studentIdentity, role: role || 'player', password, handle }, lineNumber)];
+  return [normalizeStudentRow({
+    studentIdentity,
+    role: role || 'player',
+    password,
+    handles: normalizeHandles({
+      [OJ_NAMES.CODEFORCES]: codeforcesHandle,
+      [OJ_NAMES.ATCODER]: atcoderHandle,
+    }),
+  }, lineNumber)];
 }
 
 function normalizeStudentRow(
-  row: { studentIdentity: string; role: string; password: string; handle: string },
+  row: { studentIdentity: string; role: string; password: string; handles: Partial<Record<OjName, string>> },
   lineNumber: number,
 ): BatchStudentImportRow {
   if (!row.studentIdentity) {
@@ -609,17 +739,23 @@ function normalizeStudentRow(
     throw new Error(`第 ${lineNumber} 行 role 必须是 admin、player 或 disable。`);
   }
 
+  const handles = normalizeHandles(row.handles);
   return {
     studentIdentity: row.studentIdentity,
     role: row.role,
     password: row.password || undefined,
-    handle: row.handle || undefined,
+    handle: handles[OJ_NAMES.CODEFORCES],
+    codeforcesHandle: handles[OJ_NAMES.CODEFORCES],
+    atcoderHandle: handles[OJ_NAMES.ATCODER],
+    handles: hasHandles(handles) ? handles : undefined,
   };
 }
 
 function editableRowsToImportRows(rows: EditableStudentRow[]) {
   const filledRows = rows.filter((row) =>
-    [row.studentIdentity, row.password, row.handle].some((value) => value.trim().length > 0),
+    [row.studentIdentity, row.password, row.codeforcesHandle, row.atcoderHandle].some(
+      (value) => value.trim().length > 0,
+    ),
   );
   if (filledRows.length === 0) {
     throw new Error('请先填写至少一条用户信息。');
@@ -629,7 +765,10 @@ function editableRowsToImportRows(rows: EditableStudentRow[]) {
       studentIdentity: row.studentIdentity.trim(),
       role: row.role,
       password: row.password.trim(),
-      handle: row.handle.trim(),
+      handles: normalizeHandles({
+        [OJ_NAMES.CODEFORCES]: row.codeforcesHandle.trim(),
+        [OJ_NAMES.ATCODER]: row.atcoderHandle.trim(),
+      }),
     }, index + 1),
   );
 }
@@ -640,7 +779,8 @@ function toEditableRows(rows: BatchStudentImportRow[]) {
     studentIdentity: row.studentIdentity,
     role: row.role,
     password: row.password ?? '',
-    handle: row.handle ?? '',
+    codeforcesHandle: row.handles?.[OJ_NAMES.CODEFORCES] ?? row.codeforcesHandle ?? row.handle ?? '',
+    atcoderHandle: row.handles?.[OJ_NAMES.ATCODER] ?? row.atcoderHandle ?? '',
   }));
 }
 
@@ -650,7 +790,8 @@ function emptyEditableRow(): EditableStudentRow {
     studentIdentity: '',
     role: 'player',
     password: '',
-    handle: '',
+    codeforcesHandle: '',
+    atcoderHandle: '',
   };
 }
 
@@ -702,7 +843,7 @@ function buildCreateResultRows(summary: BatchStudentImportSummary): CreateResult
 
 function handleResultLabel(result: BatchStudentImportSummary['handleResults'][number]) {
   if (result.success) {
-    return result.handle ?? '已绑定';
+    return formatHandles(result.handles, result.handle ?? '已绑定');
   }
   return resultErrorLabel(result.errorCode, result.message, '绑定失败');
 }
@@ -724,6 +865,43 @@ function toStringField(value: unknown) {
   return value === null || value === undefined ? '' : String(value).trim();
 }
 
+function toHandlesRecord(value: unknown): Partial<Record<OjName, string>> {
+  if (typeof value !== 'object' || value === null) {
+    return {};
+  }
+  const source = value as Record<string, unknown>;
+  return normalizeHandles({
+    [OJ_NAMES.CODEFORCES]: toStringField(source[OJ_NAMES.CODEFORCES] ?? source.codeforces),
+    [OJ_NAMES.ATCODER]: toStringField(source[OJ_NAMES.ATCODER] ?? source.atcoder),
+  });
+}
+
+function normalizeHandles(handles: Partial<Record<OjName, string>>): Partial<Record<OjName, string>> {
+  return Object.fromEntries(
+    Object.entries(handles)
+      .map(([ojName, handle]) => [ojName, handle?.trim() ?? ''] as const)
+      .filter(([, handle]) => handle.length > 0),
+  ) as Partial<Record<OjName, string>>;
+}
+
+function hasHandles(handles: Partial<Record<OjName, string>>) {
+  return Object.keys(handles).length > 0;
+}
+
+function areHandlesEqual(
+  left: Partial<Record<OjName, string>>,
+  right: Partial<Record<OjName, string>>,
+) {
+  const normalizedLeft = normalizeHandles(left);
+  const normalizedRight = normalizeHandles(right);
+  const ojNames = new Set([...Object.keys(normalizedLeft), ...Object.keys(normalizedRight)]);
+  return Array.from(ojNames).every((ojName) => (
+    normalizedLeft[ojName as OjName] ?? ''
+  ) === (
+    normalizedRight[ojName as OjName] ?? ''
+  ));
+}
+
 function isAccountRole(value: string): value is AccountRole {
   return value === 'admin' || value === 'player' || value === 'disable';
 }
@@ -732,11 +910,52 @@ function roleLabel(role: AccountRole) {
   return roleOptions.find((option) => option.value === role)?.label ?? role;
 }
 
+function formatHandles(handles: Partial<Record<OjName, string>> | undefined, fallback = '-') {
+  const normalized = normalizeHandles(handles ?? {});
+  const labels = (Object.entries(normalized) as Array<[OjName, string]>)
+    .map(([ojName, handle]) => `${OJ_LABELS[ojName] ?? ojName}：${handle}`);
+  return labels.length > 0 ? labels.join(' / ') : fallback;
+}
+
 function formatNeedCollect(record: StudentTrainingRecord | undefined) {
-  if (!record || record.handleStatus !== 'bound') {
+  if (!record || !hasHandles(record.handles)) {
     return '未绑定';
   }
   return record.needCollect === false ? '否' : '是';
+}
+
+function needCollectTone(record: StudentTrainingRecord | undefined) {
+  if (!record || !hasHandles(record.handles)) {
+    return 'unbound';
+  }
+  return record.needCollect === false ? 'off' : 'on';
+}
+
+function formatHistoryCoverage(record: StudentTrainingRecord | undefined) {
+  if (!record || !hasHandles(record.handles)) {
+    return '未绑定';
+  }
+  const labels = (Object.keys(record.handles) as OjName[]).map((ojName) => {
+    const state = record.collectionStates?.[ojName];
+    if (!state) {
+      return `${OJ_LABELS[ojName] ?? ojName}：未采集`;
+    }
+    const coverage = state.historyStartReached ? '已到最早' : '未到最早';
+    return `${OJ_LABELS[ojName] ?? ojName}：${coverage}`;
+  });
+  return labels.length > 0 ? labels.join(' / ') : '未绑定';
+}
+
+function formatLastCollectedAt(record: StudentTrainingRecord | undefined) {
+  if (!record || !hasHandles(record.handles)) {
+    return '未绑定';
+  }
+  const labels = (Object.keys(record.handles) as OjName[]).map((ojName) => {
+    const state = record.collectionStates?.[ojName];
+    const collectedAt = state?.lastCollectedAt ? formatTime(state.lastCollectedAt) : '未采集';
+    return `${OJ_LABELS[ojName] ?? ojName}：${collectedAt}`;
+  });
+  return labels.length > 0 ? labels.join(' / ') : '未绑定';
 }
 
 function compareUsersByStudentNumberDesc(left: AuthUser, right: AuthUser) {
@@ -783,4 +1002,11 @@ function formatTime(value: string) {
     minute: '2-digit',
     hour12: false,
   }).format(date);
+}
+
+function confirmHighCostAction(message: string) {
+  if (typeof window === 'undefined' || typeof window.confirm !== 'function') {
+    return true;
+  }
+  return window.confirm(message);
 }

@@ -31,28 +31,28 @@ POST  /api/auth/login
 GET   /api/auth/player/me
 PATCH /api/auth/player/me/password
 GET   /api/auth/users
-POST  /api/auth/admin/users
+POST  /api/auth/admin/users:batch-create
 PATCH /api/auth/admin/users/{studentIdentity}
 
-POST  /api/training-data/admin/ods/codeforces/submissions:batch-upsert
 POST  /api/training-data/admin/codeforces/submissions:collect
 POST  /api/training-data/admin/codeforces/submissions:collect-batch-jobs
 GET   /api/training-data/admin/codeforces/submissions/collect-batch-jobs
-GET   /api/training-data/admin/codeforces/submissions/collect-batch-jobs/{jobId}
-POST  /api/training-data/admin/codeforces/handles
-PATCH /api/training-data/admin/codeforces/handles:change-identity
-DELETE /api/training-data/admin/codeforces/users/{studentIdentity}/data
-POST  /api/training-data/admin/codeforces/warehouse:refresh
-GET   /api/training-data/codeforces/handles?studentIdentity=230511213黄炳睿
-GET   /api/training-data/codeforces/accepted-summary?studentIdentity=230511213黄炳睿
-GET   /api/training-data/codeforces/accepted-summary/auto-collect-users
-GET   /api/training-data/codeforces/submissions/by-student?studentIdentity=230511213黄炳睿
-GET   /api/training-data/codeforces/submissions/by-problem?problemKey=2237:G
-GET   /api/training-data/codeforces/first-accepted/by-student?studentIdentity=230511213黄炳睿
-GET   /api/training-data/codeforces/first-accepted/by-problem?problemKey=2237:G
+POST  /api/training-data/admin/oj-handles
+PATCH /api/training-data/admin/oj-handles:change-identity
+DELETE /api/training-data/admin/students/{studentIdentity}/oj-data?ojName=CODEFORCES
+GET   /api/training-data/oj-handles
+GET   /api/training-data/codeforces/accepted-summary?ojName=CODEFORCES&studentIdentity=230511213黄炳睿
+GET   /api/training-data/codeforces/submissions/by-student?ojName=CODEFORCES&studentIdentity=230511213黄炳睿
+GET   /api/training-data/codeforces/submissions/by-problem?ojName=CODEFORCES&problemKey=2237:G
+GET   /api/training-data/codeforces/first-accepted/by-student?ojName=CODEFORCES&studentIdentity=230511213黄炳睿
+GET   /api/training-data/codeforces/first-accepted/by-problem?ojName=CODEFORCES&problemKey=2237:G
 ```
 
 If an endpoint needs the current user identity, it is not a guest endpoint. Put it under `/player/**` or `/admin/**`.
+
+Background scheduled collectors are not HTTP endpoints; they call application services in-process and do not change the URL authorization tiers above. Common HTTP controllers in `training-data-common` still follow the same `/admin/**` and guest URL tiers above.
+
+Training-data Codeforces-shaped collection and query routes are OJ-neutral at the application layer when they accept `ojName`, for example `ojName=ATCODER`; this does not change authorization. Collection, collection-job start/list, handle-account writes, and student-data purge remain admin-only, while warehouse query routes and the full OJ handle map, including per-OJ collection states, remain guest endpoints.
 
 ## Guest Endpoints
 
