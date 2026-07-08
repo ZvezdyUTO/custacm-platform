@@ -18,6 +18,7 @@ import com.custacm.platform.trainingdata.common.domain.oj.repo.OjHandleAccountRe
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjOdsDataPurgeRepository;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjSubmissionRepository;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjWarehouseDataPurgeRepository;
+import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
 import com.custacm.platform.trainingdata.common.infra.oj.repo.account.JdbcOjHandleAccountRepository;
 import com.custacm.platform.trainingdata.common.infra.oj.repo.query.JdbcOjAcceptedSummaryRepository;
@@ -53,24 +54,32 @@ public class CommonTrainingDataConfig {
     }
 
     @Bean
+    OjDifficultyBucketPolicies ojDifficultyBucketPolicies() {
+        return OjDifficultyBucketPolicies.defaults();
+    }
+
+    @Bean
     OjAcceptedSummaryRepository ojAcceptedSummaryRepository(
-            NamedParameterJdbcTemplate jdbcTemplate
+            NamedParameterJdbcTemplate jdbcTemplate,
+            OjDifficultyBucketPolicies bucketPolicies
     ) {
-        return new JdbcOjAcceptedSummaryRepository(jdbcTemplate);
+        return new JdbcOjAcceptedSummaryRepository(jdbcTemplate, bucketPolicies);
     }
 
     @Bean
     OjSubmissionRepository ojSubmissionRepository(
-            NamedParameterJdbcTemplate jdbcTemplate
+            NamedParameterJdbcTemplate jdbcTemplate,
+            OjDifficultyBucketPolicies bucketPolicies
     ) {
-        return new JdbcOjSubmissionRepository(jdbcTemplate);
+        return new JdbcOjSubmissionRepository(jdbcTemplate, bucketPolicies);
     }
 
     @Bean
     OjFirstAcceptedProblemRepository ojFirstAcceptedProblemRepository(
-            NamedParameterJdbcTemplate jdbcTemplate
+            NamedParameterJdbcTemplate jdbcTemplate,
+            OjDifficultyBucketPolicies bucketPolicies
     ) {
-        return new JdbcOjFirstAcceptedProblemRepository(jdbcTemplate);
+        return new JdbcOjFirstAcceptedProblemRepository(jdbcTemplate, bucketPolicies);
     }
 
     @Bean
@@ -99,9 +108,10 @@ public class CommonTrainingDataConfig {
     @Bean
     OjAcceptedSummaryQueryService ojAcceptedSummaryQueryService(
             OjAcceptedSummaryRepository repository,
-            OjHandleAccountService handleAccountService
+            OjHandleAccountService handleAccountService,
+            OjDifficultyBucketPolicies bucketPolicies
     ) {
-        return new OjAcceptedSummaryQueryService(repository, handleAccountService);
+        return new OjAcceptedSummaryQueryService(repository, handleAccountService, bucketPolicies);
     }
 
     @Bean

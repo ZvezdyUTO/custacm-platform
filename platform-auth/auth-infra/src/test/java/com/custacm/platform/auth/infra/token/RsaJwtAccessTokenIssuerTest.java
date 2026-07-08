@@ -37,6 +37,24 @@ class RsaJwtAccessTokenIssuerTest {
         assertThat(jwt.getExpiresAt()).isEqualTo(Instant.parse("2030-07-04T14:00:00Z"));
     }
 
+    @Test
+    void issuesTokenWithRequestedTtl() throws Exception {
+        KeyPair keyPair = rsaKeyPair();
+        Clock clock = Clock.fixed(Instant.parse("2030-07-04T12:00:00Z"), ZoneOffset.UTC);
+        RsaJwtAccessTokenIssuer issuer = new RsaJwtAccessTokenIssuer(
+                (RSAPublicKey) keyPair.getPublic(),
+                (RSAPrivateKey) keyPair.getPrivate(),
+                Duration.ofHours(2),
+                clock
+        );
+
+        var issued = issuer.issue("230511213黄炳睿", UserRole.PLAYER, Duration.ofDays(30));
+        Jwt jwt = PlatformJwtDecoders.rsa((RSAPublicKey) keyPair.getPublic()).decode(issued.tokenValue());
+
+        assertThat(issued.expiresInSeconds()).isEqualTo(Duration.ofDays(30).toSeconds());
+        assertThat(jwt.getExpiresAt()).isEqualTo(Instant.parse("2030-08-03T12:00:00Z"));
+    }
+
     private static KeyPair rsaKeyPair() throws Exception {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);

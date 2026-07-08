@@ -377,6 +377,11 @@ export interface CodeforcesFirstAcceptedReport {
   studentIdentity: StudentIdentity;
   authorHandle: string;
   totalAcceptedProblemCount: number;
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
   problems: CodeforcesFirstAcceptedProblem[];
 }
 
@@ -389,6 +394,11 @@ export interface CodeforcesProblemFirstAcceptedHandle {
 export interface CodeforcesProblemFirstAcceptedReport {
   problemKey: string;
   acceptedHandleCount: number;
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
   acceptedHandles: CodeforcesProblemFirstAcceptedHandle[];
 }
 

@@ -40,8 +40,17 @@ public class RsaJwtAccessTokenIssuer implements AccessTokenIssuer {
 
     @Override
     public IssuedToken issue(String studentIdentity, UserRole role) {
+        return issue(studentIdentity, role, ttl);
+    }
+
+    @Override
+    public IssuedToken issue(String studentIdentity, UserRole role, Duration requestedTtl) {
+        Duration effectiveTtl = requestedTtl == null ? ttl : requestedTtl;
+        if (effectiveTtl.isZero() || effectiveTtl.isNegative()) {
+            throw new IllegalArgumentException("access token ttl must be positive");
+        }
         Instant issuedAt = clock.instant();
-        Instant expiresAt = issuedAt.plus(ttl);
+        Instant expiresAt = issuedAt.plus(effectiveTtl);
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(studentIdentity)
                 .claim("role", role.value())
@@ -50,6 +59,6 @@ public class RsaJwtAccessTokenIssuer implements AccessTokenIssuer {
                 .build();
         JwsHeader header = JwsHeader.with(SignatureAlgorithm.RS256).type("JWT").build();
         String token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
-        return new IssuedToken(token, ttl.toSeconds());
+        return new IssuedToken(token, effectiveTtl.toSeconds());
     }
 }

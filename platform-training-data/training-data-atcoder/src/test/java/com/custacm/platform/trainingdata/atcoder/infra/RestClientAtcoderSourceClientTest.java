@@ -65,6 +65,21 @@ class RestClientAtcoderSourceClientTest {
     }
 
     @Test
+    void fetchesProblemModelObject() throws Exception {
+        startServer("""
+                {
+                  "abc121_c": { "difficulty": 873, "is_experimental": false }
+                }
+                """);
+        RestClientAtcoderSourceClient client = client();
+
+        JsonNode result = client.fetchProblemModels();
+
+        assertThat(result.path("abc121_c").path("difficulty").asInt()).isEqualTo(873);
+        assertThat(requestUris.getFirst()).contains("/atcoder/resources/problem-models.json");
+    }
+
+    @Test
     void rejectsInvalidResponseShape() throws Exception {
         startServer("""
                 { "status": "OK" }

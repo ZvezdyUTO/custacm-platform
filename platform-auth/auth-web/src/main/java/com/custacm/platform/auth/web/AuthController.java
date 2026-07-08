@@ -21,9 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthAccountService authAccountService;
+    private final AuthProperties properties;
 
-    public AuthController(AuthAccountService authAccountService) {
+    public AuthController(AuthAccountService authAccountService, AuthProperties properties) {
         this.authAccountService = authAccountService;
+        this.properties = properties;
     }
 
     @PostMapping("/login")
@@ -31,7 +33,13 @@ public class AuthController {
         if (request == null) {
             throw new AuthServiceException(AuthErrorCode.AUTH_INVALID_REQUEST, "request body must not be empty");
         }
-        LoginResult result = authAccountService.login(request.studentIdentity(), request.password());
+        LoginResult result = authAccountService.login(
+                request.studentIdentity(),
+                request.password(),
+                request.rememberMeEnabled()
+                        ? properties.jwt().resolvedRememberMeAccessTokenTtl()
+                        : properties.jwt().resolvedAccessTokenTtl()
+        );
         return ResponseEntity.ok(new LoginResponse(
                 "Bearer",
                 result.token().tokenValue(),

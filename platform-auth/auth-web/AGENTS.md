@@ -16,6 +16,7 @@ Key files:
 Rules:
 
 - `auth-web` issues platform JWTs. Do not reintroduce Keycloak, demo tokens, or public registration unless the identity decision changes explicitly.
+- `POST /api/auth/login` accepts a `rememberMe` boolean; keep ordinary token TTL defaulted to 2 hours and remember-me token TTL defaulted to 30 days unless the product decision changes.
 - Other backend services should depend on `auth-core` for platform JWT parsing and current-user extraction; they should not depend on auth HTTP DTOs.
 - Keep URL authorization aligned with [../../../docs/authorization.md](../../../docs/authorization.md): `/api/auth/admin/**` is admin-only, `/api/auth/player/**` is player/admin, and guest endpoints must not parse JWTs.
 - Any API path, response, or auth behavior change must update [../../../docs/api.md](../../../docs/api.md).

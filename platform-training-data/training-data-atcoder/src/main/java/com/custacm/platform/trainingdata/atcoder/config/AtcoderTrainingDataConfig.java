@@ -4,14 +4,17 @@ import com.custacm.platform.common.sqltask.SqlTaskRunner;
 import com.custacm.platform.trainingdata.atcoder.app.AtcoderOdsIngestService;
 import com.custacm.platform.trainingdata.atcoder.app.AtcoderProblemListCollectionService;
 import com.custacm.platform.trainingdata.atcoder.app.AtcoderSubmissionCollectionService;
+import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsProblemModelWriter;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsProblemWriter;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsSubmissionWriter;
+import com.custacm.platform.trainingdata.atcoder.domain.AtcoderProblemModelPayloadParser;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderProblemPayloadParser;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderProblemSourceClient;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderSubmissionPayloadParser;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderSubmissionSourceClient;
 import com.custacm.platform.trainingdata.atcoder.infra.JdbcAtcoderOdsDataPurgeRepository;
 import com.custacm.platform.trainingdata.atcoder.infra.JacksonAtcoderPayloadParser;
+import com.custacm.platform.trainingdata.atcoder.infra.JdbcAtcoderOdsProblemModelWriter;
 import com.custacm.platform.trainingdata.atcoder.infra.JdbcAtcoderOdsProblemWriter;
 import com.custacm.platform.trainingdata.atcoder.infra.JdbcAtcoderOdsSubmissionWriter;
 import com.custacm.platform.trainingdata.atcoder.infra.JdbcAtcoderWarehouseRefreshIntervalRepository;
@@ -58,6 +61,13 @@ public class AtcoderTrainingDataConfig {
     }
 
     @Bean
+    AtcoderOdsProblemModelWriter atcoderOdsProblemModelWriter(
+            NamedParameterJdbcTemplate jdbcTemplate
+    ) {
+        return new JdbcAtcoderOdsProblemModelWriter(jdbcTemplate);
+    }
+
+    @Bean
     RestClientAtcoderSourceClient atcoderSourceClient(
             AtcoderCollectorProperties properties
     ) {
@@ -78,15 +88,19 @@ public class AtcoderTrainingDataConfig {
     AtcoderOdsIngestService atcoderOdsIngestService(
             AtcoderSubmissionPayloadParser submissionParser,
             AtcoderProblemPayloadParser problemParser,
+            AtcoderProblemModelPayloadParser problemModelParser,
             AtcoderOdsSubmissionWriter submissionWriter,
             AtcoderOdsProblemWriter problemWriter,
+            AtcoderOdsProblemModelWriter problemModelWriter,
             ObjectMapper objectMapper
     ) {
         return new AtcoderOdsIngestService(
                 submissionParser,
                 problemParser,
+                problemModelParser,
                 submissionWriter,
                 problemWriter,
+                problemModelWriter,
                 objectMapper
         );
     }

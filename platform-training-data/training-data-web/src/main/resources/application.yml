@@ -54,5 +54,5 @@ platform:
         enabled: true
         bootstrap-on-startup: true
         bootstrap-only-when-empty: true
-        cron: "0 30 3 ? * MON"
+        cron: "0 30 3 1/3 * ?"
         zone: Asia/Shanghai

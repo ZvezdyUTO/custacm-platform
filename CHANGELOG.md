@@ -4,6 +4,36 @@
 
 ## 未发布
 
+### 2026-07-09 - 收敛首页 README
+
+- 成果：将根 README 收敛为面向普通访客的项目介绍，并把维护资料入口折叠起来；文档索引同步说明首页只承载项目简介。
+- 影响：首页不再展开快速启动、部署、API 和 agent 文档入口，技术资料仍保留在 `docs/README.md` 及各模块文档中。
+- 验证：已运行 `./scripts/check-doc-sync.sh origin/main WORKTREE` 和 `git diff --check`。
+
+### 2026-07-09 - 修复 remember-me 部署与文档同步
+
+- 成果：让 Compose 把 `AUTH_JWT_REMEMBER_ME_ACCESS_TOKEN_TTL` 传入 `auth-web`，并补齐部署说明、auth-web 测试说明、根 README 文档入口和过期 AtCoder 实施计划标记。
+- 影响：部署者可以通过 `deploy/.env` 调整“记住我”token 有效期；后续 agent 不会再把旧的 AtCoder 全量 `UNRATED` 假设当成当前实现。
+- 验证：已运行 `./scripts/check-doc-sync.sh origin/main WORKTREE`、`git diff --check` 和 `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config`。
+
+### 2026-07-08 - 现役退役文案与颜色区分
+
+- 成果：将用户列表中的采集开关展示改为“现役队员 / 已退役”，并为两种状态使用不同颜色区分；采集页说明同步改为只列出现役队员；`root` 不展示现役/退役标记，也不提供 OJ 绑定入口；用户列表的 OJ handle 改为独立边框标签，不再用斜杠拼接。
+- 影响：仅调整前端展示和文案，底层 `needCollect` 接口字段和采集过滤逻辑不变。
+- 验证：已运行 `pnpm exec vitest run --environment jsdom src/test/admin-user-management-panel.test.tsx src/test/training-data-ops-panel.test.tsx src/test/use-platform-dashboard.test.tsx`、`pnpm lint`、`pnpm test`、`pnpm typecheck`、`pnpm build` 和 `git diff --check`。
+
+### 2026-07-08 - 管理员用户页文案调整
+
+- 成果：将前端管理员侧栏和用户管理页的旧用户页文案统一调整为“管理用户”，并同步测试和前端 README。
+- 影响：仅调整 UI 文案和可访问标签，用户管理功能、路由和接口行为不变。
+- 验证：已运行 `pnpm exec vitest run --environment jsdom src/test/app-navigation.test.tsx src/test/admin-user-management-panel.test.tsx src/test/use-platform-dashboard.test.tsx`、`pnpm lint`、`pnpm test`、`pnpm build` 和 `git diff --check`。
+
+### 2026-07-08 - AtCoder 难度模型采集与分段桶
+
+- 成果：新增 Kenkoooo `problem-models.json` 采集和 `ods_atcoder__problem_model` 落地，AtCoder DWD 使用 clipped difficulty 写入独立分段桶，并把公共查询侧改为按 OJ 独立 difficulty bucket 聚合；AtCoder 题目元数据刷新改为默认每三天一次；题目查询页优先展示后端返回的题目标题而不是题目代号。
+- 影响：AtCoder DWS 不再全部落到 `UNRATED`，有 problem model 且属于非 experimental ABC/ARC/AGC 的题目会进入向下取整后的下界桶 `0`、`400`、`800`、`1200`、`1600`、`2000`、`2400` 或 `2800+`；缺失 model、experimental model 或其它 contest family 的题目仍保留 `UNRATED`。
+- 验证：已运行 `mvn -pl :training-data-common,:training-data-atcoder -am test`、`mvn -pl :training-data-web -am test`、`mvn clean verify`、`./scripts/check-test-policy.sh`、`pnpm exec vitest run --environment jsdom src/test/training-query-panel.test.tsx src/test/platform-api.test.ts`、`pnpm lint`、`pnpm test`、`pnpm typecheck`、`pnpm build` 和 `git diff --check`。
+
 ### 2026-07-08 - 合并 OJ 数仓刷新公共逻辑
 
 - 成果：将 Codeforces/AtCoder 重复的数仓刷新 interval、SQL task refresh service 和 collection-job refresh handler 收敛到 `training-data-common`，各 OJ 仅保留自己的 interval SQL、manifest 和清洗 SQL 资源。

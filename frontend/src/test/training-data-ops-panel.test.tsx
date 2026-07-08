@@ -170,7 +170,7 @@ describe('training data operation panels', () => {
     );
 
     expect((screen.getByLabelText('230511213黄炳睿 回看小时数') as HTMLInputElement).value).toBe('');
-    expect(screen.getAllByText('窗口：不限')).toHaveLength(2);
+    expect(screen.queryByText(/窗口：/)).toBeNull();
     expect(screen.queryByText('230511215王强')).toBeNull();
 
     await user.click(screen.getAllByRole('button', { name: '执行采集' })[0]);
@@ -292,7 +292,7 @@ describe('training data operation panels', () => {
 
     await user.type(screen.getByLabelText('230511213黄炳睿 回看小时数'), '24');
 
-    expect(screen.getByText('窗口：最近 24 小时')).not.toBeNull();
+    expect(screen.queryByText(/窗口：/)).toBeNull();
 
     await user.click(screen.getByRole('button', { name: '执行采集' }));
 

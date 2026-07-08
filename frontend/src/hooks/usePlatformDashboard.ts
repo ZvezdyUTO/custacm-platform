@@ -77,14 +77,18 @@ type DashboardStatus = 'signed-out' | 'loading' | 'ready' | 'error';
 interface LoginCredentials {
   studentIdentity: StudentIdentity;
   password: string;
+  rememberMe: boolean;
 }
 
 interface RefreshDashboardOptions {
+  firstAcceptedPaginationOverride?: SubmissionPageQuery;
   loadMultiUserSummaries?: boolean;
   loadProblemDetails?: boolean;
   loadStudentDetails?: boolean;
   ojNameOverride?: OjName;
+  problemFirstAcceptedPaginationOverride?: SubmissionPageQuery;
   problemKeyOverride?: string;
+  problemSubmissionPaginationOverride?: SubmissionPageQuery;
   selectedIdentityOverride?: StudentIdentity | null;
 }
 
@@ -97,7 +101,7 @@ const emptyTrainingQuery: TrainingQueryRange = {
 
 const defaultSubmissionPage: SubmissionPageQuery = {
   page: 1,
-  limit: 100,
+  limit: 15,
 };
 
 function readStoredToken() {
@@ -109,7 +113,7 @@ function formatDateUtcPlus8(date: Date) {
 }
 
 function recentWeekTrainingQuery(now = new Date()): TrainingQueryRange {
-  const start = new Date(now.getTime() - (RECENT_WEEK_DAYS - 1) * 24 * 60 * 60 * 1000);
+  const start = new Date(now.getTime() - RECENT_WEEK_DAYS * 24 * 60 * 60 * 1000);
   return {
     ...emptyTrainingQuery,
     acceptedFromDateUtcPlus8: formatDateUtcPlus8(start),
@@ -359,8 +363,12 @@ export function usePlatformDashboard() {
   const [trainingQuery, setTrainingQuery] = useState<TrainingQueryRange>(() => recentWeekTrainingQuery());
   const [submissionPage, setSubmissionPage] = useState(defaultSubmissionPage.page);
   const [submissionLimit, setSubmissionLimit] = useState(defaultSubmissionPage.limit);
+  const [firstAcceptedPage, setFirstAcceptedPage] = useState(defaultSubmissionPage.page);
+  const [firstAcceptedLimit, setFirstAcceptedLimit] = useState(defaultSubmissionPage.limit);
   const [problemSubmissionPage, setProblemSubmissionPage] = useState(defaultSubmissionPage.page);
   const [problemSubmissionLimit, setProblemSubmissionLimit] = useState(defaultSubmissionPage.limit);
+  const [problemFirstAcceptedPage, setProblemFirstAcceptedPage] = useState(defaultSubmissionPage.page);
+  const [problemFirstAcceptedLimit, setProblemFirstAcceptedLimit] = useState(defaultSubmissionPage.limit);
   const [studentDetailsRequested, setStudentDetailsRequested] = useState(false);
   const [problemDetailsRequested, setProblemDetailsRequested] = useState(false);
   const detailsRequestSeq = useRef(0);
@@ -415,7 +423,8 @@ export function usePlatformDashboard() {
   const loadStudentDetails = useCallback(async (
     identity: StudentIdentity,
     query: TrainingQueryRange = trainingQuery,
-    pagination: SubmissionPageQuery = { page: submissionPage, limit: submissionLimit },
+    submissionPagination: SubmissionPageQuery = { page: submissionPage, limit: submissionLimit },
+    firstAcceptedPagination: SubmissionPageQuery = { page: firstAcceptedPage, limit: firstAcceptedLimit },
     ojName: OjName = selectedOjName,
   ) => {
     const requestSeq = detailsRequestSeq.current + 1;
@@ -426,8 +435,8 @@ export function usePlatformDashboard() {
 
     const [summaryResult, submissionsResult, firstAcceptedResult] = await Promise.allSettled([
       getAcceptedSummary(identity, query, ojName),
-      getStudentSubmissions(identity, query, pagination, ojName),
-      getFirstAcceptedProblems(identity, query, ojName),
+      getStudentSubmissions(identity, query, submissionPagination, ojName),
+      getFirstAcceptedProblems(identity, query, firstAcceptedPagination, ojName),
     ]);
 
     if (requestSeq !== detailsRequestSeq.current) {
@@ -472,12 +481,23 @@ export function usePlatformDashboard() {
       setFirstAccepted(null);
     }
     return true;
-  }, [selectedOjName, submissionLimit, submissionPage, trainingQuery]);
+  }, [
+    firstAcceptedLimit,
+    firstAcceptedPage,
+    selectedOjName,
+    submissionLimit,
+    submissionPage,
+    trainingQuery,
+  ]);
 
   const loadProblemDetails = useCallback(async (
     key: string = problemKey,
     query: TrainingQueryRange = trainingQuery,
-    pagination: SubmissionPageQuery = { page: problemSubmissionPage, limit: problemSubmissionLimit },
+    submissionPagination: SubmissionPageQuery = { page: problemSubmissionPage, limit: problemSubmissionLimit },
+    firstAcceptedPagination: SubmissionPageQuery = {
+      page: problemFirstAcceptedPage,
+      limit: problemFirstAcceptedLimit,
+    },
     ojName: OjName = selectedOjName,
   ) => {
     const normalizedKey = key.trim();
@@ -492,8 +512,8 @@ export function usePlatformDashboard() {
     setProblemDetailsRequested(true);
 
     const [submissionsResult, firstAcceptedResult] = await Promise.allSettled([
-      getProblemSubmissions(normalizedKey, query, pagination, ojName),
-      getProblemFirstAcceptedHandles(normalizedKey, query, ojName),
+      getProblemSubmissions(normalizedKey, query, submissionPagination, ojName),
+      getProblemFirstAcceptedHandles(normalizedKey, query, firstAcceptedPagination, ojName),
     ]);
 
     if (requestSeq !== problemRequestSeq.current) {
@@ -518,6 +538,8 @@ export function usePlatformDashboard() {
     addOperation,
     clearProblemDetails,
     problemKey,
+    problemFirstAcceptedLimit,
+    problemFirstAcceptedPage,
     problemSubmissionLimit,
     problemSubmissionPage,
     selectedOjName,
@@ -572,6 +594,18 @@ export function usePlatformDashboard() {
     const effectiveSubmissionPagination = submissionPaginationOverride ?? {
       page: submissionPage,
       limit: submissionLimit,
+    };
+    const effectiveFirstAcceptedPagination = options.firstAcceptedPaginationOverride ?? {
+      page: firstAcceptedPage,
+      limit: firstAcceptedLimit,
+    };
+    const effectiveProblemSubmissionPagination = options.problemSubmissionPaginationOverride ?? {
+      page: problemSubmissionPage,
+      limit: problemSubmissionLimit,
+    };
+    const effectiveProblemFirstAcceptedPagination = options.problemFirstAcceptedPaginationOverride ?? {
+      page: problemFirstAcceptedPage,
+      limit: problemFirstAcceptedLimit,
     };
     const shouldLoadStudentDetails = options.loadStudentDetails ?? studentDetailsRequested;
     const shouldLoadProblemDetails = options.loadProblemDetails ?? problemDetailsRequested;
@@ -667,13 +701,22 @@ export function usePlatformDashboard() {
         clearProblemDetails();
       }
       const detailsApplied = nextSelected && shouldLoadStudentDetails
-        ? await loadStudentDetails(nextSelected, effectiveQuery, effectiveSubmissionPagination, effectiveOjName)
+        ? await loadStudentDetails(
+          nextSelected,
+          effectiveQuery,
+          effectiveSubmissionPagination,
+          effectiveFirstAcceptedPagination,
+          effectiveOjName
+        )
         : true;
       const problemDetailsApplied = shouldLoadProblemDetails
-        ? await loadProblemDetails(requestedProblemKey, effectiveQuery, {
-          page: problemSubmissionPage,
-          limit: problemSubmissionLimit,
-        }, effectiveOjName)
+        ? await loadProblemDetails(
+          requestedProblemKey,
+          effectiveQuery,
+          effectiveProblemSubmissionPagination,
+          effectiveProblemFirstAcceptedPagination,
+          effectiveOjName
+        )
         : true;
       const multiUserSummariesApplied = shouldLoadMultiUserSummaries
         ? await loadMultiUserSummaries(nextRecords, effectiveQuery, effectiveOjName)
@@ -698,10 +741,14 @@ export function usePlatformDashboard() {
     addOperation,
     clearProblemDetails,
     clearStudentDetails,
+    firstAcceptedLimit,
+    firstAcceptedPage,
     loadStudentDetails,
     loadProblemDetails,
     loadMultiUserSummaries,
     problemDetailsRequested,
+    problemFirstAcceptedLimit,
+    problemFirstAcceptedPage,
     problemKey,
     problemSubmissionLimit,
     problemSubmissionPage,
@@ -717,11 +764,11 @@ export function usePlatformDashboard() {
   ]);
 
   const signIn = useCallback(
-    async ({ studentIdentity, password }: LoginCredentials) => {
+    async ({ studentIdentity, password, rememberMe }: LoginCredentials) => {
       setStatus('loading');
       setErrorMessage(null);
       try {
-        const result = await login(studentIdentity, password);
+        const result = await login(studentIdentity, password, rememberMe);
         writeSession(result.accessToken, result.user);
         setToken(result.accessToken);
         setCurrentUser(result.user);
@@ -759,8 +806,12 @@ export function usePlatformDashboard() {
     setCollectionJobs([]);
     setSubmissionPage(defaultSubmissionPage.page);
     setSubmissionLimit(defaultSubmissionPage.limit);
+    setFirstAcceptedPage(defaultSubmissionPage.page);
+    setFirstAcceptedLimit(defaultSubmissionPage.limit);
     setProblemSubmissionPage(defaultSubmissionPage.page);
     setProblemSubmissionLimit(defaultSubmissionPage.limit);
+    setProblemFirstAcceptedPage(defaultSubmissionPage.page);
+    setProblemFirstAcceptedLimit(defaultSubmissionPage.limit);
     addOperation('退出登录', '已清除本地 access token', 'completed');
   }, [addOperation]);
 
@@ -783,6 +834,7 @@ export function usePlatformDashboard() {
   const chooseIdentity = useCallback(
     async (identity: StudentIdentity) => {
       setSubmissionPage(defaultSubmissionPage.page);
+      setFirstAcceptedPage(defaultSubmissionPage.page);
       setSelectedIdentity(identity);
       clearStudentDetails();
       addOperation('选择队员', identity, 'completed');
@@ -795,7 +847,9 @@ export function usePlatformDashboard() {
     clearStudentDetails();
     clearProblemDetails();
     setSubmissionPage(defaultSubmissionPage.page);
+    setFirstAcceptedPage(defaultSubmissionPage.page);
     setProblemSubmissionPage(defaultSubmissionPage.page);
+    setProblemFirstAcceptedPage(defaultSubmissionPage.page);
     setMultiUserAcceptedSummaries([]);
     setRecords((current) => current.map((record) => {
       const handle = handleFromRecord(record, ojName);
@@ -818,7 +872,9 @@ export function usePlatformDashboard() {
     const shouldLoadProblemDetails = mode === 'problem';
     setTrainingQuery(nextQuery);
     setSubmissionPage(defaultSubmissionPage.page);
+    setFirstAcceptedPage(defaultSubmissionPage.page);
     setProblemSubmissionPage(defaultSubmissionPage.page);
+    setProblemFirstAcceptedPage(defaultSubmissionPage.page);
     if (!shouldLoadStudentDetails) {
       clearStudentDetails();
     }
@@ -834,11 +890,32 @@ export function usePlatformDashboard() {
       page: defaultSubmissionPage.page,
       limit: submissionLimit,
     }, {
+      firstAcceptedPaginationOverride: {
+        page: defaultSubmissionPage.page,
+        limit: firstAcceptedLimit,
+      },
       loadMultiUserSummaries: mode === 'multiple',
+      problemFirstAcceptedPaginationOverride: {
+        page: defaultSubmissionPage.page,
+        limit: problemFirstAcceptedLimit,
+      },
       loadProblemDetails: shouldLoadProblemDetails,
+      problemSubmissionPaginationOverride: {
+        page: defaultSubmissionPage.page,
+        limit: problemSubmissionLimit,
+      },
       loadStudentDetails: shouldLoadStudentDetails,
     });
-  }, [addOperation, clearProblemDetails, clearStudentDetails, refreshDashboard, submissionLimit]);
+  }, [
+    addOperation,
+    clearProblemDetails,
+    clearStudentDetails,
+    firstAcceptedLimit,
+    problemFirstAcceptedLimit,
+    problemSubmissionLimit,
+    refreshDashboard,
+    submissionLimit,
+  ]);
 
   const changeSubmissionPage = useCallback(async (nextPage: number, nextLimit: number) => {
     if (!selectedIdentity || !submissions) {
@@ -851,11 +928,48 @@ export function usePlatformDashboard() {
     const detailsApplied = await loadStudentDetails(selectedIdentity, trainingQuery, {
       page: normalizedPage,
       limit: nextLimit,
+    }, {
+      page: firstAcceptedPage,
+      limit: firstAcceptedLimit,
     });
     if (detailsApplied) {
       setStatus('ready');
     }
-  }, [loadStudentDetails, selectedIdentity, submissions, trainingQuery]);
+  }, [
+    firstAcceptedLimit,
+    firstAcceptedPage,
+    loadStudentDetails,
+    selectedIdentity,
+    submissions,
+    trainingQuery,
+  ]);
+
+  const changeFirstAcceptedPage = useCallback(async (nextPage: number, nextLimit: number) => {
+    if (!selectedIdentity || !firstAccepted) {
+      return;
+    }
+    const normalizedPage = Math.max(1, nextPage);
+    setStatus('loading');
+    setFirstAcceptedPage(normalizedPage);
+    setFirstAcceptedLimit(nextLimit);
+    const detailsApplied = await loadStudentDetails(selectedIdentity, trainingQuery, {
+      page: submissionPage,
+      limit: submissionLimit,
+    }, {
+      page: normalizedPage,
+      limit: nextLimit,
+    });
+    if (detailsApplied) {
+      setStatus('ready');
+    }
+  }, [
+    firstAccepted,
+    loadStudentDetails,
+    selectedIdentity,
+    submissionLimit,
+    submissionPage,
+    trainingQuery,
+  ]);
 
   const changeProblemSubmissionPage = useCallback(async (nextPage: number, nextLimit: number) => {
     if (!problemKey.trim() || !problemSubmissions) {
@@ -868,16 +982,54 @@ export function usePlatformDashboard() {
     const detailsApplied = await loadProblemDetails(problemKey, trainingQuery, {
       page: normalizedPage,
       limit: nextLimit,
+    }, {
+      page: problemFirstAcceptedPage,
+      limit: problemFirstAcceptedLimit,
     });
     if (detailsApplied) {
       setStatus('ready');
     }
-  }, [loadProblemDetails, problemKey, problemSubmissions, trainingQuery]);
+  }, [
+    loadProblemDetails,
+    problemFirstAcceptedLimit,
+    problemFirstAcceptedPage,
+    problemKey,
+    problemSubmissions,
+    trainingQuery,
+  ]);
+
+  const changeProblemFirstAcceptedPage = useCallback(async (nextPage: number, nextLimit: number) => {
+    if (!problemKey.trim() || !problemFirstAccepted) {
+      return;
+    }
+    const normalizedPage = Math.max(1, nextPage);
+    setStatus('loading');
+    setProblemFirstAcceptedPage(normalizedPage);
+    setProblemFirstAcceptedLimit(nextLimit);
+    const detailsApplied = await loadProblemDetails(problemKey, trainingQuery, {
+      page: problemSubmissionPage,
+      limit: problemSubmissionLimit,
+    }, {
+      page: normalizedPage,
+      limit: nextLimit,
+    });
+    if (detailsApplied) {
+      setStatus('ready');
+    }
+  }, [
+    loadProblemDetails,
+    problemFirstAccepted,
+    problemKey,
+    problemSubmissionLimit,
+    problemSubmissionPage,
+    trainingQuery,
+  ]);
 
   const changeProblemKey = useCallback((nextProblemKey: string) => {
     setProblemKey(nextProblemKey);
     clearProblemDetails();
     setProblemSubmissionPage(defaultSubmissionPage.page);
+    setProblemFirstAcceptedPage(defaultSubmissionPage.page);
   }, [clearProblemDetails]);
 
   const collectSelectedIdentity = useCallback(async () => {
@@ -975,7 +1127,7 @@ export function usePlatformDashboard() {
     input: UserInfoUpdateInput,
   ): Promise<UserInfoUpdateSummary> => {
     if (!token) {
-      throw new Error('需要先登录 admin 账号才能修改用户信息。');
+      throw new Error('需要先登录 admin 账号才能管理用户信息。');
     }
     if (!input.studentIdentity) {
       throw new Error('请先选择一个用户。');
@@ -1081,7 +1233,7 @@ export function usePlatformDashboard() {
       }
 
       addOperation(
-        '修改用户信息',
+        '管理用户信息',
         `${input.studentIdentity}: ${userResult.user?.role ?? input.role}${
           handleResult ? `, OJ ${handleResult.success ? '绑定成功' : '绑定失败'}` : ''
         }`,
@@ -1091,7 +1243,7 @@ export function usePlatformDashboard() {
       return { userResult, handleResult };
     } catch (error) {
       const message = formatError(error);
-      addOperation('修改用户信息失败', message, 'failed');
+      addOperation('管理用户信息失败', message, 'failed');
       setErrorMessage(message);
       setStatus('error');
       throw error;
@@ -1182,7 +1334,7 @@ export function usePlatformDashboard() {
     }
     const identities = Array.from(new Set(options.studentIdentities.map((item) => item.trim()).filter(Boolean)));
     if (identities.length === 0) {
-      throw new Error('没有开启自动采集的 OJ handle 绑定队员。');
+      throw new Error('没有现役且已绑定 OJ handle 的队员。');
     }
 
     const lookbackHours = Math.max(1, Math.floor(options.lookbackHours));
@@ -1337,9 +1489,13 @@ export function usePlatformDashboard() {
     selectedOjName,
     submissionPage,
     submissionLimit,
+    firstAcceptedPage,
+    firstAcceptedLimit,
     problemKey,
     problemSubmissionPage,
     problemSubmissionLimit,
+    problemFirstAcceptedPage,
+    problemFirstAcceptedLimit,
     users,
     records,
     multiUserAcceptedSummaries,
@@ -1361,7 +1517,9 @@ export function usePlatformDashboard() {
     refreshDashboard,
     applyTrainingQuery,
     changeSubmissionPage,
+    changeFirstAcceptedPage,
     changeProblemSubmissionPage,
+    changeProblemFirstAcceptedPage,
     changeProblemKey,
     chooseIdentity,
     chooseOjName,

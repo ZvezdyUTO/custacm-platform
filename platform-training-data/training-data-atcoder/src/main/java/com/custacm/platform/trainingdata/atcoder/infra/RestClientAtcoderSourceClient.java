@@ -60,8 +60,37 @@ public class RestClientAtcoderSourceClient implements AtcoderSubmissionSourceCli
         }
     }
 
+    @Override
+    public JsonNode fetchProblemModels() {
+        try {
+            JsonNode response = restClient.get()
+                    .uri("/atcoder/resources/problem-models.json")
+                    .retrieve()
+                    .body(JsonNode.class);
+            return resultObject(response, "AtCoder problem model response must be a JSON object");
+        } catch (AtcoderApiException ex) {
+            throw ex;
+        } catch (RestClientException ex) {
+            throw new AtcoderApiException(
+                    AtcoderApiException.ErrorCode.ATCODER_API_REQUEST_FAILED,
+                    "failed to request AtCoder problem models",
+                    ex
+            );
+        }
+    }
+
     private static JsonNode resultArray(JsonNode response, String invalidMessage) {
         if (response == null || !response.isArray()) {
+            throw new AtcoderApiException(
+                    AtcoderApiException.ErrorCode.ATCODER_API_RESPONSE_INVALID,
+                    invalidMessage
+            );
+        }
+        return response;
+    }
+
+    private static JsonNode resultObject(JsonNode response, String invalidMessage) {
+        if (response == null || !response.isObject()) {
             throw new AtcoderApiException(
                     AtcoderApiException.ErrorCode.ATCODER_API_RESPONSE_INVALID,
                     invalidMessage

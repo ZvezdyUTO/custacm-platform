@@ -9,6 +9,7 @@ import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleAccount;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleCollectionState;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjAcceptedSummaryRepository;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjHandleAccountRepository;
+import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
 import org.junit.jupiter.api.Test;
 
@@ -45,7 +46,8 @@ class OjAcceptedSummaryQueryServiceTest {
         };
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
-                handleAccountService(account(studentIdentity, "tourist", true))
+                handleAccountService(account(studentIdentity, "tourist", true)),
+                OjDifficultyBucketPolicies.defaults()
         );
 
         OjAcceptedSummaryReport report = service.summarizeStudentAcceptedProblems(
@@ -87,7 +89,8 @@ class OjAcceptedSummaryQueryServiceTest {
                         studentIdentity,
                         Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder"),
                         true
-                ))
+                )),
+                OjDifficultyBucketPolicies.defaults()
         );
 
         OjAcceptedSummaryReport report = service.summarizeStudentAcceptedProblems(
@@ -102,6 +105,36 @@ class OjAcceptedSummaryQueryServiceTest {
         assertThat(report.studentIdentity()).isEqualTo(studentIdentity);
         assertThat(report.authorHandle()).isEqualTo("tourist_atcoder");
         assertThat(report.totalAcceptedProblemCount()).isEqualTo(2);
+        assertThat(report.ratingCounts()).containsExactly(rating("800", 2));
+    }
+
+    @Test
+    void foldsUnknownDifficultyKeysIntoUnratedWhenRatingBoundsAreBlank() {
+        String studentIdentity = "112487张三";
+        OjAcceptedSummaryRepository repository = actualQuery -> List.of(
+                row("tourist_atcoder", "2026-07-01", Map.of("2800-", 1, "UNRATED", 2))
+        );
+        OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
+                repository,
+                handleAccountService(account(
+                        studentIdentity,
+                        Map.of(OjNames.ATCODER, "tourist_atcoder"),
+                        true
+                )),
+                OjDifficultyBucketPolicies.defaults()
+        );
+
+        OjAcceptedSummaryReport report = service.summarizeStudentAcceptedProblems(
+                OjNames.ATCODER,
+                studentIdentity,
+                null,
+                null,
+                null,
+                null
+        );
+
+        assertThat(report.totalAcceptedProblemCount()).isEqualTo(3);
+        assertThat(report.ratingCounts()).containsExactly(rating("UNRATED", 3));
     }
 
     @Test
@@ -125,7 +158,8 @@ class OjAcceptedSummaryQueryServiceTest {
         };
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
-                handleAccountService(account(studentIdentity, "tourist", true))
+                handleAccountService(account(studentIdentity, "tourist", true)),
+                OjDifficultyBucketPolicies.defaults()
         );
 
         OjAcceptedSummaryReport report = service.summarizeStudentAcceptedProblems(
@@ -152,7 +186,8 @@ class OjAcceptedSummaryQueryServiceTest {
         };
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
-                handleAccountService()
+                handleAccountService(),
+                OjDifficultyBucketPolicies.defaults()
         );
 
         assertThatThrownBy(() -> service.summarizeStudentAcceptedProblems("missing", null, null, null, null))

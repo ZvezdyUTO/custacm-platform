@@ -99,5 +99,34 @@ class OjWarehouseCriteriaTest {
 
         assertThat(criteria.firstAcceptedFromUtcPlus8()).isEqualTo(LocalDateTime.parse("2026-07-02T00:00:00"));
         assertThat(criteria.firstAcceptedToUtcPlus8()).isEqualTo(LocalDateTime.parse("2026-07-01T00:00:00"));
+        assertThat(criteria.limit()).isEqualTo(Integer.MAX_VALUE);
+        assertThat(criteria.offset()).isZero();
+    }
+
+    @Test
+    void firstAcceptedCriteriaCarryPagination() {
+        OjHandleFirstAcceptedProblemCriteria handleCriteria = new OjHandleFirstAcceptedProblemCriteria(
+                "CODEFORCES",
+                "tourist",
+                null,
+                null,
+                null,
+                null,
+                50,
+                100
+        );
+        OjProblemFirstAcceptedHandleCriteria problemCriteria = new OjProblemFirstAcceptedHandleCriteria(
+                "CODEFORCES",
+                "1000:A",
+                null,
+                null,
+                25,
+                75
+        );
+
+        assertThat(handleCriteria.limit()).isEqualTo(50);
+        assertThat(handleCriteria.offset()).isEqualTo(100);
+        assertThat(problemCriteria.limit()).isEqualTo(25);
+        assertThat(problemCriteria.offset()).isEqualTo(75);
     }
 }

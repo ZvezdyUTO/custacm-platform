@@ -2,6 +2,7 @@ package com.custacm.platform.trainingdata.atcoder.infra;
 
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderCollectBatch;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsProblem;
+import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsProblemModel;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsSubmission;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ class JdbcAtcoderOdsWriterTest {
     private JdbcTemplate jdbcTemplate;
     private JdbcAtcoderOdsSubmissionWriter submissionWriter;
     private JdbcAtcoderOdsProblemWriter problemWriter;
+    private JdbcAtcoderOdsProblemModelWriter problemModelWriter;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -39,8 +41,10 @@ class JdbcAtcoderOdsWriterTest {
         NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
         submissionWriter = new JdbcAtcoderOdsSubmissionWriter(namedParameterJdbcTemplate);
         problemWriter = new JdbcAtcoderOdsProblemWriter(namedParameterJdbcTemplate);
+        problemModelWriter = new JdbcAtcoderOdsProblemModelWriter(namedParameterJdbcTemplate);
         try (Connection connection = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V019__create_atcoder_ods_tables.sql"));
+            ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V023__create_atcoder_problem_model_table.sql"));
         }
     }
 
@@ -98,6 +102,33 @@ class JdbcAtcoderOdsWriterTest {
                 """, String.class)).isEqualTo("problem-batch-2");
     }
 
+    @Test
+    void upsertsProblemModelsByProblemId() {
+        AtcoderCollectBatch firstBatch = new AtcoderCollectBatch(
+                "problem-model-batch-1",
+                Instant.parse("2026-07-07T00:00:00Z")
+        );
+        problemModelWriter.upsertBatch(firstBatch, List.of(problemModel(firstBatch, 873, 873)));
+
+        AtcoderCollectBatch secondBatch = new AtcoderCollectBatch(
+                "problem-model-batch-2",
+                Instant.parse("2026-07-07T02:00:00Z")
+        );
+        problemModelWriter.upsertBatch(secondBatch, List.of(problemModel(secondBatch, 944, 944)));
+
+        assertThat(jdbcTemplate.queryForObject("select count(*) from ods_atcoder__problem_model", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("""
+                select raw_difficulty from ods_atcoder__problem_model where problem_id = 'abc121_c'
+                """, Integer.class)).isEqualTo(944);
+        assertThat(jdbcTemplate.queryForObject("""
+                select clipped_difficulty from ods_atcoder__problem_model where problem_id = 'abc121_c'
+                """, Integer.class)).isEqualTo(944);
+        assertThat(jdbcTemplate.queryForObject("""
+                select batch_id from ods_atcoder__problem_model where problem_id = 'abc121_c'
+                """, String.class)).isEqualTo("problem-model-batch-2");
+    }
+
     private static AtcoderOdsSubmission submission(
             AtcoderCollectBatch batch,
             long submissionId,
@@ -132,6 +163,29 @@ class JdbcAtcoderOdsWriterTest {
                 batch.fetchedAt(),
                 "{\"id\":\"abc121_c\"}",
                 "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+        );
+    }
+
+    private static AtcoderOdsProblemModel problemModel(
+            AtcoderCollectBatch batch,
+            Integer rawDifficulty,
+            Integer clippedDifficulty
+    ) {
+        return new AtcoderOdsProblemModel(
+                "abc121_c",
+                new BigDecimal("-0.001"),
+                new BigDecimal("5.5"),
+                new BigDecimal("0.9"),
+                rawDifficulty,
+                clippedDifficulty,
+                new BigDecimal("0.004"),
+                new BigDecimal("-260.5"),
+                4554,
+                false,
+                batch.batchId(),
+                batch.fetchedAt(),
+                "{\"difficulty\":" + rawDifficulty + "}",
+                "123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0"
         );
     }
 }

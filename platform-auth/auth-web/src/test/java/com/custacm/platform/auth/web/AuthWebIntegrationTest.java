@@ -132,6 +132,29 @@ class AuthWebIntegrationTest {
     }
 
     @Test
+    void loginRememberMeControlsTokenLifetime() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "studentIdentity", "root",
+                                "password", "rootPass123",
+                                "rememberMe", false
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.expiresInSeconds").value(7200));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "studentIdentity", "root",
+                                "password", "rootPass123",
+                                "rememberMe", true
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.expiresInSeconds").value(2592000));
+    }
+
+    @Test
     void playerEndpointsRequireAuthentication() throws Exception {
         mockMvc.perform(get("/api/auth/player/me"))
                 .andExpect(status().isUnauthorized());

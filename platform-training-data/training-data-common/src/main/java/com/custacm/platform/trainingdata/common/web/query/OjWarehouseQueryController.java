@@ -28,7 +28,7 @@ import static com.custacm.platform.trainingdata.common.support.Texts.requireText
 @RequestMapping("/api/training-data/codeforces")
 public class OjWarehouseQueryController {
     private static final int DEFAULT_PAGE = 1;
-    private static final int DEFAULT_LIMIT = 100;
+    private static final int DEFAULT_LIMIT = 15;
     private static final int MAX_LIMIT = 2000;
 
     private final OjAcceptedSummaryQueryService acceptedSummaryQueryService;
@@ -124,8 +124,12 @@ public class OjWarehouseQueryController {
             @RequestParam(value = "firstAcceptedFromUtcPlus8", required = false) String firstAcceptedFromUtcPlus8,
             @RequestParam(value = "firstAcceptedToUtcPlus8", required = false) String firstAcceptedToUtcPlus8,
             @RequestParam(value = "minProblemRating", required = false) Integer minProblemRating,
-            @RequestParam(value = "maxProblemRating", required = false) Integer maxProblemRating
+            @RequestParam(value = "maxProblemRating", required = false) Integer maxProblemRating,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "limit", required = false) Integer limit
     ) {
+        int normalizedPage = normalizePage(page);
+        int normalizedLimit = normalizeLimit(limit);
         return ResponseEntity.ok(OjStudentFirstAcceptedProblemReportResponse.from(
                 firstAcceptedProblemQueryService.summarizeStudentFirstAcceptedProblems(
                         requireText(ojName, "ojName", OjWarehouseQueryController::invalidRequest),
@@ -133,7 +137,9 @@ public class OjWarehouseQueryController {
                         parseLocalDateTime(firstAcceptedFromUtcPlus8, "firstAcceptedFromUtcPlus8"),
                         parseLocalDateTime(firstAcceptedToUtcPlus8, "firstAcceptedToUtcPlus8"),
                         minProblemRating,
-                        maxProblemRating
+                        maxProblemRating,
+                        normalizedPage,
+                        normalizedLimit
                 )
         ));
     }
@@ -143,13 +149,19 @@ public class OjWarehouseQueryController {
             @RequestParam(value = "ojName", defaultValue = OjNames.CODEFORCES) String ojName,
             @RequestParam("problemKey") String problemKey,
             @RequestParam(value = "firstAcceptedFromUtcPlus8", required = false) String firstAcceptedFromUtcPlus8,
-            @RequestParam(value = "firstAcceptedToUtcPlus8", required = false) String firstAcceptedToUtcPlus8
+            @RequestParam(value = "firstAcceptedToUtcPlus8", required = false) String firstAcceptedToUtcPlus8,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "limit", required = false) Integer limit
     ) {
+        int normalizedPage = normalizePage(page);
+        int normalizedLimit = normalizeLimit(limit);
         OjProblemFirstAcceptedHandleCriteria query = new OjProblemFirstAcceptedHandleCriteria(
                 requireText(ojName, "ojName", OjWarehouseQueryController::invalidRequest),
                 requireText(problemKey, "problemKey", OjWarehouseQueryController::invalidRequest),
                 parseLocalDateTime(firstAcceptedFromUtcPlus8, "firstAcceptedFromUtcPlus8"),
-                parseLocalDateTime(firstAcceptedToUtcPlus8, "firstAcceptedToUtcPlus8")
+                parseLocalDateTime(firstAcceptedToUtcPlus8, "firstAcceptedToUtcPlus8"),
+                normalizedLimit,
+                offset(normalizedPage, normalizedLimit)
         );
         return ResponseEntity.ok(OjProblemFirstAcceptedHandleReportResponse.from(
                 firstAcceptedProblemQueryService.summarizeProblemFirstAcceptedHandles(query)

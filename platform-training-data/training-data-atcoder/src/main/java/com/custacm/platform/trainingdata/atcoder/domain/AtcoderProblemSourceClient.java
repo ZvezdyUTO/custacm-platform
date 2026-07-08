@@ -4,4 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public interface AtcoderProblemSourceClient {
     JsonNode fetchProblems();
+
+    JsonNode fetchProblemModels();
 }

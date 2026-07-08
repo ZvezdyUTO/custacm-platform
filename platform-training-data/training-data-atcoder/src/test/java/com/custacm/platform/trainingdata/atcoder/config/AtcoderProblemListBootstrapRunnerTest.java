@@ -1,6 +1,7 @@
 package com.custacm.platform.trainingdata.atcoder.config;
 
 import com.custacm.platform.trainingdata.atcoder.app.AtcoderOdsBatchUpsertResult;
+import com.custacm.platform.trainingdata.atcoder.app.AtcoderProblemMetadataCollectionResult;
 import com.custacm.platform.trainingdata.atcoder.app.AtcoderProblemListCollectionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
@@ -38,6 +39,20 @@ class AtcoderProblemListBootstrapRunnerTest {
         runner(collectionService, jdbcOperations, true).run(null);
 
         verify(collectionService, never()).collectProblems();
+    }
+
+    @Test
+    void collectsProblemListWhenProblemModelTableIsEmpty() throws Exception {
+        NamedParameterJdbcOperations jdbcOperations = mock(NamedParameterJdbcOperations.class);
+        AtcoderProblemListCollectionService collectionService = mock(AtcoderProblemListCollectionService.class);
+        when(jdbcOperations.queryForObject(anyString(), anyMap(), eq(Integer.class)))
+                .thenReturn(10)
+                .thenReturn(0);
+        when(collectionService.collectProblems()).thenReturn(result());
+
+        runner(collectionService, jdbcOperations, true).run(null);
+
+        verify(collectionService).collectProblems();
     }
 
     @Test
@@ -90,11 +105,26 @@ class AtcoderProblemListBootstrapRunnerTest {
         );
     }
 
-    private AtcoderOdsBatchUpsertResult result() {
+    private AtcoderProblemMetadataCollectionResult result() {
+        return new AtcoderProblemMetadataCollectionResult(
+                batchResult(
+                        "collector-atcoder-problems-1",
+                        "ods_atcoder__problem",
+                        1
+                ),
+                batchResult(
+                        "collector-atcoder-problem-models-1",
+                        "ods_atcoder__problem_model",
+                        1
+                )
+        );
+    }
+
+    private AtcoderOdsBatchUpsertResult batchResult(String batchId, String tableName, int writtenRows) {
         return new AtcoderOdsBatchUpsertResult(
-                "collector-atcoder-problems-1",
-                "ods_atcoder__problem",
-                1,
+                batchId,
+                tableName,
+                writtenRows,
                 Instant.parse("2026-07-07T01:00:00Z")
         );
     }

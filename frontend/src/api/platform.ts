@@ -225,11 +225,11 @@ export function getTrainingDataModuleInfo() {
   );
 }
 
-export function login(studentIdentity: StudentIdentity, password: string) {
+export function login(studentIdentity: StudentIdentity, password: string, rememberMe: boolean) {
   return requestJson<LoginResponse>(buildUrl(AUTH_API_BASE, '/login'), {
     method: 'POST',
     headers: jsonHeaders(),
-    body: JSON.stringify({ studentIdentity, password }),
+    body: JSON.stringify({ studentIdentity, password, rememberMe }),
   });
 }
 
@@ -430,6 +430,7 @@ export function getProblemSubmissions(
 export function getFirstAcceptedProblems(
   studentIdentity: StudentIdentity,
   range?: TrainingQueryRange,
+  pagination?: SubmissionPageQuery,
   ojName: OjName = OJ_NAMES.CODEFORCES,
 ) {
   return requestJson<CodeforcesFirstAcceptedReport>(
@@ -440,6 +441,8 @@ export function getFirstAcceptedProblems(
       firstAcceptedToUtcPlus8: dateEnd(range?.acceptedToDateUtcPlus8 ?? ''),
       minProblemRating: range?.minProblemRating,
       maxProblemRating: range?.maxProblemRating,
+      page: pagination?.page,
+      limit: pagination?.limit,
     }),
   );
 }
@@ -447,6 +450,7 @@ export function getFirstAcceptedProblems(
 export function getProblemFirstAcceptedHandles(
   problemKey: string,
   range?: TrainingQueryRange,
+  pagination?: SubmissionPageQuery,
   ojName: OjName = OJ_NAMES.CODEFORCES,
 ) {
   return requestJson<CodeforcesProblemFirstAcceptedReport>(
@@ -457,6 +461,8 @@ export function getProblemFirstAcceptedHandles(
       firstAcceptedToUtcPlus8: dateEnd(range?.acceptedToDateUtcPlus8 ?? ''),
       minProblemRating: range?.minProblemRating,
       maxProblemRating: range?.maxProblemRating,
+      page: pagination?.page,
+      limit: pagination?.limit,
     }),
   );
 }

@@ -10,6 +10,7 @@ import com.custacm.platform.auth.domain.repo.UserAccountRepository;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
@@ -34,7 +35,18 @@ class AuthAccountServiceTest {
         var result = service.login("230511213黄炳睿", "secret123");
 
         assertThat(result.token().tokenValue()).isEqualTo("token-230511213黄炳睿-player");
+        assertThat(result.token().expiresInSeconds()).isEqualTo(7200);
         assertThat(result.user().role()).isEqualTo(UserRole.PLAYER);
+    }
+
+    @Test
+    void loginCanIssueTokenWithRequestedTtl() {
+        users.save(account("230511213黄炳睿", "secret123", UserRole.PLAYER));
+
+        var result = service.login("230511213黄炳睿", "secret123", Duration.ofDays(30));
+
+        assertThat(result.token().tokenValue()).isEqualTo("token-230511213黄炳睿-player");
+        assertThat(result.token().expiresInSeconds()).isEqualTo(Duration.ofDays(30).toSeconds());
     }
 
     @Test
@@ -120,7 +132,10 @@ class AuthAccountServiceTest {
         return new AuthAccountService(
                 users,
                 passwordHasher,
-                (studentIdentity, role) -> new IssuedToken("token-" + studentIdentity + "-" + role.value(), 7200),
+                (studentIdentity, role, tokenTtl) -> new IssuedToken(
+                        "token-" + studentIdentity + "-" + role.value(),
+                        tokenTtl == null ? 7200 : tokenTtl.toSeconds()
+                ),
                 clock
         );
     }

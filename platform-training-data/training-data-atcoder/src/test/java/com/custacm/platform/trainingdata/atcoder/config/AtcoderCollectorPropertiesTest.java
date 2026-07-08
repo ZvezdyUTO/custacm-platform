@@ -34,7 +34,7 @@ class AtcoderCollectorPropertiesTest {
         assertThat(properties.enabled()).isTrue();
         assertThat(properties.bootstrapOnStartup()).isTrue();
         assertThat(properties.bootstrapOnlyWhenEmpty()).isTrue();
-        assertThat(properties.cron()).isEqualTo("0 30 3 ? * MON");
+        assertThat(properties.cron()).isEqualTo("0 30 3 1/3 * ?");
         assertThat(properties.zone()).isEqualTo("Asia/Shanghai");
     }
 

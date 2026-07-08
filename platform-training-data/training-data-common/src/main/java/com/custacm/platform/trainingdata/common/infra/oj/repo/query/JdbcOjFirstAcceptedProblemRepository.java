@@ -4,7 +4,7 @@ import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjHandleFirst
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjProblemFirstAcceptedHandleCriteria;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjFirstAcceptedProblem;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjFirstAcceptedProblemRepository;
-import com.custacm.platform.trainingdata.common.domain.oj.value.OjProblemRatingBuckets;
+import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
 import com.custacm.platform.trainingdata.common.infra.oj.repo.warehouse.OjWarehouseTableNames;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -30,9 +30,33 @@ public class JdbcOjFirstAcceptedProblemRepository implements OjFirstAcceptedProb
             );
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final OjDifficultyBucketPolicies bucketPolicies;
 
-    public JdbcOjFirstAcceptedProblemRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+    public JdbcOjFirstAcceptedProblemRepository(
+            NamedParameterJdbcTemplate jdbcTemplate,
+            OjDifficultyBucketPolicies bucketPolicies
+    ) {
         this.jdbcTemplate = jdbcTemplate;
+        this.bucketPolicies = bucketPolicies;
+    }
+
+    @Override
+    public long countHandleFirstAcceptedProblems(
+            OjHandleFirstAcceptedProblemCriteria query
+    ) {
+        String tableName = OjWarehouseTableNames.dwmHandleProblemFirstAccepted(query.ojName());
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("handle", query.authorHandle());
+        List<String> predicates = new ArrayList<>();
+        predicates.add("handle = :handle");
+        addFirstAcceptedTimePredicates(
+                query.firstAcceptedFromUtcPlus8(),
+                query.firstAcceptedToUtcPlus8(),
+                predicates,
+                params
+        );
+        addProblemRatingPredicates(query.ojName(), query.minProblemRating(), query.maxProblemRating(), predicates, params);
+        return count(tableName, predicates, params);
     }
 
     @Override
@@ -50,8 +74,26 @@ public class JdbcOjFirstAcceptedProblemRepository implements OjFirstAcceptedProb
                 predicates,
                 params
         );
-        addProblemRatingPredicates(query.minProblemRating(), query.maxProblemRating(), predicates, params);
-        return query(tableName, predicates, params);
+        addProblemRatingPredicates(query.ojName(), query.minProblemRating(), query.maxProblemRating(), predicates, params);
+        return query(tableName, predicates, params, query.limit(), query.offset());
+    }
+
+    @Override
+    public long countProblemFirstAcceptedHandles(
+            OjProblemFirstAcceptedHandleCriteria query
+    ) {
+        String tableName = OjWarehouseTableNames.dwmHandleProblemFirstAccepted(query.ojName());
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("problemKey", query.problemKey());
+        List<String> predicates = new ArrayList<>();
+        predicates.add("problem_key = :problemKey");
+        addFirstAcceptedTimePredicates(
+                query.firstAcceptedFromUtcPlus8(),
+                query.firstAcceptedToUtcPlus8(),
+                predicates,
+                params
+        );
+        return count(tableName, predicates, params);
     }
 
     @Override
@@ -69,14 +111,32 @@ public class JdbcOjFirstAcceptedProblemRepository implements OjFirstAcceptedProb
                 predicates,
                 params
         );
-        return query(tableName, predicates, params);
+        return query(tableName, predicates, params, query.limit(), query.offset());
+    }
+
+    private long count(
+            String tableName,
+            List<String> predicates,
+            MapSqlParameterSource params
+    ) {
+        String sql = """
+                select count(*)
+                from %s
+                where %s
+                """.formatted(tableName, String.join(" and ", predicates));
+        Long count = jdbcTemplate.queryForObject(sql, params, Long.class);
+        return count == null ? 0L : count;
     }
 
     private List<OjFirstAcceptedProblem> query(
             String tableName,
             List<String> predicates,
-            MapSqlParameterSource params
+            MapSqlParameterSource params,
+            int limit,
+            long offset
     ) {
+        params.addValue("limit", limit);
+        params.addValue("offset", offset);
         String sql = """
                 select
                     handle,
@@ -91,7 +151,8 @@ public class JdbcOjFirstAcceptedProblemRepository implements OjFirstAcceptedProb
                     first_accepted_source_url
                 from %s
                 where %s
-                order by first_accepted_at_utc_plus8 asc, handle asc, problem_key asc
+                order by first_accepted_at_utc_plus8 desc, handle asc, problem_key asc
+                limit :limit offset :offset
                 """.formatted(tableName, String.join(" and ", predicates));
 
         return jdbcTemplate.query(sql, params, ROW_MAPPER);
@@ -113,13 +174,15 @@ public class JdbcOjFirstAcceptedProblemRepository implements OjFirstAcceptedProb
         }
     }
 
-    private static void addProblemRatingPredicates(
+    private void addProblemRatingPredicates(
+            String ojName,
             Integer minProblemRating,
             Integer maxProblemRating,
             List<String> predicates,
             MapSqlParameterSource params
     ) {
-        List<String> difficulties = difficultyValuesInRange(minProblemRating, maxProblemRating);
+        List<String> difficulties = bucketPolicies.policyFor(ojName)
+                .bucketKeysInRange(minProblemRating, maxProblemRating);
         if (difficulties == null) {
             return;
         }
@@ -129,16 +192,5 @@ public class JdbcOjFirstAcceptedProblemRepository implements OjFirstAcceptedProb
         }
         predicates.add("difficulty in (:difficulties)");
         params.addValue("difficulties", difficulties);
-    }
-
-    private static List<String> difficultyValuesInRange(Integer minProblemRating, Integer maxProblemRating) {
-        if (minProblemRating == null && maxProblemRating == null) {
-            return null;
-        }
-        return OjProblemRatingBuckets.RATINGS.stream()
-                .filter(rating -> minProblemRating == null || rating >= minProblemRating)
-                .filter(rating -> maxProblemRating == null || rating <= maxProblemRating)
-                .map(String::valueOf)
-                .toList();
     }
 }

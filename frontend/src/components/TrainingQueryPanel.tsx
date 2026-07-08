@@ -22,14 +22,18 @@ interface TrainingQueryPanelProps {
   isRefreshing: boolean;
   ojName: OjName;
   onApplyQuery: (query: TrainingQueryRange, mode: TrainingQueryMode) => Promise<void>;
+  onFirstAcceptedPageChange: (page: number, limit: number) => Promise<void>;
   onOjNameChange: (ojName: OjName) => void;
   onProblemKeyChange: (problemKey: string) => void;
+  onProblemFirstAcceptedPageChange: (page: number, limit: number) => Promise<void>;
   onProblemSubmissionPageChange: (page: number, limit: number) => Promise<void>;
   onQueryModeChange: (mode: TrainingQueryMode) => void;
   onRefresh: (mode: TrainingQueryMode) => Promise<void>;
   onSubmissionPageChange: (page: number, limit: number) => Promise<void>;
   onSelectedIdentityChange: (studentIdentity: StudentIdentity) => Promise<void>;
   problemFirstAccepted: CodeforcesProblemFirstAcceptedReport | null;
+  problemFirstAcceptedLimit: number;
+  problemFirstAcceptedPage: number;
   problemKey: string;
   problemSubmissionLimit: number;
   problemSubmissionPage: number;
@@ -38,6 +42,8 @@ interface TrainingQueryPanelProps {
   queryMode: TrainingQueryMode;
   record: StudentTrainingRecord | null;
   selectedIdentity: StudentIdentity | null;
+  firstAcceptedLimit: number;
+  firstAcceptedPage: number;
   submissionLimit: number;
   submissionPage: number;
   studentOptions: StudentIdentity[];
@@ -45,18 +51,12 @@ interface TrainingQueryPanelProps {
   updatedAt: string;
 }
 
-const submissionPageSizes = [50, 100, 200];
+const submissionPageSizes = [15, 50, 100, 200];
 const multiSummaryPlayerColumnWidth = 204;
 const multiSummaryTotalColumnWidth = 72;
 const multiSummaryRatingColumnWidth = 56;
 
 type ActivityView = 'submissions' | 'accepted';
-const emptyTrainingQuery: TrainingQueryRange = {
-  acceptedFromDateUtcPlus8: '',
-  acceptedToDateUtcPlus8: '',
-  minProblemRating: '',
-  maxProblemRating: '',
-};
 
 function normalizeQueryRange(query: TrainingQueryRange): TrainingQueryRange {
   return {
@@ -65,16 +65,6 @@ function normalizeQueryRange(query: TrainingQueryRange): TrainingQueryRange {
     minProblemRating: query.minProblemRating.trim(),
     maxProblemRating: query.maxProblemRating.trim(),
   };
-}
-
-function formatQuerySummary(query: TrainingQueryRange) {
-  const dateRange = query.acceptedFromDateUtcPlus8 || query.acceptedToDateUtcPlus8
-    ? `${query.acceptedFromDateUtcPlus8 || '不限'} ~ ${query.acceptedToDateUtcPlus8 || '不限'}`
-    : '全量日期';
-  const ratingRange = query.minProblemRating || query.maxProblemRating
-    ? `${query.minProblemRating || '不限'} ~ ${query.maxProblemRating || '不限'}`
-    : '全 rating';
-  return `${dateRange} / ${ratingRange}`;
 }
 
 function getQueryRangeError(query: TrainingQueryRange) {
@@ -116,7 +106,7 @@ function compareTimeDesc(left: string | null, right: string | null) {
 }
 
 function ratingBarColor(problemRating: string) {
-  const rating = Number(problemRating);
+  const rating = ratingBucketStart(problemRating);
   if (!Number.isFinite(rating)) {
     return '#808080';
   }
@@ -146,7 +136,7 @@ function ratingBucketLabel(problemRating: string) {
 }
 
 function ratingToneClass(problemRating: string) {
-  const rating = Number(problemRating);
+  const rating = ratingBucketStart(problemRating);
   if (!Number.isFinite(rating)) {
     return 'rating-tone-gray';
   }
@@ -178,12 +168,23 @@ function compareRatingBucket(left: string, right: string) {
   if (left !== 'UNRATED' && right === 'UNRATED') {
     return -1;
   }
-  const leftRating = Number(left);
-  const rightRating = Number(right);
+  const leftRating = ratingBucketStart(left);
+  const rightRating = ratingBucketStart(right);
   if (Number.isFinite(leftRating) && Number.isFinite(rightRating)) {
     return leftRating - rightRating;
   }
   return left.localeCompare(right);
+}
+
+function ratingBucketStart(problemRating: string) {
+  if (problemRating === 'UNRATED') {
+    return Number.NaN;
+  }
+  const match = problemRating.match(/^\d+/);
+  if (!match) {
+    return Number.NaN;
+  }
+  return Number(match[0]);
 }
 
 function submissionId(submission: CodeforcesSubmissionItem) {
@@ -208,20 +209,28 @@ function firstAcceptedDifficulty(problem: CodeforcesFirstAcceptedProblem) {
   return difficulty && difficulty !== 'UNRATED' ? `${difficulty} rating` : difficulty;
 }
 
+function problemTitleFromSubmissions(submissions: CodeforcesSubmissionItem[]) {
+  return submissions.find((submission) => submission.problemName?.trim())?.problemName?.trim() ?? null;
+}
+
 export function TrainingQueryPanel({
   multiUserSummaries = [],
   firstAccepted,
   isRefreshing,
   ojName,
   onApplyQuery,
+  onFirstAcceptedPageChange,
   onOjNameChange,
   onProblemKeyChange,
+  onProblemFirstAcceptedPageChange,
   onProblemSubmissionPageChange,
   onQueryModeChange,
   onRefresh,
   onSubmissionPageChange,
   onSelectedIdentityChange,
   problemFirstAccepted,
+  problemFirstAcceptedLimit,
+  problemFirstAcceptedPage,
   problemKey,
   problemSubmissionLimit,
   problemSubmissionPage,
@@ -230,6 +239,8 @@ export function TrainingQueryPanel({
   queryMode,
   record,
   selectedIdentity,
+  firstAcceptedLimit,
+  firstAcceptedPage,
   submissionLimit,
   submissionPage,
   studentOptions,
@@ -237,8 +248,8 @@ export function TrainingQueryPanel({
   updatedAt,
 }: TrainingQueryPanelProps) {
   const [multipleDraft, setMultipleDraft] = useState(query);
-  const [singleDraft, setSingleDraft] = useState(emptyTrainingQuery);
-  const [problemDraft, setProblemDraft] = useState(emptyTrainingQuery);
+  const [singleDraft, setSingleDraft] = useState(query);
+  const [problemDraft, setProblemDraft] = useState(query);
   const [activityView, setActivityView] = useState<ActivityView>('submissions');
   const [problemActivityView, setProblemActivityView] = useState<ActivityView>('submissions');
   const hasMountedAutoQueryRef = useRef(false);
@@ -258,17 +269,22 @@ export function TrainingQueryPanel({
   const submissionCount = submissions?.total ?? currentPageSubmissionCount;
   const currentProblemPageSubmissionCount = problemSubmissions?.submissions.length ?? 0;
   const problemSubmissionCount = problemSubmissions?.total ?? currentProblemPageSubmissionCount;
-  const firstAcceptedCount = firstAccepted?.totalAcceptedProblemCount ?? 0;
-  const problemAcceptedHandleCount = problemFirstAccepted?.acceptedHandleCount ?? 0;
+  const firstAcceptedCount = firstAccepted?.total ?? firstAccepted?.totalAcceptedProblemCount ?? 0;
+  const problemAcceptedHandleCount = problemFirstAccepted?.total ?? problemFirstAccepted?.acceptedHandleCount ?? 0;
   const acceptedSubmissions = submissions?.submissions.filter((submission) => submission.accepted).length ?? 0;
   const acceptedProblemSubmissions = problemSubmissions?.submissions.filter((submission) => submission.accepted).length ?? 0;
   const ratingCounts = record?.acceptedSummary?.ratingCounts ?? [];
   const maxRatingCount = Math.max(...ratingCounts.map((item) => item.acceptedProblemCount), 1);
   const ratingBucketCount = ratingCounts.length;
-  const highestAcceptedRating = ratingCounts.reduce((highest, item) => {
-    const rating = Number(item.problemRating);
-    return Number.isFinite(rating) ? Math.max(highest, rating) : highest;
-  }, 0);
+  const highestAcceptedRating = ratingCounts.reduce<string | null>((highest, item) => {
+    if (!Number.isFinite(ratingBucketStart(item.problemRating))) {
+      return highest;
+    }
+    if (!highest) {
+      return item.problemRating;
+    }
+    return compareRatingBucket(item.problemRating, highest) > 0 ? item.problemRating : highest;
+  }, null);
   const recentSubmissions = useMemo(
     () => [...(submissions?.submissions ?? [])].sort((left, right) => {
       const timeOrder = compareTimeDesc(left.submittedAtUtcPlus8, right.submittedAtUtcPlus8);
@@ -287,6 +303,8 @@ export function TrainingQueryPanel({
     }),
     [problemSubmissions],
   );
+  const problemDisplayKey = problemSubmissions?.problemKey ?? problemFirstAccepted?.problemKey ?? problemKey.trim();
+  const problemDisplayTitle = problemTitleFromSubmissions(recentProblemSubmissions) ?? problemDisplayKey;
   const latestAcceptedProblems = useMemo(
     () => [...(firstAccepted?.problems ?? [])].sort((left, right) => (
       right.firstAcceptedAtUtcPlus8.localeCompare(left.firstAcceptedAtUtcPlus8)
@@ -310,13 +328,19 @@ export function TrainingQueryPanel({
       + multiSummaryTotalColumnWidth
       + multiUserRatingBuckets.length * multiSummaryRatingColumnWidth,
   );
-  const firstAcceptedPageCount = latestAcceptedProblems.length;
   const latestProblemAcceptedHandles = useMemo(
     () => [...(problemFirstAccepted?.acceptedHandles ?? [])].sort((left, right) => (
       right.firstAcceptedAtUtcPlus8.localeCompare(left.firstAcceptedAtUtcPlus8)
     )),
     [problemFirstAccepted],
   );
+  const acceptedProblemPageCount = latestAcceptedProblems.length;
+  const visibleAcceptedProblemPage = firstAccepted?.page ?? firstAcceptedPage;
+  const visibleAcceptedProblemLimit = firstAccepted?.limit ?? firstAcceptedLimit;
+  const acceptedProblemTotalPages = Math.max(1, firstAccepted?.totalPages ?? 1);
+  const visibleProblemAcceptedHandlePage = problemFirstAccepted?.page ?? problemFirstAcceptedPage;
+  const visibleProblemAcceptedHandleLimit = problemFirstAccepted?.limit ?? problemFirstAcceptedLimit;
+  const problemAcceptedHandleTotalPages = Math.max(1, problemFirstAccepted?.totalPages ?? 1);
   const visibleSubmissionPage = submissions?.page ?? submissionPage;
   const visibleSubmissionLimit = submissions?.limit ?? submissionLimit;
   const totalSubmissionPages = Math.max(1, submissions?.totalPages ?? 1);
@@ -329,7 +353,6 @@ export function TrainingQueryPanel({
     Boolean(problemSubmissions) && visibleProblemSubmissionPage > 1 && !isRefreshing;
   const canGoNextProblemSubmissionPage = Boolean(problemSubmissions?.hasMore) && !isRefreshing;
   const normalizedDraft = useMemo(() => normalizeQueryRange(activeDraft), [activeDraft]);
-  const draftQuerySummary = useMemo(() => formatQuerySummary(normalizedDraft), [normalizedDraft]);
   const queryRangeError = useMemo(() => getQueryRangeError(normalizedDraft), [normalizedDraft]);
   const canAutoApplyQuery =
     !isRefreshing
@@ -521,14 +544,13 @@ export function TrainingQueryPanel({
         </label>
       </div>
 
-      <div className="query-summary" role="status">
-        <span>当前范围：{draftQuerySummary}</span>
-        {queryRangeError ? (
+      {queryRangeError ? (
+        <div className="query-summary" role="status">
           <small className="query-error" id="training-query-range-error" role="alert">
             {queryRangeError}
           </small>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {queryMode === 'multiple' ? (
         <article className="multi-summary-panel">
@@ -599,7 +621,7 @@ export function TrainingQueryPanel({
                 {multiUserSummaries.length === 0 ? (
                   <tr>
                     <td className="submission-empty" colSpan={2 + multiUserRatingBuckets.length}>
-                      当前范围暂无队员通过统计。
+                      暂无队员通过统计。
                     </td>
                   </tr>
                 ) : null}
@@ -612,8 +634,8 @@ export function TrainingQueryPanel({
           <>
             <div className="training-stat-grid problem-stat-grid" aria-label="题目维度统计">
               <article className="training-stat-card identity-card">
-                <span>题目编号</span>
-                <strong>{problemSubmissions?.problemKey ?? problemFirstAccepted?.problemKey ?? problemKey}</strong>
+                <span>题目</span>
+                <strong title={problemDisplayTitle}>{problemDisplayTitle}</strong>
                 <small>{OJ_LABELS[ojName]}</small>
               </article>
               <article className="training-stat-card primary">
@@ -624,7 +646,7 @@ export function TrainingQueryPanel({
               <article className="training-stat-card">
                 <span>首 AC 人数</span>
                 <strong>{problemAcceptedHandleCount}</strong>
-                <small>按当前范围统计</small>
+                <small>按筛选条件统计</small>
               </article>
               <article className="training-stat-card">
                 <span>提交分页</span>
@@ -660,7 +682,7 @@ export function TrainingQueryPanel({
                 <span>
                   {problemActivityView === 'submissions'
                     ? `${problemSubmissionCount} 条 · 第 ${visibleProblemSubmissionPage}/${totalProblemSubmissionPages} 页`
-                    : `${problemAcceptedHandleCount} 人`}
+                    : `${problemAcceptedHandleCount} 人 · 第 ${visibleProblemAcceptedHandlePage}/${problemAcceptedHandleTotalPages} 页`}
                 </span>
               </header>
               <div className="submission-table-scroll">
@@ -701,7 +723,7 @@ export function TrainingQueryPanel({
                       {recentProblemSubmissions.length === 0 ? (
                         <tr>
                           <td className="submission-empty" colSpan={3}>
-                            当前范围暂无题目提交明细。
+                            暂无题目提交明细。
                           </td>
                         </tr>
                       ) : null}
@@ -731,7 +753,7 @@ export function TrainingQueryPanel({
                       {latestProblemAcceptedHandles.length === 0 ? (
                         <tr>
                           <td className="submission-empty" colSpan={3}>
-                            当前范围暂无首 AC handle。
+                            暂无首 AC handle。
                           </td>
                         </tr>
                       ) : null}
@@ -793,6 +815,60 @@ export function TrainingQueryPanel({
                   </div>
                 </div>
               ) : null}
+              {problemActivityView === 'accepted' ? (
+                <div className="submission-pagination" aria-label="题目首 AC handle 分页">
+                  <span>
+                    本页 {latestProblemAcceptedHandles.length} 人，合计 {problemAcceptedHandleCount} 人
+                  </span>
+                  <label>
+                    每页
+                    <select
+                      aria-label="每页首 AC 数"
+                      disabled={isRefreshing || !problemFirstAccepted}
+                      value={visibleProblemAcceptedHandleLimit}
+                      onChange={(event) => {
+                        void onProblemFirstAcceptedPageChange(1, Number(event.target.value));
+                      }}
+                    >
+                      {submissionPageSizes.map((pageSize) => (
+                        <option key={pageSize} value={pageSize}>
+                          {pageSize}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="submission-page-actions">
+                    <button
+                      className="secondary-button compact"
+                      disabled={isRefreshing || visibleProblemAcceptedHandlePage <= 1}
+                      onClick={() => {
+                        void onProblemFirstAcceptedPageChange(
+                          visibleProblemAcceptedHandlePage - 1,
+                          visibleProblemAcceptedHandleLimit,
+                        );
+                      }}
+                      type="button"
+                    >
+                      <ChevronLeft size={14} aria-hidden="true" />
+                      上一页
+                    </button>
+                    <button
+                      className="secondary-button compact"
+                      disabled={isRefreshing || visibleProblemAcceptedHandlePage >= problemAcceptedHandleTotalPages}
+                      onClick={() => {
+                        void onProblemFirstAcceptedPageChange(
+                          visibleProblemAcceptedHandlePage + 1,
+                          visibleProblemAcceptedHandleLimit,
+                        );
+                      }}
+                      type="button"
+                    >
+                      下一页
+                      <ChevronRight size={14} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </article>
           </>
         ) : null
@@ -807,7 +883,7 @@ export function TrainingQueryPanel({
             <article className="training-stat-card primary">
               <span>通过题目数</span>
               <strong>{acceptedCount}</strong>
-              <small>按当前范围统计</small>
+              <small>按筛选条件统计</small>
             </article>
             <article className="training-stat-card">
               <span>提交明细</span>
@@ -817,7 +893,7 @@ export function TrainingQueryPanel({
             <article className="training-stat-card">
               <span>首次通过明细</span>
               <strong>{firstAcceptedCount}</strong>
-              <small>本页 {firstAcceptedPageCount} 题 / 合计 {firstAcceptedCount} 题</small>
+              <small>本页 {acceptedProblemPageCount} 题 / 合计 {firstAcceptedCount} 题</small>
             </article>
           </div>
 
@@ -829,7 +905,7 @@ export function TrainingQueryPanel({
                   <div className="rating-summary-row" aria-label="难度分布摘要">
                     <span><strong>{acceptedCount}</strong>通过</span>
                     <span><strong>{ratingBucketCount}</strong>档</span>
-                    <span><strong>{highestAcceptedRating || '-'}</strong>最高</span>
+                    <span><strong>{highestAcceptedRating ? ratingBucketLabel(highestAcceptedRating) : '-'}</strong>最高</span>
                   </div>
                 </div>
               </header>
@@ -848,7 +924,7 @@ export function TrainingQueryPanel({
                     <strong>{item.acceptedProblemCount}</strong>
                   </div>
                 ))}
-                {ratingCounts.length === 0 ? <p>当前范围暂无通过汇总。</p> : null}
+                {ratingCounts.length === 0 ? <p>暂无通过汇总。</p> : null}
               </div>
             </article>
 
@@ -879,7 +955,7 @@ export function TrainingQueryPanel({
                 <span>
                   {activityView === 'submissions'
                     ? `${submissionCount} 条 · 第 ${visibleSubmissionPage}/${totalSubmissionPages} 页`
-                    : `${latestAcceptedProblems.length} 题`}
+                    : `${firstAcceptedCount} 题 · 第 ${visibleAcceptedProblemPage}/${acceptedProblemTotalPages} 页`}
                 </span>
               </header>
           <div className="submission-table-scroll">
@@ -920,7 +996,7 @@ export function TrainingQueryPanel({
                   {recentSubmissions.length === 0 ? (
                     <tr>
                       <td className="submission-empty" colSpan={3}>
-                        当前范围暂无提交明细。
+                        暂无提交明细。
                       </td>
                     </tr>
                   ) : null}
@@ -956,7 +1032,7 @@ export function TrainingQueryPanel({
                   {latestAcceptedProblems.length === 0 ? (
                     <tr>
                       <td className="submission-empty" colSpan={2}>
-                        当前范围暂无最新通过。
+                        暂无最新通过。
                       </td>
                     </tr>
                   ) : null}
@@ -1011,6 +1087,60 @@ export function TrainingQueryPanel({
                 </button>
               </div>
             </div>
+              ) : null}
+              {activityView === 'accepted' ? (
+                <div className="submission-pagination" aria-label="通过题目分页">
+                  <span>
+                    本页 {acceptedProblemPageCount} 题，合计 {firstAcceptedCount} 题
+                  </span>
+                  <label>
+                    每页
+                    <select
+                      aria-label="每页通过题目数"
+                      disabled={isRefreshing || !firstAccepted}
+                      value={visibleAcceptedProblemLimit}
+                      onChange={(event) => {
+                        void onFirstAcceptedPageChange(1, Number(event.target.value));
+                      }}
+                    >
+                      {submissionPageSizes.map((pageSize) => (
+                        <option key={pageSize} value={pageSize}>
+                          {pageSize}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="submission-page-actions">
+                    <button
+                      className="secondary-button compact"
+                      disabled={isRefreshing || visibleAcceptedProblemPage <= 1}
+                      onClick={() => {
+                        void onFirstAcceptedPageChange(
+                          visibleAcceptedProblemPage - 1,
+                          visibleAcceptedProblemLimit,
+                        );
+                      }}
+                      type="button"
+                    >
+                      <ChevronLeft size={14} aria-hidden="true" />
+                      上一页
+                    </button>
+                    <button
+                      className="secondary-button compact"
+                      disabled={isRefreshing || visibleAcceptedProblemPage >= acceptedProblemTotalPages}
+                      onClick={() => {
+                        void onFirstAcceptedPageChange(
+                          visibleAcceptedProblemPage + 1,
+                          visibleAcceptedProblemLimit,
+                        );
+                      }}
+                      type="button"
+                    >
+                      下一页
+                      <ChevronRight size={14} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
               ) : null}
             </article>
           </div>

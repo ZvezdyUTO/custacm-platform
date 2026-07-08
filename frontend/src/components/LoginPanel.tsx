@@ -4,24 +4,25 @@ import { FormEvent, useState } from 'react';
 interface LoginPanelProps {
   isLoading: boolean;
   errorMessage: string | null;
-  onSubmit: (credentials: { studentIdentity: string; password: string }) => Promise<void>;
+  onSubmit: (credentials: { studentIdentity: string; password: string; rememberMe: boolean }) => Promise<void>;
 }
 
 export function LoginPanel({ isLoading, errorMessage, onSubmit }: LoginPanelProps) {
   const [studentIdentity, setStudentIdentity] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await onSubmit({ studentIdentity, password });
+    await onSubmit({ studentIdentity, password, rememberMe });
   }
 
   return (
     <section className="login-panel" aria-labelledby="login-title">
       <div>
-        <h2 id="login-title">账号登录</h2>
-        <p>使用平台账号登录后，会按账号权限显示可用操作。</p>
-        </div>
+        <h2 id="login-title">队员登录</h2>
+        <p>welcome to custacmwiki</p>
+      </div>
       <form onSubmit={handleSubmit}>
         <label>
           学号姓名
@@ -42,6 +43,14 @@ export function LoginPanel({ isLoading, errorMessage, onSubmit }: LoginPanelProp
             required
             type="password"
             value={password}
+          />
+        </label>
+        <label className="checkbox-field login-remember-field">
+          <span>记住我一个月</span>
+          <input
+            checked={rememberMe}
+            onChange={(event) => setRememberMe(event.target.checked)}
+            type="checkbox"
           />
         </label>
         <button className="primary-button" disabled={isLoading} type="submit">

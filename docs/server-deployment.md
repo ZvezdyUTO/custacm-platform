@@ -60,6 +60,10 @@ AUTH_BOOTSTRAP_ADMIN_PASSWORD=change-me-root-password
 The two `*_VOLUME_NAME` values are the persistent MySQL Docker volume names. Keep them stable across deploys.
 Changing them makes Compose mount a different database volume, which can look like the database was reset.
 
+The auth service also reads `AUTH_JWT_ACCESS_TOKEN_TTL` for ordinary logins and
+`AUTH_JWT_REMEMBER_ME_ACCESS_TOKEN_TTL` for remember-me logins. The defaults in
+`deploy/.env.example` are `2h` and `30d`.
+
 Deploy:
 
 ```bash

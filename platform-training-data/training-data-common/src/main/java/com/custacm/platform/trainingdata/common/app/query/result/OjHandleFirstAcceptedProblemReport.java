@@ -8,6 +8,11 @@ public record OjHandleFirstAcceptedProblemReport(
         String studentIdentity,
         String authorHandle,
         int totalAcceptedProblemCount,
+        int page,
+        int limit,
+        long total,
+        long totalPages,
+        boolean hasMore,
         List<OjFirstAcceptedProblemItem> problems
 ) {
     public record OjFirstAcceptedProblemItem(

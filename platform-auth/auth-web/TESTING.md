@@ -20,7 +20,7 @@ Tests use JUnit 5 and AssertJ through `spring-boot-starter-test`.
 
 ## Covered Scenarios
 
-- `AuthWebIntegrationTest` - H2 + Flyway + RSA JWT integration coverage for login, `/api/auth/player/me`, guest endpoints ignoring bearer tokens, protected player routes, admin user operation responses, batch partial success/failure, generated passwords, deletion, unified role/password updates including `disable`, player password change including confirmation mismatch, player admin rejection, and admin self-downgrade protection.
+- `AuthWebIntegrationTest` - H2 + Flyway + RSA JWT integration coverage for login, ordinary versus remember-me token lifetime selection, `/api/auth/player/me`, guest endpoints ignoring bearer tokens, protected player routes, admin user operation responses, batch partial success/failure, generated passwords, deletion, unified role/password updates including `disable`, player password change including confirmation mismatch, player admin rejection, and admin self-downgrade protection.
 - `AuthModuleControllerTest` - health and module-info controller metadata.
 
 ## Notes

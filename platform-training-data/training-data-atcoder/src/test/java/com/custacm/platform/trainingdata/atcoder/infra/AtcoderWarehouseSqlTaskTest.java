@@ -43,6 +43,7 @@ class AtcoderWarehouseSqlTaskTest {
         namedJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
         try (Connection connection = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V019__create_atcoder_ods_tables.sql"));
+            ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V023__create_atcoder_problem_model_table.sql"));
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V020__create_atcoder_warehouse_tables.sql"));
         }
     }
@@ -51,6 +52,10 @@ class AtcoderWarehouseSqlTaskTest {
     void atcoderWarehouseSqlTasksAreIdempotentAndPopulateCommonWarehouseTables() {
         insertProblem("abc100_a", "abc100", "A", "Problem A", "ABC100 A - Problem A");
         insertProblem("abc100_b", "abc100", "B", "Problem B", "ABC100 B - Problem B");
+        insertProblem("apc001_h", "apc001", "H", "Generalized Insertion Sort", "H. Generalized Insertion Sort");
+        insertProblemModel("abc100_a", 873, 873);
+        insertProblemModel("abc100_b", 1600, 1600);
+        insertProblemModel("apc001_h", 3346, 3346);
         insertSubmission("batch-warehouse-test", 101L, "tourist", "abc100_a", "abc100",
                 "2026-07-02T08:00:00", "AC");
         insertSubmission("batch-warehouse-test", 102L, "tourist", "abc100_a", "abc100",
@@ -59,23 +64,30 @@ class AtcoderWarehouseSqlTaskTest {
                 "2026-07-02T10:00:00", "AC");
         insertSubmission("batch-warehouse-test", 104L, "other", "abc100_a", "abc100",
                 "2026-07-02T11:00:00", "AC");
+        insertSubmission("batch-warehouse-test", 105L, "tourist", "apc001_h", "apc001",
+                "2026-07-02T12:00:00", "AC");
 
         OjWarehouseRefreshService service = refreshService();
         assertThat(service.refresh("batch-warehouse-test", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
         assertThat(service.refresh("batch-warehouse-test", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
 
-        assertThat(count("ods_atcoder__submission")).isEqualTo(4);
-        assertThat(count("dwd_atcoder__submission")).isEqualTo(4);
-        assertThat(count("dwm_atcoder__handle_problem_first_accepted")).isEqualTo(3);
-        assertThat(count("dws_atcoder__handle_daily_rating_accepted_summary")).isEqualTo(2);
-        assertThat(sumAcceptedProblemCount()).isEqualTo(3);
+        assertThat(count("ods_atcoder__submission")).isEqualTo(5);
+        assertThat(count("dwd_atcoder__submission")).isEqualTo(5);
+        assertThat(count("dwm_atcoder__handle_problem_first_accepted")).isEqualTo(4);
+        assertThat(count("dws_atcoder__handle_daily_rating_accepted_summary")).isEqualTo(4);
+        assertThat(sumAcceptedProblemCount()).isEqualTo(4);
 
         assertThat(problemKey("101")).isEqualTo("abc100_a");
         assertThat(problemName("101")).isEqualTo("ABC100 A - Problem A");
+        assertThat(difficulty("101")).isEqualTo("800");
+        assertThat(difficulty("103")).isEqualTo("1600");
+        assertThat(difficulty("105")).isNull();
         assertThat(sourceUrl("101")).isEqualTo("https://atcoder.jp/contests/abc100/submissions/101");
         assertThat(firstAcceptedSubmissionId("tourist", "abc100_a")).isEqualTo("101");
-        assertThat(unratedAcceptedCountOnDate("tourist", "2026-07-02")).isEqualTo(2);
-        assertThat(unratedAcceptedCountOnDate("other", "2026-07-02")).isEqualTo(1);
+        assertThat(acceptedCountOnDate("tourist", "2026-07-02", "800")).isEqualTo(1);
+        assertThat(acceptedCountOnDate("tourist", "2026-07-02", "1600")).isEqualTo(1);
+        assertThat(acceptedCountOnDate("other", "2026-07-02", "800")).isEqualTo(1);
+        assertThat(unratedAcceptedCountOnDate("tourist", "2026-07-02")).isEqualTo(1);
     }
 
     @Test
@@ -174,6 +186,28 @@ class AtcoderWarehouseSqlTaskTest {
                 hash(submissionId));
     }
 
+    private void insertProblemModel(String problemId, int rawDifficulty, int clippedDifficulty) {
+        jdbcTemplate.update("""
+                insert into ods_atcoder__problem_model (
+                    problem_id,
+                    slope,
+                    intercept,
+                    variance,
+                    raw_difficulty,
+                    clipped_difficulty,
+                    discrimination,
+                    irt_loglikelihood,
+                    irt_users,
+                    is_experimental,
+                    batch_id,
+                    fetched_at,
+                    raw_payload,
+                    payload_hash
+                ) values (?, -0.001, 5.5, 0.9, ?, ?, 0.004, -260.5, 4554, 0,
+                    'batch-problem-models', timestamp '2026-07-08 00:00:00', '{}', ?)
+                """, problemId, rawDifficulty, clippedDifficulty, hash((long) problemId.hashCode() * 31));
+    }
+
     private String problemKey(String submissionId) {
         return jdbcTemplate.queryForObject("""
                 select problem_key
@@ -185,6 +219,14 @@ class AtcoderWarehouseSqlTaskTest {
     private String problemName(String submissionId) {
         return jdbcTemplate.queryForObject("""
                 select problem_name
+                from dwd_atcoder__submission
+                where submission_id = ?
+                """, String.class, submissionId);
+    }
+
+    private String difficulty(String submissionId) {
+        return jdbcTemplate.queryForObject("""
+                select difficulty
                 from dwd_atcoder__submission
                 where submission_id = ?
                 """, String.class, submissionId);
@@ -218,13 +260,17 @@ class AtcoderWarehouseSqlTaskTest {
     }
 
     private int unratedAcceptedCountOnDate(String handle, String date) {
+        return acceptedCountOnDate(handle, date, "UNRATED");
+    }
+
+    private int acceptedCountOnDate(String handle, String date, String difficulty) {
         List<Integer> counts = jdbcTemplate.queryForList("""
                 select accepted_problem_count
                 from dws_atcoder__handle_daily_rating_accepted_summary
                 where handle = ?
                   and accepted_date_utc_plus8 = ?
-                  and difficulty = 'UNRATED'
-                """, Integer.class, handle, Date.valueOf(LocalDate.parse(date)));
+                  and difficulty = ?
+                """, Integer.class, handle, Date.valueOf(LocalDate.parse(date)), difficulty);
         return counts.isEmpty() ? 0 : counts.get(0);
     }
 

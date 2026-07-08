@@ -2,6 +2,7 @@ package com.custacm.platform.trainingdata.common.infra.oj.repo.query;
 
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjProblemSubmissionCriteria;
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjHandleSubmissionCriteria;
+import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -32,7 +33,7 @@ class JdbcOjSubmissionRepositoryTest {
                 ""
         );
         jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
-        repository = new JdbcOjSubmissionRepository(jdbcTemplate);
+        repository = new JdbcOjSubmissionRepository(jdbcTemplate, OjDifficultyBucketPolicies.defaults());
         try (Connection connection = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V011__create_codeforces_dwd_dwm_dws_tables.sql"));
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V012__rename_codeforces_warehouse_time_columns_to_utc_plus8.sql"));

@@ -17,6 +17,7 @@ Implemented AtCoder landing and warehouse tables:
 
 - `ods_atcoder__submission`
 - `ods_atcoder__problem`
+- `ods_atcoder__problem_model`
 - `dwd_atcoder__submission`
 - `dwm_atcoder__handle_problem_first_accepted`
 - `dws_atcoder__handle_daily_rating_accepted_summary`
@@ -24,7 +25,7 @@ Implemented AtCoder landing and warehouse tables:
 Each implemented OJ is a vertical Maven module and owns its own ingest application service, source collection adapter when collection is supported, collect batch type, record, parser, writer, fixture or fake-client tests, DDL, ODS upsert SQL, SQL task resources/manifests when it has a cleaning chain, OJ-specific refresh interval SQL, Spring config, and tests. Generic warehouse refresh service and handler code lives in `training-data-common` and is configured with each OJ's manifest and interval repository. Shared recent-lookback collection orchestration lives in `training-data-common` and is reused through OJ collectors:
 
 - `training-data-codeforces`
-- `training-data-atcoder` owns the AtCoder ODS slice, Kenkoooo source client, submission/problem parser, ODS writers, recent-window submission collector, startup and low-frequency problem-list collector, and AtCoder DWD/DWM/DWS SQL task resources. `training-data-common` owns the AtCoder same-layer DWD/DWM/DWS table DDL because those tables follow the common warehouse contract.
+- `training-data-atcoder` owns the AtCoder ODS slice, Kenkoooo source client, submission/problem/problem-model parser, ODS writers, recent-window submission collector, startup and low-frequency problem metadata collector, and AtCoder DWD/DWM/DWS SQL task resources. `training-data-common` owns the AtCoder same-layer DWD/DWM/DWS table DDL because those tables follow the common warehouse contract.
 
 Do not reintroduce a unified `OdsSubmissionRecord`, `OdsSubmissionWriter`, `SourcePlatform`, or shared collect batch to flatten different OJ submission shapes.
 
@@ -38,7 +39,7 @@ Codeforces and AtCoder DWD/DWM/DWS transforms are idempotent SQL task resources.
 
 Read-side Java repositories can query existing DWD/DWM/DWS warehouse tables directly when the target table already matches the query grain. Current query support is exposed through guest HTTP endpoints that keep the Codeforces path and accept `ojName` as the pass-through OJ parameter; app services resolve that OJ's handle from `oj_handle_account.handles_json`, and JDBC repositories select same-layer tables by normalized OJ name, for example `dwd_codeforces__submission`.
 
-AtCoder currently has ODS landing tables, Kenkoooo source clients, ODS parsers/writers, recent-window submission collection, startup and low-frequency problem-list collection, an ODS purge adapter, and ODS-to-DWD/DWM/DWS refresh SQL in `training-data-atcoder`. Same-layer DWD/DWM/DWS physical tables live in `training-data-common` for common warehouse reads and student-scoped cleanup.
+AtCoder currently has ODS landing tables, Kenkoooo source clients, ODS parsers/writers, recent-window submission collection, startup and low-frequency problem metadata collection, an ODS purge adapter, and ODS-to-DWD/DWM/DWS refresh SQL in `training-data-atcoder`. Same-layer DWD/DWM/DWS physical tables live in `training-data-common` for common warehouse reads and student-scoped cleanup.
 
 ## Java Package Layout
 
@@ -74,8 +75,8 @@ training-data-codeforces/
   infra/         # Codeforces source client, payload parser, ODS writer, ODS purge, and refresh interval adapters
 
 training-data-atcoder/
-  app/           # AtCoder ODS ingest, submission collection, and problem-list collection use cases
-  config/        # typed Kenkoooo properties, problem-list schedule, and Spring Bean wiring
+  app/           # AtCoder ODS ingest, submission collection, and problem metadata collection use cases
+  config/        # typed Kenkoooo properties, problem metadata schedule, and Spring Bean wiring
   domain/        # AtCoder source, ODS, parser, writer, and purge contracts
   infra/         # Kenkoooo client, payload parser, ODS writers, ODS purge, and refresh interval adapters
 ```
@@ -109,9 +110,10 @@ Kenkoooo's AtCoder Problems API documents the submission endpoint and static pro
 ```text
 https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?user={user_id}&from_second={unix_second}
 https://kenkoooo.com/atcoder/resources/problems.json
+https://kenkoooo.com/atcoder/resources/problem-models.json
 ```
 
-User submissions require an AtCoder user id and a starting unix second; the API returns up to 500 submissions after that time. The internal collector starts from the computed lookback-window start, advances by the largest returned `epoch_second + 1`, and filters by `[windowStartInclusive, windowEndExclusive)`. The source fields observed from the documented endpoint are `id`, `epoch_second`, `problem_id`, `contest_id`, `user_id`, `language`, `point`, `length`, `result`, and `execution_time`. The problem-list JSON fields observed from `resources/problems.json` are `id`, `contest_id`, `problem_index`, `name`, and `title`. Kenkoooo asks clients to sleep for more than one second between accesses, so the AtCoder collector defaults to `request-interval=2s`.
+User submissions require an AtCoder user id and a starting unix second; the API returns up to 500 submissions after that time. The internal collector starts from the computed lookback-window start, advances by the largest returned `epoch_second + 1`, and filters by `[windowStartInclusive, windowEndExclusive)`. The source fields observed from the documented endpoint are `id`, `epoch_second`, `problem_id`, `contest_id`, `user_id`, `language`, `point`, `length`, `result`, and `execution_time`. The problem-list JSON fields observed from `resources/problems.json` are `id`, `contest_id`, `problem_index`, `name`, and `title`. The problem-model JSON from `resources/problem-models.json` is an object keyed by problem id; model fields include `slope`, `intercept`, `variance`, `difficulty`, `discrimination`, `irt_loglikelihood`, `irt_users`, and `is_experimental`. Kenkoooo asks clients to sleep for more than one second between accesses, so the AtCoder collector defaults to `request-interval=2s`.
 
 ## AtCoder ODS Fields
 
@@ -152,6 +154,27 @@ The unique key is `atcoder_submission_id`.
 
 The unique key is `problem_id`.
 
+`ods_atcoder__problem_model` preserves Kenkoooo `resources/problem-models.json` problem-model items and stores both raw and clipped difficulty. The clipped value follows Kenkoooo's AtCoder Problems display formula: raw difficulty values below 400 are transformed with `round(400 / exp(1 - difficulty / 400))`; values at least 400 are kept unchanged.
+
+| Column | Source field | Required for ODS |
+| --- | --- | --- |
+| `problem_id` | object key | Yes |
+| `slope` | `slope` | No |
+| `intercept` | `intercept` | No |
+| `variance` | `variance` | No |
+| `raw_difficulty` | `difficulty` | No |
+| `clipped_difficulty` | derived from `difficulty` | No |
+| `discrimination` | `discrimination` | No |
+| `irt_loglikelihood` | `irt_loglikelihood` | No |
+| `irt_users` | `irt_users` | No |
+| `is_experimental` | `is_experimental` | No |
+| `batch_id` | collect batch id | Yes |
+| `fetched_at` | collect time stored as UTC+8 local `datetime` | Yes |
+| `raw_payload` | raw source item JSON | Yes |
+| `payload_hash` | SHA-256 of `raw_payload` | Yes |
+
+The unique key is `problem_id`.
+
 ## AtCoder Warehouse Tables
 
 AtCoder DWD/DWM/DWS tables intentionally match the common same-layer warehouse query contract:
@@ -171,7 +194,7 @@ training-data-atcoder/src/main/resources/sql/dws/upsert_dws_atcoder__handle_dail
 training-data-atcoder/src/main/resources/sql/tasks/atcoder-warehouse-refresh.yml
 ```
 
-`dwd_atcoder__submission` is the cleaned single-submission detail table derived from `ods_atcoder__submission` and optionally enriched from `ods_atcoder__problem`.
+`dwd_atcoder__submission` is the cleaned single-submission detail table derived from `ods_atcoder__submission` and optionally enriched from `ods_atcoder__problem` plus `ods_atcoder__problem_model`.
 
 Important derived fields:
 
@@ -185,7 +208,7 @@ Important derived fields:
 | `problem_key` | ODS `problem_id` |
 | `problem_index` | `ods_atcoder__problem.problem_index` when problem-list metadata exists |
 | `problem_name` | `ods_atcoder__problem.title`, then `problem_name`, then ODS `problem_id` |
-| `difficulty` | `null`; current Kenkoooo problem-list source used here does not provide a rating/difficulty field |
+| `difficulty` | AtCoder Problems bucket lower bound derived from `ods_atcoder__problem_model.clipped_difficulty` for non-experimental ABC/ARC/AGC tasks: `0`, `400`, `800`, `1200`, `1600`, `2000`, `2400`, or `2800+`; `null` when no model row exists, the model is experimental, or the task is from another contest family |
 | `language` | ODS `language` |
 | `is_accepted` | `result = 'AC'` |
 | `source_url` | `https://atcoder.jp/contests/{contest_id}/submissions/{submission_id}` when contest id is available |
@@ -195,7 +218,7 @@ Important derived fields:
 
 `dwm_atcoder__handle_problem_first_accepted` ranks accepted AtCoder DWD rows by `handle + problem_key`, earliest UTC+8 submission time, then smaller source-code length and submission id. It records the first accepted submission whose final first-accepted date is inside the effective refresh interval.
 
-`dws_atcoder__handle_daily_rating_accepted_summary` groups AtCoder DWM rows by `handle`, UTC+8 first-accepted date, and `coalesce(difficulty, 'UNRATED')`. Because current AtCoder difficulty is null, all refreshed AtCoder DWS rows currently use `UNRATED`.
+`dws_atcoder__handle_daily_rating_accepted_summary` groups AtCoder DWM rows by `handle`, UTC+8 first-accepted date, and `coalesce(difficulty, 'UNRATED')`. AtCoder uses its own range buckets independent of Codeforces, and missing model data remains `UNRATED`.
 
 ## Codeforces ODS Fields
 
@@ -294,7 +317,7 @@ At the app layer, personal DWD reads accept platform `studentIdentity` plus the 
 - by requested `problemKey`, optional inclusive UTC+8 submitted time range, across all handles, and backend pagination `limit/offset`.
 
 Null time bounds mean no lower or upper time limit. Null problem rating bounds mean all rated and unrated rows. Setting either problem rating bound filters to the requested inclusive rating interval and excludes unrated rows.
-The public HTTP submission detail endpoints accept `page` and `limit`; `page` is 1-based, `limit` defaults to `100`, and `limit` is capped at `2000`. Each response returns exact `total`, `totalPages`, `hasMore`, and the requested page's submission rows.
+The public HTTP submission detail endpoints accept `page` and `limit`; `page` is 1-based, `limit` defaults to `15`, and `limit` is capped at `2000`. Each response returns exact `total`, `totalPages`, `hasMore`, and the requested page's submission rows.
 
 The repository returns DWD atomic submission rows. The app service returns report records that keep matching submission details:
 
@@ -525,7 +548,7 @@ The job service keeps at most 50 snapshots in memory, exposes per-identity `PEND
 
 Direct single-identity collection writes ODS and returns the generated `batchId`; it does not expose a separate refresh call. Browser-facing batch collection can request `refreshWarehouse=true`, in which case each successful collected batch calls the common warehouse refresh app service configured for the selected OJ inside the same background job. Scheduled collection always asks for the same refresh when a batch exists. Current successful refresh handlers are Codeforces and AtCoder.
 
-AtCoder problem metadata is collected through in-process startup bootstrap and a low-frequency scheduler. `training-data-web` has an enabled-by-default startup bootstrap under `platform.training-data.atcoder.problem-list-collector`: with `bootstrap-on-startup=true` and `bootstrap-only-when-empty=true`, it collects the problem list once after startup only when `ods_atcoder__problem` is empty. The same property group has an enabled-by-default scheduler with the default cron `0 30 3 ? * MON` in `Asia/Shanghai`. There is no manual HTTP endpoint for refreshing AtCoder problem metadata.
+AtCoder problem metadata is collected through in-process startup bootstrap and a low-frequency scheduler. `training-data-web` has an enabled-by-default startup bootstrap under `platform.training-data.atcoder.problem-list-collector`: with `bootstrap-on-startup=true` and `bootstrap-only-when-empty=true`, it collects `resources/problems.json` and `resources/problem-models.json` once after startup when either `ods_atcoder__problem` or `ods_atcoder__problem_model` is empty. The same property group has an enabled-by-default scheduler with the default cron `0 30 3 1/3 * ?` in `Asia/Shanghai`, so metadata is refreshed every three days. There is no manual HTTP endpoint for refreshing AtCoder problem metadata.
 
 ## Adding Another OJ
 

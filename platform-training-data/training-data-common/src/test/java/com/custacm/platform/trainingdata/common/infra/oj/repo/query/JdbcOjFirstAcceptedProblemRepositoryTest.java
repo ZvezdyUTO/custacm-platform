@@ -2,6 +2,7 @@ package com.custacm.platform.trainingdata.common.infra.oj.repo.query;
 
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjHandleFirstAcceptedProblemCriteria;
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjProblemFirstAcceptedHandleCriteria;
+import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -31,7 +32,7 @@ class JdbcOjFirstAcceptedProblemRepositoryTest {
                 ""
         );
         jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
-        repository = new JdbcOjFirstAcceptedProblemRepository(jdbcTemplate);
+        repository = new JdbcOjFirstAcceptedProblemRepository(jdbcTemplate, OjDifficultyBucketPolicies.defaults());
         try (Connection connection = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V011__create_codeforces_dwd_dwm_dws_tables.sql"));
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V012__rename_codeforces_warehouse_time_columns_to_utc_plus8.sql"));
@@ -95,8 +96,8 @@ class JdbcOjFirstAcceptedProblemRepositoryTest {
                         problem -> problem.firstAcceptedSubmissionId()
                 )
                 .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("tourist", "1001"),
-                        org.assertj.core.groups.Tuple.tuple("other", "1004")
+                        org.assertj.core.groups.Tuple.tuple("other", "1004"),
+                        org.assertj.core.groups.Tuple.tuple("tourist", "1001")
                 );
     }
 
@@ -116,9 +117,45 @@ class JdbcOjFirstAcceptedProblemRepositoryTest {
                         problem -> problem.firstAcceptedAtUtcPlus8()
                 )
                 .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("1001", LocalDateTime.parse("2026-07-01T10:00:00")),
-                        org.assertj.core.groups.Tuple.tuple("1004", LocalDateTime.parse("2026-07-01T12:00:00"))
+                        org.assertj.core.groups.Tuple.tuple("1004", LocalDateTime.parse("2026-07-01T12:00:00")),
+                        org.assertj.core.groups.Tuple.tuple("1001", LocalDateTime.parse("2026-07-01T10:00:00"))
                 );
+    }
+
+    @Test
+    void countsAndPagesHandleFirstAcceptedProblems() {
+        OjHandleFirstAcceptedProblemCriteria query = new OjHandleFirstAcceptedProblemCriteria(
+                "CODEFORCES",
+                "tourist",
+                null,
+                null,
+                null,
+                null,
+                2,
+                1
+        );
+
+        assertThat(repository.countHandleFirstAcceptedProblems(query)).isEqualTo(3);
+        assertThat(repository.findHandleFirstAcceptedProblems(query))
+                .extracting(problem -> problem.problemKey())
+                .containsExactly("1000:B", "1000:A");
+    }
+
+    @Test
+    void countsAndPagesProblemFirstAcceptedHandles() {
+        OjProblemFirstAcceptedHandleCriteria query = new OjProblemFirstAcceptedHandleCriteria(
+                "CODEFORCES",
+                "1000:A",
+                null,
+                null,
+                2,
+                1
+        );
+
+        assertThat(repository.countProblemFirstAcceptedHandles(query)).isEqualTo(3);
+        assertThat(repository.findProblemFirstAcceptedHandles(query))
+                .extracting(problem -> problem.handle())
+                .containsExactly("other", "tourist");
     }
 
     private void insertFirstAccepted(

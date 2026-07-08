@@ -58,7 +58,7 @@ interface AppRouteState {
 
 const adminTabs: Array<{ id: AdminWorkspaceView; label: string; detail: string }> = [
   { id: 'user-create', label: '创建用户', detail: '批量创建账号、补充 OJ 绑定' },
-  { id: 'user-edit', label: '修改用户', detail: '角色、密码、OJ 绑定、删除账号' },
+  { id: 'user-edit', label: '管理用户', detail: '角色、密码、OJ 绑定、删除账号' },
   { id: 'collection', label: '数据采集', detail: '提交采集、采集任务列表' },
   { id: 'records', label: '操作记录', detail: '服务健康、系统任务、异常记录' },
 ];
@@ -152,9 +152,13 @@ export function App() {
     selectedOjName,
     submissionPage,
     submissionLimit,
+    firstAcceptedPage,
+    firstAcceptedLimit,
     problemKey,
     problemSubmissionPage,
     problemSubmissionLimit,
+    problemFirstAcceptedPage,
+    problemFirstAcceptedLimit,
     users,
     records,
     multiUserAcceptedSummaries,
@@ -176,7 +180,9 @@ export function App() {
     refreshDashboard,
     applyTrainingQuery,
     changeSubmissionPage,
+    changeFirstAcceptedPage,
     changeProblemSubmissionPage,
+    changeProblemFirstAcceptedPage,
     changeProblemKey,
     chooseIdentity,
     chooseOjName,
@@ -291,7 +297,7 @@ export function App() {
     });
   }
 
-  async function handleSignIn(credentials: { studentIdentity: string; password: string }) {
+  async function handleSignIn(credentials: { studentIdentity: string; password: string; rememberMe: boolean }) {
     await signIn(credentials);
     setActionNotice('登录成功。');
     setIsLoginOpen(false);
@@ -317,7 +323,11 @@ export function App() {
     setActionNotice(
       `正在按${lookbackLabel}批量采集 ${options.studentIdentities.length} 个队员。`,
     );
-    return batchCollectSubmissions(options);
+    const summary = await batchCollectSubmissions(options);
+    setActionNotice(
+      `批量采集完成：采集 ${summary.collectedCount}/${summary.requestedCount}，刷新 ${summary.refreshedCount}，写入 ${summary.writtenRows} 行。`,
+    );
+    return summary;
   }
 
   async function handleDeleteFullUserData(studentIdentity: StudentIdentity) {
@@ -511,8 +521,10 @@ export function App() {
               isRefreshing={isRefreshing}
               ojName={selectedOjName}
               onApplyQuery={applyTrainingQuery}
+              onFirstAcceptedPageChange={changeFirstAcceptedPage}
               onOjNameChange={chooseOjName}
               onProblemKeyChange={changeProblemKey}
+              onProblemFirstAcceptedPageChange={changeProblemFirstAcceptedPage}
               onProblemSubmissionPageChange={changeProblemSubmissionPage}
               onQueryModeChange={(mode) => navigateRoute({ queryMode: mode, workspaceView: 'query' })}
               onRefresh={handleRefresh}
@@ -520,7 +532,11 @@ export function App() {
               onSelectedIdentityChange={handleChooseIdentity}
               query={trainingQuery}
               queryMode={queryMode}
+              firstAcceptedLimit={firstAcceptedLimit}
+              firstAcceptedPage={firstAcceptedPage}
               problemFirstAccepted={problemFirstAccepted}
+              problemFirstAcceptedLimit={problemFirstAcceptedLimit}
+              problemFirstAcceptedPage={problemFirstAcceptedPage}
               problemKey={problemKey}
               problemSubmissionLimit={problemSubmissionLimit}
               problemSubmissionPage={problemSubmissionPage}

@@ -1,6 +1,6 @@
 package com.custacm.platform.trainingdata.common.domain.oj.model;
 
-import com.custacm.platform.trainingdata.common.domain.oj.value.OjProblemRatingBuckets;
+import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
 
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -23,14 +23,7 @@ public record OjDailyRatingAcceptedSummary(
                 "acceptedProblemCountsByRating must not be null"
         );
         LinkedHashMap<String, Integer> normalizedCounts = new LinkedHashMap<>();
-        for (Integer rating : OjProblemRatingBuckets.RATINGS) {
-            String ratingKey = OjProblemRatingBuckets.keyForRating(rating);
-            normalizedCounts.put(ratingKey, normalizedCount(source, ratingKey));
-        }
-        normalizedCounts.put(
-                OjProblemRatingBuckets.UNRATED_KEY,
-                normalizedCount(source, OjProblemRatingBuckets.UNRATED_KEY)
-        );
+        source.forEach((ratingKey, count) -> normalizedCounts.put(ratingKey, normalizedCount(ratingKey, count)));
         acceptedProblemCountsByRating = Map.copyOf(normalizedCounts);
     }
 
@@ -39,15 +32,15 @@ public record OjDailyRatingAcceptedSummary(
     }
 
     public int acceptedProblemCount(int problemRating) {
-        return acceptedProblemCount(OjProblemRatingBuckets.keyForRating(problemRating));
+        return acceptedProblemCount(Integer.toString(problemRating));
     }
 
     public int unratedAcceptedProblemCount() {
-        return acceptedProblemCount(OjProblemRatingBuckets.UNRATED_KEY);
+        return acceptedProblemCount(OjDifficultyBucketPolicies.UNRATED_KEY);
     }
 
-    private static int normalizedCount(Map<String, Integer> source, String ratingKey) {
-        Integer count = source.get(ratingKey);
+    private static int normalizedCount(String ratingKey, Integer count) {
+        requireText(ratingKey, "ratingKey");
         if (count == null) {
             return 0;
         }

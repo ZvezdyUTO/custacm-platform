@@ -2,7 +2,7 @@
 
 This module is the AtCoder vertical OJ slice for `platform-training-data`.
 
-It owns Kenkoooo source access, AtCoder ODS ingest, recent-window submission collection, startup and low-frequency problem-list collection, AtCoder ODS purge, AtCoder ODS migrations/upsert SQL, AtCoder ODS-to-DWD/DWM/DWS SQL task resources, the AtCoder refresh-interval JDBC adapter, Spring wiring, and focused tests. AtCoder DWD/DWM/DWS physical tables are created by `training-data-common` because they follow the shared same-layer warehouse contract; the AtCoder cleaning SQL stays in this vertical module.
+It owns Kenkoooo source access, AtCoder ODS ingest, recent-window submission collection, startup and low-frequency problem metadata collection, AtCoder ODS purge, AtCoder ODS migrations/upsert SQL, AtCoder ODS-to-DWD/DWM/DWS SQL task resources, the AtCoder refresh-interval JDBC adapter, Spring wiring, and focused tests. AtCoder DWD/DWM/DWS physical tables are created by `training-data-common` because they follow the shared same-layer warehouse contract; the AtCoder cleaning SQL stays in this vertical module.
 
 ## Layer Rules
 
@@ -28,7 +28,7 @@ Rules:
 
 ```text
 src/main/java/com/custacm/platform/trainingdata/atcoder/
-  app/                 # AtCoder ODS ingest, submission collection, and problem-list collection use cases
+  app/                 # AtCoder ODS ingest, submission collection, and problem metadata collection use cases
   config/              # typed properties, scheduler, and Spring Bean wiring
   domain/              # AtCoder ODS records and source/parser/writer ports
   infra/               # Kenkoooo client, Jackson parser, JDBC writer/purge/refresh interval adapters
@@ -53,29 +53,34 @@ src/test/java/com/custacm/platform/trainingdata/atcoder/
 | --- | --- | --- |
 | `pom.xml` | build | Declares the AtCoder jar module and its `common-core`, `training-data-common`, Spring JDBC/Web, H2 test, and Spring test dependencies. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderOdsBatchUpsertResult.java` | app | Application result for AtCoder ODS upserts: batch id, table name, written row count, and fetch time. |
-| `src/main/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderOdsIngestService.java` | app | Validates raw Kenkoooo arrays, creates collect batches, parses submission/problem ODS records, writes them through AtCoder writers, and returns upsert metadata. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderOdsIngestService.java` | app | Validates raw Kenkoooo payloads, creates collect batches, parses submission/problem/problem-model ODS records, writes them through AtCoder writers, and returns upsert metadata. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderProblemMetadataCollectionResult.java` | app | Aggregate result for the low-frequency problem metadata collection: problem-list upsert result, problem-model upsert result, and total written rows. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderSubmissionCollectionAdapter.java` | app | AtCoder implementation on top of the common collection adapter base: pages Kenkoooo `user/submissions` forward with `from_second`, reuses common epoch-second window filtering and boundary conversion, reports history-start reachability when the query starts at `from_second=0`, and writes matched submissions to ODS. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderSubmissionCollectionService.java` | app | AtCoder collector facade implementing the common dispatcher contract; wires common recent-window orchestration with the AtCoder adapter and handle-account resolver. |
-| `src/main/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderProblemListCollectionService.java` | app | Fetches the Kenkoooo problem list through the shared retry/rate-limit executor and upserts it into `ods_atcoder__problem`. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderProblemListCollectionService.java` | app | Fetches Kenkoooo `problems.json` and `problem-models.json` through the shared retry/rate-limit executor and upserts them into AtCoder problem metadata ODS tables. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderCollectorProperties.java` | config | Typed Kenkoooo client properties: base URL, page size, connect timeout, read timeout, request interval, and max request attempts. |
-| `src/main/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderProblemListCollectorProperties.java` | config | Typed enabled-by-default problem-list properties: schedule enablement, startup bootstrap enablement, empty-table bootstrap guard, cron, and zone. |
-| `src/main/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderProblemListBootstrapRunner.java` | config | Startup bootstrap runner that auto-collects Kenkoooo problem metadata when `ods_atcoder__problem` is empty, logging stable failures without blocking service startup. |
-| `src/main/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderProblemListSchedulingConfig.java` | config | Registers the optional low-frequency problem-list scheduled task and logs boundary failures with a stable error code. |
-| `src/main/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderTrainingDataConfig.java` | config | Registers AtCoder parser, writers, source client, ODS ingest service, submission collector, problem-list collector, ODS purge adapter, refresh interval repository, and configured common warehouse refresh service/handler beans. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderProblemListCollectorProperties.java` | config | Typed enabled-by-default problem metadata properties: schedule enablement, startup bootstrap enablement, empty-table bootstrap guard, cron, and zone. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderProblemListBootstrapRunner.java` | config | Startup bootstrap runner that auto-collects Kenkoooo problem metadata when either AtCoder metadata ODS table is empty, logging stable failures without blocking service startup. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderProblemListSchedulingConfig.java` | config | Registers the optional low-frequency problem metadata scheduled task and logs boundary failures with a stable error code. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderTrainingDataConfig.java` | config | Registers AtCoder parser, writers, source client, ODS ingest service, submission collector, problem metadata collector, ODS purge adapter, refresh interval repository, and configured common warehouse refresh service/handler beans. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderCollectBatch.java` | domain | ODS collect batch identity and fetch time; validates required batch metadata. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderOdsSubmission.java` | domain | ODS record preserving Kenkoooo user submission fields, raw payload, payload hash, batch id, and required-field validation. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderOdsProblem.java` | domain | ODS record preserving Kenkoooo problem-list fields, raw payload, payload hash, batch id, and required-field validation. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderOdsProblemModel.java` | domain | ODS record preserving Kenkoooo problem-model fields, raw difficulty, clipped difficulty, IRT metadata, raw payload, payload hash, batch id, and required-field validation. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderSubmissionSourceClient.java` | domain | Port for fetching Kenkoooo user submission pages by AtCoder user id and `from_second`. |
-| `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderProblemSourceClient.java` | domain | Port for fetching Kenkoooo `resources/problems.json`. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderProblemSourceClient.java` | domain | Port for fetching Kenkoooo `resources/problems.json` and `resources/problem-models.json`. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderSubmissionPayloadParser.java` | domain | Parser port for converting raw Kenkoooo submission arrays into AtCoder ODS records. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderProblemPayloadParser.java` | domain | Parser port for converting raw Kenkoooo problem arrays into AtCoder ODS records. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderProblemModelPayloadParser.java` | domain | Parser port for converting raw Kenkoooo problem-model object maps into AtCoder ODS problem-model records. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderOdsSubmissionWriter.java` | domain | Writer contract for idempotent AtCoder submission ODS upsert. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderOdsProblemWriter.java` | domain | Writer contract for idempotent AtCoder problem-list ODS upsert. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/domain/AtcoderOdsProblemModelWriter.java` | domain | Writer contract for idempotent AtCoder problem-model ODS upsert. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/infra/AtcoderApiException.java` | infra | Runtime exception for Kenkoooo source failures; exposes stable source-client error codes to the common collection failure handler. |
-| `src/main/java/com/custacm/platform/trainingdata/atcoder/infra/RestClientAtcoderSourceClient.java` | infra | Spring `RestClient` implementation for Kenkoooo submissions and problem-list endpoints with response shape validation. |
-| `src/main/java/com/custacm/platform/trainingdata/atcoder/infra/JacksonAtcoderPayloadParser.java` | infra | Jackson-backed parser for AtCoder submissions/problems; stores raw JSON and computes SHA-256 payload hashes. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/infra/RestClientAtcoderSourceClient.java` | infra | Spring `RestClient` implementation for Kenkoooo submissions, problem-list, and problem-model endpoints with response shape validation. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/infra/JacksonAtcoderPayloadParser.java` | infra | Jackson-backed parser for AtCoder submissions/problems/problem-models; stores raw JSON, computes SHA-256 payload hashes, and applies the Kenkoooo clipped difficulty formula. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/infra/JdbcAtcoderOdsSubmissionWriter.java` | infra | JDBC writer for `ods_atcoder__submission`; loads ODS upsert SQL and writes UTC+8 local `fetched_at`. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/infra/JdbcAtcoderOdsProblemWriter.java` | infra | JDBC writer for `ods_atcoder__problem`; loads ODS upsert SQL and writes UTC+8 local `fetched_at`. |
+| `src/main/java/com/custacm/platform/trainingdata/atcoder/infra/JdbcAtcoderOdsProblemModelWriter.java` | infra | JDBC writer for `ods_atcoder__problem_model`; loads ODS upsert SQL and writes UTC+8 local `fetched_at`. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/infra/JdbcAtcoderOdsDataPurgeRepository.java` | infra | JDBC adapter that deletes all `ods_atcoder__submission` rows for one AtCoder handle by `user_id`. |
 | `src/main/java/com/custacm/platform/trainingdata/atcoder/infra/JdbcAtcoderWarehouseRefreshIntervalRepository.java` | infra | OJ-specific implementation of the common refresh interval repository; derives an AtCoder refresh interval from batch submission dates and existing DWM first-accepted dates touched by the batch. |
 
@@ -84,11 +89,13 @@ src/test/java/com/custacm/platform/trainingdata/atcoder/
 | File | Responsibility |
 | --- | --- |
 | `src/main/resources/db/migration/V019__create_atcoder_ods_tables.sql` | Creates AtCoder ODS landing tables for Kenkoooo user submissions and `resources/problems.json` problem-list items. |
+| `src/main/resources/db/migration/V023__create_atcoder_problem_model_table.sql` | Creates the AtCoder problem-model ODS table for Kenkoooo `resources/problem-models.json` difficulty metadata. |
 | `src/main/resources/sql/ods/upsert_ods_atcoder__submission.sql` | Idempotent AtCoder submission ODS upsert keyed by `atcoder_submission_id`. |
 | `src/main/resources/sql/ods/upsert_ods_atcoder__problem.sql` | Idempotent AtCoder problem-list ODS upsert keyed by `problem_id`. |
-| `src/main/resources/sql/dwd/upsert_dwd_atcoder__submission.sql` | Refresh-interval-parameterized ODS-to-DWD transform that maps Kenkoooo submissions to the common DWD contract and enriches problem metadata from AtCoder ODS problem rows. |
+| `src/main/resources/sql/ods/upsert_ods_atcoder__problem_model.sql` | Idempotent AtCoder problem-model ODS upsert keyed by `problem_id`. |
+| `src/main/resources/sql/dwd/upsert_dwd_atcoder__submission.sql` | Refresh-interval-parameterized ODS-to-DWD transform that maps Kenkoooo submissions to the common DWD contract and enriches problem metadata and difficulty buckets from AtCoder problem and problem-model ODS rows. |
 | `src/main/resources/sql/dwm/upsert_dwm_atcoder__handle_problem_first_accepted.sql` | Refresh-interval-parameterized DWD-to-DWM transform that ranks AtCoder accepted submissions by handle/problem and reloads first accepted rows in the effective interval. |
-| `src/main/resources/sql/dws/upsert_dws_atcoder__handle_daily_rating_accepted_summary.sql` | Refresh-interval-parameterized DWM-to-DWS transform that aggregates AtCoder first accepted rows by handle/date/difficulty, currently grouping null difficulty as `UNRATED`. |
+| `src/main/resources/sql/dws/upsert_dws_atcoder__handle_daily_rating_accepted_summary.sql` | Refresh-interval-parameterized DWM-to-DWS transform that aggregates AtCoder first accepted rows by handle/date/difficulty bucket, grouping null difficulty as `UNRATED`. |
 | `src/main/resources/sql/tasks/atcoder-warehouse-refresh.yml` | SQL task DAG manifest for AtCoder refresh; declares DWD -> DWM -> DWS task ids, SQL locations, dependencies, descriptions, and per-node timeouts. |
 
 ## Test File Responsibilities
@@ -96,12 +103,12 @@ src/test/java/com/custacm/platform/trainingdata/atcoder/
 | File | Responsibility |
 | --- | --- |
 | `src/test/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderSubmissionCollectionServiceTest.java` | Verifies AtCoder recent-window collection with fake clients: handle resolution, `from_second` paging, epoch-second window filtering including sub-second bounds, collection-state update callbacks, no-match behavior, and ODS write metadata. |
-| `src/test/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderProblemListCollectionServiceTest.java` | Verifies Kenkoooo problem-list fetch and ODS upsert orchestration with fake clients/writers. |
-| `src/test/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderCollectorPropertiesTest.java` | Verifies AtCoder collector and problem-list schedule/bootstrap defaults. |
-| `src/test/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderProblemListBootstrapRunnerTest.java` | Verifies startup problem-list bootstrap runs on empty ODS, skips populated ODS, respects disabled bootstrap, and supports always-bootstrap mode. |
-| `src/test/java/com/custacm/platform/trainingdata/atcoder/infra/JacksonAtcoderPayloadParserTest.java` | Verifies submission/problem parsing, raw payload hashing, and invalid required-field rejection. |
+| `src/test/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderProblemListCollectionServiceTest.java` | Verifies Kenkoooo problem-list and problem-model fetch/upsert orchestration with fake clients/writers. |
+| `src/test/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderCollectorPropertiesTest.java` | Verifies AtCoder collector and problem metadata schedule/bootstrap defaults. |
+| `src/test/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderProblemListBootstrapRunnerTest.java` | Verifies startup problem metadata bootstrap runs when either metadata ODS table is empty, skips populated ODS, respects disabled bootstrap, and supports always-bootstrap mode. |
+| `src/test/java/com/custacm/platform/trainingdata/atcoder/infra/JacksonAtcoderPayloadParserTest.java` | Verifies submission/problem/problem-model parsing, clipped difficulty, raw payload hashing, and invalid required-field rejection. |
 | `src/test/java/com/custacm/platform/trainingdata/atcoder/infra/JdbcAtcoderOdsDataPurgeRepositoryTest.java` | Verifies handle-based AtCoder ODS deletion without touching other handles. |
-| `src/test/java/com/custacm/platform/trainingdata/atcoder/infra/JdbcAtcoderOdsWriterTest.java` | Verifies AtCoder submission/problem ODS writer upserts and stored UTC+8 `fetched_at`. |
+| `src/test/java/com/custacm/platform/trainingdata/atcoder/infra/JdbcAtcoderOdsWriterTest.java` | Verifies AtCoder submission/problem/problem-model ODS writer upserts and stored UTC+8 `fetched_at`. |
 | `src/test/java/com/custacm/platform/trainingdata/atcoder/infra/JdbcAtcoderWarehouseRefreshIntervalRepositoryTest.java` | Verifies AtCoder batch interval derivation, stale first-accepted date expansion, and empty-batch behavior. |
 | `src/test/java/com/custacm/platform/trainingdata/atcoder/infra/AtcoderWarehouseSqlTaskTest.java` | Runs AtCoder ODS/DWD/DWM/DWS SQL tasks against H2 data and validates idempotent warehouse output plus stale DWS cleanup. |
 | `src/test/java/com/custacm/platform/trainingdata/atcoder/infra/RestClientAtcoderSourceClientTest.java` | Verifies Kenkoooo HTTP request paths/query params, response validation, and transport failure wrapping against a local fake server. |

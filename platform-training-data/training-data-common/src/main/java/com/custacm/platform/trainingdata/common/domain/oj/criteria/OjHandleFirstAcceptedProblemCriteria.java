@@ -10,7 +10,9 @@ public record OjHandleFirstAcceptedProblemCriteria(
         LocalDateTime firstAcceptedFromUtcPlus8,
         LocalDateTime firstAcceptedToUtcPlus8,
         Integer minProblemRating,
-        Integer maxProblemRating
+        Integer maxProblemRating,
+        int limit,
+        long offset
 ) {
     public OjHandleFirstAcceptedProblemCriteria(
             String authorHandle,
@@ -25,7 +27,50 @@ public record OjHandleFirstAcceptedProblemCriteria(
                 firstAcceptedFromUtcPlus8,
                 firstAcceptedToUtcPlus8,
                 minProblemRating,
-                maxProblemRating
+                maxProblemRating,
+                Integer.MAX_VALUE,
+                0
+        );
+    }
+
+    public OjHandleFirstAcceptedProblemCriteria(
+            String ojName,
+            String authorHandle,
+            LocalDateTime firstAcceptedFromUtcPlus8,
+            LocalDateTime firstAcceptedToUtcPlus8,
+            Integer minProblemRating,
+            Integer maxProblemRating
+    ) {
+        this(
+                ojName,
+                authorHandle,
+                firstAcceptedFromUtcPlus8,
+                firstAcceptedToUtcPlus8,
+                minProblemRating,
+                maxProblemRating,
+                Integer.MAX_VALUE,
+                0
+        );
+    }
+
+    public OjHandleFirstAcceptedProblemCriteria(
+            String authorHandle,
+            LocalDateTime firstAcceptedFromUtcPlus8,
+            LocalDateTime firstAcceptedToUtcPlus8,
+            Integer minProblemRating,
+            Integer maxProblemRating,
+            int limit,
+            long offset
+    ) {
+        this(
+                OjNames.CODEFORCES,
+                authorHandle,
+                firstAcceptedFromUtcPlus8,
+                firstAcceptedToUtcPlus8,
+                minProblemRating,
+                maxProblemRating,
+                limit,
+                offset
         );
     }
 
@@ -40,7 +85,9 @@ public record OjHandleFirstAcceptedProblemCriteria(
                 null,
                 null,
                 null,
-                null
+                null,
+                Integer.MAX_VALUE,
+                0
         );
     }
 }

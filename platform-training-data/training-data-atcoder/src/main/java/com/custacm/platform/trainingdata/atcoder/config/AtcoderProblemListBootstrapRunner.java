@@ -23,6 +23,7 @@ public class AtcoderProblemListBootstrapRunner implements ApplicationRunner {
     private static final String PROBLEM_LIST_BOOTSTRAP_FAILED_ERROR_CODE =
             "ATCODER_PROBLEM_LIST_BOOTSTRAP_FAILED";
     private static final String PROBLEM_COUNT_SQL = "select count(*) from ods_atcoder__problem";
+    private static final String PROBLEM_MODEL_COUNT_SQL = "select count(*) from ods_atcoder__problem_model";
     private static final Logger log = LoggerFactory.getLogger(AtcoderProblemListBootstrapRunner.class);
 
     private final AtcoderProblemListCollectorProperties properties;
@@ -46,14 +47,15 @@ public class AtcoderProblemListBootstrapRunner implements ApplicationRunner {
                 log.info("AtCoder problem-list startup bootstrap is disabled");
                 return;
             }
-            if (properties.bootstrapOnlyWhenEmpty() && existingProblemCount() > 0) {
-                log.info("AtCoder problem-list startup bootstrap skipped because ODS problem table is not empty");
+            if (properties.bootstrapOnlyWhenEmpty() && existingProblemCount() > 0 && existingProblemModelCount() > 0) {
+                log.info("AtCoder problem-list startup bootstrap skipped because ODS problem metadata tables are not empty");
                 return;
             }
             var result = collectionService.collectProblems();
             log.info(
-                    "AtCoder problem-list startup bootstrap finished, batchId={}, writtenRows={}",
-                    result.batchId(),
+                    "AtCoder problem metadata startup bootstrap finished, problemBatchId={}, problemModelBatchId={}, writtenRows={}",
+                    result.problemResult().batchId(),
+                    result.problemModelResult().batchId(),
                     result.writtenRows()
             );
         } catch (JsonProcessingException ex) {
@@ -67,6 +69,11 @@ public class AtcoderProblemListBootstrapRunner implements ApplicationRunner {
 
     private int existingProblemCount() {
         Integer count = jdbcOperations.queryForObject(PROBLEM_COUNT_SQL, Map.of(), Integer.class);
+        return count == null ? 0 : count;
+    }
+
+    private int existingProblemModelCount() {
+        Integer count = jdbcOperations.queryForObject(PROBLEM_MODEL_COUNT_SQL, Map.of(), Integer.class);
         return count == null ? 0 : count;
     }
 }

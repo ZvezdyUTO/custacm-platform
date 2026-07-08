@@ -1,5 +1,7 @@
 # AtCoder Warehouse Refresh Implementation Plan
 
+> **Status:** Superseded by the later AtCoder problem-model implementation on 2026-07-08. Current AtCoder metadata collection also ingests Kenkoooo `resources/problem-models.json`; DWD maps non-experimental ABC/ARC/AGC clipped difficulty into AtCoder range buckets, while missing model data remains `UNRATED`. Use `platform-training-data/docs/atcoder-collection.md`, `platform-training-data/docs/ods-submission.md`, and `platform-training-data/README.md` for current behavior.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Populate AtCoder `dwd`/`dwm`/`dws` warehouse tables from Kenkoooo ODS data, and route collection-job warehouse refresh through the existing common job and SQL-task infrastructure.
@@ -15,7 +17,7 @@
 - Follow `platform-training-data/AGENTS.md`: keep OJ-specific source/ODS/SQL in the OJ module; keep common HTTP/query/purge/scheduler paths common.
 - Do not add standalone warehouse-refresh HTTP endpoints, ADS tables, persistent pipeline run state, or a cross-OJ pipeline scheduler in this slice.
 - AtCoder public reads must use existing `ojName=ATCODER` query paths backed by `dwd_atcoder__submission`, `dwm_atcoder__handle_problem_first_accepted`, and `dws_atcoder__handle_daily_rating_accepted_summary`.
-- Kenkoooo problem list has no rating/difficulty field in the currently collected `resources/problems.json`; AtCoder DWD `difficulty` should stay `null`, and DWS should aggregate those rows under `UNRATED`.
+- Historical assumption for this plan: Kenkoooo `resources/problems.json` did not provide rating/difficulty, so the initial warehouse refresh kept AtCoder DWD `difficulty` as `null` and DWS aggregated those rows under `UNRATED`. This is no longer the full current implementation; later work added `resources/problem-models.json` ingestion and AtCoder difficulty buckets.
 - Use set-based SQL transformations. Do not transform warehouse rows one by one in Java.
 - After Java changes, run `mvn clean verify` and `./scripts/check-test-policy.sh`.
 
@@ -487,7 +489,7 @@ Test fixture:
   - DWD `source_url` equals `https://atcoder.jp/contests/abc100/submissions/{submissionId}`.
   - DWM has one row per `handle + problem_key`.
   - DWM tie-break uses earliest `submitted_at_utc_plus8`, then smallest `submission_id`.
-  - DWS contains `UNRATED` summary counts because current Kenkoooo problem list does not provide difficulty.
+  - DWS contains `UNRATED` summary counts for this original fixture because it does not include problem-model difficulty data.
   - Running the task twice leaves row counts stable.
 
 - [ ] **Step 2: Add DWD SQL**
@@ -883,7 +885,7 @@ POST /api/training-data/admin/codeforces/submissions:collect-batch-jobs
    - `ods_atcoder__submission` has one row;
    - `dwd_atcoder__submission` has one row;
    - `dwm_atcoder__handle_problem_first_accepted` has one row;
-   - `dws_atcoder__handle_daily_rating_accepted_summary` has one `UNRATED` row.
+   - `dws_atcoder__handle_daily_rating_accepted_summary` has one `UNRATED` row for this fixture without problem-model data.
 
 - [ ] **Step 3: Verify web integration**
 
@@ -924,8 +926,8 @@ Required facts to document:
 - SQL task order is DWD -> DWM -> DWS.
 - DWD derives `problem_key` from Kenkoooo `problem_id`.
 - DWD left joins `ods_atcoder__problem` for `problem_index` and display name.
-- DWD stores `difficulty = null` because current problem list has no difficulty field.
-- DWS groups `null` difficulty as `UNRATED`.
+- Original warehouse refresh behavior stored `difficulty = null` when only problem-list metadata existed; current behavior also joins problem-model metadata and writes AtCoder difficulty buckets when available.
+- DWS groups `null` difficulty as `UNRATED`; current model-backed rows use AtCoder bucket keys.
 - Public read APIs remain the existing Codeforces-compatible paths with `ojName=ATCODER`.
 - No standalone warehouse refresh HTTP endpoint was added.
 
@@ -946,7 +948,7 @@ Update batch job section:
 
 - `refreshWarehouse=true` now supports `CODEFORCES` and `ATCODER`.
 - AtCoder refresh writes same-layer DWD/DWM/DWS rows.
-- AtCoder difficulty/rating summary is `UNRATED` until a difficulty source is added.
+- AtCoder difficulty/rating summary uses problem-model buckets when model data is available; missing, experimental, or unsupported contest-family rows remain `UNRATED`.
 
 - [ ] **Step 4: Update context map**
 
@@ -1018,7 +1020,7 @@ Expected:
 - job refresh status is `SUCCESS`;
 - DWD returns submission details;
 - DWM returns first accepted problems;
-- DWS accepted summary counts are under `UNRATED`.
+- DWS accepted summary counts appear under AtCoder buckets when problem-model data is available; fixtures without model data stay under `UNRATED`.
 
 ## Self-Review
 

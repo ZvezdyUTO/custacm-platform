@@ -18,5 +18,6 @@ Rules:
 - HTTP authorization uses the shared tiers in [../docs/authorization.md](../docs/authorization.md): `/admin/**` requires admin, `/player/**` requires player or admin, and guest endpoints must not parse JWTs.
 - Passwords must be stored as hashes; never persist or return plaintext passwords.
 - JWTs are signed by `auth-web` with an RSA private key and verified by services with the matching public key.
+- Login accepts a `rememberMe` boolean. Ordinary access tokens default to 2 hours; remembered access tokens default to 30 days.
 
 Before changing this module, read the child module `AGENTS.md` file for the exact layer you are editing.

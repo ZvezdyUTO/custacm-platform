@@ -13,6 +13,7 @@ import {
   getProblemSubmissions,
   getStudentSubmissions,
   getTrainingDataModuleInfo,
+  login,
   listCodeforcesSubmissionCollectionJobs,
   listOjHandleAccounts,
   listUsers,
@@ -95,15 +96,20 @@ describe('platform API query parameters', () => {
     expect(url.searchParams.get('limit')).toBe('50');
   });
 
-  it('passes date and rating range to the first accepted endpoint', async () => {
+  it('passes date, rating range and pagination to the first accepted endpoint', async () => {
     const fetchMock = stubFetch({
       studentIdentity: '230511213黄炳睿',
       authorHandle: 'tourist',
       totalAcceptedProblemCount: 0,
+      page: 2,
+      limit: 50,
+      total: 0,
+      totalPages: 0,
+      hasMore: false,
       problems: [],
     });
 
-    await getFirstAcceptedProblems('230511213黄炳睿', range);
+    await getFirstAcceptedProblems('230511213黄炳睿', range, { page: 2, limit: 50 });
 
     const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
     expect(url.pathname).toBe('/api/training-data/codeforces/first-accepted/by-student');
@@ -113,16 +119,23 @@ describe('platform API query parameters', () => {
     expect(url.searchParams.get('firstAcceptedToUtcPlus8')).toBe('2024-01-31T23:59:59');
     expect(url.searchParams.get('minProblemRating')).toBe('1800');
     expect(url.searchParams.get('maxProblemRating')).toBe('2400');
+    expect(url.searchParams.get('page')).toBe('2');
+    expect(url.searchParams.get('limit')).toBe('50');
   });
 
-  it('passes date and rating range to the problem first accepted endpoint', async () => {
+  it('passes date, rating range and pagination to the problem first accepted endpoint', async () => {
     const fetchMock = stubFetch({
       problemKey: '2242:C',
       acceptedHandleCount: 0,
+      page: 2,
+      limit: 50,
+      total: 0,
+      totalPages: 0,
+      hasMore: false,
       acceptedHandles: [],
     });
 
-    await getProblemFirstAcceptedHandles('2242:C', range, OJ_NAMES.ATCODER);
+    await getProblemFirstAcceptedHandles('2242:C', range, { page: 2, limit: 50 }, OJ_NAMES.ATCODER);
 
     const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
     expect(url.pathname).toBe('/api/training-data/codeforces/first-accepted/by-problem');
@@ -132,6 +145,8 @@ describe('platform API query parameters', () => {
     expect(url.searchParams.get('firstAcceptedToUtcPlus8')).toBe('2024-01-31T23:59:59');
     expect(url.searchParams.get('minProblemRating')).toBe('1800');
     expect(url.searchParams.get('maxProblemRating')).toBe('2400');
+    expect(url.searchParams.get('page')).toBe('2');
+    expect(url.searchParams.get('limit')).toBe('50');
   });
 
   it('lists auth users without requiring an admin token', async () => {
@@ -144,6 +159,27 @@ describe('platform API query parameters', () => {
     expect(url.pathname).toBe('/api/auth/users');
     expect(url.search).toBe('');
     expect(init.headers).toEqual({ Accept: 'application/json' });
+  });
+
+  it('posts remember-me flag when logging in', async () => {
+    const fetchMock = stubFetch({
+      tokenType: 'Bearer',
+      accessToken: 'token',
+      expiresInSeconds: 2592000,
+      user: { studentIdentity: '230511213黄炳睿', role: 'player' },
+    });
+
+    await login('230511213黄炳睿', 'secret', true);
+
+    const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(url.pathname).toBe('/api/auth/login');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toEqual({
+      studentIdentity: '230511213黄炳睿',
+      password: 'secret',
+      rememberMe: true,
+    });
   });
 
   it('loads auth module-info through the frontend proxy path', async () => {

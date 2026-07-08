@@ -9,6 +9,7 @@ import java.time.Duration;
 
 public class AtcoderProblemListCollectionService {
     private static final String PROBLEM_BATCH_ID_PREFIX = "collector-atcoder-problems";
+    private static final String PROBLEM_MODEL_BATCH_ID_PREFIX = "collector-atcoder-problem-models";
 
     private final AtcoderProblemSourceClient sourceClient;
     private final AtcoderOdsIngestService ingestService;
@@ -49,15 +50,20 @@ public class AtcoderProblemListCollectionService {
         this.sleepStrategy = sleepStrategy;
     }
 
-    public AtcoderOdsBatchUpsertResult collectProblems() throws JsonProcessingException {
+    public AtcoderProblemMetadataCollectionResult collectProblems() throws JsonProcessingException {
         OjCollectionRequestExecutor requestExecutor = new OjCollectionRequestExecutor(
                 maxRequestAttempts,
                 requestInterval,
                 sleepStrategy
         );
-        return ingestService.upsertProblems(
+        AtcoderOdsBatchUpsertResult problemResult = ingestService.upsertProblems(
                 requestExecutor.execute(sourceClient::fetchProblems),
                 PROBLEM_BATCH_ID_PREFIX
         );
+        AtcoderOdsBatchUpsertResult problemModelResult = ingestService.upsertProblemModels(
+                requestExecutor.execute(sourceClient::fetchProblemModels),
+                PROBLEM_MODEL_BATCH_ID_PREFIX
+        );
+        return new AtcoderProblemMetadataCollectionResult(problemResult, problemModelResult);
     }
 }

@@ -993,6 +993,32 @@
   padding: 0 10px;
 }
 
+.login-panel label.login-remember-field {
+  grid-column: 1 / -1;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+  color: #344054;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.login-panel .login-remember-field span {
+  min-width: 0;
+}
+
+.login-panel .login-remember-field input {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0;
+}
+
 .login-dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -1124,7 +1150,9 @@
 
 .admin-card-header-actions .primary-button,
 .collect-student-row .primary-button {
+  width: 124px;
   min-height: 36px;
+  justify-content: center;
 }
 
 .admin-action-card h2,
@@ -1316,23 +1344,23 @@
 }
 
 .user-col-identity {
-  width: 24%;
+  width: 20%;
 }
 
 .user-col-handle {
-  width: 19%;
+  width: 33%;
 }
 
 .user-col-history {
-  width: 23%;
+  width: 18%;
 }
 
 .user-col-collected {
-  width: 24%;
+  width: 20%;
 }
 
 .user-col-action {
-  width: 10%;
+  width: 9%;
 }
 
 .user-overview-table th,
@@ -1359,6 +1387,46 @@
 
 .user-overview-table td[data-label="操作"] {
   vertical-align: top;
+}
+
+.handle-badge-list {
+  display: inline-grid;
+  gap: 6px;
+  align-items: start;
+  min-width: 0;
+}
+
+.handle-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 28px;
+  border: 1px solid #c9d4e4;
+  border-radius: var(--radius-control);
+  background: #fbfcfe;
+  color: #1f2937;
+  padding: 4px 9px;
+}
+
+.handle-badge-oj {
+  flex: 0 0 auto;
+  color: #667085;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.handle-badge-value {
+  min-width: 0;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 720;
+  overflow-wrap: anywhere;
+}
+
+.handle-badge-empty {
+  color: #667085;
 }
 
 .user-overview-table tbody tr:last-child td {
@@ -1407,9 +1475,9 @@
 }
 
 .user-overview-tag.user-collect-on {
-  border-color: var(--navy-border);
-  background: var(--blue-soft);
-  color: var(--navy);
+  border-color: #98dcb8;
+  background: #e8f7ee;
+  color: #0f6b3d;
 }
 
 .user-overview-tag.user-role-admin {
@@ -1424,11 +1492,16 @@
   color: #116a45;
 }
 
-.user-overview-tag.user-role-disable,
-.user-overview-tag.user-collect-off {
+.user-overview-tag.user-role-disable {
   border-color: #ffc6c6;
   background: var(--red-soft);
   color: #b42318;
+}
+
+.user-overview-tag.user-collect-off {
+  border-color: #f0c66c;
+  background: #fff4d6;
+  color: #7a4b00;
 }
 
 .user-overview-tag.user-collect-unbound {
@@ -1587,7 +1660,7 @@
 
 .collect-student-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) minmax(120px, 0.55fr) auto auto auto;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(120px, 0.55fr) auto 124px;
   gap: 10px;
   align-items: end;
   padding: 10px;
@@ -1601,8 +1674,7 @@
 }
 
 .collect-student-main strong,
-.collect-student-main small,
-.collect-window-label {
+.collect-student-main small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1614,18 +1686,10 @@
   font-weight: 720;
 }
 
-.collect-student-main small,
-.collect-window-label {
+.collect-student-main small {
   color: var(--muted);
   font-size: 12px;
   font-weight: 620;
-}
-
-.collect-window-label {
-  display: inline-flex;
-  align-items: center;
-  min-height: 36px;
-  align-self: end;
 }
 
 .collect-refresh-field {

@@ -4,7 +4,7 @@ import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjHandleSubmi
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjProblemSubmissionCriteria;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjSubmission;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjSubmissionRepository;
-import com.custacm.platform.trainingdata.common.domain.oj.value.OjProblemRatingBuckets;
+import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
 import com.custacm.platform.trainingdata.common.infra.oj.repo.warehouse.OjWarehouseTableNames;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -36,9 +36,14 @@ public class JdbcOjSubmissionRepository implements OjSubmissionRepository {
     );
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final OjDifficultyBucketPolicies bucketPolicies;
 
-    public JdbcOjSubmissionRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+    public JdbcOjSubmissionRepository(
+            NamedParameterJdbcTemplate jdbcTemplate,
+            OjDifficultyBucketPolicies bucketPolicies
+    ) {
         this.jdbcTemplate = jdbcTemplate;
+        this.bucketPolicies = bucketPolicies;
     }
 
     @Override
@@ -49,7 +54,7 @@ public class JdbcOjSubmissionRepository implements OjSubmissionRepository {
         List<String> predicates = new ArrayList<>();
         predicates.add("handle = :handle");
         addSubmittedTimePredicates(query.submittedFromUtcPlus8(), query.submittedToUtcPlus8(), predicates, params);
-        addProblemRatingPredicates(query.minProblemRating(), query.maxProblemRating(), predicates, params);
+        addProblemRatingPredicates(query.ojName(), query.minProblemRating(), query.maxProblemRating(), predicates, params);
         return count(tableName, predicates, params);
     }
 
@@ -61,7 +66,7 @@ public class JdbcOjSubmissionRepository implements OjSubmissionRepository {
         List<String> predicates = new ArrayList<>();
         predicates.add("handle = :handle");
         addSubmittedTimePredicates(query.submittedFromUtcPlus8(), query.submittedToUtcPlus8(), predicates, params);
-        addProblemRatingPredicates(query.minProblemRating(), query.maxProblemRating(), predicates, params);
+        addProblemRatingPredicates(query.ojName(), query.minProblemRating(), query.maxProblemRating(), predicates, params);
         return query(tableName, predicates, params, query.limit(), query.offset());
     }
 
@@ -147,13 +152,15 @@ public class JdbcOjSubmissionRepository implements OjSubmissionRepository {
         }
     }
 
-    private static void addProblemRatingPredicates(
+    private void addProblemRatingPredicates(
+            String ojName,
             Integer minProblemRating,
             Integer maxProblemRating,
             List<String> predicates,
             MapSqlParameterSource params
     ) {
-        List<String> difficulties = difficultyValuesInRange(minProblemRating, maxProblemRating);
+        List<String> difficulties = bucketPolicies.policyFor(ojName)
+                .bucketKeysInRange(minProblemRating, maxProblemRating);
         if (difficulties == null) {
             return;
         }
@@ -163,17 +170,6 @@ public class JdbcOjSubmissionRepository implements OjSubmissionRepository {
         }
         predicates.add("difficulty in (:difficulties)");
         params.addValue("difficulties", difficulties);
-    }
-
-    private static List<String> difficultyValuesInRange(Integer minProblemRating, Integer maxProblemRating) {
-        if (minProblemRating == null && maxProblemRating == null) {
-            return null;
-        }
-        return OjProblemRatingBuckets.RATINGS.stream()
-                .filter(rating -> minProblemRating == null || rating >= minProblemRating)
-                .filter(rating -> maxProblemRating == null || rating <= maxProblemRating)
-                .map(String::valueOf)
-                .toList();
     }
 
     private static LocalDateTime nullableDateTime(ResultSet rs, String columnName) throws SQLException {

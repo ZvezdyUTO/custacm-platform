@@ -120,7 +120,7 @@ describe('App navigation', () => {
     const collectionTab = screen.getByRole('tab', { name: /数据采集/ });
     expect(window.location.pathname).toBe('/admin/user-create');
     expect(screen.getByRole('tab', { name: /创建用户/ })).not.toBeNull();
-    expect(screen.getByRole('tab', { name: /修改用户/ })).not.toBeNull();
+    expect(screen.getByRole('tab', { name: /管理用户/ })).not.toBeNull();
     expect(screen.queryByRole('tab', { name: /数据维护/ })).toBeNull();
     expect(screen.getByRole('tab', { name: /操作记录/ })).not.toBeNull();
 
@@ -138,12 +138,12 @@ describe('App navigation', () => {
     await user.click(screen.getByRole('tab', { name: '管理员操作' }));
 
     expect(screen.getByRole('heading', { name: '创建用户' })).not.toBeNull();
-    expect(screen.queryByRole('heading', { name: '修改用户信息' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: '管理用户信息' })).toBeNull();
 
-    await user.click(screen.getByRole('tab', { name: /修改用户/ }));
+    await user.click(screen.getByRole('tab', { name: /管理用户/ }));
 
     expect(window.location.pathname).toBe('/admin/user-edit');
-    expect(screen.getByRole('heading', { name: '修改用户信息' })).not.toBeNull();
+    expect(screen.getByRole('heading', { name: '管理用户信息' })).not.toBeNull();
     expect(screen.queryByRole('heading', { name: '创建用户' })).toBeNull();
   });
 
@@ -155,6 +155,54 @@ describe('App navigation', () => {
     const collectionTab = screen.getByRole('tab', { name: /数据采集/ });
     expect(collectionTab.getAttribute('aria-selected')).toBe('true');
     expect(screen.getByRole('heading', { name: '训练数据采集' })).not.toBeNull();
+  });
+
+  it('refreshes the global notice after batch collection completes', async () => {
+    const user = userEvent.setup();
+    const previousDashboard = dashboardMock.value;
+    const batchCollectSubmissions = vi.fn().mockResolvedValue({
+      requestedCount: 1,
+      collectedCount: 1,
+      failedCount: 0,
+      refreshedCount: 1,
+      writtenRows: 12,
+      batchIds: ['collector-atcoder-1'],
+      results: [],
+    });
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
+    window.history.pushState(null, '', '/admin/collection');
+    dashboardMock.value = {
+      ...previousDashboard,
+      batchCollectSubmissions,
+      records: [
+        {
+          studentIdentity: '9999999 蒋老师',
+          role: 'player',
+          handle: 'jiangly',
+          handles: { CODEFORCES: 'jiangly' },
+          needCollect: true,
+          handleStatus: 'bound',
+          acceptedSummary: null,
+          summaryStatus: 'not-requested',
+          errorMessage: null,
+          updatedAt: '2026-07-08T00:00:00Z',
+        },
+      ],
+      selectedOjName: 'ATCODER',
+    } as typeof previousDashboard;
+
+    try {
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: '全部采集' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('批量采集完成：采集 1/1，刷新 1，写入 12 行。')).not.toBeNull();
+      });
+      expect(screen.queryByText(/正在按/)).toBeNull();
+    } finally {
+      dashboardMock.value = previousDashboard;
+    }
   });
 
   it('writes the query mode into the URL path', async () => {
@@ -220,23 +268,26 @@ describe('App navigation', () => {
     try {
       render(<App />);
 
-      expect(screen.queryByRole('dialog', { name: '账号登录' })).toBeNull();
+      expect(screen.queryByRole('dialog', { name: '队员登录' })).toBeNull();
 
       await user.click(screen.getByRole('button', { name: /登录/ }));
 
-      const dialog = screen.getByRole('dialog', { name: '账号登录' });
+      const dialog = screen.getByRole('dialog', { name: '队员登录' });
       expect(dialog).not.toBeNull();
+      expect(within(dialog).getByText('welcome to custacmwiki')).not.toBeNull();
 
       await user.type(screen.getByLabelText('学号姓名'), '230511213黄炳睿');
       await user.type(screen.getByLabelText('密码'), 'secret');
+      await user.click(screen.getByLabelText('记住我一个月'));
       await user.click(within(dialog).getByRole('button', { name: '登录' }));
 
       expect(signIn).toHaveBeenCalledWith({
         password: 'secret',
+        rememberMe: true,
         studentIdentity: '230511213黄炳睿',
       });
       await waitFor(() => {
-        expect(screen.queryByRole('dialog', { name: '账号登录' })).toBeNull();
+        expect(screen.queryByRole('dialog', { name: '队员登录' })).toBeNull();
       });
     } finally {
       dashboardMock.value = previousDashboard;
@@ -281,7 +332,7 @@ describe('App navigation', () => {
       render(<App />);
 
       await user.click(screen.getByRole('tab', { name: '管理员操作' }));
-      await user.click(screen.getByRole('tab', { name: /修改用户/ }));
+      await user.click(screen.getByRole('tab', { name: /管理用户/ }));
       await user.click(screen.getByRole('button', { name: '编辑 230511213黄炳睿' }));
       await user.click(screen.getByRole('button', { name: '删除用户信息' }));
 

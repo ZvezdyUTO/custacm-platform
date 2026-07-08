@@ -37,6 +37,10 @@ public class AuthAccountService {
     }
 
     public LoginResult login(String studentIdentity, String password) {
+        return login(studentIdentity, password, null);
+    }
+
+    public LoginResult login(String studentIdentity, String password, Duration accessTokenTtl) {
         String normalizedIdentity = requireStudentIdentity(studentIdentity);
         ensureLoginAllowed(normalizedIdentity);
         UserAccount account = userAccounts.findByStudentIdentity(normalizedIdentity)
@@ -50,7 +54,7 @@ public class AuthAccountService {
             throw new AuthServiceException(AuthErrorCode.AUTH_USER_DISABLED, "user is disabled");
         }
         recordLoginSuccess(normalizedIdentity);
-        return new LoginResult(account, accessTokenIssuer.issue(account.studentIdentity(), account.role()));
+        return new LoginResult(account, accessTokenIssuer.issue(account.studentIdentity(), account.role(), accessTokenTtl));
     }
 
     public UserAccount currentUser(String studentIdentity) {

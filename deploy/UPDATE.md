@@ -36,7 +36,7 @@ frontend -> frontend-build 生成 dist -> custacm-frontend reload Nginx
 
 ## Full Deploy
 
-第一次部署、环境变量变更、Compose 结构变更、JWT 密钥文件路径变更时，用全量部署：
+第一次部署、环境变量变更、Compose 结构变更、JWT 密钥文件路径变更或 token TTL 变更时，用全量部署：
 
 ```bash
 cp deploy/.env.example deploy/.env

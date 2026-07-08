@@ -406,20 +406,31 @@ class OjWarehouseQueryServiceTest {
                         from,
                         to,
                         null,
-                        null
+                        null,
+                        2,
+                        2
                 );
         OjFirstAcceptedProblemRepository repository = new OjFirstAcceptedProblemRepository() {
+            @Override
+            public long countHandleFirstAcceptedProblems(OjHandleFirstAcceptedProblemCriteria actualQuery) {
+                assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
+                return 4;
+            }
+
             @Override
             public List<OjFirstAcceptedProblem> findHandleFirstAcceptedProblems(
                     OjHandleFirstAcceptedProblemCriteria actualQuery
             ) {
                 assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
                 return List.of(
-                        firstAccepted("tourist", "1000:A", 800, "2026-07-03T09:00:00"),
-                        firstAccepted("tourist", "1000:B", 800, "2026-07-03T10:00:00"),
                         firstAccepted("tourist", "1000:C", 1200, "2026-07-03T11:00:00"),
                         firstAccepted("tourist", "1000:D", null, "2026-07-03T12:00:00")
                 );
+            }
+
+            @Override
+            public long countProblemFirstAcceptedHandles(OjProblemFirstAcceptedHandleCriteria query) {
+                throw new UnsupportedOperationException("not used");
             }
 
             @Override
@@ -440,15 +451,20 @@ class OjWarehouseQueryServiceTest {
                 from,
                 to,
                 null,
-                null
+                null,
+                2,
+                2
         );
 
         assertThat(report.studentIdentity()).isEqualTo(studentIdentity);
         assertThat(report.authorHandle()).isEqualTo("tourist");
         assertThat(report.totalAcceptedProblemCount()).isEqualTo(4);
+        assertThat(report.page()).isEqualTo(2);
+        assertThat(report.limit()).isEqualTo(2);
+        assertThat(report.total()).isEqualTo(4);
+        assertThat(report.totalPages()).isEqualTo(2);
+        assertThat(report.hasMore()).isFalse();
         assertThat(report.problems()).containsExactly(
-                firstAcceptedProblem("1000:A", 800, "2026-07-03T09:00:00"),
-                firstAcceptedProblem("1000:B", 800, "2026-07-03T10:00:00"),
                 firstAcceptedProblem("1000:C", 1200, "2026-07-03T11:00:00"),
                 firstAcceptedProblem("1000:D", null, "2026-07-03T12:00:00")
         );
@@ -462,10 +478,21 @@ class OjWarehouseQueryServiceTest {
                 new OjProblemFirstAcceptedHandleCriteria("1000:A", from, to);
         OjFirstAcceptedProblemRepository repository = new OjFirstAcceptedProblemRepository() {
             @Override
+            public long countHandleFirstAcceptedProblems(OjHandleFirstAcceptedProblemCriteria query) {
+                throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
             public List<OjFirstAcceptedProblem> findHandleFirstAcceptedProblems(
                     OjHandleFirstAcceptedProblemCriteria query
             ) {
                 throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
+            public long countProblemFirstAcceptedHandles(OjProblemFirstAcceptedHandleCriteria actualQuery) {
+                assertThat(actualQuery).isEqualTo(query);
+                return 2;
             }
 
             @Override
@@ -490,9 +517,14 @@ class OjWarehouseQueryServiceTest {
 
         assertThat(report.problemKey()).isEqualTo("1000:A");
         assertThat(report.acceptedHandleCount()).isEqualTo(2);
+        assertThat(report.page()).isEqualTo(1);
+        assertThat(report.limit()).isEqualTo(Integer.MAX_VALUE);
+        assertThat(report.total()).isEqualTo(2);
+        assertThat(report.totalPages()).isEqualTo(1);
+        assertThat(report.hasMore()).isFalse();
         assertThat(report.acceptedHandles()).containsExactly(
-                firstAcceptedHandle("112487张三", "alice", "2026-07-04T09:00:00"),
-                firstAcceptedHandle("112488李四", "bob", "2026-07-04T10:00:00")
+                firstAcceptedHandle("112488李四", "bob", "2026-07-04T10:00:00"),
+                firstAcceptedHandle("112487张三", "alice", "2026-07-04T09:00:00")
         );
     }
 
@@ -502,10 +534,21 @@ class OjWarehouseQueryServiceTest {
                 new OjProblemFirstAcceptedHandleCriteria("1000:A", null, null);
         OjFirstAcceptedProblemRepository repository = new OjFirstAcceptedProblemRepository() {
             @Override
+            public long countHandleFirstAcceptedProblems(OjHandleFirstAcceptedProblemCriteria query) {
+                throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
             public List<OjFirstAcceptedProblem> findHandleFirstAcceptedProblems(
                     OjHandleFirstAcceptedProblemCriteria query
             ) {
                 throw new UnsupportedOperationException("not used");
+            }
+
+            @Override
+            public long countProblemFirstAcceptedHandles(OjProblemFirstAcceptedHandleCriteria actualQuery) {
+                assertThat(actualQuery).isEqualTo(query);
+                return 1;
             }
 
             @Override

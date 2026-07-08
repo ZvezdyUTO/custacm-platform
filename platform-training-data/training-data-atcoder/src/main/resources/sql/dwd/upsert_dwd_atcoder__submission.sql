@@ -37,7 +37,15 @@ select
     ods.problem_id,
     problem.problem_index,
     coalesce(problem.title, problem.problem_name, ods.problem_id),
-    null,
+    case
+        when model.clipped_difficulty is null then null
+        when model.is_experimental = 1 then null
+        when lower(trim(coalesce(ods.contest_id, problem.contest_id, ''))) not like 'abc%'
+                and lower(trim(coalesce(ods.contest_id, problem.contest_id, ''))) not like 'arc%'
+                and lower(trim(coalesce(ods.contest_id, problem.contest_id, ''))) not like 'agc%' then null
+        when model.clipped_difficulty >= 2800 then '2800+'
+        else concat('', floor(model.clipped_difficulty / 400) * 400)
+    end,
     ods.language,
     ods.result,
     case when ods.result = 'AC' then 1 else 0 end,
@@ -58,6 +66,8 @@ select
 from ods_atcoder__submission ods
 left join ods_atcoder__problem problem
        on problem.problem_id = ods.problem_id
+left join ods_atcoder__problem_model model
+       on model.problem_id = ods.problem_id
 where cast(timestampadd(
         HOUR,
         8,

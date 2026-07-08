@@ -27,10 +27,10 @@ Common handle-account endpoints, admin submission collection endpoints, admin co
 ## File Responsibilities
 
 - `TrainingDataWebApplication.java` - Spring Boot entrypoint.
-- `TrainingDataModuleController.java` - `/health` and `/module-info`, including Codeforces collector/warehouse feature flags plus AtCoder ODS, submission collector, problem-list collector, warehouse-table, and warehouse-refresh feature flags.
+- `TrainingDataModuleController.java` - `/health` and `/module-info`, including Codeforces collector/warehouse feature flags plus AtCoder ODS, submission collector, problem-list/problem-model collector, warehouse-table, and warehouse-refresh feature flags.
 - `TrainingDataSecurityConfig.java` - builds the admin protected chain and guest public chain using `PlatformSecurityConfig`.
 - `TrainingDataJwtProperties.java` - typed RSA public-key settings for validating platform JWTs.
-- `application.yml` - service port, datasource, Flyway, logging, auth public-key defaults, common collection-job per-identity interval, enabled-by-default Codeforces/AtCoder OJ collector schedule entries that refresh the selected OJ warehouse after a batch, Codeforces source timeout/retry/interval defaults, and AtCoder Kenkoooo source/problem-list startup bootstrap and scheduler defaults.
+- `application.yml` - service port, datasource, Flyway, logging, auth public-key defaults, common collection-job per-identity interval, enabled-by-default Codeforces/AtCoder OJ collector schedule entries that refresh the selected OJ warehouse after a batch, Codeforces source timeout/retry/interval defaults, and AtCoder Kenkoooo source/problem metadata startup bootstrap and every-three-days scheduler defaults.
 - `logback-spring.xml` - file logging configuration following the project logging contract.
 - `src/test/java/com/custacm/platform/trainingdata/web/OjHandleAccountHttpIntegrationTest.java` - verifies Flyway, HTTP routing, admin writes, public full-map list with collection states, identity migration, and admin student-data purge by resolved OJ handle while keeping OJ handle accounts.
 - `src/test/java/com/custacm/platform/trainingdata/web/CodeforcesSubmissionCollectionHttpIntegrationTest.java` - verifies admin recent-lookback submission collection by `studentIdentity`, identity-to-handle resolution, mocked Codeforces source access, ODS writes, and Codeforces collection-state persistence.

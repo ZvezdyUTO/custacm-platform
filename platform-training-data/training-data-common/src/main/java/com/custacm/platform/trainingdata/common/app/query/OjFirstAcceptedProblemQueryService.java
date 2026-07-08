@@ -11,7 +11,6 @@ import com.custacm.platform.trainingdata.common.domain.oj.repo.OjFirstAcceptedPr
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +32,9 @@ public class OjFirstAcceptedProblemQueryService {
             LocalDateTime firstAcceptedFromUtcPlus8,
             LocalDateTime firstAcceptedToUtcPlus8,
             Integer minProblemRating,
-            Integer maxProblemRating
+            Integer maxProblemRating,
+            int page,
+            int limit
     ) {
         return summarizeStudentFirstAcceptedProblems(
                 OjNames.CODEFORCES,
@@ -41,7 +42,9 @@ public class OjFirstAcceptedProblemQueryService {
                 firstAcceptedFromUtcPlus8,
                 firstAcceptedToUtcPlus8,
                 minProblemRating,
-                maxProblemRating
+                maxProblemRating,
+                page,
+                limit
         );
     }
 
@@ -51,7 +54,9 @@ public class OjFirstAcceptedProblemQueryService {
             LocalDateTime firstAcceptedFromUtcPlus8,
             LocalDateTime firstAcceptedToUtcPlus8,
             Integer minProblemRating,
-            Integer maxProblemRating
+            Integer maxProblemRating,
+            int page,
+            int limit
     ) {
         OjHandleAccount account = handleAccountService.getByStudentIdentity(studentIdentity);
         String ojHandle = handleAccountService.getHandle(account, ojName);
@@ -61,19 +66,38 @@ public class OjFirstAcceptedProblemQueryService {
                 firstAcceptedFromUtcPlus8,
                 firstAcceptedToUtcPlus8,
                 minProblemRating,
-                maxProblemRating
+                maxProblemRating,
+                limit,
+                offset(page, limit)
         );
+        long total = repository.countHandleFirstAcceptedProblems(query);
+        long totalPages = totalPages(total, limit);
+        if (query.offset() >= total) {
+            return new OjHandleFirstAcceptedProblemReport(
+                    account.studentIdentity(),
+                    ojHandle,
+                    Math.toIntExact(total),
+                    page,
+                    limit,
+                    total,
+                    totalPages,
+                    false,
+                    List.of()
+            );
+        }
         List<OjHandleFirstAcceptedProblemReport.OjFirstAcceptedProblemItem> problems =
                 repository.findHandleFirstAcceptedProblems(query).stream()
-                        .sorted(Comparator
-                                .comparing(OjFirstAcceptedProblem::firstAcceptedAtUtcPlus8)
-                                .thenComparing(OjFirstAcceptedProblem::problemKey))
                         .map(OjFirstAcceptedProblemQueryService::toProblemItem)
                         .toList();
         return new OjHandleFirstAcceptedProblemReport(
                 account.studentIdentity(),
                 ojHandle,
-                problems.size(),
+                Math.toIntExact(total),
+                page,
+                limit,
+                total,
+                totalPages,
+                page < totalPages,
                 problems
         );
     }
@@ -81,13 +105,25 @@ public class OjFirstAcceptedProblemQueryService {
     public OjProblemFirstAcceptedHandleReport summarizeProblemFirstAcceptedHandles(
             OjProblemFirstAcceptedHandleCriteria query
     ) {
+        long total = repository.countProblemFirstAcceptedHandles(query);
+        long totalPages = totalPages(total, query.limit());
+        int page = pageFrom(query);
+        if (query.offset() >= total) {
+            return new OjProblemFirstAcceptedHandleReport(
+                    query.problemKey(),
+                    Math.toIntExact(total),
+                    page,
+                    query.limit(),
+                    total,
+                    totalPages,
+                    false,
+                    List.of()
+            );
+        }
         List<OjFirstAcceptedProblem> rows = repository.findProblemFirstAcceptedHandles(query);
         Map<String, String> studentIdentityByHandle = studentIdentityByHandle(query.ojName(), rows);
         List<OjProblemFirstAcceptedHandleReport.OjFirstAcceptedHandle> acceptedHandles =
                 rows.stream()
-                        .sorted(Comparator
-                                .comparing(OjFirstAcceptedProblem::firstAcceptedAtUtcPlus8)
-                                .thenComparing(OjFirstAcceptedProblem::handle))
                         .map(row -> new OjProblemFirstAcceptedHandleReport.OjFirstAcceptedHandle(
                                 studentIdentityByHandle.get(row.handle()),
                                 row.handle(),
@@ -97,9 +133,29 @@ public class OjFirstAcceptedProblemQueryService {
                         .toList();
         return new OjProblemFirstAcceptedHandleReport(
                 query.problemKey(),
-                acceptedHandles.size(),
+                Math.toIntExact(total),
+                page,
+                query.limit(),
+                total,
+                totalPages,
+                page < totalPages,
                 acceptedHandles
         );
+    }
+
+    private static long offset(int page, int limit) {
+        return (long) (page - 1) * limit;
+    }
+
+    private static long totalPages(long total, int limit) {
+        if (total == 0) {
+            return 0;
+        }
+        return (total - 1) / limit + 1;
+    }
+
+    private static int pageFrom(OjProblemFirstAcceptedHandleCriteria query) {
+        return Math.toIntExact(query.offset() / query.limit() + 1);
     }
 
     private Map<String, String> studentIdentityByHandle(String ojName, List<OjFirstAcceptedProblem> rows) {

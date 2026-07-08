@@ -49,8 +49,9 @@ public class AtcoderProblemListSchedulingConfig implements SchedulingConfigurer 
         try {
             var result = collectionService.collectProblems();
             log.info(
-                    "AtCoder problem-list collection finished, batchId={}, writtenRows={}",
-                    result.batchId(),
+                    "AtCoder problem metadata collection finished, problemBatchId={}, problemModelBatchId={}, writtenRows={}",
+                    result.problemResult().batchId(),
+                    result.problemModelResult().batchId(),
                     result.writtenRows()
             );
         } catch (JsonProcessingException ex) {

@@ -10,6 +10,11 @@ public record OjStudentFirstAcceptedProblemReportResponse(
         String studentIdentity,
         String authorHandle,
         int totalAcceptedProblemCount,
+        int page,
+        int limit,
+        long total,
+        long totalPages,
+        boolean hasMore,
         List<OjFirstAcceptedProblemItemResponse> problems
 ) {
     public static OjStudentFirstAcceptedProblemReportResponse from(
@@ -19,6 +24,11 @@ public record OjStudentFirstAcceptedProblemReportResponse(
                 report.studentIdentity(),
                 report.authorHandle(),
                 report.totalAcceptedProblemCount(),
+                report.page(),
+                report.limit(),
+                report.total(),
+                report.totalPages(),
+                report.hasMore(),
                 report.problems().stream()
                         .map(OjFirstAcceptedProblemItemResponse::from)
                         .toList()

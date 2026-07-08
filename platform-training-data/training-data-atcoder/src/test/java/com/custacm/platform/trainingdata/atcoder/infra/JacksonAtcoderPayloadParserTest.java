@@ -2,6 +2,7 @@ package com.custacm.platform.trainingdata.atcoder.infra;
 
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderCollectBatch;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsProblem;
+import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsProblemModel;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsSubmission;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -82,6 +83,33 @@ class JacksonAtcoderPayloadParserTest {
     }
 
     @Test
+    void parsesKenkooooProblemModelsAndClipsLowDifficulty() {
+        var records = parser.parseProblemModels("""
+                {
+                  "abc138_a": {
+                    "slope": -0.0007168608759555057,
+                    "intercept": 5.865100960838195,
+                    "variance": 0.926552668651041,
+                    "difficulty": -848,
+                    "discrimination": 0.004479398673070138,
+                    "irt_loglikelihood": -260.5412324380486,
+                    "irt_users": 4554,
+                    "is_experimental": false
+                  }
+                }
+                """, BATCH);
+
+        assertThat(records).singleElement().satisfies(record -> {
+            assertThat(record.problemId()).isEqualTo("abc138_a");
+            assertThat(record.rawDifficulty()).isEqualTo(-848);
+            assertThat(record.clippedDifficulty()).isEqualTo(18);
+            assertThat(record.experimental()).isFalse();
+            assertThat(record.irtUsers()).isEqualTo(4554);
+            assertThat(record.payloadHash()).hasSize(64);
+        });
+    }
+
+    @Test
     void rejectsMissingRequiredSubmissionFields() {
         assertThatThrownBy(() -> parser.parseSubmissions("""
                 [{ "id": 1, "epoch_second": 1560170952 }]
@@ -113,6 +141,25 @@ class JacksonAtcoderPayloadParserTest {
 
         assertThatThrownBy(() -> new AtcoderOdsProblem(
                 " ",
+                null,
+                null,
+                null,
+                null,
+                BATCH.batchId(),
+                BATCH.fetchedAt(),
+                "{}",
+                "0".repeat(64)
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("problemId must not be blank");
+
+        assertThatThrownBy(() -> new AtcoderOdsProblemModel(
+                " ",
+                null,
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,

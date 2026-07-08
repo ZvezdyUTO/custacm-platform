@@ -6,6 +6,11 @@ import java.util.List;
 public record OjProblemFirstAcceptedHandleReport(
         String problemKey,
         int acceptedHandleCount,
+        int page,
+        int limit,
+        long total,
+        long totalPages,
+        boolean hasMore,
         List<OjFirstAcceptedHandle> acceptedHandles
 ) {
     public record OjFirstAcceptedHandle(

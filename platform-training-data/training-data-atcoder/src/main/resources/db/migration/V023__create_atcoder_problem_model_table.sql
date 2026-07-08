@@ -1,0 +1,22 @@
+create table if not exists ods_atcoder__problem_model (
+    id bigint primary key auto_increment,
+    problem_id varchar(128) not null,
+    slope decimal(20, 12) null,
+    intercept decimal(20, 12) null,
+    variance decimal(20, 12) null,
+    raw_difficulty int null,
+    clipped_difficulty int null,
+    discrimination decimal(20, 12) null,
+    irt_loglikelihood decimal(20, 12) null,
+    irt_users int null,
+    is_experimental tinyint(1) null,
+    batch_id varchar(128) not null,
+    fetched_at datetime(6) not null,
+    raw_payload longtext not null,
+    payload_hash char(64) not null,
+    created_at datetime(6) not null default current_timestamp(6),
+    updated_at datetime(6) not null default current_timestamp(6),
+    unique key uk_ods_atcoder_problem_model_source (problem_id),
+    index idx_ods_atcoder_problem_model_difficulty (clipped_difficulty),
+    index idx_ods_atcoder_problem_model_batch (batch_id)
+);

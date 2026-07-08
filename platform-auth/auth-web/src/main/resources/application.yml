@@ -21,6 +21,7 @@ platform:
       public-key: ${AUTH_JWT_PUBLIC_KEY:}
       public-key-path: ${AUTH_JWT_PUBLIC_KEY_PATH:}
       access-token-ttl: ${AUTH_JWT_ACCESS_TOKEN_TTL:2h}
+      remember-me-access-token-ttl: ${AUTH_JWT_REMEMBER_ME_ACCESS_TOKEN_TTL:30d}
     bootstrap-admin:
       student-identity: ${AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY:}
       password: ${AUTH_BOOTSTRAP_ADMIN_PASSWORD:}

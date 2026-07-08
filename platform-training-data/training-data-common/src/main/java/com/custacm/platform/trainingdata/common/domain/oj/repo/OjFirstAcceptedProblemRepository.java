@@ -7,8 +7,16 @@ import com.custacm.platform.trainingdata.common.domain.oj.model.OjFirstAcceptedP
 import java.util.List;
 
 public interface OjFirstAcceptedProblemRepository {
+    long countHandleFirstAcceptedProblems(
+            OjHandleFirstAcceptedProblemCriteria query
+    );
+
     List<OjFirstAcceptedProblem> findHandleFirstAcceptedProblems(
             OjHandleFirstAcceptedProblemCriteria query
+    );
+
+    long countProblemFirstAcceptedHandles(
+            OjProblemFirstAcceptedHandleCriteria query
     );
 
     List<OjFirstAcceptedProblem> findProblemFirstAcceptedHandles(

@@ -9,10 +9,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AuthPropertiesTest {
     @Test
     void jwtTtlDefaultsToTwoHours() {
-        assertThat(new AuthProperties.Jwt(null, null, null, null, null).resolvedAccessTokenTtl())
+        assertThat(new AuthProperties.Jwt(null, null, null, null, null, null).resolvedAccessTokenTtl())
                 .isEqualTo(Duration.ofHours(2));
-        assertThat(new AuthProperties.Jwt(null, null, null, null, Duration.ofMinutes(30)).resolvedAccessTokenTtl())
+        assertThat(new AuthProperties.Jwt(null, null, null, null, Duration.ofMinutes(30), null).resolvedAccessTokenTtl())
                 .isEqualTo(Duration.ofMinutes(30));
+    }
+
+    @Test
+    void rememberMeJwtTtlDefaultsToThirtyDays() {
+        assertThat(new AuthProperties.Jwt(null, null, null, null, null, null).resolvedRememberMeAccessTokenTtl())
+                .isEqualTo(Duration.ofDays(30));
+        assertThat(new AuthProperties.Jwt(null, null, null, null, null, Duration.ofDays(7)).resolvedRememberMeAccessTokenTtl())
+                .isEqualTo(Duration.ofDays(7));
     }
 
     @Test

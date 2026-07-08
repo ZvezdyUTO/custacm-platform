@@ -42,10 +42,10 @@ PATCH /api/training-data/admin/oj-handles:change-identity
 DELETE /api/training-data/admin/students/{studentIdentity}/oj-data?ojName=CODEFORCES
 GET   /api/training-data/oj-handles
 GET   /api/training-data/codeforces/accepted-summary?ojName=CODEFORCES&studentIdentity=230511213黄炳睿
-GET   /api/training-data/codeforces/submissions/by-student?ojName=CODEFORCES&studentIdentity=230511213黄炳睿
-GET   /api/training-data/codeforces/submissions/by-problem?ojName=CODEFORCES&problemKey=2237:G
-GET   /api/training-data/codeforces/first-accepted/by-student?ojName=CODEFORCES&studentIdentity=230511213黄炳睿
-GET   /api/training-data/codeforces/first-accepted/by-problem?ojName=CODEFORCES&problemKey=2237:G
+GET   /api/training-data/codeforces/submissions/by-student?ojName=CODEFORCES&studentIdentity=230511213黄炳睿&page=1&limit=15
+GET   /api/training-data/codeforces/submissions/by-problem?ojName=CODEFORCES&problemKey=2237:G&page=1&limit=15
+GET   /api/training-data/codeforces/first-accepted/by-student?ojName=CODEFORCES&studentIdentity=230511213黄炳睿&page=1&limit=15
+GET   /api/training-data/codeforces/first-accepted/by-problem?ojName=CODEFORCES&problemKey=2237:G&page=1&limit=15
 ```
 
 If an endpoint needs the current user identity, it is not a guest endpoint. Put it under `/player/**` or `/admin/**`.

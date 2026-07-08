@@ -10,7 +10,7 @@ public record AtcoderProblemListCollectorProperties(
         String cron,
         String zone
 ) {
-    private static final String DEFAULT_CRON = "0 30 3 ? * MON";
+    private static final String DEFAULT_CRON = "0 30 3 1/3 * ?";
     private static final String DEFAULT_ZONE = "Asia/Shanghai";
 
     public AtcoderProblemListCollectorProperties {

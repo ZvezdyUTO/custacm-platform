@@ -117,8 +117,10 @@ export function AdminUserManagementPanel({
   const existingCodeforcesHandle = selectedRecord?.handles[OJ_NAMES.CODEFORCES] ?? '';
   const existingAtcoderHandle = selectedRecord?.handles[OJ_NAMES.ATCODER] ?? '';
   const hasExistingHandle = Boolean(existingCodeforcesHandle || existingAtcoderHandle);
+  const canManageSelectedOjBinding = selectedUser ? canManageOjBindingFor(selectedUser.studentIdentity) : false;
   const canEditNeedCollect = Boolean(
-    hasExistingHandle || editCodeforcesHandle.trim() || editAtcoderHandle.trim(),
+    canManageSelectedOjBinding
+    && (hasExistingHandle || editCodeforcesHandle.trim() || editAtcoderHandle.trim()),
   );
   const userSuccessCount = createSummary?.userResults.filter((item) => item.success).length ?? 0;
   const handleSuccessCount = createSummary?.handleResults.filter((item) => item.success).length ?? 0;
@@ -131,9 +133,9 @@ export function AdminUserManagementPanel({
   const panelLabel = view === 'create'
     ? '创建用户'
     : view === 'edit'
-      ? '修改用户信息'
+      ? '管理用户信息'
       : '用户信息管理';
-  const overviewHeading = view === 'edit' ? '修改用户信息' : '所有用户';
+  const overviewHeading = view === 'edit' ? '管理用户信息' : '所有用户';
 
   useEffect(() => {
     if (!selectedUser) {
@@ -203,20 +205,24 @@ export function AdminUserManagementPanel({
       setEditError('请先选择一个用户。');
       return;
     }
+    const canManageOjBinding = canManageOjBindingFor(selectedUser.studentIdentity);
     const nextStudentIdentity = editNewStudentIdentity.trim();
-    if (!nextStudentIdentity) {
+    if (canManageOjBinding && !nextStudentIdentity) {
       setEditError('OJ 绑定学号姓名不能为空。');
       return;
     }
     const nextCodeforcesHandle = editCodeforcesHandle.trim();
     const nextAtcoderHandle = editAtcoderHandle.trim();
-    const nextHandles = normalizeHandles({
-      ...(nextCodeforcesHandle ? { [OJ_NAMES.CODEFORCES]: nextCodeforcesHandle } : {}),
-      ...(nextAtcoderHandle ? { [OJ_NAMES.ATCODER]: nextAtcoderHandle } : {}),
-    });
-    const shouldUpdateHandles = Object.keys(nextHandles).length > 0
+    const nextHandles = canManageOjBinding
+      ? normalizeHandles({
+        ...(nextCodeforcesHandle ? { [OJ_NAMES.CODEFORCES]: nextCodeforcesHandle } : {}),
+        ...(nextAtcoderHandle ? { [OJ_NAMES.ATCODER]: nextAtcoderHandle } : {}),
+      })
+      : {};
+    const shouldUpdateHandles = canManageOjBinding
+      && Object.keys(nextHandles).length > 0
       && (!selectedRecord || !areHandlesEqual(nextHandles, selectedRecord.handles));
-    const shouldMigrateIdentity = nextStudentIdentity !== selectedUser.studentIdentity;
+    const shouldMigrateIdentity = canManageOjBinding && nextStudentIdentity !== selectedUser.studentIdentity;
 
     const payload: UserInfoUpdateInput = {
       studentIdentity: selectedUser.studentIdentity,
@@ -235,7 +241,7 @@ export function AdminUserManagementPanel({
       setEditSummary(summary);
       setEditPassword('');
     } catch (error) {
-      setEditError(error instanceof Error ? error.message : '修改用户信息失败。');
+      setEditError(error instanceof Error ? error.message : '管理用户信息失败。');
     }
   }
 
@@ -440,7 +446,7 @@ export function AdminUserManagementPanel({
           </span>
           <div>
             <h2 id="all-users-heading">{overviewHeading}</h2>
-            <p>按学号姓名中的学号前缀降序展示；在列表中直接修改角色、密码、OJ handle、自动采集状态，并查看历史最早数据覆盖情况。</p>
+            <p>按学号姓名中的学号前缀降序展示；在列表中直接修改角色、密码、OJ handle、现役/退役标记，并查看历史最早数据覆盖情况。</p>
           </div>
         </header>
 
@@ -476,6 +482,7 @@ export function AdminUserManagementPanel({
                 sortedUsers.map((user, index) => {
                   const record = recordByIdentity.get(user.studentIdentity);
                   const isEditing = selectedUser?.studentIdentity === user.studentIdentity;
+                  const canManageUserOjBinding = canManageOjBindingFor(user.studentIdentity);
                   const editPanelId = `user-edit-panel-${index}`;
                   return (
                     <Fragment key={user.studentIdentity}>
@@ -484,17 +491,20 @@ export function AdminUserManagementPanel({
                       >
                         <td data-label="学号姓名">
                           <strong>{user.studentIdentity}</strong>
-                          {user.studentIdentity === currentUserIdentity ? <small>当前登录</small> : null}
                           <span className="user-overview-tags" aria-label={`${user.studentIdentity} 标签`}>
                             <span className={`user-overview-tag user-role-${user.role}`}>{roleLabel(user.role)}</span>
-                            <span className={`user-overview-tag user-collect-${needCollectTone(record)}`}>
-                              自动采集：{formatNeedCollect(record)}
-                            </span>
+                            {canManageUserOjBinding ? (
+                              <span className={`user-overview-tag user-collect-${needCollectTone(record)}`}>
+                                {formatMemberStatus(record)}
+                              </span>
+                            ) : null}
                           </span>
                         </td>
-                        <td data-label="OJ handle">{formatHandles(record?.handles)}</td>
-                        <td data-label="最早采集">{formatHistoryCoverage(record)}</td>
-                        <td data-label="最近采集">{formatLastCollectedAt(record)}</td>
+                        <td data-label="OJ handle">
+                          {canManageUserOjBinding ? <HandleBadges handles={record?.handles} /> : '-'}
+                        </td>
+                        <td data-label="最早采集">{canManageUserOjBinding ? formatHistoryCoverage(record) : '-'}</td>
+                        <td data-label="最近采集">{canManageUserOjBinding ? formatLastCollectedAt(record) : '-'}</td>
                         <td data-label="操作">
                           <button
                             aria-controls={editPanelId}
@@ -515,25 +525,27 @@ export function AdminUserManagementPanel({
                           <td colSpan={5}>
                             <form className="user-list-edit-form" onSubmit={handleEditSubmit}>
                               <div className="user-list-edit-header">
-                                <strong>修改用户信息</strong>
+                                <strong>管理用户信息</strong>
                                 <span>最后更新：{formatTime(user.updatedAt)}</span>
                               </div>
 
                               <div className="user-edit-grid">
-                                <label className="user-edit-field user-edit-identity-field">
-                                  修改学号姓名
-                                  <input
-                                    aria-label="修改学号姓名"
-                                    disabled={isRefreshing}
-                                    onChange={(event) => setEditNewStudentIdentity(event.target.value)}
-                                    placeholder={user.studentIdentity}
-                                    value={editNewStudentIdentity}
-                                  />
-                                </label>
+                                {canManageUserOjBinding ? (
+                                  <label className="user-edit-field user-edit-identity-field">
+                                    修改学号姓名
+                                    <input
+                                      aria-label="修改学号姓名"
+                                      disabled={isRefreshing}
+                                      onChange={(event) => setEditNewStudentIdentity(event.target.value)}
+                                      placeholder={user.studentIdentity}
+                                      value={editNewStudentIdentity}
+                                    />
+                                  </label>
+                                ) : null}
                                 <label className="user-edit-field">
                                   角色
                                   <select
-                                    aria-label="修改用户角色"
+                                    aria-label="管理用户角色"
                                     disabled={isRefreshing}
                                     value={editRole}
                                     onChange={(event) => setEditRole(event.target.value as AccountRole)}
@@ -548,7 +560,7 @@ export function AdminUserManagementPanel({
                                 <label className="user-edit-field">
                                   新密码
                                   <input
-                                    aria-label="修改用户新密码"
+                                    aria-label="管理用户新密码"
                                     disabled={isRefreshing}
                                     onChange={(event) => setEditPassword(event.target.value)}
                                     placeholder="不填则不修改"
@@ -556,36 +568,40 @@ export function AdminUserManagementPanel({
                                     value={editPassword}
                                   />
                                 </label>
-                                <label className="user-edit-field">
-                                  Codeforces handle
-                                  <input
-                                    aria-label="修改用户 Codeforces handle"
-                                    disabled={Boolean(existingCodeforcesHandle) || isRefreshing}
-                                    onChange={(event) => setEditCodeforcesHandle(event.target.value)}
-                                    placeholder="可选"
-                                    value={editCodeforcesHandle}
-                                  />
-                                </label>
-                                <label className="user-edit-field">
-                                  AtCoder handle
-                                  <input
-                                    aria-label="修改用户 AtCoder handle"
-                                    disabled={Boolean(existingAtcoderHandle) || isRefreshing}
-                                    onChange={(event) => setEditAtcoderHandle(event.target.value)}
-                                    placeholder="可选"
-                                    value={editAtcoderHandle}
-                                  />
-                                </label>
-                                <label className="checkbox-field user-edit-checkbox">
-                                  <input
-                                    aria-label="是否需要自动采集"
-                                    checked={editNeedCollect}
-                                    disabled={!canEditNeedCollect || isRefreshing}
-                                    onChange={(event) => setEditNeedCollect(event.target.checked)}
-                                    type="checkbox"
-                                  />
-                                  需要自动采集
-                                </label>
+                                {canManageUserOjBinding ? (
+                                  <Fragment>
+                                    <label className="user-edit-field">
+                                      Codeforces handle
+                                      <input
+                                        aria-label="管理用户 Codeforces handle"
+                                        disabled={Boolean(existingCodeforcesHandle) || isRefreshing}
+                                        onChange={(event) => setEditCodeforcesHandle(event.target.value)}
+                                        placeholder="可选"
+                                        value={editCodeforcesHandle}
+                                      />
+                                    </label>
+                                    <label className="user-edit-field">
+                                      AtCoder handle
+                                      <input
+                                        aria-label="管理用户 AtCoder handle"
+                                        disabled={Boolean(existingAtcoderHandle) || isRefreshing}
+                                        onChange={(event) => setEditAtcoderHandle(event.target.value)}
+                                        placeholder="可选"
+                                        value={editAtcoderHandle}
+                                      />
+                                    </label>
+                                    <label className="checkbox-field user-edit-checkbox">
+                                      <input
+                                        aria-label="是否为现役队员"
+                                        checked={editNeedCollect}
+                                        disabled={!canEditNeedCollect || isRefreshing}
+                                        onChange={(event) => setEditNeedCollect(event.target.checked)}
+                                        type="checkbox"
+                                      />
+                                      现役队员
+                                    </label>
+                                  </Fragment>
+                                ) : null}
                               </div>
 
                               <div className="admin-card-actions user-edit-actions">
@@ -629,11 +645,11 @@ export function AdminUserManagementPanel({
                                     <span>
                                       OJ handle：
                                       {editSummary.handleResult.success
-                                        ? `${formatHandles(editSummary.handleResult.handles)}${
+                                        ? `${formatHandlesText(editSummary.handleResult.handles)}${
                                           editSummary.handleResult.needCollect === null
                                           || editSummary.handleResult.needCollect === undefined
                                             ? ''
-                                            : `，自动采集：${editSummary.handleResult.needCollect ? '是' : '否'}`
+                                            : `，${formatMemberStatusFromNeedCollect(editSummary.handleResult.needCollect)}`
                                         }`
                                         : editSummary.handleResult.errorCode ?? editSummary.handleResult.message}
                                     </span>
@@ -843,7 +859,7 @@ function buildCreateResultRows(summary: BatchStudentImportSummary): CreateResult
 
 function handleResultLabel(result: BatchStudentImportSummary['handleResults'][number]) {
   if (result.success) {
-    return formatHandles(result.handles, result.handle ?? '已绑定');
+    return formatHandlesText(result.handles, result.handle ?? '已绑定');
   }
   return resultErrorLabel(result.errorCode, result.message, '绑定失败');
 }
@@ -910,18 +926,53 @@ function roleLabel(role: AccountRole) {
   return roleOptions.find((option) => option.value === role)?.label ?? role;
 }
 
-function formatHandles(handles: Partial<Record<OjName, string>> | undefined, fallback = '-') {
-  const normalized = normalizeHandles(handles ?? {});
-  const labels = (Object.entries(normalized) as Array<[OjName, string]>)
-    .map(([ojName, handle]) => `${OJ_LABELS[ojName] ?? ojName}：${handle}`);
-  return labels.length > 0 ? labels.join(' / ') : fallback;
+function canManageOjBindingFor(studentIdentity: StudentIdentity) {
+  return studentIdentity.trim().toLowerCase() !== 'root';
 }
 
-function formatNeedCollect(record: StudentTrainingRecord | undefined) {
+function handleEntries(handles: Partial<Record<OjName, string>> | undefined) {
+  return Object.entries(normalizeHandles(handles ?? {})) as Array<[OjName, string]>;
+}
+
+function formatHandlesText(handles: Partial<Record<OjName, string>> | undefined, fallback = '-') {
+  const labels = handleEntries(handles)
+    .map(([ojName, handle]) => `${OJ_LABELS[ojName] ?? ojName}：${handle}`);
+  return labels.length > 0 ? labels.join('，') : fallback;
+}
+
+function HandleBadges({
+  fallback = '-',
+  handles,
+}: {
+  fallback?: string;
+  handles: Partial<Record<OjName, string>> | undefined;
+}) {
+  const entries = handleEntries(handles);
+  if (entries.length === 0) {
+    return <span className="handle-badge-empty">{fallback}</span>;
+  }
+
+  return (
+    <span className="handle-badge-list" aria-label={formatHandlesText(handles, fallback)}>
+      {entries.map(([ojName, handle]) => (
+        <span className="handle-badge" key={ojName}>
+          <span className="handle-badge-oj">{OJ_LABELS[ojName] ?? ojName}：</span>
+          <span className="handle-badge-value">{handle}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function formatMemberStatus(record: StudentTrainingRecord | undefined) {
   if (!record || !hasHandles(record.handles)) {
     return '未绑定';
   }
-  return record.needCollect === false ? '否' : '是';
+  return formatMemberStatusFromNeedCollect(record.needCollect);
+}
+
+function formatMemberStatusFromNeedCollect(needCollect: boolean | null | undefined) {
+  return needCollect === false ? '已退役' : '现役队员';
 }
 
 function needCollectTone(record: StudentTrainingRecord | undefined) {

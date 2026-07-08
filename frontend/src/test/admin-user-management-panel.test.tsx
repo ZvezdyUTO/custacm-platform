@@ -302,10 +302,10 @@ describe('AdminUserManagementPanel', () => {
     );
 
     await user.click(screen.getByRole('button', { name: '编辑 230511213黄炳睿' }));
-    expect(screen.getByText('修改用户信息')).not.toBeNull();
+    expect(screen.getByText('管理用户信息')).not.toBeNull();
     expect(screen.getByLabelText('修改学号姓名')).not.toBeNull();
     expect(screen.queryByText('自动生成新密码')).toBeNull();
-    fireEvent.change(screen.getByLabelText('修改用户角色'), { target: { value: 'disable' } });
+    fireEvent.change(screen.getByLabelText('管理用户角色'), { target: { value: 'disable' } });
     await user.click(screen.getByRole('button', { name: '保存修改' }));
 
     await waitFor(() => {
@@ -347,7 +347,7 @@ describe('AdminUserManagementPanel', () => {
     vi.unstubAllGlobals();
   });
 
-  it('submits Codeforces automatic collection flag changes for bound users', async () => {
+  it('submits member status changes for bound users', async () => {
     const user = userEvent.setup();
     const onUpdateStudentInfo = vi.fn().mockResolvedValue({
       ...updateSummary,
@@ -374,7 +374,7 @@ describe('AdminUserManagementPanel', () => {
     );
 
     await user.click(screen.getByRole('button', { name: '编辑 230511213黄炳睿' }));
-    await user.click(screen.getByLabelText('是否需要自动采集'));
+    await user.click(screen.getByLabelText('是否为现役队员'));
     await user.click(screen.getByRole('button', { name: '保存修改' }));
 
     await waitFor(() => {
@@ -386,7 +386,7 @@ describe('AdminUserManagementPanel', () => {
         needCollect: false,
       });
     });
-    expect(screen.getByText('OJ handle：Codeforces：tourist，自动采集：否')).not.toBeNull();
+    expect(screen.getByText('OJ handle：Codeforces：tourist，已退役')).not.toBeNull();
   });
 
   it('locks existing handles while allowing missing handle and identity updates', async () => {
@@ -419,12 +419,12 @@ describe('AdminUserManagementPanel', () => {
     );
 
     await user.click(screen.getByRole('button', { name: '编辑 230511213黄炳睿' }));
-    const codeforcesInput = screen.getByLabelText('修改用户 Codeforces handle') as HTMLInputElement;
+    const codeforcesInput = screen.getByLabelText('管理用户 Codeforces handle') as HTMLInputElement;
     expect(codeforcesInput.disabled).toBe(true);
     expect(codeforcesInput.value).toBe('tourist');
     await user.clear(screen.getByLabelText('修改学号姓名'));
     await user.type(screen.getByLabelText('修改学号姓名'), '230511214新同学');
-    await user.type(screen.getByLabelText('修改用户 AtCoder handle'), 'atcoder_id');
+    await user.type(screen.getByLabelText('管理用户 AtCoder handle'), 'atcoder_id');
     await user.click(screen.getByRole('button', { name: '保存修改' }));
 
     await waitFor(() => {
@@ -440,7 +440,7 @@ describe('AdminUserManagementPanel', () => {
         needCollect: true,
       });
     });
-    expect(screen.getByText('OJ handle：Codeforces：tourist / AtCoder：atcoder_id，自动采集：是')).not.toBeNull();
+    expect(screen.getByText('OJ handle：Codeforces：tourist，AtCoder：atcoder_id，现役队员')).not.toBeNull();
   });
 
   it('lists all users by descending student number at the bottom', () => {
@@ -503,16 +503,79 @@ describe('AdminUserManagementPanel', () => {
       expect.stringContaining('root'),
     ]);
     expect(bodyRows[0].textContent).toContain('wang');
-    expect(bodyRows[0].textContent).toContain('否');
+    expect(bodyRows[0].textContent).toContain('已退役');
     expect(bodyRows[0].textContent).toContain('Codeforces：未到最早');
     expect(bodyRows[0].textContent).toContain('Codeforces：未采集');
     expect(bodyRows[1]?.textContent).toContain('Codeforces：已到最早');
     expect(bodyRows[1]?.textContent).toContain('Codeforces：2026/07/08 20:00');
+    expect(table.textContent).not.toContain('当前登录');
+    expect(bodyRows[3]?.textContent).not.toContain('现役队员');
+    expect(bodyRows[3]?.textContent).not.toContain('已退役');
     expect(screen.queryByRole('columnheader', { name: '创建时间' })).toBeNull();
     expect(screen.queryByRole('columnheader', { name: '更新时间' })).toBeNull();
     expect(screen.queryByRole('columnheader', { name: '角色' })).toBeNull();
-    expect(screen.queryByRole('columnheader', { name: '自动采集' })).toBeNull();
     expect(screen.getByRole('columnheader', { name: '最早采集' })).not.toBeNull();
     expect(screen.getByRole('columnheader', { name: '最近采集' })).not.toBeNull();
+  });
+
+  it('does not show member status or OJ binding controls for root', async () => {
+    const user = userEvent.setup();
+    const onUpdateStudentInfo = vi.fn().mockResolvedValue({
+      ...updateSummary,
+      userResult: {
+        ...updateSummary.userResult,
+        studentIdentity: 'root',
+        user: {
+          studentIdentity: 'root',
+          role: 'admin',
+          createdAt: '2026-07-03T00:00:00Z',
+          updatedAt: '2026-07-03T00:00:00Z',
+        },
+      },
+      handleResult: null,
+    } satisfies UserInfoUpdateSummary);
+
+    render(
+      <AdminUserManagementPanel
+        currentUserIdentity={null}
+        isRefreshing={false}
+        onBatchImportStudents={vi.fn().mockResolvedValue(importSummary)}
+        onDeleteFullUserData={vi.fn().mockResolvedValue(deleteSummary)}
+        onUpdateStudentInfo={onUpdateStudentInfo}
+        records={[]}
+        users={[
+          {
+            studentIdentity: 'root',
+            role: 'admin',
+            createdAt: '2026-07-03T00:00:00Z',
+            updatedAt: '2026-07-03T00:00:00Z',
+          },
+        ]}
+      />,
+    );
+
+    const rootRow = screen.getByText('root').closest('tr');
+    expect(rootRow?.textContent).not.toContain('现役队员');
+    expect(rootRow?.textContent).not.toContain('已退役');
+
+    await user.click(screen.getByRole('button', { name: '编辑 root' }));
+
+    expect(screen.getByLabelText('管理用户角色')).not.toBeNull();
+    expect(screen.getByLabelText('管理用户新密码')).not.toBeNull();
+    expect(screen.queryByLabelText('修改学号姓名')).toBeNull();
+    expect(screen.queryByLabelText('管理用户 Codeforces handle')).toBeNull();
+    expect(screen.queryByLabelText('管理用户 AtCoder handle')).toBeNull();
+    expect(screen.queryByLabelText('是否为现役队员')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: '保存修改' }));
+
+    await waitFor(() => {
+      expect(onUpdateStudentInfo).toHaveBeenCalledWith({
+        studentIdentity: 'root',
+        role: 'admin',
+        newPassword: undefined,
+        handles: undefined,
+      });
+    });
   });
 });

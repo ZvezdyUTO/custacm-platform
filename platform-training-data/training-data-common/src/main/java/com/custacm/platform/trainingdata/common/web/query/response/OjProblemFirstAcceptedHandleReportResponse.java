@@ -8,6 +8,11 @@ import java.util.List;
 public record OjProblemFirstAcceptedHandleReportResponse(
         String problemKey,
         int acceptedHandleCount,
+        int page,
+        int limit,
+        long total,
+        long totalPages,
+        boolean hasMore,
         List<OjFirstAcceptedHandleResponse> acceptedHandles
 ) {
     public static OjProblemFirstAcceptedHandleReportResponse from(
@@ -16,6 +21,11 @@ public record OjProblemFirstAcceptedHandleReportResponse(
         return new OjProblemFirstAcceptedHandleReportResponse(
                 report.problemKey(),
                 report.acceptedHandleCount(),
+                report.page(),
+                report.limit(),
+                report.total(),
+                report.totalPages(),
+                report.hasMore(),
                 report.acceptedHandles().stream()
                         .map(OjFirstAcceptedHandleResponse::from)
                         .toList()

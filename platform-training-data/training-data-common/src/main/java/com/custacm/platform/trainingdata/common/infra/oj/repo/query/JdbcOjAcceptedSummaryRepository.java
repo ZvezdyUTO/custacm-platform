@@ -3,7 +3,7 @@ package com.custacm.platform.trainingdata.common.infra.oj.repo.query;
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjAcceptedSummaryCriteria;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjDailyRatingAcceptedSummary;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjAcceptedSummaryRepository;
-import com.custacm.platform.trainingdata.common.domain.oj.value.OjProblemRatingBuckets;
+import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
 import com.custacm.platform.trainingdata.common.infra.oj.repo.warehouse.OjWarehouseTableNames;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -16,9 +16,14 @@ import java.util.Map;
 
 public class JdbcOjAcceptedSummaryRepository implements OjAcceptedSummaryRepository {
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final OjDifficultyBucketPolicies bucketPolicies;
 
-    public JdbcOjAcceptedSummaryRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+    public JdbcOjAcceptedSummaryRepository(
+            NamedParameterJdbcTemplate jdbcTemplate,
+            OjDifficultyBucketPolicies bucketPolicies
+    ) {
         this.jdbcTemplate = jdbcTemplate;
+        this.bucketPolicies = bucketPolicies;
     }
 
     @Override
@@ -39,7 +44,7 @@ public class JdbcOjAcceptedSummaryRepository implements OjAcceptedSummaryReposit
             predicates.add("accepted_date_utc_plus8 <= :acceptedToDateUtcPlus8");
             params.addValue("acceptedToDateUtcPlus8", Date.valueOf(query.acceptedToDateUtcPlus8()));
         }
-        addProblemRatingPredicates(query.minProblemRating(), query.maxProblemRating(), predicates, params);
+        addProblemRatingPredicates(query, predicates, params);
 
         String sql = """
                 select
@@ -67,13 +72,13 @@ public class JdbcOjAcceptedSummaryRepository implements OjAcceptedSummaryReposit
                 .toList();
     }
 
-    private static void addProblemRatingPredicates(
-            Integer minProblemRating,
-            Integer maxProblemRating,
+    private void addProblemRatingPredicates(
+            OjAcceptedSummaryCriteria query,
             List<String> predicates,
             MapSqlParameterSource params
     ) {
-        List<String> difficulties = difficultyValuesInRange(minProblemRating, maxProblemRating);
+        List<String> difficulties = bucketPolicies.policyFor(query.ojName())
+                .bucketKeysInRange(query.minProblemRating(), query.maxProblemRating());
         if (difficulties == null) {
             return;
         }
@@ -83,17 +88,6 @@ public class JdbcOjAcceptedSummaryRepository implements OjAcceptedSummaryReposit
         }
         predicates.add("difficulty in (:difficulties)");
         params.addValue("difficulties", difficulties);
-    }
-
-    private static List<String> difficultyValuesInRange(Integer minProblemRating, Integer maxProblemRating) {
-        if (minProblemRating == null && maxProblemRating == null) {
-            return null;
-        }
-        return OjProblemRatingBuckets.RATINGS.stream()
-                .filter(rating -> minProblemRating == null || rating >= minProblemRating)
-                .filter(rating -> maxProblemRating == null || rating <= maxProblemRating)
-                .map(String::valueOf)
-                .toList();
     }
 
     private static final class OjDailyRatingAcceptedSummaryBuilder {

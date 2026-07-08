@@ -14,7 +14,7 @@ This repository is expected to be developed by agents. Documentation is part of 
 
 | Layer | Files | Purpose |
 | --- | --- | --- |
-| Project entry | [../README.md](../README.md) | Human-facing project overview, quick start, and documentation links. |
+| Project entry | [../README.md](../README.md) | Human-facing project overview only; maintenance links stay collapsed. |
 | Root rules | [../AGENTS.md](../AGENTS.md), [../CONTRIBUTING.md](../CONTRIBUTING.md) | Mandatory rules for agents and contributors. |
 | Planning | [../TODO.md](../TODO.md), [../CHANGELOG.md](../CHANGELOG.md) | Human-readable todo list and MR outcome history. |
 | Agent map | [agent/README.md](agent/README.md), [agent/context-map.md](agent/context-map.md), [agent/doc-sync.md](agent/doc-sync.md), [agent/changelog.md](agent/changelog.md), [agent/quality-gates.md](agent/quality-gates.md) | Fast context, update rules, changelog format, and verification commands. |

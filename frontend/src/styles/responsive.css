@@ -183,7 +183,6 @@
   .admin-card-header-actions,
   .admin-card-header-actions .collect-oj-field,
   .admin-card-header-actions .collect-all-lookback-field,
-  .admin-card-header-actions .collect-window-label,
   .admin-card-header-actions .primary-button {
     width: 100%;
   }
@@ -191,10 +190,6 @@
   .admin-card-header-actions {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .admin-card-header-actions .collect-window-label {
-    justify-content: flex-start;
   }
 
   .query-form {
@@ -217,8 +212,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .collect-refresh-field,
-  .collect-window-label {
+  .collect-refresh-field {
     justify-self: start;
   }
 

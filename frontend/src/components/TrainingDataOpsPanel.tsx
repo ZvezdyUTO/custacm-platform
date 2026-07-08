@@ -73,9 +73,6 @@ export function TrainingDataCollectionPanel({
   const collectAllLookbackConfirmationLabel = normalizedCollectAllLookbackHours === null
     ? '不限时间范围'
     : `最近 ${normalizedCollectAllLookbackHours} 小时`;
-  const collectAllWindowLabel = normalizedCollectAllLookbackHours === null
-    ? '不限'
-    : `最近 ${normalizedCollectAllLookbackHours} 小时`;
 
   useEffect(() => {
     if (isCollectionRunning) {
@@ -147,7 +144,7 @@ export function TrainingDataCollectionPanel({
     setCollectError(null);
     setCollectSummary(null);
     if (collectionIdentities.length === 0) {
-      setCollectError('暂无可采集的绑定队员。');
+      setCollectError('暂无可采集的现役绑定队员。');
       return;
     }
     if (!confirmHighCostAction(
@@ -178,7 +175,7 @@ export function TrainingDataCollectionPanel({
             </span>
             <div>
               <h2>训练数据采集</h2>
-              <p>按 OJ 列出已开启自动采集且已绑定 handle 的队员，每行可单独设置回看窗口并执行采集。</p>
+              <p>按 OJ 列出现役队员中已绑定 handle 的队员，每行可单独设置回看窗口并执行采集。</p>
             </div>
           </div>
           <div className="admin-card-header-actions">
@@ -213,7 +210,6 @@ export function TrainingDataCollectionPanel({
               <RefreshCw size={16} aria-hidden="true" className={isRefreshing || isCollectionRunning ? 'spin' : ''} />
               全部采集
             </button>
-            <small className="collect-window-label">窗口：{collectAllWindowLabel}</small>
           </div>
         </header>
         {collectionRecords.length > 0 ? (
@@ -223,10 +219,6 @@ export function TrainingDataCollectionPanel({
               const inputId = `collect-lookback-${index}`;
               const refreshId = `collect-refresh-${index}`;
               const lookbackHours = getLookbackHours(identity);
-              const normalizedLookbackHours = parseLookbackHours(lookbackHours);
-              const lookbackWindowLabel = normalizedLookbackHours === null
-                ? '不限'
-                : `最近 ${normalizedLookbackHours} 小时`;
               const canCollect = !isRefreshing && !isCollectionRunning;
               const selectedHandle = handleForOj(record, collectionOjName);
               return (
@@ -261,14 +253,13 @@ export function TrainingDataCollectionPanel({
                       <RefreshCw size={16} aria-hidden="true" className={isRefreshing || isCollectionRunning ? 'spin' : ''} />
                       {isCollectionRunning ? '正在采集' : '执行采集'}
                     </button>
-                    <small className="collect-window-label">窗口：{lookbackWindowLabel}</small>
                   </form>
                 </li>
               );
             })}
           </ul>
         ) : (
-          <p className="batch-target-empty" aria-live="polite">暂无开启自动采集且绑定 {selectedOjLabel} 的队员</p>
+          <p className="batch-target-empty" aria-live="polite">暂无现役队员且绑定 {selectedOjLabel} 的队员</p>
         )}
         {collectError ? (
           <p className="form-error" role="alert">

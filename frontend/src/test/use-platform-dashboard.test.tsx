@@ -31,6 +31,11 @@ const queryRange: TrainingQueryRange = {
   maxProblemRating: '',
 };
 
+function expectedRecentWeekStartDate(now = new Date()) {
+  const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  return new Date(start.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 function jsonResponse(body: unknown) {
   return new Response(JSON.stringify(body), {
     headers: { 'Content-Type': 'application/json' },
@@ -161,7 +166,7 @@ describe('usePlatformDashboard', () => {
       ]);
     });
     expect(result.current.status).toBe('ready');
-    expect(result.current.trainingQuery.acceptedFromDateUtcPlus8).not.toBe('');
+    expect(result.current.trainingQuery.acceptedFromDateUtcPlus8).toBe(expectedRecentWeekStartDate());
     expect(result.current.trainingQuery.acceptedToDateUtcPlus8).toBe('');
 
     const acceptedSummaryUrls = fetchMock.mock.calls
@@ -169,6 +174,7 @@ describe('usePlatformDashboard', () => {
       .filter((url) => url.pathname === '/api/training-data/codeforces/accepted-summary');
     expect(acceptedSummaryUrls).toHaveLength(1);
     expect(acceptedSummaryUrls[0]?.searchParams.get('studentIdentity')).toBe('230511213黄炳睿');
+    expect(acceptedSummaryUrls[0]?.searchParams.get('acceptedFromDateUtcPlus8')).toBe(expectedRecentWeekStartDate());
     expect(acceptedSummaryUrls[0]?.searchParams.get('acceptedToDateUtcPlus8')).toBeNull();
   });
 });

@@ -32,6 +32,7 @@ public class TrainingDataModuleController {
                         "codeforces-warehouse-refresh",
                         "codeforces-submission-collector",
                         "atcoder-submission-collector",
+                        "atcoder-problem-model",
                         "atcoder-problem-list-collector"
                 )
         );

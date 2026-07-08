@@ -2,6 +2,8 @@ package com.custacm.platform.trainingdata.atcoder.app;
 
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderCollectBatch;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsProblem;
+import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsProblemModel;
+import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsProblemModelWriter;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsProblemWriter;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsSubmission;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderOdsSubmissionWriter;
@@ -151,8 +153,10 @@ class AtcoderSubmissionCollectionServiceTest {
         AtcoderOdsIngestService ingestService = new AtcoderOdsIngestService(
                 parser,
                 parser,
+                parser,
                 writer,
                 new NoopProblemWriter(),
+                new NoopProblemModelWriter(),
                 objectMapper,
                 clock
         );
@@ -235,6 +239,12 @@ class AtcoderSubmissionCollectionServiceTest {
     private static final class NoopProblemWriter implements AtcoderOdsProblemWriter {
         @Override
         public void upsertBatch(AtcoderCollectBatch batch, List<AtcoderOdsProblem> problems) {
+        }
+    }
+
+    private static final class NoopProblemModelWriter implements AtcoderOdsProblemModelWriter {
+        @Override
+        public void upsertBatch(AtcoderCollectBatch batch, List<AtcoderOdsProblemModel> problemModels) {
         }
     }
 

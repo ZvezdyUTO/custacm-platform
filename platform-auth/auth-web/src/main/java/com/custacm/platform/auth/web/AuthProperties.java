@@ -11,10 +11,15 @@ public record AuthProperties(Jwt jwt, BootstrapAdmin bootstrapAdmin) {
             String privateKeyPath,
             String publicKey,
             String publicKeyPath,
-            Duration accessTokenTtl
+            Duration accessTokenTtl,
+            Duration rememberMeAccessTokenTtl
     ) {
         public Duration resolvedAccessTokenTtl() {
             return accessTokenTtl == null ? Duration.ofHours(2) : accessTokenTtl;
+        }
+
+        public Duration resolvedRememberMeAccessTokenTtl() {
+            return rememberMeAccessTokenTtl == null ? Duration.ofDays(30) : rememberMeAccessTokenTtl;
         }
     }
 

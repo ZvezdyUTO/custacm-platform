@@ -2,7 +2,7 @@
 
 `auth-web` is the runnable Spring Boot service for the platform auth slice.
 
-It owns public login, player self-service endpoints, admin user-management endpoints, datasource/runtime configuration, bootstrap admin wiring, and RSA JWT issuing/verification for the auth service itself.
+It owns public login, player self-service endpoints, admin user-management endpoints, datasource/runtime configuration, bootstrap admin wiring, and RSA JWT issuing/verification for the auth service itself. Public login accepts an optional `rememberMe` boolean: ordinary tokens default to 2 hours, while remembered sessions default to 30 days.
 
 ## Directory Layout
 
@@ -32,7 +32,7 @@ auth-web/
 - `AuthModuleController.java` - `/health` and `/module-info`.
 - `AuthSecurityConfig.java` - configures the admin/player protected chain plus the guest public chain.
 - `AuthApplicationConfig.java` - wires repository, password hasher, JWT issuer/decoder, services, and bootstrap admin.
-- `AuthProperties.java` - typed runtime properties for JWT keys, token TTL, and bootstrap admin.
+- `AuthProperties.java` - typed runtime properties for JWT keys, ordinary/remember-me token TTLs, and bootstrap admin.
 - `AuthExceptionHandler.java` - maps auth service exceptions to documented error responses.
 - `UserResponseMapper.java` - maps account domain objects and admin operation results to HTTP DTOs.
 - `*Request.java`, `*Response.java` - HTTP-local DTO records for auth endpoints.

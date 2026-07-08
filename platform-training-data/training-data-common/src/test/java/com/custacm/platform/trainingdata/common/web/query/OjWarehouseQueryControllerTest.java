@@ -185,25 +185,25 @@ class OjWarehouseQueryControllerTest {
                 null,
                 null,
                 1,
-                100
+                15
         ))
                 .thenReturn(new OjHandleSubmissionReport(
                         "112487张三",
                         "tourist",
                         1,
-                        100,
+                        15,
                         1,
                         1,
                         false,
                         List.of(item)
                 ));
         OjProblemSubmissionCriteria problemQuery =
-                new OjProblemSubmissionCriteria("1000:A", null, null, 100, 0);
+                new OjProblemSubmissionCriteria("1000:A", null, null, 15, 0);
         when(submissionQueryService.listProblemSubmissions(problemQuery))
                 .thenReturn(new OjProblemSubmissionReport(
                         "1000:A",
                         1,
-                        100,
+                        15,
                         1,
                         1,
                         false,
@@ -224,12 +224,12 @@ class OjWarehouseQueryControllerTest {
 
         assertThat(studentResponse.getBody()).isNotNull();
         assertThat(studentResponse.getBody().page()).isEqualTo(1);
-        assertThat(studentResponse.getBody().limit()).isEqualTo(100);
+        assertThat(studentResponse.getBody().limit()).isEqualTo(15);
         assertThat(problemResponse.getBody()).isNotNull();
         assertThat(problemResponse.getBody().page()).isEqualTo(1);
-        assertThat(problemResponse.getBody().limit()).isEqualTo(100);
+        assertThat(problemResponse.getBody().limit()).isEqualTo(15);
         verify(submissionQueryService)
-                .listStudentSubmissions(OjNames.CODEFORCES, "112487张三", null, null, null, null, 1, 100);
+                .listStudentSubmissions(OjNames.CODEFORCES, "112487张三", null, null, null, null, 1, 15);
         verify(submissionQueryService).listProblemSubmissions(problemQuery);
     }
 
@@ -254,19 +254,31 @@ class OjWarehouseQueryControllerTest {
                 from,
                 to,
                 800,
-                1600
+                1600,
+                2,
+                50
         )).thenReturn(new OjHandleFirstAcceptedProblemReport(
                 "112487张三",
                 "tourist",
                 1,
+                2,
+                50,
+                51,
+                2,
+                false,
                 List.of(problemItem)
         ));
         OjProblemFirstAcceptedHandleCriteria problemQuery =
-                new OjProblemFirstAcceptedHandleCriteria("1000:A", from, to);
+                new OjProblemFirstAcceptedHandleCriteria("1000:A", from, to, 50, 50);
         when(firstAcceptedProblemQueryService.summarizeProblemFirstAcceptedHandles(problemQuery))
                 .thenReturn(new OjProblemFirstAcceptedHandleReport(
                         "1000:A",
                         1,
+                        2,
+                        50,
+                        51,
+                        2,
+                        false,
                         List.of(new OjProblemFirstAcceptedHandleReport.OjFirstAcceptedHandle(
                                 "112487张三",
                                 "tourist",
@@ -280,24 +292,38 @@ class OjWarehouseQueryControllerTest {
                 "2026-07-02T00:00:00",
                 "2026-07-02T23:59:59",
                 800,
-                1600
+                1600,
+                2,
+                50
         );
         var problemResponse = controller.summarizeProblemFirstAcceptedHandles(
                 OjNames.CODEFORCES,
                 "1000:A",
                 "2026-07-02T00:00:00",
-                "2026-07-02T23:59:59"
+                "2026-07-02T23:59:59",
+                2,
+                50
         );
 
         assertThat(studentResponse.getBody()).isNotNull();
         assertThat(studentResponse.getBody().studentIdentity()).isEqualTo("112487张三");
         assertThat(studentResponse.getBody().totalAcceptedProblemCount()).isEqualTo(1);
+        assertThat(studentResponse.getBody().page()).isEqualTo(2);
+        assertThat(studentResponse.getBody().limit()).isEqualTo(50);
+        assertThat(studentResponse.getBody().total()).isEqualTo(51);
+        assertThat(studentResponse.getBody().totalPages()).isEqualTo(2);
+        assertThat(studentResponse.getBody().hasMore()).isFalse();
         assertThat(studentResponse.getBody().problems()).hasSize(1);
         assertThat(problemResponse.getBody()).isNotNull();
         assertThat(problemResponse.getBody().acceptedHandleCount()).isEqualTo(1);
+        assertThat(problemResponse.getBody().page()).isEqualTo(2);
+        assertThat(problemResponse.getBody().limit()).isEqualTo(50);
+        assertThat(problemResponse.getBody().total()).isEqualTo(51);
+        assertThat(problemResponse.getBody().totalPages()).isEqualTo(2);
+        assertThat(problemResponse.getBody().hasMore()).isFalse();
         assertThat(problemResponse.getBody().acceptedHandles().getFirst().studentIdentity()).isEqualTo("112487张三");
         verify(firstAcceptedProblemQueryService)
-                .summarizeStudentFirstAcceptedProblems(OjNames.CODEFORCES, "112487张三", from, to, 800, 1600);
+                .summarizeStudentFirstAcceptedProblems(OjNames.CODEFORCES, "112487张三", from, to, 800, 1600, 2, 50);
         verify(firstAcceptedProblemQueryService).summarizeProblemFirstAcceptedHandles(problemQuery);
     }
 
@@ -339,6 +365,8 @@ class OjWarehouseQueryControllerTest {
                 "not-a-date-time",
                 null,
                 null,
+                null,
+                null,
                 null
         )).isInstanceOfSatisfying(OjHandleAccountException.class, ex ->
                 assertThat(ex.errorCode()).isEqualTo(
@@ -362,6 +390,24 @@ class OjWarehouseQueryControllerTest {
         assertInvalidRequest(() -> controller.listProblemSubmissions(OjNames.CODEFORCES, "1000:A", null, null, 1, 0));
         assertInvalidRequest(() -> controller.listProblemSubmissions(OjNames.CODEFORCES, "1000:A", null, null, 1, 2001));
         assertInvalidRequest(() -> controller.listProblemSubmissions(" ", "1000:A", null, null, 1, 100));
+        assertInvalidRequest(() -> controller.summarizeStudentFirstAcceptedProblems(
+                OjNames.CODEFORCES,
+                "112487张三",
+                null,
+                null,
+                null,
+                null,
+                0,
+                100
+        ));
+        assertInvalidRequest(() -> controller.summarizeProblemFirstAcceptedHandles(
+                OjNames.CODEFORCES,
+                "1000:A",
+                null,
+                null,
+                1,
+                2001
+        ));
         verifyNoInteractions(acceptedSummaryQueryService, submissionQueryService, firstAcceptedProblemQueryService);
     }
 

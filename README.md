@@ -1,74 +1,15 @@
 # custacm-platform
 
-`custacm-platform` 是面向算法训练队的综合管理平台，目标是把账号管理、训练数据采集、训练数据查询和后续内容工具整合到一个统一后台里。
+`custacm-platform` 是 CUST XCPC 集训队的日常工作台。
 
-当前仓库已经包含三个可运行部分：
+本项目提供队员身份管理、OJ 账号绑定、训练数据采集、训练记录查询和管理员维护能力。队员登录后，可以查看自己的训练记录、提交明细和通过题目；管理员可以维护队员信息和 OJ 账号，发起数据采集，也可以在需要时清理训练数据。
 
-- `auth-web`：平台自有登录、账号管理、密码哈希和 JWT 签发。
-- `training-data-web`：Codeforces 训练数据采集、清理、可选采集后刷新和查询。
-- `frontend`：训练队后台工作台，提供训练查询和管理员操作页面。
+后续还会支持云文档能力，用来宣传队伍、分享训练心得、编写题解和沉淀训练经验，为新老队员交流提供平台。
 
-平台使用 `studentIdentity` 作为业务身份，格式通常是“学号 + 姓名”，例如 `230511213黄炳睿`。管理员负责创建账号、维护 OJ handle 绑定、采集训练数据；队员和管理员都可以通过前端查看训练数据。
-
-## 最近支持
-
-- React/Vite 前端工作台，包含登录、训练查询、管理员操作和同源 API 代理。
-- 管理员批量创建账号，并可同时补充 OJ handle 绑定。
-- Codeforces 最近提交后台采集任务、采集任务列表和采集后可选 DWD/DWM/DWS 仓库刷新。
-- 训练查询支持按队员、日期和 rating 范围查看 AC 汇总、提交明细和首 AC 明细。
-- 提交明细支持后端分页，适合查看较大的提交列表。
-- 高成本操作增加确认弹窗，包括训练数据采集和彻底删除用户数据。
-- 管理员可以清理某个用户的全部或指定 OJ 训练数据，并继续删除 auth 账号。
+更多详情可联系开发者&主要负责人，QQ: 2476713756.
 
 ## 快速启动
 
-准备本地配置和 JWT 密钥：
+使用 codex 等 agent 工具让它一键部署 :P
 
-```bash
-cp deploy/.env.example deploy/.env
-mkdir -p deploy/secrets
-openssl genrsa -out deploy/secrets/auth-private-key.pem 2048
-openssl rsa -in deploy/secrets/auth-private-key.pem -pubout -out deploy/secrets/auth-public-key.pem
-```
-
-编辑 `deploy/.env`，至少修改数据库密码和初始管理员密码：
-
-```env
-AUTH_DB_PASSWORD=change-me-auth-db-password
-AUTH_DB_ROOT_PASSWORD=change-me-auth-root-password
-TRAINING_DATA_DB_PASSWORD=change-me-training-data-db-password
-TRAINING_DATA_DB_ROOT_PASSWORD=change-me-training-data-root-password
-AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY=root
-AUTH_BOOTSTRAP_ADMIN_PASSWORD=change-me-root-password
-```
-
-启动整套本地服务：
-
-```bash
-./scripts/deploy.sh
-```
-
-默认访问地址：
-
-- 前端：<http://localhost:3000/>
-- Auth health：<http://localhost:8081/health>
-- Training-data health：<http://localhost:8082/health>
-
-首次登录使用 `deploy/.env` 中配置的 bootstrap admin。部署后建议尽快在前端修改初始管理员密码。
-
-可选：创建本地演示账号和 OJ handle，并启动 Codeforces 采集任务。
-
-```bash
-./scripts/seed-local-codeforces-data.sh
-```
-
-## 文档入口
-
-- [deploy/README.md](deploy/README.md)：本地和服务器部署说明。
-- [frontend/README.md](frontend/README.md)：前端运行、代理和页面职责。
-- [docs/api.md](docs/api.md)：已实现 HTTP API。
-- [docs/architecture.md](docs/architecture.md)：模块职责和架构边界。
-- [docs/authorization.md](docs/authorization.md)：URL 鉴权分层规则。
-- [platform-training-data/README.md](platform-training-data/README.md)：训练数据模块说明。
-- [platform-training-data/docs/ods-submission.md](platform-training-data/docs/ods-submission.md)：Codeforces 数仓表和刷新语义。
-- [AGENTS.md](AGENTS.md)：AI/agent 协作规则和工程约束。
+开发、部署、API 和 agent 协作资料见 [docs/README.md](docs/README.md)。

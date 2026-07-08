@@ -71,7 +71,7 @@ AUTH_BOOTSTRAP_ADMIN_PASSWORD=change-me-root-password
 - 密码使用 BCrypt 哈希存储。
 - `auth-web` 使用 RSA 私钥签发 JWT，其它后端使用 RSA 公钥验证 JWT。
 - JWT 只放标准时间字段、`sub`（用户 ID）和 `role`（`admin` / `player`）。
-- 默认 access token 有效期为 `2h`，没有 refresh token。
+- 普通登录 access token 默认有效期为 `2h`；勾选“记住我”时 access token 默认有效期为 `30d`。当前没有 refresh token。
 
 ## JWT Key Settings
 
@@ -81,9 +81,10 @@ Compose 默认把本地 PEM 文件挂到容器内：
 AUTH_JWT_PRIVATE_KEY_HOST_PATH=./secrets/auth-private-key.pem
 AUTH_JWT_PUBLIC_KEY_HOST_PATH=./secrets/auth-public-key.pem
 AUTH_JWT_ACCESS_TOKEN_TTL=2h
+AUTH_JWT_REMEMBER_ME_ACCESS_TOKEN_TTL=30d
 ```
 
-这些 PEM 文件是本地秘密，不要提交。其它需要验证平台 JWT 的后端只需要同一份公钥。
+这些 PEM 文件是本地秘密，不要提交。其它需要验证平台 JWT 的后端只需要同一份公钥。修改 token TTL 后需要重新创建 `custacm-backend` 容器。
 
 ## Frontend Proxy
 
