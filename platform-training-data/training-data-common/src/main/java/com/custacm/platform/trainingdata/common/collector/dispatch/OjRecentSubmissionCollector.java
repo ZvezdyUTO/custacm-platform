@@ -12,8 +12,8 @@ public interface OjRecentSubmissionCollector {
             Duration lookback
     ) throws JsonProcessingException;
 
-    OjSubmissionCollectionResult collectRecentWindowForStudentIdentity(
-            String studentIdentity,
+    OjSubmissionCollectionResult collectRecentWindowForUsername(
+            String username,
             Duration lookback
     ) throws JsonProcessingException;
 }

@@ -1,0 +1,40 @@
+:root {
+  --blog-ink: #1b1c1d;
+  --blog-ink-soft: #25272a;
+  --blog-accent: #48dbfb;
+  --blog-accent-strong: #12b7c8;
+  --blog-accent-ink: #087b85;
+  --blog-paper: #ffffff;
+  --blog-fog: #f4f6f8;
+  --blog-line: #e1e6eb;
+  --blog-copy: #29313a;
+  --blog-muted: #697480;
+  --training-max-width: 1400px;
+  --bg: var(--blog-fog);
+  --surface-subtle: #f7f9fa;
+  --surface-muted: #eef2f4;
+  --border: var(--blog-line);
+  --border-strong: #c8d1d9;
+  --text: var(--blog-copy);
+  --muted: var(--blog-muted);
+  --navy: #176b73;
+  --navy-strong: #10545b;
+  --navy-muted: #47757a;
+  --navy-soft: #e7f5f6;
+  --navy-softer: #f3fafb;
+  --navy-border: #a8ced1;
+  --navy-ring: #2499a3;
+  --shadow: 0 12px 32px rgb(32 45 57 / 9%);
+}
+
+body {
+  background: var(--blog-fog);
+  color: var(--blog-copy);
+  font-family:
+    "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", Inter, ui-sans-serif,
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
+}

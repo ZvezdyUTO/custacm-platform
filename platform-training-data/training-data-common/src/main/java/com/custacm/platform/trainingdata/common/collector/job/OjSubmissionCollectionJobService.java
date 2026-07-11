@@ -82,12 +82,12 @@ public class OjSubmissionCollectionJobService {
     }
 
     public OjSubmissionCollectionJobSnapshot startBatchCollection(
-            List<String> studentIdentities,
+            List<String> usernames,
             Duration lookback,
             boolean refreshWarehouse,
             String ojName
     ) {
-        List<String> identities = normalizeIdentities(studentIdentities);
+        List<String> identities = normalizeIdentities(usernames);
         requirePositiveDuration(lookback);
         synchronized (jobs) {
             OjSubmissionCollectionJobSnapshot active = activeJob();
@@ -105,11 +105,11 @@ public class OjSubmissionCollectionJobService {
     }
 
     public OjSubmissionCollectionJobSnapshot startBatchCollection(
-            List<String> studentIdentities,
+            List<String> usernames,
             Duration lookback,
             boolean refreshWarehouse
     ) {
-        return startBatchCollection(studentIdentities, lookback, refreshWarehouse, null);
+        return startBatchCollection(usernames, lookback, refreshWarehouse, null);
     }
 
     public OjSubmissionCollectionJobSnapshot getJob(String jobId) {
@@ -218,16 +218,16 @@ public class OjSubmissionCollectionJobService {
         }
     }
 
-    private static List<String> normalizeIdentities(List<String> studentIdentities) {
-        if (studentIdentities == null) {
-            throw new IllegalArgumentException("studentIdentities must not be empty");
+    private static List<String> normalizeIdentities(List<String> usernames) {
+        if (usernames == null) {
+            throw new IllegalArgumentException("usernames must not be empty");
         }
-        List<String> identities = studentIdentities.stream()
-                .map(identity -> requireText(identity, "studentIdentity"))
+        List<String> identities = usernames.stream()
+                .map(identity -> requireText(identity, "username"))
                 .distinct()
                 .toList();
         if (identities.isEmpty()) {
-            throw new IllegalArgumentException("studentIdentities must not be empty");
+            throw new IllegalArgumentException("usernames must not be empty");
         }
         return identities;
     }
@@ -247,7 +247,7 @@ public class OjSubmissionCollectionJobService {
 
     @FunctionalInterface
     public interface RecentIdentityCollector {
-        OjSubmissionCollectionResult collect(String ojName, String studentIdentity, Duration lookback) throws Exception;
+        OjSubmissionCollectionResult collect(String ojName, String username, Duration lookback) throws Exception;
     }
 
     @FunctionalInterface

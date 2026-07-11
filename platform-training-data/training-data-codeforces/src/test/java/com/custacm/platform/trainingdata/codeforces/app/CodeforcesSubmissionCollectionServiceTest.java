@@ -84,7 +84,7 @@ class CodeforcesSubmissionCollectionServiceTest {
     }
 
     @Test
-    void collectRecentWindowForStudentIdentityResolvesHandleBeforeFetchingSource() throws Exception {
+    void collectRecentWindowForUsernameResolvesHandleBeforeFetchingSource() throws Exception {
         FakeSourceClient sourceClient = new FakeSourceClient();
         sourceClient.addPage("alice", page(submission(601, "alice", "2026-07-01T00:00:00Z")));
         RecordingWriter writer = new RecordingWriter();
@@ -96,7 +96,7 @@ class CodeforcesSubmissionCollectionServiceTest {
                 Map.of("112487张三", "alice")
         );
 
-        var result = service.collectRecentWindowForStudentIdentity(" 112487张三 ", LOOKBACK);
+        var result = service.collectRecentWindowForUsername(" 112487张三 ", LOOKBACK);
 
         assertThat(result.status()).isEqualTo(OjSubmissionCollectionStatus.SUCCESS);
         assertThat(result.ojName()).isEqualTo(OjNames.CODEFORCES);
@@ -108,7 +108,7 @@ class CodeforcesSubmissionCollectionServiceTest {
     }
 
     @Test
-    void collectRecentWindowForStudentIdentityAttributesTeamSubmissionToCollectedHandle() throws Exception {
+    void collectRecentWindowForUsernameAttributesTeamSubmissionToCollectedHandle() throws Exception {
         FakeSourceClient sourceClient = new FakeSourceClient();
         sourceClient.addPage("bob", page(teamSubmission(602, "2026-07-01T00:00:00Z", "alice", "bob")));
         RecordingWriter writer = new RecordingWriter();
@@ -120,7 +120,7 @@ class CodeforcesSubmissionCollectionServiceTest {
                 Map.of("112487张三", "bob")
         );
 
-        var result = service.collectRecentWindowForStudentIdentity("112487张三", LOOKBACK);
+        var result = service.collectRecentWindowForUsername("112487张三", LOOKBACK);
 
         assertThat(result.status()).isEqualTo(OjSubmissionCollectionStatus.SUCCESS);
         assertThat(sourceClient.calls()).containsExactly(new SourceCall("bob", 1, 100));
@@ -178,7 +178,7 @@ class CodeforcesSubmissionCollectionServiceTest {
         );
         assertThat(writer.records).extracting(CodeforcesOdsSubmission::codeforcesSubmissionId)
                 .containsExactly(301L, 302L);
-        OjHandleAccount account = repository.findByStudentIdentity("student-0").orElseThrow();
+        OjHandleAccount account = repository.findByUsername("student-0").orElseThrow();
         assertThat(account.collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isFalse();
         assertThat(account.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt()).isEqualTo(FETCHED_AT);
     }
@@ -194,7 +194,7 @@ class CodeforcesSubmissionCollectionServiceTest {
         var result = service.collectRecentWindowForConfiguredHandles(LOOKBACK);
 
         assertThat(result.status()).isEqualTo(OjSubmissionCollectionStatus.SUCCESS);
-        OjHandleAccount account = repository.findByStudentIdentity("student-0").orElseThrow();
+        OjHandleAccount account = repository.findByUsername("student-0").orElseThrow();
         assertThat(account.collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isTrue();
         assertThat(account.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt()).isEqualTo(FETCHED_AT);
     }
@@ -447,19 +447,19 @@ class CodeforcesSubmissionCollectionServiceTest {
         };
 
         private FakeHandleAccountRepository(Map<String, String> handlesByIdentity) {
-            handlesByIdentity.forEach((studentIdentity, handle) -> accountsByIdentity.put(
-                    studentIdentity, account(studentIdentity, Map.of(OjNames.CODEFORCES, handle), true)
+            handlesByIdentity.forEach((username, handle) -> accountsByIdentity.put(
+                    username, account(username, Map.of(OjNames.CODEFORCES, handle), true)
             ));
         }
 
-        private void putAccount(String studentIdentity, Map<String, String> handles, boolean needCollect) {
-            accountsByIdentity.put(studentIdentity, account(studentIdentity, handles, needCollect));
+        private void putAccount(String username, Map<String, String> handles, boolean needCollect) {
+            accountsByIdentity.put(username, account(username, handles, needCollect));
         }
 
-        private void setNeedCollect(String studentIdentity, boolean needCollect) {
-            OjHandleAccount existing = accountsByIdentity.get(studentIdentity);
-            accountsByIdentity.put(studentIdentity, new OjHandleAccount(
-                    existing.studentIdentity(),
+        private void setNeedCollect(String username, boolean needCollect) {
+            OjHandleAccount existing = accountsByIdentity.get(username);
+            accountsByIdentity.put(username, new OjHandleAccount(
+                    existing.username(),
                     existing.handles(),
                     needCollect,
                     existing.createdAt(),
@@ -468,12 +468,12 @@ class CodeforcesSubmissionCollectionServiceTest {
         }
 
         private static OjHandleAccount account(
-                String studentIdentity,
+                String username,
                 Map<String, String> handles,
                 boolean needCollect
         ) {
             return new OjHandleAccount(
-                    studentIdentity,
+                    username,
                     handles,
                     needCollect,
                     Instant.EPOCH,
@@ -492,8 +492,8 @@ class CodeforcesSubmissionCollectionServiceTest {
         }
 
         @Override
-        public java.util.Optional<OjHandleAccount> findByStudentIdentity(String studentIdentity) {
-            return java.util.Optional.ofNullable(accountsByIdentity.get(studentIdentity));
+        public java.util.Optional<OjHandleAccount> findByUsername(String username) {
+            return java.util.Optional.ofNullable(accountsByIdentity.get(username));
         }
 
         @Override
@@ -510,43 +510,43 @@ class CodeforcesSubmissionCollectionServiceTest {
         }
 
         @Override
-        public OjHandleAccount updateStudentIdentityAndNeedCollect(
-                String oldStudentIdentity,
-                String newStudentIdentity,
+        public OjHandleAccount updateUsernameAndNeedCollect(
+                String oldUsername,
+                String newUsername,
                 Map<String, String> handles,
                 boolean needCollect,
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {
-            OjHandleAccount existing = accountsByIdentity.remove(oldStudentIdentity);
+            OjHandleAccount existing = accountsByIdentity.remove(oldUsername);
             OjHandleAccount updated = new OjHandleAccount(
-                    newStudentIdentity,
+                    newUsername,
                     handles,
                     needCollect,
                     collectionStates,
                     existing.createdAt(),
                     updatedAt
             );
-            accountsByIdentity.put(newStudentIdentity, updated);
+            accountsByIdentity.put(newUsername, updated);
             return updated;
         }
 
         @Override
         public OjHandleAccount updateCollectionStates(
-                String studentIdentity,
+                String username,
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {
-            OjHandleAccount existing = accountsByIdentity.get(studentIdentity);
+            OjHandleAccount existing = accountsByIdentity.get(username);
             OjHandleAccount updated = new OjHandleAccount(
-                    existing.studentIdentity(),
+                    existing.username(),
                     existing.handles(),
                     existing.needCollect(),
                     collectionStates,
                     existing.createdAt(),
                     updatedAt
             );
-            accountsByIdentity.put(studentIdentity, updated);
+            accountsByIdentity.put(username, updated);
             return updated;
         }
     }

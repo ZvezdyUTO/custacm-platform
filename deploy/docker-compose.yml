@@ -1,128 +1,83 @@
 services:
-  auth-db:
+  blog-db:
     image: mysql:8.4
     environment:
-      MYSQL_DATABASE: ${AUTH_DB_NAME}
-      MYSQL_USER: ${AUTH_DB_USERNAME}
-      MYSQL_PASSWORD: ${AUTH_DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${AUTH_DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${BLOG_DB_NAME}
+      MYSQL_USER: ${BLOG_DB_USERNAME}
+      MYSQL_PASSWORD: ${BLOG_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${BLOG_DB_ROOT_PASSWORD}
     volumes:
-      - auth-db-data:/var/lib/mysql
+      - blog-db-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p${AUTH_DB_ROOT_PASSWORD}"]
-      interval: 10s
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
-  custacm-backend:
+  blog-redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - blog-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  blog-api:
     build:
       context: ..
       dockerfile: Dockerfile
       args:
-        MODULE_PATH: platform-auth/auth-web
-        JAR_PATH: platform-auth/auth-web/target/auth-web-0.1.0-SNAPSHOT.jar
-        APP_PORT: 8081
+        MODULE_PATH: platform-blog/upstream/nblog/blog-api
+        JAR_PATH: platform-blog/upstream/nblog/blog-api/target/blog-api-0.0.1.jar
+        APP_PORT: 8090
     environment:
-      AUTH_WEB_PORT: ${AUTH_WEB_PORT:-8081}
-      AUTH_DB_URL: jdbc:mysql://auth-db:3306/${AUTH_DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-      AUTH_DB_USERNAME: ${AUTH_DB_USERNAME}
-      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}
-      AUTH_JWT_PRIVATE_KEY_PATH: /run/secrets/auth-private-key.pem
-      AUTH_JWT_PUBLIC_KEY_PATH: /run/secrets/auth-public-key.pem
-      AUTH_JWT_ACCESS_TOKEN_TTL: ${AUTH_JWT_ACCESS_TOKEN_TTL}
-      AUTH_JWT_REMEMBER_ME_ACCESS_TOKEN_TTL: ${AUTH_JWT_REMEMBER_ME_ACCESS_TOKEN_TTL}
-      AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY: ${AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY}
-      AUTH_BOOTSTRAP_ADMIN_PASSWORD: ${AUTH_BOOTSTRAP_ADMIN_PASSWORD}
+      BLOG_API_PORT: 8090
+      BLOG_DB_URL: jdbc:mysql://blog-db:3306/${BLOG_DB_NAME}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      BLOG_DB_USERNAME: ${BLOG_DB_USERNAME}
+      BLOG_DB_PASSWORD: ${BLOG_DB_PASSWORD}
+      BLOG_REDIS_HOST: blog-redis
+      BLOG_REDIS_PORT: 6379
+      BLOG_TOKEN_SECRET: ${BLOG_TOKEN_SECRET}
+      BLOG_TOKEN_TTL_MILLIS: ${BLOG_TOKEN_TTL_MILLIS}
+      BLOG_BOOTSTRAP_ADMIN_USERNAME: ${BLOG_BOOTSTRAP_ADMIN_USERNAME}
+      BLOG_BOOTSTRAP_ADMIN_PASSWORD: ${BLOG_BOOTSTRAP_ADMIN_PASSWORD}
       LOG_DIR: /app/logs
     ports:
-      - "${BACKEND_PORT}:8081"
+      - "${BACKEND_PORT}:8090"
     volumes:
       - ../logs:/app/logs
-      - ${AUTH_JWT_PRIVATE_KEY_HOST_PATH}:/run/secrets/auth-private-key.pem:ro
-      - ${AUTH_JWT_PUBLIC_KEY_HOST_PATH}:/run/secrets/auth-public-key.pem:ro
+      - ../uploads:/app/upload
     depends_on:
-      auth-db:
+      blog-db:
         condition: service_healthy
-
-  training-data-db:
-    image: mysql:8.4
-    environment:
-      MYSQL_DATABASE: ${TRAINING_DATA_DB_NAME}
-      MYSQL_USER: ${TRAINING_DATA_DB_USERNAME}
-      MYSQL_PASSWORD: ${TRAINING_DATA_DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${TRAINING_DATA_DB_ROOT_PASSWORD}
-    volumes:
-      - training-data-db-data:/var/lib/mysql
+      blog-redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p${TRAINING_DATA_DB_ROOT_PASSWORD}"]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8090/health >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 20
 
-  custacm-training-data-web:
+  frontend:
     build:
       context: ..
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: platform-training-data/training-data-web
-        JAR_PATH: platform-training-data/training-data-web/target/training-data-web-0.1.0-SNAPSHOT.jar
-        APP_PORT: 8082
-    environment:
-      TRAINING_DATA_WEB_PORT: ${TRAINING_DATA_WEB_PORT:-8082}
-      TRAINING_DATA_DB_URL: jdbc:mysql://training-data-db:3306/${TRAINING_DATA_DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-      TRAINING_DATA_DB_USERNAME: ${TRAINING_DATA_DB_USERNAME}
-      TRAINING_DATA_DB_PASSWORD: ${TRAINING_DATA_DB_PASSWORD}
-      AUTH_JWT_PUBLIC_KEY_PATH: /run/secrets/auth-public-key.pem
-      LOG_DIR: /app/logs
-    ports:
-      - "${TRAINING_DATA_PORT}:8082"
-    volumes:
-      - ../logs:/app/logs
-      - ${AUTH_JWT_PUBLIC_KEY_HOST_PATH}:/run/secrets/auth-public-key.pem:ro
-    depends_on:
-      training-data-db:
-        condition: service_healthy
-
-  frontend-build:
-    image: node:22-alpine
-    working_dir: /workspace
-    environment:
-      HOST_UID: ${HOST_UID:-}
-      HOST_GID: ${HOST_GID:-}
-    command:
-      - sh
-      - -lc
-      - |
-        corepack enable
-        corepack prepare pnpm@10.33.2 --activate
-        pnpm config set store-dir /pnpm/store
-        pnpm install --frozen-lockfile
-        pnpm build
-        if [ -n "$${HOST_UID:-}" ] && [ -n "$${HOST_GID:-}" ]; then
-          chown -R "$${HOST_UID}:$${HOST_GID}" /workspace/dist
-        fi
-    volumes:
-      - ../frontend:/workspace
-      - frontend-node-modules:/workspace/node_modules
-      - frontend-pnpm-store:/pnpm/store
-    profiles:
-      - build
-
-  custacm-frontend:
-    image: nginx:1.27-alpine
+      dockerfile: frontend/Dockerfile
     ports:
       - "${FRONTEND_PORT}:80"
-    volumes:
-      - ../frontend/dist:/usr/share/nginx/html:ro
-      - ../frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - custacm-backend
-      - custacm-training-data-web
+      blog-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
 volumes:
-  auth-db-data:
-    name: ${AUTH_DB_VOLUME_NAME:-custacm-platform_auth-db-data}
-  training-data-db-data:
-    name: ${TRAINING_DATA_DB_VOLUME_NAME:-custacm-platform_training-data-db-data}
-  frontend-node-modules:
-  frontend-pnpm-store:
+  blog-db-data:
+    name: ${BLOG_DB_VOLUME_NAME:-custacm-platform_blog-db-data}
+  blog-redis-data:
+    name: ${BLOG_REDIS_VOLUME_NAME:-custacm-platform_blog-redis-data}

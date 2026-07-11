@@ -38,7 +38,7 @@ class OjSubmissionCollectionControllerTest {
 
     @Test
     void collectsSubmissionsForRecentHours() throws Exception {
-        when(service.collectRecentWindowForStudentIdentity(null, STUDENT_IDENTITY, Duration.ofHours(LOOKBACK_HOURS)))
+        when(service.collectRecentWindowForUsername(null, STUDENT_IDENTITY, Duration.ofHours(LOOKBACK_HOURS)))
                 .thenReturn(result());
 
         var response = controller.collectSubmissions(new OjSubmissionCollectionRequest(
@@ -52,12 +52,12 @@ class OjSubmissionCollectionControllerTest {
         assertThat(response.windowStartInclusive()).isEqualTo(WINDOW_START);
         assertThat(response.windowEndExclusive()).isEqualTo(WINDOW_END);
         assertThat(response.writtenRows()).isEqualTo(2);
-        verify(service).collectRecentWindowForStudentIdentity(null, STUDENT_IDENTITY, Duration.ofHours(LOOKBACK_HOURS));
+        verify(service).collectRecentWindowForUsername(null, STUDENT_IDENTITY, Duration.ofHours(LOOKBACK_HOURS));
     }
 
     @Test
     void collectsRequestedOjName() throws Exception {
-        when(service.collectRecentWindowForStudentIdentity(
+        when(service.collectRecentWindowForUsername(
                 OjNames.CODEFORCES,
                 STUDENT_IDENTITY,
                 Duration.ofHours(LOOKBACK_HOURS)
@@ -69,7 +69,7 @@ class OjSubmissionCollectionControllerTest {
                 OjNames.CODEFORCES
         ));
 
-        verify(service).collectRecentWindowForStudentIdentity(
+        verify(service).collectRecentWindowForUsername(
                 OjNames.CODEFORCES,
                 STUDENT_IDENTITY,
                 Duration.ofHours(LOOKBACK_HOURS)
@@ -93,12 +93,12 @@ class OjSubmissionCollectionControllerTest {
     }
 
     @Test
-    void rejectsBlankStudentIdentity() {
+    void rejectsBlankUsername() {
         assertThatThrownBy(() -> controller.collectSubmissions(
                 new OjSubmissionCollectionRequest(" ", LOOKBACK_HOURS, null)
         ))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("studentIdentity must not be blank");
+                .hasMessage("username must not be blank");
     }
 
     @Test
@@ -123,7 +123,7 @@ class OjSubmissionCollectionControllerTest {
         assertThat(response.ojName()).isEqualTo(OjNames.CODEFORCES);
         assertThat(response.status()).isEqualTo(OjSubmissionCollectionJobStatus.RUNNING);
         assertThat(response.items()).singleElement().satisfies(item ->
-                assertThat(item.studentIdentity()).isEqualTo(STUDENT_IDENTITY));
+                assertThat(item.username()).isEqualTo(STUDENT_IDENTITY));
         verify(jobService).startBatchCollection(
                 List.of(STUDENT_IDENTITY),
                 Duration.ofHours(LOOKBACK_HOURS),

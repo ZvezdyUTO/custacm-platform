@@ -55,13 +55,13 @@ class OjSubmissionCollectionServiceTest {
     }
 
     @Test
-    void resolvesStudentIdentityBeforeCollectingOneHandle() throws Exception {
+    void resolvesUsernameBeforeCollectingOneHandle() throws Exception {
         FakeHandleResolver resolver = new FakeHandleResolver();
         resolver.handlesByIdentity.put("112487张三", "tourist");
         FakeAdapter adapter = new FakeAdapter();
         OjSubmissionCollectionService service = service(resolver, adapter);
 
-        OjSubmissionCollectionResult result = service.collectRecentWindowForStudentIdentity(
+        OjSubmissionCollectionResult result = service.collectRecentWindowForUsername(
                 " 112487张三 ",
                 Duration.ofHours(12)
         );
@@ -164,8 +164,8 @@ class OjSubmissionCollectionServiceTest {
         };
 
         @Override
-        public String getHandleByStudentIdentity(String ojName, String studentIdentity) {
-            return handlesByIdentity.get(studentIdentity);
+        public String getHandleByUsername(String ojName, String username) {
+            return handlesByIdentity.get(username);
         }
 
         @Override

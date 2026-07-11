@@ -34,7 +34,7 @@ private static final Logger log = LoggerFactory.getLogger(CurrentClass.class);
 Use structured key-value text in the message so agents can search stable tokens:
 
 ```java
-log.info("User profile loaded, studentIdentityHash={}", studentIdentityHash);
+log.info("User profile loaded, usernameHash={}", usernameHash);
 log.warn("Request rejected, errorCode={}, reason={}", errorCode, reason);
 log.error("Failed to load current user, errorCode={}", errorCode, ex);
 ```
@@ -62,7 +62,7 @@ Never log these values:
 - JWT private key, signing key material, database password, or `.env` value
 - full personal information or raw request/response bodies that may contain personal data
 
-When user correlation is needed, prefer a hash such as `studentIdentityHash` unless the raw `studentIdentity` is explicitly required for an operator-facing audit trail.
+When user correlation is needed, prefer a hash such as `usernameHash` unless the raw `username` is explicitly required for an operator-facing audit trail.
 
 ## Future Error Response Contract
 

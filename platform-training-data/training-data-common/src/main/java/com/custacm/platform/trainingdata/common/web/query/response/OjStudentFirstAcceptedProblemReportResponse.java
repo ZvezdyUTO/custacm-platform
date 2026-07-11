@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record OjStudentFirstAcceptedProblemReportResponse(
-        String studentIdentity,
+        String username,
         String authorHandle,
         int totalAcceptedProblemCount,
         int page,
@@ -21,7 +21,7 @@ public record OjStudentFirstAcceptedProblemReportResponse(
             OjHandleFirstAcceptedProblemReport report
     ) {
         return new OjStudentFirstAcceptedProblemReportResponse(
-                report.studentIdentity(),
+                report.username(),
                 report.authorHandle(),
                 report.totalAcceptedProblemCount(),
                 report.page(),

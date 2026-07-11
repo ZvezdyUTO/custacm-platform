@@ -19,11 +19,11 @@ This repository is expected to be developed by agents. Documentation is part of 
 | Planning | [../TODO.md](../TODO.md), [../CHANGELOG.md](../CHANGELOG.md) | Human-readable todo list and MR outcome history. |
 | Agent map | [agent/README.md](agent/README.md), [agent/context-map.md](agent/context-map.md), [agent/doc-sync.md](agent/doc-sync.md), [agent/changelog.md](agent/changelog.md), [agent/quality-gates.md](agent/quality-gates.md) | Fast context, update rules, changelog format, and verification commands. |
 | Architecture | [architecture.md](architecture.md), [authorization.md](authorization.md), [adr/](adr/) | Current architecture, HTTP authorization tiers, and durable decisions. |
-| API | [api.md](api.md) | Implemented HTTP contracts for auth and training-data services only. |
+| API | [api.md](api.md) | Implemented Blog API, user-management, and training-data HTTP contracts. |
 | Operations | [logging.md](logging.md), [server-deployment.md](server-deployment.md), [../deploy/README.md](../deploy/README.md), [../deploy/UPDATE.md](../deploy/UPDATE.md) | Runtime, logging, deployment, and update workflows. |
-| Module docs | `*/README.md`, `*/AGENTS.md`, `*/TESTING.md`, `platform-training-data/docs/*.md` | Local module context, warehouse contracts, fixtures, and test coverage notes. |
+| Module docs | `*/README.md`, `*/AGENTS.md`, `*/TESTING.md` | Local module boundaries, file responsibilities, and test notes. |
 
-Training-data module details start at [../platform-training-data/README.md](../platform-training-data/README.md). Shared OJ handle-account, query, purge, collection, and scheduling logic is documented in [../platform-training-data/training-data-common/README.md](../platform-training-data/training-data-common/README.md). OJ handle-account storage and API semantics are documented in [api.md](api.md) and [../platform-training-data/README.md](../platform-training-data/README.md). Codeforces warehouse table grain, source collection, SQL task resources, AtCoder ODS fields, and admin refresh semantics are maintained in [../platform-training-data/docs/ods-submission.md](../platform-training-data/docs/ods-submission.md). AtCoder/Kenkoooo collection design is maintained in [../platform-training-data/docs/atcoder-collection.md](../platform-training-data/docs/atcoder-collection.md).
+The monolith boundary starts at [../platform-blog/README.md](../platform-blog/README.md); training internals start at [../platform-training-data/README.md](../platform-training-data/README.md). HTTP contracts remain in [api.md](api.md).
 
 ## Update Rule
 
@@ -31,4 +31,4 @@ When changing code, scripts, CI, deployment configuration, or module boundaries,
 
 Docs-only changes should still keep links and facts consistent, but they do not require Maven verification unless they change executable examples or configuration.
 
-Current identity and login decisions are recorded in [adr/0004-platform-owns-auth.md](adr/0004-platform-owns-auth.md).
+The current integrated identity and admin-surface decisions, including homepage image management, are documented in [architecture.md](architecture.md); older auth ADRs are historical context.

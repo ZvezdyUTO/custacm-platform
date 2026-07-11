@@ -38,7 +38,7 @@ class OjWarehouseQueryServiceTest {
     void returnsStudentSubmissionDetails() {
         LocalDateTime from = LocalDateTime.parse("2026-07-01T00:00:00");
         LocalDateTime to = LocalDateTime.parse("2026-07-01T23:59:59");
-        String studentIdentity = "112487张三";
+        String username = "112487张三";
         OjHandleSubmissionCriteria expectedRepositoryQuery = new OjHandleSubmissionCriteria(
                 "tourist",
                 from,
@@ -75,7 +75,7 @@ class OjWarehouseQueryServiceTest {
             }
         };
         OjHandleAccountService handleAccountService = handleAccountService(
-                account(studentIdentity, "tourist")
+                account(username, "tourist")
         );
         OjSubmissionQueryService service = new OjSubmissionQueryService(
                 repository,
@@ -83,7 +83,7 @@ class OjWarehouseQueryServiceTest {
         );
 
         OjHandleSubmissionReport report = service.listStudentSubmissions(
-                studentIdentity,
+                username,
                 from,
                 to,
                 null,
@@ -92,7 +92,7 @@ class OjWarehouseQueryServiceTest {
                 2
         );
 
-        assertThat(report.studentIdentity()).isEqualTo(studentIdentity);
+        assertThat(report.username()).isEqualTo(username);
         assertThat(report.authorHandle()).isEqualTo("tourist");
         assertThat(report.page()).isEqualTo(2);
         assertThat(report.limit()).isEqualTo(2);
@@ -100,14 +100,14 @@ class OjWarehouseQueryServiceTest {
         assertThat(report.totalPages()).isEqualTo(2);
         assertThat(report.hasMore()).isFalse();
         assertThat(report.submissions()).containsExactly(
-                submissionItem(3, studentIdentity, "tourist", 1200, true),
-                submissionItem(4, studentIdentity, "tourist", null, false)
+                submissionItem(3, username, "tourist", 1200, true),
+                submissionItem(4, username, "tourist", null, false)
         );
     }
 
     @Test
     void returnsStudentSubmissionDetailsForRequestedOjHandle() {
-        String studentIdentity = "112487张三";
+        String username = "112487张三";
         OjHandleSubmissionCriteria expectedRepositoryQuery = new OjHandleSubmissionCriteria(
                 OjNames.ATCODER,
                 "tourist_atcoder",
@@ -144,14 +144,14 @@ class OjWarehouseQueryServiceTest {
         OjSubmissionQueryService service = new OjSubmissionQueryService(
                 repository,
                 handleAccountService(account(
-                        studentIdentity,
+                        username,
                         Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder")
                 ))
         );
 
         OjHandleSubmissionReport report = service.listStudentSubmissions(
                 OjNames.ATCODER,
-                studentIdentity,
+                username,
                 null,
                 null,
                 null,
@@ -160,10 +160,10 @@ class OjWarehouseQueryServiceTest {
                 100
         );
 
-        assertThat(report.studentIdentity()).isEqualTo(studentIdentity);
+        assertThat(report.username()).isEqualTo(username);
         assertThat(report.authorHandle()).isEqualTo("tourist_atcoder");
         assertThat(report.submissions()).containsExactly(
-                submissionItem(1, studentIdentity, "tourist_atcoder", 800, true)
+                submissionItem(1, username, "tourist_atcoder", 800, true)
         );
     }
 
@@ -267,7 +267,7 @@ class OjWarehouseQueryServiceTest {
     void returnsEmptySubmissionPageWhenOffsetIsPastTotal() {
         LocalDateTime from = LocalDateTime.parse("2026-07-01T00:00:00");
         LocalDateTime to = LocalDateTime.parse("2026-07-01T23:59:59");
-        String studentIdentity = "112487张三";
+        String username = "112487张三";
         OjHandleSubmissionCriteria expectedRepositoryQuery = new OjHandleSubmissionCriteria(
                 "tourist",
                 from,
@@ -301,11 +301,11 @@ class OjWarehouseQueryServiceTest {
         };
         OjSubmissionQueryService service = new OjSubmissionQueryService(
                 repository,
-                handleAccountService(account(studentIdentity, "tourist"))
+                handleAccountService(account(username, "tourist"))
         );
 
         OjHandleSubmissionReport report = service.listStudentSubmissions(
-                studentIdentity,
+                username,
                 from,
                 to,
                 null,
@@ -323,7 +323,7 @@ class OjWarehouseQueryServiceTest {
     }
 
     @Test
-    void rejectsUnboundStudentIdentityForSubmissions() {
+    void rejectsUnboundUsernameForSubmissions() {
         OjSubmissionRepository repository = new OjSubmissionRepository() {
             @Override
             public long countHandleSubmissions(OjHandleSubmissionCriteria query) {
@@ -399,7 +399,7 @@ class OjWarehouseQueryServiceTest {
     void returnsStudentFirstAcceptedProblemDetails() {
         LocalDateTime from = LocalDateTime.parse("2026-07-03T00:00:00");
         LocalDateTime to = LocalDateTime.parse("2026-07-03T23:59:59");
-        String studentIdentity = "112487张三";
+        String username = "112487张三";
         OjHandleFirstAcceptedProblemCriteria expectedRepositoryQuery =
                 new OjHandleFirstAcceptedProblemCriteria(
                         "tourist",
@@ -441,13 +441,13 @@ class OjWarehouseQueryServiceTest {
             }
         };
         OjHandleAccountService handleAccountService = handleAccountService(
-                account(studentIdentity, "tourist")
+                account(username, "tourist")
         );
         OjFirstAcceptedProblemQueryService service =
                 new OjFirstAcceptedProblemQueryService(repository, handleAccountService);
 
         var report = service.summarizeStudentFirstAcceptedProblems(
-                studentIdentity,
+                username,
                 from,
                 to,
                 null,
@@ -456,7 +456,7 @@ class OjWarehouseQueryServiceTest {
                 2
         );
 
-        assertThat(report.studentIdentity()).isEqualTo(studentIdentity);
+        assertThat(report.username()).isEqualTo(username);
         assertThat(report.authorHandle()).isEqualTo("tourist");
         assertThat(report.totalAcceptedProblemCount()).isEqualTo(4);
         assertThat(report.page()).isEqualTo(2);
@@ -615,14 +615,14 @@ class OjWarehouseQueryServiceTest {
 
     private static OjSubmissionItem submissionItem(
             long codeforcesSubmissionId,
-            String studentIdentity,
+            String username,
             String authorHandle,
             Integer problemRating,
             boolean accepted
     ) {
         return new OjSubmissionItem(
                 String.valueOf(codeforcesSubmissionId),
-                studentIdentity,
+                username,
                 authorHandle,
                 LocalDateTime.parse("2026-07-01T12:00:00"),
                 LocalDate.parse("2026-07-01"),
@@ -658,12 +658,12 @@ class OjWarehouseQueryServiceTest {
     }
 
     private static OjProblemFirstAcceptedHandleReport.OjFirstAcceptedHandle firstAcceptedHandle(
-            String studentIdentity,
+            String username,
             String authorHandle,
             String firstAcceptedAtUtcPlus8
     ) {
         return new OjProblemFirstAcceptedHandleReport.OjFirstAcceptedHandle(
-                studentIdentity,
+                username,
                 authorHandle,
                 LocalDateTime.parse(firstAcceptedAtUtcPlus8)
         );
@@ -677,13 +677,13 @@ class OjWarehouseQueryServiceTest {
         return new OjHandleAccountService(repository, Clock.fixed(Instant.EPOCH, ZoneOffset.ofHours(8)));
     }
 
-    private static OjHandleAccount account(String studentIdentity, String handle) {
-        return account(studentIdentity, Map.of(OjNames.CODEFORCES, handle));
+    private static OjHandleAccount account(String username, String handle) {
+        return account(username, Map.of(OjNames.CODEFORCES, handle));
     }
 
-    private static OjHandleAccount account(String studentIdentity, Map<String, String> handles) {
+    private static OjHandleAccount account(String username, Map<String, String> handles) {
         return new OjHandleAccount(
-                studentIdentity,
+                username,
                 handles,
                 true,
                 Instant.EPOCH,
@@ -700,8 +700,8 @@ class OjWarehouseQueryServiceTest {
         }
 
         @Override
-        public java.util.Optional<OjHandleAccount> findByStudentIdentity(String studentIdentity) {
-            return java.util.Optional.ofNullable(accountsByIdentity.get(studentIdentity));
+        public java.util.Optional<OjHandleAccount> findByUsername(String username) {
+            return java.util.Optional.ofNullable(accountsByIdentity.get(username));
         }
 
         @Override
@@ -713,14 +713,14 @@ class OjWarehouseQueryServiceTest {
 
         @Override
         public OjHandleAccount save(OjHandleAccount account) {
-            accountsByIdentity.put(account.studentIdentity(), account);
+            accountsByIdentity.put(account.username(), account);
             return account;
         }
 
         @Override
-        public OjHandleAccount updateStudentIdentityAndNeedCollect(
-                String oldStudentIdentity,
-                String newStudentIdentity,
+        public OjHandleAccount updateUsernameAndNeedCollect(
+                String oldUsername,
+                String newUsername,
                 Map<String, String> handles,
                 boolean needCollect,
                 Map<String, OjHandleCollectionState> collectionStates,
@@ -731,7 +731,7 @@ class OjWarehouseQueryServiceTest {
 
         @Override
         public OjHandleAccount updateCollectionStates(
-                String studentIdentity,
+                String username,
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {

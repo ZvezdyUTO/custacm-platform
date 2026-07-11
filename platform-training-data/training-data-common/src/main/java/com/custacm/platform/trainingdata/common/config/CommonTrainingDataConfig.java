@@ -1,7 +1,7 @@
 package com.custacm.platform.trainingdata.common.config;
 
 import com.custacm.platform.common.sqltask.SqlTaskRunner;
-import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountService;
+import com.custacm.platform.trainingdata.common.app.account.TrainingUserDirectory;
 import com.custacm.platform.trainingdata.common.app.purge.OjStudentDataPurgeService;
 import com.custacm.platform.trainingdata.common.app.query.OjAcceptedSummaryQueryService;
 import com.custacm.platform.trainingdata.common.app.query.OjFirstAcceptedProblemQueryService;
@@ -35,8 +35,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.Clock;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -99,16 +97,9 @@ public class CommonTrainingDataConfig {
     }
 
     @Bean
-    OjHandleAccountService ojHandleAccountService(
-            OjHandleAccountRepository repository
-    ) {
-        return new OjHandleAccountService(repository, Clock.system(ZoneOffset.ofHours(8)));
-    }
-
-    @Bean
     OjAcceptedSummaryQueryService ojAcceptedSummaryQueryService(
             OjAcceptedSummaryRepository repository,
-            OjHandleAccountService handleAccountService,
+            TrainingUserDirectory handleAccountService,
             OjDifficultyBucketPolicies bucketPolicies
     ) {
         return new OjAcceptedSummaryQueryService(repository, handleAccountService, bucketPolicies);
@@ -117,7 +108,7 @@ public class CommonTrainingDataConfig {
     @Bean
     OjSubmissionQueryService ojSubmissionQueryService(
             OjSubmissionRepository repository,
-            OjHandleAccountService handleAccountService
+            TrainingUserDirectory handleAccountService
     ) {
         return new OjSubmissionQueryService(repository, handleAccountService);
     }
@@ -125,7 +116,7 @@ public class CommonTrainingDataConfig {
     @Bean
     OjFirstAcceptedProblemQueryService ojFirstAcceptedProblemQueryService(
             OjFirstAcceptedProblemRepository repository,
-            OjHandleAccountService handleAccountService
+            TrainingUserDirectory handleAccountService
     ) {
         return new OjFirstAcceptedProblemQueryService(repository, handleAccountService);
     }
@@ -161,7 +152,7 @@ public class CommonTrainingDataConfig {
             OjCollectorSchedulingProperties properties
     ) {
         return new OjSubmissionCollectionJobService(
-                collectionService::collectRecentWindowForStudentIdentity,
+                collectionService::collectRecentWindowForUsername,
                 warehouseRefreshDispatcher,
                 ojSubmissionCollectionJobExecutor,
                 properties.jobItemInterval()
@@ -172,7 +163,7 @@ public class CommonTrainingDataConfig {
     OjStudentDataPurgeService ojStudentDataPurgeService(
             List<OjOdsDataPurgeRepository> odsDataPurgeRepositories,
             OjWarehouseDataPurgeRepository warehouseDataPurgeRepository,
-            OjHandleAccountService handleAccountService,
+            TrainingUserDirectory handleAccountService,
             PlatformTransactionManager transactionManager
     ) {
         return new OjStudentDataPurgeService(

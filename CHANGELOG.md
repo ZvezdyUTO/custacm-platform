@@ -4,6 +4,36 @@
 
 ## 未发布
 
+### 2026-07-12 - 移除 Blog 播放器与歌词组件
+
+- 成果：从 Vue Blog 移除 APlayer/Meting 播放器挂载、歌词样式、CDN 脚本与样式、Meting 自定义元素配置和本地运行脚本。
+- 影响：Blog 与训练中心不再显示播放器或歌词，也不再向播放器 CDN 和 Meting API 发起浏览器请求；文章目录等其它前端功能保持不变。
+- 验证：已运行 Blog 单元测试与生产构建，并在统一 4180 前端检查页面 DOM、外部资源请求和控制台。
+
+### 2026-07-12 - 修复管理员批量创建与现役状态保存
+
+- 成果：修正 Spring 将批量创建错误注册为 `/admin/users/:batch-create` 的路由组合问题，使正式 `/admin/users:batch-create` 合同可用；创建页在请求前按行提示 6～128 位密码限制；管理页把账号、OJ handle 和现役/退役状态合并为一次“保存修改”。
+- 影响：批量创建不再返回无意义的“异常错误”；取消“现役队员”后会真正提交 `needCollect=false`，只有账号和 OJ 状态都保存成功才显示成功。运行环境同时清理为唯一一套 4180 前端、8090 Blog API、MySQL 和 Redis。
+- 验证：已运行 `mvn clean verify`、`./scripts/check-test-policy.sh`、训练前端 58 个测试、lint、类型检查和生产构建；使用临时 `jiangly` 双 OJ 账号真实验证创建、修改、取消现役、查询回读和删除，并在 1440×900 浏览器验证页面状态与错误提示。
+
+### 2026-07-12 - 训练中心迁移到 Vue 3
+
+- 成果：将 `/training/**` 训练中心从 React 重写为 Vue 3 + Vue Router，保留多人、单人和题目查询；训练入口收进 Blog 顶栏的“训练中心”下拉菜单，进入训练中心后品牌、主菜单、搜索和账号区保持不变，仅高亮训练中心；独立“关于我/退出”入口合并到账号菜单，管理员可从账号菜单进入管理界面。管理员区进一步拆成创建用户、管理用户、数据采集三个独立页面：创建页支持文本导入后生成可编辑信息行，数据采集页支持全员和单人操作。
+- 影响：两套前端现在均使用 Vue 3 且继续独立构建、独立路由；公开 `/training/**` 由 Blog 外壳持有，训练运行时通过内部 `/training-app/**` 同源嵌入，因此切换时原 Blog 顶栏不会卸载。两端继续通过 `custacm.accessToken`、`custacm.user` 保持登录连续性；所有管理员手动采集现在固定请求完成后刷新数仓，不再展示可选刷新开关，API、角色与其余训练数据合同不变。
+- 验证：已运行训练中心 `pnpm lint`、`pnpm test`、`pnpm typecheck`、`pnpm build`，Blog `npm test -- --run`、`npm run build`，并使用统一 Nginx 镜像检查公开与内部 history fallback；浏览器交互与桌面视口检查见本次交付记录。
+
+### 2026-07-11 - 统一 Blog 与训练双前端入口
+
+- 成果：将 Vue Blog `/` 与 React 训练中心 `/training/**` 收敛到同一个 Nginx 服务，浏览器统一通过 `/api/**` 访问唯一 Blog API；两端共享登录摘要，公开 Blog 请求不全局携带 JWT，受保护评论提交显式使用 Bearer。
+- 影响：训练中心统一采用 `username` 和 `ROLE_admin`/`ROLE_player`，管理员界面只保留“用户管理”“训练数据管理”；Compose 现在由 Blog API、MySQL、Redis、frontend 四个服务组成，并新增 `FRONTEND_PORT`。本次只完善本地/单机配置，没有执行或声称服务器发布。
+- 验证：已运行 `./scripts/check-doc-sync.sh origin/main WORKTREE` 和 `git diff --check`。
+
+### 2026-07-11 - Blog API 与训练系统整合为完整单体
+
+- 成果：以 Spring Boot 3.5.16 Blog API 作为唯一后端，统一 BCrypt 账号、HS512 JWT、`ROLE_admin`/`ROLE_player`、`username` 身份、OJ handle 与 Codeforces/AtCoder 训练数据能力；移除旧 auth 和 training-data-web 运行模块。
+- 影响：训练查询改到 `/player/training-data/**`，管理操作改到 `/admin/training-data/**`；用户改名会级联 handle 并让旧 Token 失效，删除用户会清理可再生训练数据，同时保留文章评论并显示“已注销用户”。部署栈收敛为 Blog API、一个 MySQL 和 Redis，使用新的独立数据卷。
+- 验证：已运行 Blog/API 聚焦测试、`docker compose ... config`，并在本机 MySQL 8.4/Redis 7 上完成 V001～V024、权限矩阵、ODS/数仓刷新、改名、最后管理员保护及内容保留删除的真实 HTTP 验收；最终全量质量门禁见本次工作交付记录。
+
 ### 2026-07-09 - 收敛首页 README
 
 - 成果：将根 README 收敛为面向普通访客的项目介绍，并把维护资料入口折叠起来；文档索引同步说明首页只承载项目简介。

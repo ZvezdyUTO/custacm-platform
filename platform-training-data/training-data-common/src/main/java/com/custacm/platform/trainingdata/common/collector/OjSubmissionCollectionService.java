@@ -68,22 +68,22 @@ public class OjSubmissionCollectionService {
         );
     }
 
-    public OjSubmissionCollectionResult collectRecentWindowForStudentIdentity(
-            String studentIdentity,
+    public OjSubmissionCollectionResult collectRecentWindowForUsername(
+            String username,
             Duration lookback
     ) throws JsonProcessingException {
-        return collectRecentWindowForStudentIdentity(adapter.defaultOjName(), studentIdentity, lookback);
+        return collectRecentWindowForUsername(adapter.defaultOjName(), username, lookback);
     }
 
-    public OjSubmissionCollectionResult collectRecentWindowForStudentIdentity(
+    public OjSubmissionCollectionResult collectRecentWindowForUsername(
             String ojName,
-            String studentIdentity,
+            String username,
             Duration lookback
     ) throws JsonProcessingException {
         String normalizedOjName = requireOjName(ojName);
-        String normalizedStudentIdentity = requireText(studentIdentity, "studentIdentity");
+        String normalizedUsername = requireText(username, "username");
         String handle = requireText(
-                handleResolver.getHandleByStudentIdentity(normalizedOjName, normalizedStudentIdentity),
+                handleResolver.getHandleByUsername(normalizedOjName, normalizedUsername),
                 "handle"
         );
         return collectRecentWindow(normalizedOjName, lookback, () -> List.of(handle));

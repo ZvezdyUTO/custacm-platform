@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 public record OjSubmissionItemResponse(
         String submissionId,
-        String studentIdentity,
+        String username,
         String handle,
         LocalDateTime submittedAtUtcPlus8,
         LocalDate submittedDateUtcPlus8,
@@ -24,7 +24,7 @@ public record OjSubmissionItemResponse(
     public static OjSubmissionItemResponse from(OjSubmissionItem item) {
         return new OjSubmissionItemResponse(
                 item.submissionId(),
-                item.studentIdentity(),
+                item.username(),
                 item.handle(),
                 item.submittedAtUtcPlus8(),
                 item.submittedDateUtcPlus8(),

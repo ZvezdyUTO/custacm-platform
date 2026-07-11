@@ -50,7 +50,7 @@ class OjStudentDataPurgeServiceTest {
                 "112487张三",
                 Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder")
         );
-        when(handleAccountService.getByStudentIdentity("112487张三")).thenReturn(account);
+        when(handleAccountService.getByUsername("112487张三")).thenReturn(account);
         when(warehouseDataPurgeRepository.purgeAllByHandle(OjNames.ATCODER, "tourist_atcoder"))
                 .thenReturn(new OjWarehouseDataPurgeRepository.OjWarehouseDataPurgeCounts(
                         7,
@@ -61,7 +61,7 @@ class OjStudentDataPurgeServiceTest {
 
         OjStudentDataPurgeResult result = service.purgeStudentData(" 112487张三 ", " atcoder ");
 
-        assertThat(result.studentIdentity()).isEqualTo("112487张三");
+        assertThat(result.username()).isEqualTo("112487张三");
         assertThat(result.ojName()).isEqualTo(OjNames.ATCODER);
         assertThat(result.handle()).isEqualTo("tourist_atcoder");
         assertThat(result.handles()).containsEntry(OjNames.CODEFORCES, "tourist")
@@ -72,7 +72,7 @@ class OjStudentDataPurgeServiceTest {
         assertThat(result.dwsAcceptedSummaryRows()).isEqualTo(9);
         assertThat(result.totalDeletedRows()).isEqualTo(30);
         assertThat(result.ojResults()).hasSize(1);
-        verify(handleAccountService).getByStudentIdentity("112487张三");
+        verify(handleAccountService).getByUsername("112487张三");
         verify(warehouseDataPurgeRepository).purgeAllByHandle(OjNames.ATCODER, "tourist_atcoder");
         verify(atcoderOdsDataPurgeRepository).purgeAllByHandle("tourist_atcoder");
     }
@@ -83,7 +83,7 @@ class OjStudentDataPurgeServiceTest {
                 "112487张三",
                 Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder")
         );
-        when(handleAccountService.getByStudentIdentity("112487张三")).thenReturn(account);
+        when(handleAccountService.getByUsername("112487张三")).thenReturn(account);
         when(warehouseDataPurgeRepository.purgeAllByHandle(OjNames.ATCODER, "tourist_atcoder"))
                 .thenReturn(new OjWarehouseDataPurgeRepository.OjWarehouseDataPurgeCounts(
                         7,
@@ -107,7 +107,7 @@ class OjStudentDataPurgeServiceTest {
 
     @Test
     void returnsZeroCountsWhenIdentityHasNoHandleAccount() {
-        when(handleAccountService.getByStudentIdentity("missing")).thenThrow(new OjHandleAccountException(
+        when(handleAccountService.getByUsername("missing")).thenThrow(new OjHandleAccountException(
                 OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_NOT_FOUND,
                 "OJ handle account not found"
         ));
@@ -127,7 +127,7 @@ class OjStudentDataPurgeServiceTest {
     @Test
     void returnsZeroCountsWhenRequestedOjIsNotBound() {
         OjHandleAccount account = account("112487张三", Map.of(OjNames.CODEFORCES, "tourist"));
-        when(handleAccountService.getByStudentIdentity("112487张三")).thenReturn(account);
+        when(handleAccountService.getByUsername("112487张三")).thenReturn(account);
 
         OjStudentDataPurgeResult result = service.purgeStudentData("112487张三", OjNames.ATCODER);
 
@@ -183,10 +183,10 @@ class OjStudentDataPurgeServiceTest {
         };
     }
 
-    private static OjHandleAccount account(String studentIdentity, Map<String, String> handles) {
+    private static OjHandleAccount account(String username, Map<String, String> handles) {
         Instant now = Instant.parse("2026-07-07T00:00:00Z");
         return new OjHandleAccount(
-                studentIdentity,
+                username,
                 handles,
                 true,
                 now,

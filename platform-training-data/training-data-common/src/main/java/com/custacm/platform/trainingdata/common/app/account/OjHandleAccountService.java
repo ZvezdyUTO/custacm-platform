@@ -14,7 +14,7 @@ import java.util.Optional;
 
 import static com.custacm.platform.trainingdata.common.support.Texts.requireText;
 
-public class OjHandleAccountService {
+public class OjHandleAccountService implements TrainingUserDirectory {
     private final OjHandleAccountRepository repository;
     private final Clock clock;
 
@@ -23,32 +23,36 @@ public class OjHandleAccountService {
         this.clock = clock;
     }
 
-    public OjHandleAccount create(String studentIdentity, Map<String, String> handles) {
-        String normalizedStudentIdentity = requireText(
-                studentIdentity,
-                "studentIdentity",
+    public OjHandleAccount create(String username, Map<String, String> handles) {
+		return create(username, handles, true);
+	}
+
+	public OjHandleAccount create(String username, Map<String, String> handles, boolean needCollect) {
+        String normalizedUsername = requireText(
+                username,
+                "username",
                 OjHandleAccountService::invalidRequest
         );
         Map<String, String> normalizedHandles = normalizeHandles(handles);
-        if (repository.findByStudentIdentity(normalizedStudentIdentity).isPresent()) {
+        if (repository.findByUsername(normalizedUsername).isPresent()) {
             throw new OjHandleAccountException(
                     OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_IDENTITY_EXISTS,
-                    "studentIdentity already has an OJ handle account"
+                    "username already has an OJ handle account"
             );
         }
         for (Map.Entry<String, String> entry : normalizedHandles.entrySet()) {
             if (repository.findByHandle(entry.getKey(), entry.getValue()).isPresent()) {
                 throw new OjHandleAccountException(
                         OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_HANDLE_EXISTS,
-                        entry.getKey() + " handle already belongs to a studentIdentity"
+                        entry.getKey() + " handle already belongs to a username"
                 );
             }
         }
         Instant now = clock.instant();
         return repository.save(new OjHandleAccount(
-                normalizedStudentIdentity,
+                normalizedUsername,
                 normalizedHandles,
-                true,
+                needCollect,
                 now,
                 now
         ));
@@ -58,13 +62,13 @@ public class OjHandleAccountService {
         return repository.findAll();
     }
 
-    public OjHandleAccount getByStudentIdentity(String studentIdentity) {
-        String normalizedStudentIdentity = requireText(
-                studentIdentity,
-                "studentIdentity",
+    public OjHandleAccount getByUsername(String username) {
+        String normalizedUsername = requireText(
+                username,
+                "username",
                 OjHandleAccountService::invalidRequest
         );
-        return repository.findByStudentIdentity(normalizedStudentIdentity)
+        return repository.findByUsername(normalizedUsername)
                 .orElseThrow(OjHandleAccountService::notFound);
     }
 
@@ -84,50 +88,50 @@ public class OjHandleAccountService {
         return handle;
     }
 
-    public OjHandleAccount changeStudentIdentity(
-            String oldStudentIdentity,
-            String newStudentIdentity,
+    public OjHandleAccount changeUsername(
+            String oldUsername,
+            String newUsername,
             Boolean needCollect
     ) {
-        return changeStudentIdentity(oldStudentIdentity, newStudentIdentity, needCollect, null);
+        return changeUsername(oldUsername, newUsername, needCollect, null);
     }
 
-    public OjHandleAccount changeStudentIdentity(
-            String oldStudentIdentity,
-            String newStudentIdentity,
+    public OjHandleAccount changeUsername(
+            String oldUsername,
+            String newUsername,
             Boolean needCollect,
             Map<String, String> handles
     ) {
-        String normalizedOldStudentIdentity = requireText(
-                oldStudentIdentity,
-                "oldStudentIdentity",
+        String normalizedOldUsername = requireText(
+                oldUsername,
+                "oldUsername",
                 OjHandleAccountService::invalidRequest
         );
-        String normalizedNewStudentIdentity = requireText(
-                newStudentIdentity,
-                "newStudentIdentity",
+        String normalizedNewUsername = requireText(
+                newUsername,
+                "newUsername",
                 OjHandleAccountService::invalidRequest
         );
-        OjHandleAccount existing = repository.findByStudentIdentity(normalizedOldStudentIdentity)
+        OjHandleAccount existing = repository.findByUsername(normalizedOldUsername)
                 .orElseThrow(() -> new OjHandleAccountException(
                         OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_NOT_FOUND,
                         "OJ handle account not found"
                 ));
-        boolean identityChanged = !normalizedOldStudentIdentity.equals(normalizedNewStudentIdentity);
-        if (identityChanged && repository.findByStudentIdentity(normalizedNewStudentIdentity).isPresent()) {
+        boolean identityChanged = !normalizedOldUsername.equals(normalizedNewUsername);
+        if (identityChanged && repository.findByUsername(normalizedNewUsername).isPresent()) {
             throw new OjHandleAccountException(
                     OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_IDENTITY_EXISTS,
-                        "newStudentIdentity already has an OJ handle account"
+                        "newUsername already has an OJ handle account"
             );
         }
         Map<String, String> updatedHandles = handles == null ? existing.handles() : mergeHandles(existing.handles(), handles);
         for (Map.Entry<String, String> entry : updatedHandles.entrySet()) {
             Optional<OjHandleAccount> conflictingAccount = repository.findByHandle(entry.getKey(), entry.getValue())
-                    .filter(account -> !normalizedOldStudentIdentity.equals(account.studentIdentity()));
+                    .filter(account -> !normalizedOldUsername.equals(account.username()));
             if (conflictingAccount.isPresent()) {
                 throw new OjHandleAccountException(
                         OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_HANDLE_EXISTS,
-                        entry.getKey() + " handle already belongs to a studentIdentity"
+                        entry.getKey() + " handle already belongs to a username"
                 );
             }
         }
@@ -136,9 +140,9 @@ public class OjHandleAccountService {
         if (!identityChanged && needCollect == null && !handlesChanged) {
             return existing;
         }
-        return repository.updateStudentIdentityAndNeedCollect(
-                normalizedOldStudentIdentity,
-                normalizedNewStudentIdentity,
+        return repository.updateUsernameAndNeedCollect(
+                normalizedOldUsername,
+                normalizedNewUsername,
                 updatedHandles,
                 updatedNeedCollect,
                 collectionStatesForUpdatedHandles(existing, updatedHandles),
@@ -162,7 +166,7 @@ public class OjHandleAccountService {
         }
         return repository.findByHandle(normalizedOjName, normalizedHandle)
                 .map(account -> repository.updateCollectionStates(
-                        account.studentIdentity(),
+                        account.username(),
                         markCollected(account.collectionStates(), normalizedOjName, historyStartReached, collectedAt),
                         clock.instant()
                 ));

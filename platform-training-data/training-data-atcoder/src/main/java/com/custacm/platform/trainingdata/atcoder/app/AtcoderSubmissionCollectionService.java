@@ -2,7 +2,7 @@ package com.custacm.platform.trainingdata.atcoder.app;
 
 import com.custacm.platform.trainingdata.atcoder.config.AtcoderCollectorProperties;
 import com.custacm.platform.trainingdata.atcoder.domain.AtcoderSubmissionSourceClient;
-import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountService;
+import com.custacm.platform.trainingdata.common.app.account.TrainingUserDirectory;
 import com.custacm.platform.trainingdata.common.collector.OjCollectionRequestExecutor;
 import com.custacm.platform.trainingdata.common.collector.OjHandleAccountCollectionHandleResolver;
 import com.custacm.platform.trainingdata.common.collector.OjSubmissionCollectionService;
@@ -19,7 +19,7 @@ public class AtcoderSubmissionCollectionService implements OjRecentSubmissionCol
     private final OjSubmissionCollectionService delegate;
 
     public AtcoderSubmissionCollectionService(
-            OjHandleAccountService handleAccountService,
+            TrainingUserDirectory handleAccountService,
             AtcoderSubmissionSourceClient sourceClient,
             AtcoderOdsIngestService ingestService,
             ObjectMapper objectMapper,
@@ -39,7 +39,7 @@ public class AtcoderSubmissionCollectionService implements OjRecentSubmissionCol
     }
 
     public AtcoderSubmissionCollectionService(
-            OjHandleAccountService handleAccountService,
+            TrainingUserDirectory handleAccountService,
             AtcoderSubmissionSourceClient sourceClient,
             AtcoderOdsIngestService ingestService,
             ObjectMapper objectMapper,
@@ -72,11 +72,11 @@ public class AtcoderSubmissionCollectionService implements OjRecentSubmissionCol
     }
 
     @Override
-    public OjSubmissionCollectionResult collectRecentWindowForStudentIdentity(
-            String studentIdentity,
+    public OjSubmissionCollectionResult collectRecentWindowForUsername(
+            String username,
             Duration lookback
     ) throws JsonProcessingException {
-        return delegate.collectRecentWindowForStudentIdentity(OjNames.ATCODER, studentIdentity, lookback);
+        return delegate.collectRecentWindowForUsername(OjNames.ATCODER, username, lookback);
     }
 
 }

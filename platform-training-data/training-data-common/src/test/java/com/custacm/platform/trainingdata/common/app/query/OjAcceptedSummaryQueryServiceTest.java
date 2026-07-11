@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class OjAcceptedSummaryQueryServiceTest {
     @Test
     void summarizesDwsRowsByRatingInAppLayer() {
-        String studentIdentity = "112487张三";
+        String username = "112487张三";
         LocalDate from = LocalDate.parse("2026-07-01");
         LocalDate to = LocalDate.parse("2026-07-03");
         OjAcceptedSummaryCriteria expectedRepositoryQuery = new OjAcceptedSummaryCriteria(
@@ -46,19 +46,19 @@ class OjAcceptedSummaryQueryServiceTest {
         };
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
-                handleAccountService(account(studentIdentity, "tourist", true)),
+                handleAccountService(account(username, "tourist", true)),
                 OjDifficultyBucketPolicies.defaults()
         );
 
         OjAcceptedSummaryReport report = service.summarizeStudentAcceptedProblems(
-                studentIdentity,
+                username,
                 from,
                 to,
                 null,
                 null
         );
 
-        assertThat(report.studentIdentity()).isEqualTo(studentIdentity);
+        assertThat(report.username()).isEqualTo(username);
         assertThat(report.authorHandle()).isEqualTo("tourist");
         assertThat(report.totalAcceptedProblemCount()).isEqualTo(10);
         assertThat(report.ratingCounts()).containsExactly(
@@ -70,7 +70,7 @@ class OjAcceptedSummaryQueryServiceTest {
 
     @Test
     void resolvesRequestedOjHandleFromAccountMap() {
-        String studentIdentity = "112487张三";
+        String username = "112487张三";
         OjAcceptedSummaryCriteria expectedRepositoryQuery = new OjAcceptedSummaryCriteria(
                 OjNames.ATCODER,
                 "tourist_atcoder",
@@ -86,7 +86,7 @@ class OjAcceptedSummaryQueryServiceTest {
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
                 handleAccountService(account(
-                        studentIdentity,
+                        username,
                         Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder"),
                         true
                 )),
@@ -95,14 +95,14 @@ class OjAcceptedSummaryQueryServiceTest {
 
         OjAcceptedSummaryReport report = service.summarizeStudentAcceptedProblems(
                 OjNames.ATCODER,
-                studentIdentity,
+                username,
                 null,
                 null,
                 null,
                 null
         );
 
-        assertThat(report.studentIdentity()).isEqualTo(studentIdentity);
+        assertThat(report.username()).isEqualTo(username);
         assertThat(report.authorHandle()).isEqualTo("tourist_atcoder");
         assertThat(report.totalAcceptedProblemCount()).isEqualTo(2);
         assertThat(report.ratingCounts()).containsExactly(rating("800", 2));
@@ -110,14 +110,14 @@ class OjAcceptedSummaryQueryServiceTest {
 
     @Test
     void foldsUnknownDifficultyKeysIntoUnratedWhenRatingBoundsAreBlank() {
-        String studentIdentity = "112487张三";
+        String username = "112487张三";
         OjAcceptedSummaryRepository repository = actualQuery -> List.of(
                 row("tourist_atcoder", "2026-07-01", Map.of("2800-", 1, "UNRATED", 2))
         );
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
                 handleAccountService(account(
-                        studentIdentity,
+                        username,
                         Map.of(OjNames.ATCODER, "tourist_atcoder"),
                         true
                 )),
@@ -126,7 +126,7 @@ class OjAcceptedSummaryQueryServiceTest {
 
         OjAcceptedSummaryReport report = service.summarizeStudentAcceptedProblems(
                 OjNames.ATCODER,
-                studentIdentity,
+                username,
                 null,
                 null,
                 null,
@@ -139,7 +139,7 @@ class OjAcceptedSummaryQueryServiceTest {
 
     @Test
     void appliesProblemRatingBoundsToWideDwsRowsInAppLayer() {
-        String studentIdentity = "112487张三";
+        String username = "112487张三";
         LocalDate from = LocalDate.parse("2026-07-01");
         LocalDate to = LocalDate.parse("2026-07-03");
         OjAcceptedSummaryCriteria expectedRepositoryQuery = new OjAcceptedSummaryCriteria(
@@ -158,19 +158,19 @@ class OjAcceptedSummaryQueryServiceTest {
         };
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
-                handleAccountService(account(studentIdentity, "tourist", true)),
+                handleAccountService(account(username, "tourist", true)),
                 OjDifficultyBucketPolicies.defaults()
         );
 
         OjAcceptedSummaryReport report = service.summarizeStudentAcceptedProblems(
-                studentIdentity,
+                username,
                 from,
                 to,
                 1200,
                 1600
         );
 
-        assertThat(report.studentIdentity()).isEqualTo(studentIdentity);
+        assertThat(report.username()).isEqualTo(username);
         assertThat(report.authorHandle()).isEqualTo("tourist");
         assertThat(report.totalAcceptedProblemCount()).isEqualTo(4);
         assertThat(report.ratingCounts()).containsExactly(
@@ -180,7 +180,7 @@ class OjAcceptedSummaryQueryServiceTest {
     }
 
     @Test
-    void rejectsUnboundStudentIdentity() {
+    void rejectsUnboundUsername() {
         OjAcceptedSummaryRepository repository = query -> {
             throw new UnsupportedOperationException("not used");
         };
@@ -227,17 +227,17 @@ class OjAcceptedSummaryQueryServiceTest {
         return new OjHandleAccountService(repository, Clock.fixed(Instant.EPOCH, ZoneOffset.ofHours(8)));
     }
 
-    private static OjHandleAccount account(String studentIdentity, String handle, boolean needCollect) {
-        return account(studentIdentity, Map.of(OjNames.CODEFORCES, handle), needCollect);
+    private static OjHandleAccount account(String username, String handle, boolean needCollect) {
+        return account(username, Map.of(OjNames.CODEFORCES, handle), needCollect);
     }
 
     private static OjHandleAccount account(
-            String studentIdentity,
+            String username,
             Map<String, String> handles,
             boolean needCollect
     ) {
         return new OjHandleAccount(
-                studentIdentity,
+                username,
                 handles,
                 needCollect,
                 Instant.EPOCH,
@@ -254,8 +254,8 @@ class OjAcceptedSummaryQueryServiceTest {
         }
 
         @Override
-        public java.util.Optional<OjHandleAccount> findByStudentIdentity(String studentIdentity) {
-            return java.util.Optional.ofNullable(accountsByIdentity.get(studentIdentity));
+        public java.util.Optional<OjHandleAccount> findByUsername(String username) {
+            return java.util.Optional.ofNullable(accountsByIdentity.get(username));
         }
 
         @Override
@@ -267,14 +267,14 @@ class OjAcceptedSummaryQueryServiceTest {
 
         @Override
         public OjHandleAccount save(OjHandleAccount account) {
-            accountsByIdentity.put(account.studentIdentity(), account);
+            accountsByIdentity.put(account.username(), account);
             return account;
         }
 
         @Override
-        public OjHandleAccount updateStudentIdentityAndNeedCollect(
-                String oldStudentIdentity,
-                String newStudentIdentity,
+        public OjHandleAccount updateUsernameAndNeedCollect(
+                String oldUsername,
+                String newUsername,
                 Map<String, String> handles,
                 boolean needCollect,
                 Map<String, OjHandleCollectionState> collectionStates,
@@ -285,7 +285,7 @@ class OjAcceptedSummaryQueryServiceTest {
 
         @Override
         public OjHandleAccount updateCollectionStates(
-                String studentIdentity,
+                String username,
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {

@@ -14,7 +14,7 @@ public record OjProblemFirstAcceptedHandleReport(
         List<OjFirstAcceptedHandle> acceptedHandles
 ) {
     public record OjFirstAcceptedHandle(
-            String studentIdentity,
+            String username,
             String handle,
             LocalDateTime firstAcceptedAtUtcPlus8
     ) {

@@ -1,78 +1,87 @@
 # frontend Agent Notes
 
-`frontend` is the first runnable frontend slice for the training-team management
-platform. It implements a React/Vite workbench that reads real auth/training-data
-HTTP APIs through same-origin dev/deploy proxies. Keep the default experience
-focused on training-data query: single-user detail query, problem-level query,
-and multi-user summary surfaces belong in the query workspace. The multi-user
-page may load the existing public per-student accepted-summary endpoint for
-students whose automatic collection is enabled and whose current OJ handle is
-bound, but the frontend must not call or reintroduce a backend
-automatic-summary endpoint. Query filters are applied automatically when OJ,
-student, problem key, date range, or rating range changes, and page refresh
-should load the default multi-user summary without requiring a query button; admin-only
-mutation/update controls belong in the separate admin workspace after admin login. The top-right workspace switcher
-chooses query/admin mode, while the left sidebar owns module/page navigation.
-These workspace and page tabs are mirrored to browser history paths
-(`/query/multiple`, `/query/single`, `/query/problem`, `/admin/user-create`, `/admin/user-edit`,
-`/admin/collection`, `/admin/records`) so refresh and direct links preserve
-the current page.
-Inside the admin workspace, keep user creation, user modification, training-data
-synchronization/collection, and operation records as separate pages instead of
-mixing creation, query, import, and refresh actions in one surface. High-cost
-actions such as recent-lookback collection and full user data deletion must
-require explicit user confirmation in the UI.
+`frontend` 是 Vue 3 训练中心，不是独立后端或通用站点外壳。生产环境中，Vue Blog 持有 `/training/**` 外层路由和唯一顶栏，并在其下方同源嵌入训练运行时；训练静态产物只挂载在内部路径 `/training-app/**`。浏览器请求统一走 `/api/**`，由 Nginx 去掉 `/api` 前缀后转发到唯一的 Blog API。
 
-## Scope
+## 当前范围
 
-- Keep this module focused on the training query and admin workbench UI plus
-  frontend-local API adapters. The query workspace can read the public auth
-  user list, public full OJ handle account map, and personal/problem-level OJ
-  detail data. Codeforces-compatible OJ collection is the only data-sync action
-  currently represented as a backend job list; ODS upload, automatic-summary
-  queries, and standalone warehouse refresh are not exposed in the UI.
-- Do not change backend APIs or auth contracts from frontend code. Match the
-  documented `auth-web` and `training-data-web` HTTP contracts.
-- Full user deletion in the UI must compose backend-owned operations in order:
-  clear training-data-owned OJ rows first, then call the auth admin account
-  deletion endpoint.
-- The user creation page owns text import and editable create rows, then calls
-  the batch-create flow plus optional OJ handle binding.
-- The user modification page should include an all-user list sorted by the
-  student-number prefix of `studentIdentity` in descending order; accounts
-  without a numeric prefix belong after student accounts. Existing-user edits
-  should stay integrated with that list instead of living in a separate page
-  section, including role/password changes, missing OJ handle completion,
-  automatic-collection flag changes, OJ handle-account identity migration, full
-  user deletion, and per-OJ history-start coverage status plus last collected
-  time from `collectionStates`.
-- Keep auth account `studentIdentity` as one immutable string wherever user identity appears.
-  OJ handle-account identity migration is a training-data mapping operation and
-  must not be presented as renaming the auth account.
-- Use code-native controls for tables, filters, tabs, buttons, and states. Do
-  not ship screenshots as UI.
-- Do not store passwords in code. The login form posts credentials only to the
-  local/proxied `/api/auth/login` endpoint and stores the returned access token
-  in browser localStorage.
+- 训练中心路由只有 `/training/login`、`/training/multiple`、`/training/single`、`/training/problem`、`/training/admin/create-users`、`/training/admin/users`、`/training/admin/training` 和 `/training/admin/appearance`；`/training` 在生产环境重定向到 `/training/multiple`，旧 `/training/admin?section=...` 只作兼容解析。
+- 多人、单人和题目查询都要求登录。业务身份字段是 `username`，角色只能是 `ROLE_admin` 或 `ROLE_player`。
+- 管理区分为“创建用户”“管理用户”“数据采集”“首页图片”四个独立页面。创建页负责文本导入、可编辑行和批量提交；管理页负责修改、改名、重置密码、角色/OJ handle/采集状态和删除；数据采集页负责全员/单人任务与任务详情，并且每次采集必须刷新数仓；首页图片页负责多图选择、16:9 裁剪、排序和删除。
+- 前端不提供原始数据上传入口，也不重新实现后端账号、权限、采集或数仓规则。
+- 多人查询先读取 `GET /player/training-data/users` 返回的可采集用户目录，再以最大并发数 6 查询各用户汇总。目录响应只消费 `username`、`nickname`、`ojNames`。
+- 正式验收范围是 1280–2560 px 桌面端，重点检查 1440×900 和 1920×1080；移动端不在当前交付范围。
+- 进入 `/training/**` 后必须继续使用 Blog 已挂载的同一个 `Nav.vue` 实例，只替换其下方内容并把“训练中心”显示为选中态；不得在训练应用中复制或显示第二条顶栏。
 
-## Structure Rules
+## 认证与请求规则
 
-- `src/components/` owns reusable view components.
-- `src/api/` owns frontend HTTP clients for platform services.
-- `src/data/` owns static frontend navigation and local seed identity metadata,
-  not business mock rows.
-- `src/hooks/` owns reusable state or filtering helpers.
-- `src/utils/` owns pure dashboard model builders derived from API responses.
-- `src/test/` owns frontend unit tests.
-- `src/App.tsx` should remain composition glue, not the place for all markup and
-  HTTP details.
-- `src/styles.css` is only the shared CSS entrypoint. Keep actual rules split
-  under `src/styles/` by foundation, shell, dashboard, table, side panel, and
-  responsive concerns.
+- 训练中心与 Vue Blog 共享 `localStorage` 键 `custacm.accessToken` 和 `custacm.user`。用户摘要只用于展示；Blog API 始终根据 JWT 与数据库中的当前用户/角色做授权。
+- 训练中心启动时通过 `/player/me` 恢复会话。只有 401 可以清除失效会话；403 与网络错误不得伪装成退出登录。
+- `src/api/client.ts` 只提供通用请求封装，不得全局附加 JWT。受保护的请求由对应 API adapter 显式传入 `Authorization: Bearer <token>`。
+- 公开 Blog 请求不得携带训练 JWT。Vue 评论提交是例外：它读取共享会话，并只为 `POST /player/comment` 显式附加 Bearer JWT；密码文章 token 保持原格式，不能和登录 JWT 混用。
+- 登录回跳必须经过 `safeReturnPath` 白名单，禁止开放重定向。
+- 不在源码、文档、日志或测试夹具中写真实密码、JWT 或签名密钥。
 
-## Verification
+## 结构与依赖规则
 
-Use the scripts in `package.json` when changing frontend code:
+- `src/App.vue` 负责会话和顶层组合，`src/router/index.ts` 负责训练路由；认证生命周期归 `src/composables/useAuthSession.ts`，业务状态编排归 `src/composables/usePlatformDashboard.ts`。
+- `src/api/` 按 auth、training、admin 拆分 Blog API adapter；组件不得自行拼接散落的 HTTP 请求。
+- `src/components/` 负责可访问的页面与复用组件；`TrainingAdminPanel` 是三个管理员页面的统一导航入口。
+- `src/utils/` 只放纯函数或可独立测试的并发工具；多人请求必须复用 `runLimited` 的并发限制。
+- `src/styles.css` 只作为样式入口；当前生效规则按 foundation、theme、shell、dashboard、table、side-panel 拆分；未导入的 `responsive.css` 属于待清理的旧样式，不得视为现役契约。
+- `src/test/` 覆盖路由、会话、API adapter、并发器和关键页面交互。新增业务行为必须在同一变更中补测试。
+- 不跨应用复制业务组件，也不把两套 Vue Router 合并；Blog Router 持有公开 `/training/**`，训练 Router 只在同源 frame 的内部 `/training-app/**` 运行并同步公开 URL。
+
+## 关键文件职责
+
+| 文件 | 职责 |
+| --- | --- |
+| `Dockerfile` | 分别构建 Vue 3 训练中心和 Vue 3 Blog，并将两份静态产物复制进 Nginx 镜像 |
+| `nginx.conf` | 让 `/training/**` 使用 Blog history fallback、`/training-app/**` 使用训练产物，并代理 `/api/**` |
+| `vite.config.ts` | 设置内部 `/training-app/` base、本地 5173 端口、独立 HMR 通道和 `/api` 到 8090 的开发代理 |
+| `src/main.ts` | Vue 应用与 Vue Router 入口 |
+| `src/App.vue` | 组合认证、训练查询和管理员页面 |
+| `src/router/index.ts` | 定义内部 `/training-app/**` 路由；公开路径由 Blog Router 持有 |
+| `src/views/TrainingView.vue` | 查询和管理员页面的路由级容器 |
+| `src/routing.ts` | 解析训练中心路径、管理员 section，并校验登录回跳白名单 |
+| `src/types.ts` | 训练前端使用的 Blog API DTO 和页面模型 |
+| `src/auth/session.ts` | 成对校验、读写、清理共享 JWT 与用户摘要 |
+| `src/api/client.ts` | Blog `Result` envelope、错误类型和基础 fetch 封装 |
+| `src/api/auth.ts` | 登录、当前用户和修改本人密码接口 |
+| `src/api/training.ts` | 用户目录、多人/单人/题目训练查询接口 |
+| `src/api/admin.ts` | 用户、OJ handle、采集任务、数仓刷新和首页图片管理接口 |
+| `src/composables/useAuthSession.ts` | 会话恢复、竞态隔离、登录、退出和修改密码 |
+| `src/composables/usePlatformDashboard.ts` | 查询筛选、分页、用户管理、采集任务与提示状态编排 |
+| `src/utils/runLimited.ts` | 有序执行并限制最大并发数的纯工具 |
+| `src/utils/adminUsers.ts` | 创建用户文本导入与可编辑行转换 |
+| `src/utils/adminTraining.ts` | 固定携带 `refreshWarehouse: true` 的采集请求构造 |
+| `src/components/AppShell.vue` | 训练内容外壳；独立开发时提供调试顶栏，生产同源嵌入时必须隐藏该顶栏 |
+| `src/components/LoginPanel.vue` | 登录表单与安全回跳 |
+| `src/components/TrainingQueryPanel.vue` | 多人、单人和题目查询页面 |
+| `src/components/TrainingAdminPanel.vue` | “创建用户/管理用户/数据采集/首页图片”独立页面导航容器 |
+| `src/components/HomepageBannerAdminPanel.vue` | 首页图片多选队列、1920×1080 裁剪、排序与删除界面 |
+| `src/styles/homepage-banner-admin.css` | 首页图片管理卡片和裁剪弹窗样式 |
+| `src/components/CreateUsersPanel.vue` | 文本导入、创建信息行和批量创建操作 |
+| `src/components/AdminUserManagementPanel.vue` | 已有账号、角色、密码、OJ handle、采集状态和删除操作 |
+| `src/components/TrainingDataOpsPanel.vue` | 全部/单人采集、任务详情和固定数仓刷新 |
+| `src/styles/theme.css` | 与 Blog 一致的颜色、字体和视觉变量 |
+| `src/styles/*.css` | 基础、外壳、内容、表格、侧栏及桌面宽度样式 |
+| `src/test/session.test.ts` | 共享会话读写、非法数据与孤儿键清理测试 |
+| `src/test/routing.test.ts` | 训练路径、管理员 section 与安全回跳测试 |
+| `src/test/login-panel-vue.test.ts` | 登录表单与安全回跳测试 |
+| `src/test/run-limited.test.ts` | 并发上限、结果顺序与失败传播测试 |
+| `src/test/*.test.ts` | 路由、会话、API、并发和组件行为回归测试 |
+
+## 本地运行与验证
+
+Vue 3 训练中心使用 Node.js 20.19+ 和锁定的 pnpm：
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev -- --host 0.0.0.0
+```
+
+训练应用的独立开发入口是 `http://localhost:5173/training-app/multiple`；与 Blog Vite 同时启动时，统一热更新入口是 `http://localhost:4180/training/multiple`。部署验收仍使用 Nginx 的 `/training/**`，并要求 Blog API 可通过 `http://localhost:8090` 访问。提交前运行：
 
 ```bash
 pnpm lint
@@ -81,12 +90,17 @@ pnpm typecheck
 pnpm build
 ```
 
-For rendered UI changes, start the Vite dev server, ensure `auth-web` and
-`training-data-web` are reachable, and inspect the page in a real browser across
-desktop and mobile widths.
+Vue Blog 的可复现生产构建命令是：
 
-## Documentation
+```bash
+cd ../platform-blog/upstream/nblog/blog-view
+npm ci
+npm test
+npm run build
+```
 
-When materially changing frontend code, update this file, `README.md`,
-`../docs/architecture.md`, and `../docs/agent/context-map.md` if responsibilities,
-scripts, boundaries, or directory structure changed.
+涉及渲染的变更还要在 1440×900 和 1920×1080 的真实浏览器中检查 `/`、`/training/**`、刷新 history fallback、登录/退出、权限隔离和控制台错误。
+
+## 文档同步
+
+职责、路由、API、构建或部署边界变化时，同步更新 `README.md`、`../platform-blog/README.md`、`../docs/api.md`、`../docs/architecture.md`、`../docs/authorization.md`、`../docs/agent/context-map.md` 和部署文档。

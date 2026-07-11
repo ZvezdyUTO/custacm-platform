@@ -1,7 +1,7 @@
 package com.custacm.platform.trainingdata.codeforces.config;
 
 import com.custacm.platform.common.sqltask.SqlTaskRunner;
-import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountService;
+import com.custacm.platform.trainingdata.common.app.account.TrainingUserDirectory;
 import com.custacm.platform.trainingdata.common.app.warehouse.OjWarehouseRefreshService;
 import com.custacm.platform.trainingdata.common.collector.job.OjWarehouseRefreshHandler;
 import com.custacm.platform.trainingdata.common.collector.job.SqlTaskOjWarehouseRefreshHandler;
@@ -82,7 +82,7 @@ public class CodeforcesTrainingDataConfig {
 
     @Bean
     CodeforcesSubmissionCollectionService codeforcesSubmissionCollectionService(
-            OjHandleAccountService handleAccountService,
+            TrainingUserDirectory handleAccountService,
             CodeforcesSubmissionSourceClient sourceClient,
             CodeforcesOdsSubmissionIngestService ingestService,
             ObjectMapper objectMapper,

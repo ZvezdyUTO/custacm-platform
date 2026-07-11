@@ -26,7 +26,7 @@ If a changed file matches the pattern, at least one listed required doc must als
 
 ## Required Agent Behavior
 
-- API behavior changed: update [../api.md](../api.md) and the relevant module `AGENTS.md`.
+- API behavior changed, including admin-managed public assets: update [../api.md](../api.md) and the relevant module `AGENTS.md`.
 - HTTP authorization behavior changed: update [../authorization.md](../authorization.md), [../api.md](../api.md), and the relevant module `AGENTS.md`.
 - Module boundary changed: update [../architecture.md](../architecture.md), [context-map.md](context-map.md), and module `AGENTS.md`.
 - Runnable service status changed: update [README.md](../../README.md), [../architecture.md](../architecture.md), [context-map.md](context-map.md), and [README.md](README.md).

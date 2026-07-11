@@ -1,40 +1,28 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config';
+import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
-  plugins: [react()],
+  base: '/training-app/',
+  plugins: [vue()],
   server: {
     host: '0.0.0.0',
     port: 5173,
+    strictPort: true,
+    hmr: {
+      path: '/training-app-hmr',
+    },
     proxy: {
-      '/api/auth': {
-        target: 'http://localhost:8081',
+      '/api': {
+        target: 'http://localhost:8090',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
-      '/api/training-data': {
-        target: 'http://localhost:8082',
-        changeOrigin: true,
-      },
-      '/health/auth': {
-        target: 'http://localhost:8081',
-        changeOrigin: true,
-        rewrite: () => '/health',
-      },
-      '/health/training-data': {
-        target: 'http://localhost:8082',
-        changeOrigin: true,
-        rewrite: () => '/health',
-      },
-      '/module-info/auth': {
-        target: 'http://localhost:8081',
-        changeOrigin: true,
-        rewrite: () => '/module-info',
-      },
-      '/module-info/training-data': {
-        target: 'http://localhost:8082',
-        changeOrigin: true,
-        rewrite: () => '/module-info',
-      },
+    },
+  },
+  test: {
+    environment: 'jsdom',
+    environmentOptions: {
+      jsdom: { url: 'http://localhost/training/multiple' },
     },
   },
 });

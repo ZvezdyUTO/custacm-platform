@@ -1,6 +1,6 @@
 package com.custacm.platform.trainingdata.common.app.query;
 
-import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountService;
+import com.custacm.platform.trainingdata.common.app.account.TrainingUserDirectory;
 import com.custacm.platform.trainingdata.common.app.query.result.OjHandleSubmissionReport;
 import com.custacm.platform.trainingdata.common.app.query.result.OjProblemSubmissionReport;
 import com.custacm.platform.trainingdata.common.app.query.result.OjSubmissionItem;
@@ -18,18 +18,18 @@ import java.util.Map;
 
 public class OjSubmissionQueryService {
     private final OjSubmissionRepository repository;
-    private final OjHandleAccountService handleAccountService;
+    private final TrainingUserDirectory handleAccountService;
 
     public OjSubmissionQueryService(
             OjSubmissionRepository repository,
-            OjHandleAccountService handleAccountService
+            TrainingUserDirectory handleAccountService
     ) {
         this.repository = repository;
         this.handleAccountService = handleAccountService;
     }
 
     public OjHandleSubmissionReport listStudentSubmissions(
-            String studentIdentity,
+            String username,
             LocalDateTime submittedFromUtcPlus8,
             LocalDateTime submittedToUtcPlus8,
             Integer minProblemRating,
@@ -39,7 +39,7 @@ public class OjSubmissionQueryService {
     ) {
         return listStudentSubmissions(
                 OjNames.CODEFORCES,
-                studentIdentity,
+                username,
                 submittedFromUtcPlus8,
                 submittedToUtcPlus8,
                 minProblemRating,
@@ -51,7 +51,7 @@ public class OjSubmissionQueryService {
 
     public OjHandleSubmissionReport listStudentSubmissions(
             String ojName,
-            String studentIdentity,
+            String username,
             LocalDateTime submittedFromUtcPlus8,
             LocalDateTime submittedToUtcPlus8,
             Integer minProblemRating,
@@ -59,7 +59,7 @@ public class OjSubmissionQueryService {
             int page,
             int limit
     ) {
-        OjHandleAccount account = handleAccountService.getByStudentIdentity(studentIdentity);
+        OjHandleAccount account = handleAccountService.getByUsername(username);
         String ojHandle = handleAccountService.getHandle(account, ojName);
         OjHandleSubmissionCriteria query = new OjHandleSubmissionCriteria(
                 ojName,
@@ -75,7 +75,7 @@ public class OjSubmissionQueryService {
         long totalPages = totalPages(total, limit);
         if (query.offset() >= total) {
             return new OjHandleSubmissionReport(
-                    account.studentIdentity(),
+                    account.username(),
                     ojHandle,
                     page,
                     limit,
@@ -87,14 +87,14 @@ public class OjSubmissionQueryService {
         }
         List<OjSubmission> rows = repository.findHandleSubmissions(query);
         return new OjHandleSubmissionReport(
-                account.studentIdentity(),
+                account.username(),
                 ojHandle,
                 page,
                 limit,
                 total,
                 totalPages,
                 page < totalPages,
-                submissionItems(rows, account.studentIdentity())
+                submissionItems(rows, account.username())
         );
     }
 
@@ -114,7 +114,7 @@ public class OjSubmissionQueryService {
             );
         }
         List<OjSubmission> rows = repository.findProblemSubmissions(query);
-        Map<String, String> studentIdentityByHandle = studentIdentityByHandle(query.ojName(), rows);
+        Map<String, String> usernameByHandle = usernameByHandle(query.ojName(), rows);
         return new OjProblemSubmissionReport(
                 query.problemKey(),
                 page,
@@ -122,7 +122,7 @@ public class OjSubmissionQueryService {
                 total,
                 totalPages,
                 page < totalPages,
-                submissionItems(rows, studentIdentityByHandle)
+                submissionItems(rows, usernameByHandle)
         );
     }
 
@@ -143,37 +143,37 @@ public class OjSubmissionQueryService {
 
     private static List<OjSubmissionItem> submissionItems(
             List<OjSubmission> rows,
-            String studentIdentity
+            String username
     ) {
         return rows.stream()
-                .map(row -> toSubmissionItem(row, studentIdentity))
+                .map(row -> toSubmissionItem(row, username))
                 .toList();
     }
 
     private static List<OjSubmissionItem> submissionItems(
             List<OjSubmission> rows,
-            Map<String, String> studentIdentityByHandle
+            Map<String, String> usernameByHandle
     ) {
         return rows.stream()
-                .map(row -> toSubmissionItem(row, studentIdentityByHandle.get(row.handle())))
+                .map(row -> toSubmissionItem(row, usernameByHandle.get(row.handle())))
                 .toList();
     }
 
-    private Map<String, String> studentIdentityByHandle(String ojName, List<OjSubmission> rows) {
-        Map<String, String> studentIdentityByHandle = new LinkedHashMap<>();
+    private Map<String, String> usernameByHandle(String ojName, List<OjSubmission> rows) {
+        Map<String, String> usernameByHandle = new LinkedHashMap<>();
         for (OjSubmission row : rows) {
-            studentIdentityByHandle.computeIfAbsent(
+            usernameByHandle.computeIfAbsent(
                     row.handle(),
-                    handle -> handleAccountService.getByHandle(ojName, handle).studentIdentity()
+                    handle -> handleAccountService.getByHandle(ojName, handle).username()
             );
         }
-        return studentIdentityByHandle;
+        return usernameByHandle;
     }
 
-    private static OjSubmissionItem toSubmissionItem(OjSubmission row, String studentIdentity) {
+    private static OjSubmissionItem toSubmissionItem(OjSubmission row, String username) {
         return new OjSubmissionItem(
                 row.submissionId(),
-                studentIdentity,
+                username,
                 row.handle(),
                 row.submittedAtUtcPlus8(),
                 row.submittedDateUtcPlus8(),

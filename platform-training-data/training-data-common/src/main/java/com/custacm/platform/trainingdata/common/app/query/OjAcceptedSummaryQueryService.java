@@ -1,6 +1,6 @@
 package com.custacm.platform.trainingdata.common.app.query;
 
-import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountService;
+import com.custacm.platform.trainingdata.common.app.account.TrainingUserDirectory;
 import com.custacm.platform.trainingdata.common.app.query.result.OjAcceptedSummaryReport;
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjAcceptedSummaryCriteria;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjDailyRatingAcceptedSummary;
@@ -17,12 +17,12 @@ import java.util.Map;
 
 public class OjAcceptedSummaryQueryService {
     private final OjAcceptedSummaryRepository repository;
-    private final OjHandleAccountService handleAccountService;
+    private final TrainingUserDirectory handleAccountService;
     private final OjDifficultyBucketPolicies bucketPolicies;
 
     public OjAcceptedSummaryQueryService(
             OjAcceptedSummaryRepository repository,
-            OjHandleAccountService handleAccountService,
+            TrainingUserDirectory handleAccountService,
             OjDifficultyBucketPolicies bucketPolicies
     ) {
         this.repository = repository;
@@ -31,7 +31,7 @@ public class OjAcceptedSummaryQueryService {
     }
 
     public OjAcceptedSummaryReport summarizeStudentAcceptedProblems(
-            String studentIdentity,
+            String username,
             LocalDate acceptedFromDateUtcPlus8,
             LocalDate acceptedToDateUtcPlus8,
             Integer minProblemRating,
@@ -39,7 +39,7 @@ public class OjAcceptedSummaryQueryService {
     ) {
         return summarizeStudentAcceptedProblems(
                 OjNames.CODEFORCES,
-                studentIdentity,
+                username,
                 acceptedFromDateUtcPlus8,
                 acceptedToDateUtcPlus8,
                 minProblemRating,
@@ -49,13 +49,13 @@ public class OjAcceptedSummaryQueryService {
 
     public OjAcceptedSummaryReport summarizeStudentAcceptedProblems(
             String ojName,
-            String studentIdentity,
+            String username,
             LocalDate acceptedFromDateUtcPlus8,
             LocalDate acceptedToDateUtcPlus8,
             Integer minProblemRating,
             Integer maxProblemRating
     ) {
-        OjHandleAccount account = handleAccountService.getByStudentIdentity(studentIdentity);
+        OjHandleAccount account = handleAccountService.getByUsername(username);
         return summarizeAccountAcceptedProblems(
                 ojName,
                 account,
@@ -92,7 +92,7 @@ public class OjAcceptedSummaryQueryService {
                 query.maxProblemRating()
         );
         return new OjAcceptedSummaryReport(
-                account.studentIdentity(),
+                account.username(),
                 ojHandle,
                 totalCount(ratingCounts),
                 ratingCounts

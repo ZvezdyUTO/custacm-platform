@@ -102,6 +102,14 @@
   border-bottom: 1px solid #edf0f4;
 }
 
+.auto-summary-table tbody tr.is-error > * {
+  background: #fffafa;
+}
+
+.auto-summary-table tbody tr.is-error .auto-summary-player-cell {
+  box-shadow: inset 3px 0 0 #d92d20;
+}
+
 .check-cell {
   width: 42px;
   text-align: center;
@@ -199,12 +207,6 @@
   border-color: #bfe8d1;
   background: var(--green-soft);
   color: #116a45;
-}
-
-.role-disable {
-  border-color: #ffc6c6;
-  background: var(--red-soft);
-  color: #b42318;
 }
 
 .owner-cell {
@@ -328,4 +330,139 @@
   to {
     transform: translateX(160%);
   }
+}
+
+.admin-user-table-shell {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: #fff;
+}
+
+.admin-user-table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 12px;
+}
+
+.admin-user-table th {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-subtle);
+  color: #475467;
+  font-weight: 680;
+  text-align: left;
+}
+
+.admin-user-table th,
+.admin-user-table td {
+  overflow: hidden;
+  border-right: 1px solid #edf0f4;
+  border-bottom: 1px solid #edf0f4;
+  padding: 10px;
+  vertical-align: middle;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-user-table th:nth-child(1) {
+  width: 150px;
+}
+
+.admin-user-table th:nth-child(2) {
+  width: 130px;
+}
+
+.admin-user-table th:nth-child(3) {
+  width: 190px;
+}
+
+.admin-user-table th:nth-child(4) {
+  width: 100px;
+}
+
+.admin-user-table th:nth-child(5) {
+  width: 245px;
+}
+
+.admin-user-table th:nth-child(6) {
+  width: 90px;
+}
+
+.admin-user-table th:nth-child(7) {
+  width: 130px;
+}
+
+.admin-user-table th:nth-child(8) {
+  width: 90px;
+}
+
+.admin-user-table th:last-child,
+.admin-user-table td:last-child {
+  border-right: 0;
+}
+
+.admin-user-table tbody tr:not(.admin-user-edit-row):hover,
+.admin-user-table tbody tr.is-expanded {
+  background: var(--navy-softer);
+}
+
+.admin-user-identity {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-user-identity strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+
+.admin-user-identity small {
+  color: var(--muted);
+}
+
+.admin-user-empty {
+  height: 120px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid var(--navy-border);
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--navy);
+  padding: 0 8px;
+  font-weight: 650;
+}
+
+.admin-user-edit-row > td {
+  overflow: visible;
+  background: #f8fafc;
+  padding: 14px;
+  white-space: normal;
+}
+
+.admin-user-edit-form {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-user-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.admin-user-edit-actions {
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
 }

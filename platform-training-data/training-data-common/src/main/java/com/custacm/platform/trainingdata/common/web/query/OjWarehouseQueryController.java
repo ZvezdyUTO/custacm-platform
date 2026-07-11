@@ -48,7 +48,7 @@ public class OjWarehouseQueryController {
     @GetMapping("/accepted-summary")
     public ResponseEntity<OjAcceptedSummaryResponse> summarizeAcceptedProblems(
             @RequestParam(value = "ojName", defaultValue = OjNames.CODEFORCES) String ojName,
-            @RequestParam("studentIdentity") String studentIdentity,
+            @RequestParam("username") String username,
             @RequestParam(value = "acceptedFromDateUtcPlus8", required = false) String acceptedFromDateUtcPlus8,
             @RequestParam(value = "acceptedToDateUtcPlus8", required = false) String acceptedToDateUtcPlus8,
             @RequestParam(value = "minProblemRating", required = false) Integer minProblemRating,
@@ -57,7 +57,7 @@ public class OjWarehouseQueryController {
         return ResponseEntity.ok(OjAcceptedSummaryResponse.from(
                 acceptedSummaryQueryService.summarizeStudentAcceptedProblems(
                         requireText(ojName, "ojName", OjWarehouseQueryController::invalidRequest),
-                        requireText(studentIdentity, "studentIdentity", OjWarehouseQueryController::invalidRequest),
+                        requireText(username, "username", OjWarehouseQueryController::invalidRequest),
                         parseLocalDate(acceptedFromDateUtcPlus8, "acceptedFromDateUtcPlus8"),
                         parseLocalDate(acceptedToDateUtcPlus8, "acceptedToDateUtcPlus8"),
                         minProblemRating,
@@ -66,10 +66,10 @@ public class OjWarehouseQueryController {
         ));
     }
 
-    @GetMapping("/submissions/by-student")
+    @GetMapping("/submissions/by-user")
     public ResponseEntity<OjStudentSubmissionReportResponse> listStudentSubmissions(
             @RequestParam(value = "ojName", defaultValue = OjNames.CODEFORCES) String ojName,
-            @RequestParam("studentIdentity") String studentIdentity,
+            @RequestParam("username") String username,
             @RequestParam(value = "submittedFromUtcPlus8", required = false) String submittedFromUtcPlus8,
             @RequestParam(value = "submittedToUtcPlus8", required = false) String submittedToUtcPlus8,
             @RequestParam(value = "minProblemRating", required = false) Integer minProblemRating,
@@ -82,7 +82,7 @@ public class OjWarehouseQueryController {
         return ResponseEntity.ok(OjStudentSubmissionReportResponse.from(
                 submissionQueryService.listStudentSubmissions(
                         requireText(ojName, "ojName", OjWarehouseQueryController::invalidRequest),
-                        requireText(studentIdentity, "studentIdentity", OjWarehouseQueryController::invalidRequest),
+                        requireText(username, "username", OjWarehouseQueryController::invalidRequest),
                         parseLocalDateTime(submittedFromUtcPlus8, "submittedFromUtcPlus8"),
                         parseLocalDateTime(submittedToUtcPlus8, "submittedToUtcPlus8"),
                         minProblemRating,
@@ -117,10 +117,10 @@ public class OjWarehouseQueryController {
         ));
     }
 
-    @GetMapping("/first-accepted/by-student")
+    @GetMapping("/first-accepted/by-user")
     public ResponseEntity<OjStudentFirstAcceptedProblemReportResponse> summarizeStudentFirstAcceptedProblems(
             @RequestParam(value = "ojName", defaultValue = OjNames.CODEFORCES) String ojName,
-            @RequestParam("studentIdentity") String studentIdentity,
+            @RequestParam("username") String username,
             @RequestParam(value = "firstAcceptedFromUtcPlus8", required = false) String firstAcceptedFromUtcPlus8,
             @RequestParam(value = "firstAcceptedToUtcPlus8", required = false) String firstAcceptedToUtcPlus8,
             @RequestParam(value = "minProblemRating", required = false) Integer minProblemRating,
@@ -133,7 +133,7 @@ public class OjWarehouseQueryController {
         return ResponseEntity.ok(OjStudentFirstAcceptedProblemReportResponse.from(
                 firstAcceptedProblemQueryService.summarizeStudentFirstAcceptedProblems(
                         requireText(ojName, "ojName", OjWarehouseQueryController::invalidRequest),
-                        requireText(studentIdentity, "studentIdentity", OjWarehouseQueryController::invalidRequest),
+                        requireText(username, "username", OjWarehouseQueryController::invalidRequest),
                         parseLocalDateTime(firstAcceptedFromUtcPlus8, "firstAcceptedFromUtcPlus8"),
                         parseLocalDateTime(firstAcceptedToUtcPlus8, "firstAcceptedToUtcPlus8"),
                         minProblemRating,

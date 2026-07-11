@@ -1,175 +1,79 @@
-# Server Deployment
+# 单机 Compose 部署说明
 
-This project uses a single-server deployment model for the current phase.
+仓库当前提供可用于本地或单台主机的 Compose 配置，包含四个服务：`blog-db`、`blog-redis`、唯一后端 `blog-api` 和统一 Nginx `frontend`。本文是操作说明，不表示这些命令已经在某台服务器执行，也不构成已上线声明。
 
-## Server Layout
+## 配置与启动
 
-Use this directory layout on the server:
-
-```text
-/opt/custacm-platform/                  application repository
-/opt/custacm-platform/deploy/.env       server-only environment file
-/opt/custacm-platform/deploy/secrets/   server-only JWT key files
-/opt/custacm-platform/logs/             backend log files
-/opt/custacm-tools/local-logs-mcp-server/  pinned MCP log reader
-```
-
-The application logs stay on the server local disk and are not committed to Git.
-
-## First Deploy
-
-Prepare the repository:
-
-```bash
-sudo mkdir -p /opt/custacm-platform
-sudo chown -R "$USER":"$USER" /opt/custacm-platform
-git clone <repo-url> /opt/custacm-platform
-cd /opt/custacm-platform
-```
-
-Prepare the tools directory used by the remote log MCP:
-
-```bash
-sudo mkdir -p /opt/custacm-tools
-sudo chown -R "$USER":"$USER" /opt/custacm-tools
-```
-
-Prepare environment variables:
+从仓库根目录运行：
 
 ```bash
 cp deploy/.env.example deploy/.env
-mkdir -p deploy/secrets
-openssl genrsa -out deploy/secrets/auth-private-key.pem 2048
-openssl rsa -in deploy/secrets/auth-private-key.pem -pubout -out deploy/secrets/auth-public-key.pem
-vim deploy/.env
+# 替换所有 change-me secret，配置可用的 BACKEND_PORT 与 FRONTEND_PORT
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml config
+./scripts/deploy.sh
 ```
 
-At minimum, change:
-
-```env
-AUTH_DB_VOLUME_NAME=custacm-platform_auth-db-data
-TRAINING_DATA_DB_VOLUME_NAME=custacm-platform_training-data-db-data
-AUTH_DB_PASSWORD=change-me-auth-db-password
-AUTH_DB_ROOT_PASSWORD=change-me-auth-root-password
-TRAINING_DATA_DB_PASSWORD=change-me-training-data-db-password
-TRAINING_DATA_DB_ROOT_PASSWORD=change-me-training-data-root-password
-AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY=root
-AUTH_BOOTSTRAP_ADMIN_PASSWORD=change-me-root-password
-```
-
-The two `*_VOLUME_NAME` values are the persistent MySQL Docker volume names. Keep them stable across deploys.
-Changing them makes Compose mount a different database volume, which can look like the database was reset.
-
-The auth service also reads `AUTH_JWT_ACCESS_TOKEN_TTL` for ordinary logins and
-`AUTH_JWT_REMEMBER_ME_ACCESS_TOKEN_TTL` for remember-me logins. The defaults in
-`deploy/.env.example` are `2h` and `30d`.
-
-Deploy:
-
-```bash
-./scripts/server-deploy.sh
-```
-
-## Daily Deploy
-
-On the server:
-
-```bash
-cd /opt/custacm-platform
-./scripts/server-deploy.sh
-```
-
-The script fetches `origin/main`, fast-forwards the worktree, creates `logs/`, builds the Docker images, starts Compose, and checks `/health`.
-It also runs the one-shot `frontend-build` service before `docker compose up`
-so the Nginx frontend container can serve the latest `frontend/dist` without a
-custom frontend image rebuild.
-
-Daily deploys and container restarts preserve MySQL data because `auth-db` and `training-data-db`
-store `/var/lib/mysql` in the named volumes from `deploy/.env`. Do not use
-`docker compose down --volumes`, `docker volume rm`, or `docker volume prune` unless you explicitly intend to wipe local data.
-
-For local testing without a remote:
-
-```bash
-SERVER_DEPLOY_SKIP_GIT_PULL=1 ./scripts/server-deploy.sh
-```
-
-## Install Remote Log MCP
-
-Install the pinned MCP log reader:
-
-```bash
-cd /opt/custacm-platform
-./scripts/install-log-mcp-server.sh
-```
-
-The script installs `mariosss/local-logs-mcp-server` at commit:
+默认地址：
 
 ```text
-63f25778260ec0bcc362be41396073f6e58fc190
+Vue Blog:       http://localhost:3000/
+Vue 3 Training: http://localhost:3000/training/multiple
+Browser API:    http://localhost:3000/api/**
+Backend health: http://localhost:8090/health
+Gateway health: http://localhost:3000/api/health
 ```
 
-The server needs Node.js 18+ for the MCP process.
+实际 host 端口分别取自 `FRONTEND_PORT` 和 `BACKEND_PORT`。Nginx 为 `/` 与 `/training/**` 提供 Vue Blog history fallback，使训练路由继续使用原 Blog 顶栏；内部 `/training-app/**` 提供独立训练运行时，并将 `/api/**` 去前缀后转发到 `blog-api:8090`。
 
-## Local AI Client Configuration
+## 构建与运行数据
 
-Configure the local AI client to start the MCP process over SSH:
+- 后端镜像打包 `platform-blog/upstream/nblog/blog-api` 及其 reactor 依赖。
+- 前端镜像在 Node 20.19 stage 内分别构建 Vue 3 Training/pnpm 与 Vue 3 Blog/npm 产物，再由 Nginx 1.27 Alpine 提供静态文件。
+- 应用日志 bind mount 到 `logs/combined.log`、`logs/error.log`，上传目录 bind mount 到 `uploads/`。
+- MySQL 与 Redis 使用 `BLOG_DB_VOLUME_NAME`、`BLOG_REDIS_VOLUME_NAME` 命名卷，容器重建后继续保留。
 
-```json
-{
-  "mcpServers": {
-    "custacm-prod-logs": {
-      "command": "ssh",
-      "args": [
-        "custacm-server",
-        "cd /opt/custacm-tools/local-logs-mcp-server && LOGS_DIR=/opt/custacm-platform/logs LOG_EXTENSIONS=.log,.txt node local-logs-mcp-server.js"
-      ]
-    }
-  }
-}
-```
+## 验证
 
-The SSH host alias `custacm-server` should be configured in the local `~/.ssh/config`.
-
-Useful agent prompts:
-
-```text
-List available server log files.
-Show the last 100 lines from combined.log.
-Search combined.log for traceId=xxx.
-Search combined.log for errorCode=AUTH_TOKEN_INVALID.
-Show recent entries from error.log.
-```
-
-## Verification
-
-After deployment:
+`--env-file` 只供 Compose 解析，不会自动设置当前 shell。请从仓库根目录加载同一份配置，再使用实际端口检查：
 
 ```bash
-curl -fsS http://localhost:3000/
-curl -fsS http://localhost:8081/health
-curl -fsS http://localhost:8082/health
-test -f logs/combined.log
+set -a
+. deploy/.env
+set +a
+
+curl -fsS "http://localhost:${BACKEND_PORT}/health"
+curl -fsS "http://localhost:${FRONTEND_PORT}/"
+curl -fsS "http://localhost:${FRONTEND_PORT}/training/multiple"
+curl -fsS "http://localhost:${FRONTEND_PORT}/api/health"
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 ```
 
-The front-end container serves the built React workbench and proxies same-origin
-`/api/auth/**`, `/api/training-data/**`, health, and module-info requests to the
-backend services.
-For frontend-only changes after a deploy, use:
+还要使用真实浏览器验证 `/` 与 `/training/**` 的刷新、登录、`ROLE_player`/`ROLE_admin` 权限，以及“创建用户”“管理用户”“数据采集”三个管理员页面；数据采集页面不得出现可选数仓刷新开关。
+
+## 更新
+
+完整重建：
 
 ```bash
-./scripts/update-module.sh frontend
+./scripts/deploy.sh
 ```
 
-That command rebuilds `frontend/dist`, keeps the fixed Nginx container, and
-reloads Nginx instead of rebuilding backend images.
-
-To create sample users and start a Codeforces collection job through real HTTP
-APIs after the first deploy:
+只重建 Blog API：
 
 ```bash
-./scripts/seed-local-codeforces-data.sh
+./scripts/update-module.sh blog-api
 ```
 
-The log MCP should be able to list `combined.log` and `error.log` after the backend services have written log entries.
+只重建统一前端：
+
+```bash
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build frontend
+```
+
+更完整流程见 [../deploy/UPDATE.md](../deploy/UPDATE.md)。
+
+## 安全约束
+
+- 不要公开 MySQL/Redis 端口，不要记录 secret、密码、token、cookie 或 Authorization header。
+- bootstrap 账号只在配置用户名不存在时创建；首次登录后应通过 API 修改初始密码。
+- 普通更新不得删除命名卷；`docker compose down --volumes` 只有在用户明确批准数据销毁时才能执行。

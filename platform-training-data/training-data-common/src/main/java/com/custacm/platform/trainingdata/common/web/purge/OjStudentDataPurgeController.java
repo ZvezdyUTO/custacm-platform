@@ -17,17 +17,17 @@ public class OjStudentDataPurgeController {
         this.service = service;
     }
 
-    @DeleteMapping("/api/training-data/admin/students/{studentIdentity}/oj-data")
+    @DeleteMapping("/api/training-data/admin/students/{username}/oj-data")
     public ResponseEntity<OjStudentDataPurgeResponse> purgeStudentData(
-            @PathVariable("studentIdentity") String studentIdentity,
+            @PathVariable("username") String username,
             @RequestParam(value = "ojName", required = false) String ojName
     ) {
-        return ResponseEntity.ok(toResponse(service.purgeStudentData(studentIdentity, ojName)));
+        return ResponseEntity.ok(toResponse(service.purgeStudentData(username, ojName)));
     }
 
     private static OjStudentDataPurgeResponse toResponse(OjStudentDataPurgeResult result) {
         return new OjStudentDataPurgeResponse(
-                result.studentIdentity(),
+                result.username(),
                 result.ojName(),
                 result.handle(),
                 result.handles(),

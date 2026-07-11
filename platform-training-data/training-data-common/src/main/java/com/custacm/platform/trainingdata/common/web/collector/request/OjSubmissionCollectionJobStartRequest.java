@@ -4,16 +4,16 @@ import java.time.Duration;
 import java.util.List;
 
 public record OjSubmissionCollectionJobStartRequest(
-        List<String> studentIdentities,
+        List<String> usernames,
         Long lookbackHours,
         Boolean refreshWarehouse,
         String ojName
 ) {
-    public List<String> requireStudentIdentities() {
-        if (studentIdentities == null || studentIdentities.isEmpty()) {
-            throw new IllegalArgumentException("studentIdentities must not be empty");
+    public List<String> requireUsernames() {
+        if (usernames == null || usernames.isEmpty()) {
+            throw new IllegalArgumentException("usernames must not be empty");
         }
-        return studentIdentities;
+        return usernames;
     }
 
     public Duration requireLookbackDuration() {

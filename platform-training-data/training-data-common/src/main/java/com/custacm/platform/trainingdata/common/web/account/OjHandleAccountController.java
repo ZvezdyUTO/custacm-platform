@@ -33,47 +33,47 @@ public class OjHandleAccountController {
         if (request == null) {
             throw invalidRequest("request body must not be empty");
         }
-        String studentIdentity = requireText(
-                request.studentIdentity(),
-                "studentIdentity",
+        String username = requireText(
+                request.username(),
+                "username",
                 OjHandleAccountController::invalidRequest
         );
         if (request.handles() == null || request.handles().isEmpty()) {
             throw invalidRequest("handles must not be empty");
         }
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(toResponse(service.create(studentIdentity, request.handles())));
+                .body(toResponse(service.create(username, request.handles())));
     }
 
     @GetMapping("/api/training-data/oj-handles")
     public ResponseEntity<Map<String, OjHandleAccountResponse>> listAll() {
         Map<String, OjHandleAccountResponse> responses = new LinkedHashMap<>();
         for (OjHandleAccount account : service.listAll()) {
-            responses.put(account.studentIdentity(), toResponse(account));
+            responses.put(account.username(), toResponse(account));
         }
         return ResponseEntity.ok(responses);
     }
 
     @PatchMapping("/api/training-data/admin/oj-handles:change-identity")
-    public ResponseEntity<OjHandleAccountResponse> changeStudentIdentity(
+    public ResponseEntity<OjHandleAccountResponse> changeUsername(
             @RequestBody ChangeOjHandleIdentityRequest request
     ) {
         if (request == null) {
             throw invalidRequest("request body must not be empty");
         }
-        String oldStudentIdentity = requireText(
-                request.oldStudentIdentity(),
-                "oldStudentIdentity",
+        String oldUsername = requireText(
+                request.oldUsername(),
+                "oldUsername",
                 OjHandleAccountController::invalidRequest
         );
-        String newStudentIdentity = requireText(
-                request.newStudentIdentity(),
-                "newStudentIdentity",
+        String newUsername = requireText(
+                request.newUsername(),
+                "newUsername",
                 OjHandleAccountController::invalidRequest
         );
-        return ResponseEntity.ok(toResponse(service.changeStudentIdentity(
-                oldStudentIdentity,
-                newStudentIdentity,
+        return ResponseEntity.ok(toResponse(service.changeUsername(
+                oldUsername,
+                newUsername,
                 request.needCollect(),
                 request.handles()
         )));
@@ -81,7 +81,7 @@ public class OjHandleAccountController {
 
     private static OjHandleAccountResponse toResponse(OjHandleAccount account) {
         return new OjHandleAccountResponse(
-                account.studentIdentity(),
+                account.username(),
                 account.handles(),
                 account.needCollect(),
                 collectionStates(account)

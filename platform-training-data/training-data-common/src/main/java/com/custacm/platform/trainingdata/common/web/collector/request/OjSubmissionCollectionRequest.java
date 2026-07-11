@@ -5,12 +5,12 @@ import java.time.Duration;
 import static com.custacm.platform.trainingdata.common.support.Texts.requireText;
 
 public record OjSubmissionCollectionRequest(
-        String studentIdentity,
+        String username,
         Long lookbackHours,
         String ojName
 ) {
-    public String requireStudentIdentity() {
-        return requireText(studentIdentity, "studentIdentity");
+    public String requireUsername() {
+        return requireText(username, "username");
     }
 
     public Duration requireLookbackDuration() {

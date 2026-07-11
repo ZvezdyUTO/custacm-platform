@@ -1,42 +1,14 @@
-# Agent Operating Map
+# Agent Context
 
-This is the fast entry point for future agents. It records how to navigate the repository without rereading every file.
+- 唯一可运行后端是 `platform-blog/upstream/nblog/blog-api`，使用 Spring Boot 3.5.16 与 Java 21。
+- `username` 同时是 JWT subject 与训练业务身份；角色严格为 `ROLE_admin`、`ROLE_player`，guest 表示未认证。
+- Blog API 负责 BCrypt 密码、HS512 JWT、账号、角色、OJ handle、Blog HTTP 与训练 HTTP adapter。
+- 训练模块只保留采集、ODS/DWD/DWM/DWS、查询、调度、刷新和清理能力；没有独立 Web runtime。
+- Vue 3 + Vite Blog 位于 `/` 并持有保留原顶栏的训练外壳 `/training/**`，独立 Vue 3 训练运行时位于内部 `/training-app/**`；它们由一个 Nginx 前端服务托管，浏览器 API 统一使用 `/api/**`。
+- 训练中心管理区分为“创建用户”“管理用户”“数据采集”“首页图片”四个独立页面；首页图片支持多选、16:9 裁剪和有序管理，所有手动采集完成后固定刷新数仓。正式验收为 1280–2560 px 桌面端，重点 1440×900 与 1920×1080，移动端不在当前范围。
+- 两套 Vue 3 应用共享 `custacm.accessToken`、`custacm.user`；公开 Blog 请求不全局带 JWT，受保护评论提交显式使用共享 Bearer。
+- `GET /player/training-data/users` 只返回可采集用户的 `username`、`nickname`、`ojNames`，不返回真实 handle 或管理员字段。
+- 根 reactor 包含 `platform-common`、`platform-training-data` 和 Blog API。API 见 [../api.md](../api.md)，授权见 [../authorization.md](../authorization.md)。
+- 本地/单机 Compose 包含 `blog-db`、`blog-redis`、`blog-api`、`frontend` 四个服务；没有证据时不要声称已发布到服务器。
 
-## Ground Rules
-
-- Treat [../../AGENTS.md](../../AGENTS.md) as the hard rule source.
-- Do not invent product behavior from directory names. If a module is a placeholder, keep it documented as a placeholder.
-- Before editing a directory, read the nearest `AGENTS.md` in that directory or its parent.
-- Keep `studentIdentity` as one immutable business identity string unless the user explicitly changes the decision.
-- Keep `platform-auth` as the local account owner and RSA JWT issuer unless the user explicitly changes the decision.
-- Keep HTTP authorization aligned with [../authorization.md](../authorization.md): guest endpoints are public and ignore JWTs, `/player/**` requires player/admin, and `/admin/**` requires admin.
-
-## Current Working Shape
-
-- Root Maven reactor includes `platform-common`, `platform-auth`, and `platform-training-data`.
-- `platform-auth/auth-web` is the first runnable backend implementation. It owns local login, account management, BCrypt password hashes, and RSA JWT issuance.
-- `platform-training-data/training-data-common` is a shared non-runnable OJ module for handle-account app/domain/infra, per-OJ handle collection-state tracking, per-OJ difficulty bucket policies, DWD/DWM/DWS query app/domain/infra, student-data purge orchestration, submission-collection orchestration, OJ collector dispatch, generic warehouse refresh service/handler and dispatch, in-process collection jobs, and scheduled-collection wiring. `platform-training-data/training-data-web` is the second runnable backend implementation. It exposes admin-only recent-lookback collection, process-local collection-job start/list, OJ handle-account, and required-`ojName` student-data purge APIs, applies Codeforces ODS/DWD/DWM/DWS, AtCoder ODS, AtCoder warehouse-table, and OJ handle-account table migrations, and keeps AtCoder problem metadata startup bootstrap/scheduling in-process. Codeforces team submissions are attributed to the collected `user.status` handle, with ODS/DWD modeled at `submission + handle` grain.
-- `platform-common` currently contains empty shared Maven modules.
-- `frontend` is the first runnable frontend slice. It is a React/Vite/TypeScript admin workbench that logs in through `auth-web` and reads real auth/training-data APIs through local dev and Nginx same-origin proxies. The training query workspace has single-user detail query with Codeforces/AtCoder OJ selection, backend-paginated submission/first-accepted detail lists, problem-level submission/first-accepted lookup, and a multi-user summary surface that does not call a backend automatic-summary endpoint; query filters default to a start date seven days before the current day, apply automatically when OJ, student, problem key, date range, or rating range changes, and refresh loads the default multi-user summary. Multi-user query/refresh uses the public auth user list plus the full OJ handle account map to call the existing per-student accepted-summary endpoint for players with automatic collection enabled and a current-OJ handle. The admin workspace separates user creation, user modification, training-data synchronization/collection, and operation records after admin login; user creation owns text import and batch-create plus optional OJ handle binding, while user modification includes an all-user list sorted by descending student-number prefix with existing-user edits expanded inside the list, Codeforces/AtCoder handle binding edits, OJ handle-account identity migration, per-OJ history-start coverage status, last collected time, and confirmed full user deletion. Data synchronization starts selected-OJ collection as backend jobs, shows per-user collection status, polls an expandable collection-task list, and gates high-cost collection/deletion operations behind confirmation. The top-right account area supports current-user password changes. Frontend workspace tabs are mirrored to URL paths under `/query/*` and `/admin/*` so refresh and direct links preserve the current page.
-- `platform-blog`, `platform-editor`, and `platform-article-storage` are placeholders.
-- Local deployment is under `deploy/` and currently starts auth MySQL, `auth-web`, training-data MySQL, `training-data-web`, and the frontend Nginx static/proxy container. Frontend static assets are generated by the one-shot `frontend-build` Compose service before Nginx serves `frontend/dist`.
-
-## Agent Workflow
-
-1. Identify the changed area with [context-map.md](context-map.md).
-2. Read the nearest module `AGENTS.md`.
-3. Read the relevant contract docs:
-   - API changes: [../api.md](../api.md)
-   - HTTP authorization changes: [../authorization.md](../authorization.md)
-   - architecture/module changes: [../architecture.md](../architecture.md)
-   - logging changes: [../logging.md](../logging.md)
-   - deployment changes: [../../deploy/README.md](../../deploy/README.md), [../../deploy/UPDATE.md](../../deploy/UPDATE.md), [../server-deployment.md](../server-deployment.md)
-   - frontend changes: [../../frontend/README.md](../../frontend/README.md), [../../frontend/AGENTS.md](../../frontend/AGENTS.md)
-4. Make the code/docs change.
-5. Run the relevant checks from [quality-gates.md](quality-gates.md).
-6. Update [../../CHANGELOG.md](../../CHANGELOG.md) using [changelog.md](changelog.md).
-7. Run [../../scripts/check-doc-sync.sh](../../scripts/check-doc-sync.sh) before PR.
-
-## When Unsure
-
-Write uncertainty as `<!-- TODO: ... -->` in docs, or state it in the PR. Do not silently turn assumptions into project rules.
+修改代码前先读最近的 `AGENTS.md`、[../logging.md](../logging.md) 和 [doc-sync.md](doc-sync.md)。涉及文件/模块职责变化时同步对应 README、[context-map.md](context-map.md) 和 `docs/doc-sync-map.tsv` 指定文档。

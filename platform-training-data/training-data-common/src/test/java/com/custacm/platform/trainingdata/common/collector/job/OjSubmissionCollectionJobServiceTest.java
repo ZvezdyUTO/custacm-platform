@@ -24,8 +24,8 @@ class OjSubmissionCollectionJobServiceTest {
     void startsJobAndAggregatesCollectionAndRefreshResults() {
         List<String> events = new ArrayList<>();
         OjSubmissionCollectionJobService service = service(
-                (ojName, studentIdentity, lookback) -> {
-                    events.add("collect:" + ojName + ":" + studentIdentity + ":" + lookback);
+                (ojName, username, lookback) -> {
+                    events.add("collect:" + ojName + ":" + username + ":" + lookback);
                     return collectionResult("tourist", "batch-1", 10);
                 },
                 result -> {
@@ -54,7 +54,7 @@ class OjSubmissionCollectionJobServiceTest {
         assertThat(snapshot.writtenRows()).isEqualTo(10);
         assertThat(snapshot.batchIds()).containsExactly("batch-1");
         assertThat(snapshot.items()).singleElement().satisfies(item -> {
-            assertThat(item.studentIdentity()).isEqualTo("230511213黄炳睿");
+            assertThat(item.username()).isEqualTo("230511213黄炳睿");
             assertThat(item.ojName()).isEqualTo("CODEFORCES");
             assertThat(item.itemStatus()).isEqualTo(OjSubmissionCollectionJobItemStatus.SUCCESS);
             assertThat(item.handle()).isEqualTo("tourist");
@@ -70,7 +70,7 @@ class OjSubmissionCollectionJobServiceTest {
     void returnsActiveJobWhenAnotherBatchIsAlreadyRunning() {
         List<Runnable> queued = new ArrayList<>();
         OjSubmissionCollectionJobService service = service(
-                (ojName, studentIdentity, lookback) -> collectionResult("tourist", "batch-1", 10),
+                (ojName, username, lookback) -> collectionResult("tourist", "batch-1", 10),
                 result -> OjSubmissionCollectionJobRefreshResult.notRequested(),
                 queued::add
         );
@@ -94,7 +94,7 @@ class OjSubmissionCollectionJobServiceTest {
     @Test
     void listsRetainedJobsNewestFirst() {
         OjSubmissionCollectionJobService service = service(
-                (ojName, studentIdentity, lookback) -> collectionResult("tourist", "batch-1", 10),
+                (ojName, username, lookback) -> collectionResult("tourist", "batch-1", 10),
                 result -> OjSubmissionCollectionJobRefreshResult.notRequested(),
                 Runnable::run
         );
@@ -114,9 +114,9 @@ class OjSubmissionCollectionJobServiceTest {
     void waitsBetweenIdentityCollections() {
         List<String> events = new ArrayList<>();
         OjSubmissionCollectionJobService service = new OjSubmissionCollectionJobService(
-                (ojName, studentIdentity, lookback) -> {
-                    events.add("collect:" + ojName + ":" + studentIdentity);
-                    return collectionResult(studentIdentity, null, 0);
+                (ojName, username, lookback) -> {
+                    events.add("collect:" + ojName + ":" + username);
+                    return collectionResult(username, null, 0);
                 },
                 result -> OjSubmissionCollectionJobRefreshResult.notRequested(),
                 Runnable::run,
@@ -141,7 +141,7 @@ class OjSubmissionCollectionJobServiceTest {
     @Test
     void recordsNoBatchWhenRefreshIsRequestedWithoutWrittenBatch() {
         OjSubmissionCollectionJobService service = service(
-                (ojName, studentIdentity, lookback) -> collectionResult("tourist", null, 0),
+                (ojName, username, lookback) -> collectionResult("tourist", null, 0),
                 result -> {
                     throw new AssertionError("refresh handler should not run without batch id");
                 },
@@ -162,7 +162,7 @@ class OjSubmissionCollectionJobServiceTest {
     @Test
     void recordsRefreshFailureWithoutFailingCollectionItem() {
         OjSubmissionCollectionJobService service = service(
-                (ojName, studentIdentity, lookback) -> collectionResult("tourist", "batch-1", 10),
+                (ojName, username, lookback) -> collectionResult("tourist", "batch-1", 10),
                 result -> {
                     throw new IllegalStateException("refresh failed");
                 },
@@ -187,7 +187,7 @@ class OjSubmissionCollectionJobServiceTest {
     @Test
     void rejectsMissingJob() {
         OjSubmissionCollectionJobService service = service(
-                (ojName, studentIdentity, lookback) -> collectionResult("tourist", "batch-1", 10),
+                (ojName, username, lookback) -> collectionResult("tourist", "batch-1", 10),
                 result -> OjSubmissionCollectionJobRefreshResult.notRequested(),
                 Runnable::run
         );

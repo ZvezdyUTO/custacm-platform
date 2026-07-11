@@ -1,124 +1,102 @@
-# deploy
+# 本地/单机集成部署
 
-本目录提供服务器 / 开发环境的一键部署编排。当前会启动：
+`deploy/docker-compose.yml` 定义四个服务：
 
-- `auth-db`：`platform-auth` 使用的 MySQL
-- `custacm-backend`：运行 `platform-auth/auth-web`
-- `training-data-db`：`platform-training-data` 使用的 MySQL
-- `custacm-training-data-web`：运行 `platform-training-data/training-data-web`
-- `custacm-frontend`：运行前端静态站点和同源 API 反向代理
+| Service | Image/build | Responsibility |
+| --- | --- | --- |
+| `blog-db` | MySQL 8.4 | 统一 NBlog 与训练数据 schema |
+| `blog-redis` | Redis 7 Alpine | Blog cache 与运行支持 |
+| `blog-api` | 仓库根 `Dockerfile` | 唯一 Spring Boot 后端，容器端口 8090 |
+| `frontend` | `frontend/Dockerfile` | 一个 Nginx 同时托管两套 Vue 3 应用，容器端口 80 |
 
-## Quick Start
+当前配置可用于本地或单台主机；仓库没有记录任何已经完成的服务器发布。
 
-在仓库根目录执行：
+## 启动
+
+从仓库根目录运行：
 
 ```bash
 cp deploy/.env.example deploy/.env
-mkdir -p deploy/secrets
-openssl genrsa -out deploy/secrets/auth-private-key.pem 2048
-openssl rsa -in deploy/secrets/auth-private-key.pem -pubout -out deploy/secrets/auth-public-key.pem
-```
-
-编辑 `deploy/.env`，至少修改：
-
-```env
-AUTH_DB_VOLUME_NAME=custacm-platform_auth-db-data
-TRAINING_DATA_DB_VOLUME_NAME=custacm-platform_training-data-db-data
-AUTH_DB_PASSWORD=change-me-auth-db-password
-AUTH_DB_ROOT_PASSWORD=change-me-auth-root-password
-TRAINING_DATA_DB_PASSWORD=change-me-training-data-db-password
-TRAINING_DATA_DB_ROOT_PASSWORD=change-me-training-data-root-password
-AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY=root
-AUTH_BOOTSTRAP_ADMIN_PASSWORD=change-me-root-password
-```
-
-`AUTH_DB_VOLUME_NAME` 和 `TRAINING_DATA_DB_VOLUME_NAME` 是 MySQL 持久化卷名。默认值固定到项目级卷名，
-避免因为启动目录、Compose project name 或 `-p` 参数变化而挂到一套新的空数据库。日常执行
-`./scripts/deploy.sh`、`docker compose up -d --build`、`docker compose restart` 或 `docker compose down && docker compose up -d`
-都会保留这两个卷里的数据。只有显式执行 `docker compose down --volumes`、`docker volume rm` 或 `docker volume prune`
-才会删除数据库数据。
-
-启动：
-
-```bash
+# 替换所有 change-me 值，并选择未占用的 BACKEND_PORT、FRONTEND_PORT
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml config
 ./scripts/deploy.sh
 ```
 
-部署脚本会先运行一次性的 `frontend-build` 服务生成 `frontend/dist`，
-再启动 Compose。`custacm-frontend` 本身是固定的 Nginx 容器，后续只改
-前端时不需要重建前端镜像。
-
-日常只更新某个业务模块时，见 [UPDATE.md](UPDATE.md)。
-服务器部署和远端 AI 查日志方式见 [server-deployment.md](../docs/server-deployment.md)。
-
-默认地址：
-
-- Frontend: http://localhost:3000/
-- Auth health: http://localhost:8081/health
-- Training-data health: http://localhost:8082/health
-- Login API: http://localhost:8081/api/auth/login
-- Auth database: MySQL service `auth-db`, database `custacm_auth`
-- Training-data database: MySQL service `training-data-db`, database `custacm_training`
-- Database volumes: `${AUTH_DB_VOLUME_NAME}`, `${TRAINING_DATA_DB_VOLUME_NAME}`
-- Backend logs: `../logs/combined.log`, `../logs/error.log`
-
-## Auth Model
-
-平台自己管理账号、密码和 JWT：
-
-- 登录名是 `studentIdentity`，一个不可变字符串，例如 `230511213黄炳睿`。
-- 账号角色为 `admin`、`player` 或 `disable`；`disable` 账号不能登录。`guest` 表示未登录访问者，不需要 JWT，也不进账号表。
-- 密码使用 BCrypt 哈希存储。
-- `auth-web` 使用 RSA 私钥签发 JWT，其它后端使用 RSA 公钥验证 JWT。
-- JWT 只放标准时间字段、`sub`（用户 ID）和 `role`（`admin` / `player`）。
-- 普通登录 access token 默认有效期为 `2h`；勾选“记住我”时 access token 默认有效期为 `30d`。当前没有 refresh token。
-
-## JWT Key Settings
-
-Compose 默认把本地 PEM 文件挂到容器内：
-
-```env
-AUTH_JWT_PRIVATE_KEY_HOST_PATH=./secrets/auth-private-key.pem
-AUTH_JWT_PUBLIC_KEY_HOST_PATH=./secrets/auth-public-key.pem
-AUTH_JWT_ACCESS_TOKEN_TTL=2h
-AUTH_JWT_REMEMBER_ME_ACCESS_TOKEN_TTL=30d
-```
-
-这些 PEM 文件是本地秘密，不要提交。其它需要验证平台 JWT 的后端只需要同一份公钥。修改 token TTL 后需要重新创建 `custacm-backend` 容器。
-
-## Frontend Proxy
-
-`frontend-build` 使用 `node:22-alpine` 在容器里执行 `pnpm install` 和
-`pnpm build`，把静态产物写入 `frontend/dist`。`custacm-frontend` 使用
-固定的 `nginx:1.27-alpine` 镜像挂载 `frontend/dist`，并反向代理：
-
-```text
-/api/auth/**          -> custacm-backend:8081
-/api/training-data/** -> custacm-training-data-web:8082
-/health/auth          -> custacm-backend:8081/health
-/health/training-data -> custacm-training-data-web:8082/health
-```
-
-浏览器访问前端容器时只需要同源请求，不依赖后端 CORS。
-
-只更新前端时运行：
+`./scripts/deploy.sh` 使用 `deploy/.env`，最终执行 `docker compose ... up -d --build`。也可以把环境文件显式传给底层脚本：
 
 ```bash
-./scripts/update-module.sh frontend
+./deploy/deploy.sh deploy/.env
 ```
 
-该命令只刷新 `frontend/dist` 并 reload Nginx，不重建或重启后端容器。
+Flyway 会在空数据库上执行 `V001` 与 `V010`–`V024`。只有配置的用户名尚不存在时，`BLOG_BOOTSTRAP_ADMIN_USERNAME` 与 `BLOG_BOOTSTRAP_ADMIN_PASSWORD` 才会幂等创建首个管理员。
 
-## Bootstrap Admin
+## 访问地址
 
-首次启动时，如果 `AUTH_BOOTSTRAP_ADMIN_STUDENT_IDENTITY` 和 `AUTH_BOOTSTRAP_ADMIN_PASSWORD` 都已设置，`auth-web` 会在账号不存在时创建一个 `admin` 账号。已有账号不会被覆盖。
+使用 `.env.example` 默认端口时：
 
-部署后应尽快登录并修改初始管理员密码。
+| URL | Meaning |
+| --- | --- |
+| `http://localhost:3000/` | Vue Blog |
+| `http://localhost:3000/training/multiple` | Vue 3 训练中心 |
+| `http://localhost:3000/api/health` | 经 Nginx 访问 Blog API health |
+| `http://localhost:8090/health` | 直接访问 Blog API health |
 
-## Notes
+Nginx 路由规则：
 
-- 不要提交 `deploy/.env`。
-- 不要提交 `deploy/secrets/*.pem`。
-- 不要提交 `logs/` 下的运行时日志。
-- 不要在日常更新中使用 `docker compose down --volumes` 或删除 `${AUTH_DB_VOLUME_NAME}` / `${TRAINING_DATA_DB_VOLUME_NAME}`，否则会清空 MySQL 数据。
-- 如果修改数据库密码、JWT 密钥路径、端口或 Compose 结构，需要执行全量部署。
+```text
+/api/**       -> blog-api:8090/**（去掉 /api）
+/training     -> 302 /training/multiple
+/training/**  -> Vue Blog history fallback（保留唯一顶栏并承载训练内容）
+/training-app/** -> Vue 3 Training 内部 history fallback
+/**           -> Vue Blog history fallback
+```
+
+## 环境变量
+
+| Variable | Meaning |
+| --- | --- |
+| `BACKEND_PORT` | host 映射到 Blog API 8090 的端口 |
+| `FRONTEND_PORT` | host 映射到 Nginx 80 的端口 |
+| `BLOG_DB_NAME` | 统一数据库名 |
+| `BLOG_DB_USERNAME`、`BLOG_DB_PASSWORD` | 应用数据库账号与密码 |
+| `BLOG_DB_ROOT_PASSWORD` | MySQL root 密码 |
+| `BLOG_DB_VOLUME_NAME` | MySQL 命名卷 |
+| `BLOG_REDIS_VOLUME_NAME` | Redis 命名卷 |
+| `BLOG_TOKEN_SECRET` | 至少 64 字符的 HS512 secret |
+| `BLOG_TOKEN_TTL_MILLIS` | 登录 token TTL（毫秒） |
+| `BLOG_BOOTSTRAP_ADMIN_*` | 幂等首管理员凭据 |
+
+`deploy/.env` 不得提交。不要把 placeholder secret 用到共享环境。
+
+## 构建方式
+
+- `blog-api` 镜像从 Maven reactor 打包 `platform-blog/upstream/nblog/blog-api`。
+- `frontend` 镜像使用 Node 20.19：通过 pnpm lock 构建 Vue 3 训练中心，通过 npm lock 构建 Vue 3 Blog，然后复制到 Nginx 1.27 Alpine。
+- Nginx 内部将 Blog 产物放在 root，将训练中心产物放在内部 `/training-app`；公开 `/training/**` 仍由 Blog 外壳处理。
+
+## 健康检查
+
+Compose 的 `--env-file` 不会自动把变量写入当前 shell。以下命令从仓库根目录显式加载实际端口后再检查：
+
+```bash
+set -a
+. deploy/.env
+set +a
+
+curl -fsS "http://localhost:${BACKEND_PORT}/health"
+curl -fsS "http://localhost:${FRONTEND_PORT}/"
+curl -fsS "http://localhost:${FRONTEND_PORT}/training/multiple"
+curl -fsS "http://localhost:${FRONTEND_PORT}/api/health"
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
+```
+
+还应在浏览器中验证 Blog、训练中心刷新、登录、player/admin 权限与两份前端之间的普通链接。
+
+## 数据与挂载
+
+- MySQL 与 Redis 数据存放在显式命名卷中，容器重建不会自动删除。
+- 应用日志 bind mount 到仓库 `logs/`，上传文件 bind mount 到 `uploads/`。
+- 新卷与旧部署卷相互独立；没有单独批准前不要删除旧卷。
+- 普通更新禁止使用 `down --volumes`。
+
+更新流程见 [UPDATE.md](UPDATE.md)。

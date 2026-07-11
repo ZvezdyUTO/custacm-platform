@@ -13,7 +13,7 @@ class OjHandleAccountTest {
     private static final Instant NOW = Instant.parse("2026-07-05T00:00:00Z");
 
     @Test
-    void keepsStudentIdentityHandleAndTimestamps() {
+    void keepsUsernameHandleAndTimestamps() {
         OjHandleAccount account = new OjHandleAccount(
                 "112487张三",
                 Map.of(OjNames.CODEFORCES, "tourist"),
@@ -22,7 +22,7 @@ class OjHandleAccountTest {
                 NOW
         );
 
-        assertThat(account.studentIdentity()).isEqualTo("112487张三");
+        assertThat(account.username()).isEqualTo("112487张三");
         assertThat(account.handles()).containsExactlyEntriesOf(Map.of(OjNames.CODEFORCES, "tourist"));
         assertThat(account.needCollect()).isTrue();
         assertThat(account.collectionStates()).containsKey(OjNames.CODEFORCES);
@@ -71,7 +71,7 @@ class OjHandleAccountTest {
     void rejectsBlankRequiredFields() {
         assertThatThrownBy(() -> new OjHandleAccount(null, Map.of(OjNames.CODEFORCES, "tourist"), true, NOW, NOW))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("studentIdentity");
+                .hasMessageContaining("username");
         assertThatThrownBy(() -> new OjHandleAccount("112487张三", Map.of(OjNames.CODEFORCES, " "), true, NOW, NOW))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("handles");

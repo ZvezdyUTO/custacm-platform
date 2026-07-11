@@ -37,9 +37,9 @@ public class OjSubmissionCollectionController {
             throw new IllegalArgumentException("request body must not be empty");
         }
         return OjSubmissionCollectionResponse.from(
-                collectionService.collectRecentWindowForStudentIdentity(
+                collectionService.collectRecentWindowForUsername(
                         request.optionalOjName(),
-                        request.requireStudentIdentity(),
+                        request.requireUsername(),
                         request.requireLookbackDuration()
                 )
         );
@@ -55,7 +55,7 @@ public class OjSubmissionCollectionController {
         }
         return OjSubmissionCollectionJobResponse.from(
                 collectionJobService.startBatchCollection(
-                        request.requireStudentIdentities(),
+                        request.requireUsernames(),
                         request.requireLookbackDuration(),
                         request.refreshWarehouseOrDefault(),
                         request.optionalOjName()

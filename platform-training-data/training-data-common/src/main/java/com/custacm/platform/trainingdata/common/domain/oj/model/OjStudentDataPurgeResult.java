@@ -6,7 +6,7 @@ import java.util.Map;
 import static com.custacm.platform.trainingdata.common.support.Texts.requireText;
 
 public record OjStudentDataPurgeResult(
-        String studentIdentity,
+        String username,
         String ojName,
         String handle,
         Map<String, String> handles,
@@ -18,7 +18,7 @@ public record OjStudentDataPurgeResult(
         int dwsAcceptedSummaryRows
 ) {
     public OjStudentDataPurgeResult {
-        studentIdentity = requireText(studentIdentity, "studentIdentity");
+        username = requireText(username, "username");
         ojName = ojName == null || ojName.isBlank() ? null : ojName.trim();
         handles = Map.copyOf(handles);
         ojResults = List.copyOf(ojResults);
@@ -31,7 +31,7 @@ public record OjStudentDataPurgeResult(
     }
 
     public OjStudentDataPurgeResult(
-            String studentIdentity,
+            String username,
             String handle,
             int handleAccountRows,
             int odsSubmissionRows,
@@ -40,7 +40,7 @@ public record OjStudentDataPurgeResult(
             int dwsAcceptedSummaryRows
     ) {
         this(
-                studentIdentity,
+                username,
                 null,
                 handle,
                 Map.of(),
@@ -54,7 +54,7 @@ public record OjStudentDataPurgeResult(
     }
 
     public static OjStudentDataPurgeResult aggregate(
-            String studentIdentity,
+            String username,
             String ojName,
             String handle,
             Map<String, String> handles,
@@ -71,7 +71,7 @@ public record OjStudentDataPurgeResult(
             dwsAcceptedSummaryRows += result.dwsAcceptedSummaryRows();
         }
         return new OjStudentDataPurgeResult(
-                studentIdentity,
+                username,
                 ojName,
                 handle,
                 handles,

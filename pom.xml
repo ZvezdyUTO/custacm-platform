@@ -14,8 +14,8 @@
 
     <modules>
         <module>platform-common</module>
-        <module>platform-auth</module>
         <module>platform-training-data</module>
+        <module>platform-blog/upstream/nblog/blog-api</module>
     </modules>
 
     <properties>
@@ -24,7 +24,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jacoco.version>0.8.12</jacoco.version>
         <jacoco.minimum.line.coverage>0.70</jacoco.minimum.line.coverage>
-        <spring-boot.version>3.3.5</spring-boot.version>
+        <spring-boot.version>3.5.16</spring-boot.version>
     </properties>
 
     <dependencyManagement>

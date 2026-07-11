@@ -46,7 +46,7 @@ class OjStudentDataPurgeControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().studentIdentity()).isEqualTo("112487张三");
+        assertThat(response.getBody().username()).isEqualTo("112487张三");
         assertThat(response.getBody().ojName()).isEqualTo(OjNames.CODEFORCES);
         assertThat(response.getBody().handle()).isEqualTo("tourist");
         assertThat(response.getBody().handles()).containsEntry(OjNames.CODEFORCES, "tourist");
@@ -89,13 +89,13 @@ class OjStudentDataPurgeControllerTest {
         OjStudentDataPurgeExceptionHandler handler = new OjStudentDataPurgeExceptionHandler();
         var response = handler.handlePurgeException(new OjStudentDataPurgeException(
                 OjStudentDataPurgeException.ErrorCode.OJ_STUDENT_DATA_PURGE_INVALID_REQUEST,
-                "studentIdentity must not be blank"
+                "username must not be blank"
         ));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(new OjStudentDataPurgeErrorResponse(
                 "OJ_STUDENT_DATA_PURGE_INVALID_REQUEST",
-                "studentIdentity must not be blank"
+                "username must not be blank"
         ));
     }
 }

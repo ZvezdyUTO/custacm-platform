@@ -37,21 +37,21 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
     @Override
     public List<OjHandleAccount> findAll() {
         return jdbcTemplate.query("""
-                        select student_identity, handles_json, need_collect, collection_states_json, created_at, updated_at
+                        select username, handles_json, need_collect, collection_states_json, created_at, updated_at
                         from oj_handle_account
-                        order by student_identity
+                        order by username
                         """,
                 (rs, rowNum) -> toAccount(rs));
     }
 
     @Override
-    public Optional<OjHandleAccount> findByStudentIdentity(String studentIdentity) {
+    public Optional<OjHandleAccount> findByUsername(String username) {
         return jdbcTemplate.query("""
-                        select student_identity, handles_json, need_collect, collection_states_json, created_at, updated_at
+                        select username, handles_json, need_collect, collection_states_json, created_at, updated_at
                         from oj_handle_account
-                        where student_identity = :studentIdentity
+                        where username = :username
                         """,
-                new MapSqlParameterSource("studentIdentity", studentIdentity),
+                new MapSqlParameterSource("username", username),
                 (rs, rowNum) -> toAccount(rs)
         ).stream().findFirst();
     }
@@ -60,11 +60,11 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
     public Optional<OjHandleAccount> findByHandle(String ojName, String handle) {
         String normalizedOjName = OjNames.normalize(ojName);
         return jdbcTemplate.query("""
-                        select student_identity, handles_json, need_collect, collection_states_json, created_at, updated_at
+                        select username, handles_json, need_collect, collection_states_json, created_at, updated_at
                         from oj_handle_account
                         where locate(:ojNameJson, handles_json) > 0
                           and locate(:handleJson, handles_json) > 0
-                        order by student_identity
+                        order by username
                         """,
                 new MapSqlParameterSource()
                         .addValue("ojNameJson", jsonString(normalizedOjName))
@@ -79,9 +79,9 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
     public OjHandleAccount save(OjHandleAccount account) {
         jdbcTemplate.update("""
                         insert into oj_handle_account (
-                            student_identity, handles_json, need_collect, collection_states_json, created_at, updated_at
+                            username, handles_json, need_collect, collection_states_json, created_at, updated_at
                         ) values (
-                            :studentIdentity, :handlesJson, :needCollect, :collectionStatesJson, :createdAt, :updatedAt
+                            :username, :handlesJson, :needCollect, :collectionStatesJson, :createdAt, :updatedAt
                         )
                         """,
                 parameters(account));
@@ -89,9 +89,9 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
     }
 
     @Override
-    public OjHandleAccount updateStudentIdentityAndNeedCollect(
-            String oldStudentIdentity,
-            String newStudentIdentity,
+    public OjHandleAccount updateUsernameAndNeedCollect(
+            String oldUsername,
+            String newUsername,
             Map<String, String> handles,
             boolean needCollect,
             Map<String, OjHandleCollectionState> collectionStates,
@@ -99,16 +99,16 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
     ) {
         int updated = jdbcTemplate.update("""
                         update oj_handle_account
-                        set student_identity = :newStudentIdentity,
+                        set username = :newUsername,
                             handles_json = :handlesJson,
                             need_collect = :needCollect,
                             collection_states_json = :collectionStatesJson,
                             updated_at = :updatedAt
-                        where student_identity = :oldStudentIdentity
+                        where username = :oldUsername
                         """,
                 new MapSqlParameterSource()
-                        .addValue("oldStudentIdentity", oldStudentIdentity)
-                        .addValue("newStudentIdentity", newStudentIdentity)
+                        .addValue("oldUsername", oldUsername)
+                        .addValue("newUsername", newUsername)
                         .addValue("handlesJson", handlesJson(handles))
                         .addValue("needCollect", needCollect)
                         .addValue("collectionStatesJson", collectionStatesJson(collectionStates))
@@ -116,13 +116,13 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
         if (updated != 1) {
             throw new IllegalStateException("expected to update one OJ handle account, updated=" + updated);
         }
-        return findByStudentIdentity(newStudentIdentity)
+        return findByUsername(newUsername)
                 .orElseThrow(() -> new IllegalStateException("updated OJ handle account not found"));
     }
 
     @Override
     public OjHandleAccount updateCollectionStates(
-            String studentIdentity,
+            String username,
             Map<String, OjHandleCollectionState> collectionStates,
             Instant updatedAt
     ) {
@@ -130,22 +130,22 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
                         update oj_handle_account
                         set collection_states_json = :collectionStatesJson,
                             updated_at = :updatedAt
-                        where student_identity = :studentIdentity
+                        where username = :username
                         """,
                 new MapSqlParameterSource()
-                        .addValue("studentIdentity", studentIdentity)
+                        .addValue("username", username)
                         .addValue("collectionStatesJson", collectionStatesJson(collectionStates))
                         .addValue("updatedAt", timestamp(updatedAt)));
         if (updated != 1) {
             throw new IllegalStateException("expected to update one OJ handle account, updated=" + updated);
         }
-        return findByStudentIdentity(studentIdentity)
+        return findByUsername(username)
                 .orElseThrow(() -> new IllegalStateException("updated OJ handle account not found"));
     }
 
     private MapSqlParameterSource parameters(OjHandleAccount account) {
         return new MapSqlParameterSource()
-                .addValue("studentIdentity", account.studentIdentity())
+                .addValue("username", account.username())
                 .addValue("handlesJson", handlesJson(account.handles()))
                 .addValue("needCollect", account.needCollect())
                 .addValue("collectionStatesJson", collectionStatesJson(account.collectionStates()))
@@ -156,7 +156,7 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
     private OjHandleAccount toAccount(ResultSet rs) throws SQLException {
         Map<String, String> handles = handles(rs.getString("handles_json"));
         return new OjHandleAccount(
-                rs.getString("student_identity"),
+                rs.getString("username"),
                 handles,
                 rs.getBoolean("need_collect"),
                 collectionStates(handles, rs.getString("collection_states_json")),

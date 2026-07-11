@@ -55,7 +55,7 @@ class AtcoderSubmissionCollectionServiceTest {
         RecordingSubmissionWriter writer = new RecordingSubmissionWriter();
         AtcoderSubmissionCollectionService service = service(sourceClient, writer);
 
-        var result = service.collectRecentWindowForStudentIdentity("112487张三", LOOKBACK);
+        var result = service.collectRecentWindowForUsername("112487张三", LOOKBACK);
 
         assertThat(result.status()).isEqualTo(OjSubmissionCollectionStatus.SUCCESS);
         assertThat(result.ojName()).isEqualTo(OjNames.ATCODER);
@@ -79,7 +79,7 @@ class AtcoderSubmissionCollectionServiceTest {
         RecordingSubmissionWriter writer = new RecordingSubmissionWriter();
         AtcoderSubmissionCollectionService service = service(sourceClient, writer);
 
-        var result = service.collectRecentWindowForStudentIdentity("112487张三", LOOKBACK);
+        var result = service.collectRecentWindowForUsername("112487张三", LOOKBACK);
 
         assertThat(result.status()).isEqualTo(OjSubmissionCollectionStatus.SUCCESS);
         assertThat(result.writtenRows()).isZero();
@@ -104,7 +104,7 @@ class AtcoderSubmissionCollectionServiceTest {
                 10
         );
 
-        var result = service.collectRecentWindowForStudentIdentity(
+        var result = service.collectRecentWindowForUsername(
                 "112487张三",
                 Duration.between(windowStart, windowEnd)
         );
@@ -127,7 +127,7 @@ class AtcoderSubmissionCollectionServiceTest {
         RecordingSubmissionWriter writer = new RecordingSubmissionWriter();
         AtcoderSubmissionCollectionService service = service(sourceClient, writer);
 
-        var result = service.collectRecentWindowForStudentIdentity("112487张三", LOOKBACK);
+        var result = service.collectRecentWindowForUsername("112487张三", LOOKBACK);
 
         assertThat(result.status()).isEqualTo(OjSubmissionCollectionStatus.FAILED);
         assertThat(result.handles()).hasSize(1);
@@ -255,8 +255,8 @@ class AtcoderSubmissionCollectionServiceTest {
         }
 
         @Override
-        public Optional<OjHandleAccount> findByStudentIdentity(String studentIdentity) {
-            return "112487张三".equals(studentIdentity) ? Optional.of(account()) : Optional.empty();
+        public Optional<OjHandleAccount> findByUsername(String username) {
+            return "112487张三".equals(username) ? Optional.of(account()) : Optional.empty();
         }
 
         @Override
@@ -272,16 +272,16 @@ class AtcoderSubmissionCollectionServiceTest {
         }
 
         @Override
-        public OjHandleAccount updateStudentIdentityAndNeedCollect(
-                String oldStudentIdentity,
-                String newStudentIdentity,
+        public OjHandleAccount updateUsernameAndNeedCollect(
+                String oldUsername,
+                String newUsername,
                 Map<String, String> handles,
                 boolean needCollect,
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {
             return new OjHandleAccount(
-                    newStudentIdentity,
+                    newUsername,
                     handles,
                     needCollect,
                     collectionStates,
@@ -292,13 +292,13 @@ class AtcoderSubmissionCollectionServiceTest {
 
         @Override
         public OjHandleAccount updateCollectionStates(
-                String studentIdentity,
+                String username,
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {
             OjHandleAccount existing = account();
             return new OjHandleAccount(
-                    existing.studentIdentity(),
+                    existing.username(),
                     existing.handles(),
                     existing.needCollect(),
                     collectionStates,

@@ -3,7 +3,7 @@ package com.custacm.platform.trainingdata.common.app.query.result;
 import java.util.List;
 
 public record OjAcceptedSummaryReport(
-        String studentIdentity,
+        String username,
         String authorHandle,
         int totalAcceptedProblemCount,
         List<OjRatingAcceptedCount> ratingCounts

@@ -1,11 +1,19 @@
 import js from '@eslint/js';
-import reactHooks from 'eslint-plugin-react-hooks';
+import vue from 'eslint-plugin-vue';
 import tseslint from 'typescript-eslint';
 
 const browserGlobals = {
+  Blob: 'readonly',
   console: 'readonly',
   document: 'readonly',
+  Event: 'readonly',
+  File: 'readonly',
+  HTMLImageElement: 'readonly',
+  HTMLInputElement: 'readonly',
+  HTMLSelectElement: 'readonly',
+  navigator: 'readonly',
   setTimeout: 'readonly',
+  URL: 'readonly',
   window: 'readonly',
 };
 
@@ -15,23 +23,26 @@ export default [
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  ...vue.configs['flat/essential'],
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['**/*.vue'],
+    languageOptions: {
+      parserOptions: {
+        parser: tseslint.parser,
+      },
+    },
+  },
+  {
+    files: ['**/*.{ts,vue}'],
     languageOptions: {
       ecmaVersion: 2022,
       globals: browserGlobals,
       parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
       },
       sourceType: 'module',
     },
-    plugins: {
-      'react-hooks': reactHooks,
-    },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      'vue/multi-word-component-names': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

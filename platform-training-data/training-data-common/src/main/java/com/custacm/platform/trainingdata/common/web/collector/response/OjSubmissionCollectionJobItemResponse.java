@@ -8,7 +8,7 @@ import com.custacm.platform.trainingdata.common.collector.result.OjSubmissionCol
 import java.time.Instant;
 
 public record OjSubmissionCollectionJobItemResponse(
-        String studentIdentity,
+        String username,
         String ojName,
         OjSubmissionCollectionJobItemStatus itemStatus,
         OjSubmissionCollectionStatus collectionStatus,
@@ -25,7 +25,7 @@ public record OjSubmissionCollectionJobItemResponse(
 ) {
     public static OjSubmissionCollectionJobItemResponse from(OjSubmissionCollectionJobItem item) {
         return new OjSubmissionCollectionJobItemResponse(
-                item.studentIdentity(),
+                item.username(),
                 item.ojName(),
                 item.itemStatus(),
                 item.collectionStatus(),

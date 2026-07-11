@@ -5,5 +5,7 @@ import com.custacm.platform.trainingdata.common.domain.oj.model.OjWarehouseRefre
 import java.util.Optional;
 
 public interface OjWarehouseRefreshIntervalRepository {
+    Optional<String> findLatestBatchId();
+
     Optional<OjWarehouseRefreshInterval> findBatchDateInterval(String batchId);
 }

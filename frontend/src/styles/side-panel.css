@@ -168,3 +168,195 @@
 .permission-summary dt.muted::before {
   background: #cfd5df;
 }
+
+.admin-user-management-panel {
+  position: relative;
+}
+
+.user-management-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+}
+
+.user-management-header h2,
+.user-management-side-panel h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.user-management-header p,
+.user-management-side-panel p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.user-management-header .section-kicker {
+  margin: 0 0 4px;
+  color: var(--navy);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+}
+
+.user-management-header-actions,
+.user-management-panel-actions,
+.admin-user-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-notice {
+  margin: 0;
+  border: 1px solid #bfe8d1;
+  border-radius: var(--radius-control);
+  background: var(--green-soft);
+  color: #116a45;
+  padding: 9px 11px;
+  font-size: 13px;
+}
+
+.navigation-guard-notice {
+  margin-bottom: 16px;
+}
+
+.one-time-password-result {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #ffd798;
+  border-radius: var(--radius-panel);
+  background: #fff9eb;
+  padding: 12px;
+}
+
+.one-time-password-result > header,
+.user-management-side-panel > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.one-time-password-result > header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.one-time-password-result header span {
+  color: #8f5000;
+  font-size: 12px;
+}
+
+.one-time-password-result ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.one-time-password-result li {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.35fr) minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.one-time-password-result code {
+  overflow: hidden;
+  border: 1px solid #f0c36a;
+  border-radius: var(--radius-tight);
+  background: #fff;
+  color: #6d3d00;
+  padding: 6px 8px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.one-time-password-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.user-management-side-panel {
+  position: fixed;
+  z-index: 30;
+  top: 138px;
+  right: 24px;
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  width: min(520px, calc(100vw - 48px));
+  max-height: calc(100vh - 162px);
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-panel);
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+  padding: 18px;
+}
+
+.user-management-create-form,
+.user-management-batch-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.user-management-create-form label,
+.user-management-batch-form label,
+.admin-user-edit-grid label {
+  display: grid;
+  align-content: end;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.user-management-create-form input,
+.user-management-create-form select,
+.user-management-batch-form textarea,
+.admin-user-edit-grid input,
+.admin-user-edit-grid select {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: #fff;
+  color: var(--text);
+  padding: 0 10px;
+  font: inherit;
+}
+
+.user-management-batch-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.user-management-batch-form textarea {
+  min-height: 230px;
+  resize: vertical;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.user-management-panel-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}

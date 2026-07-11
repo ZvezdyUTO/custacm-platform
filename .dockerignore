@@ -1,4 +1,5 @@
 .git
+.superpowers/
 .idea
 *.iml
 .DS_Store
@@ -6,4 +7,6 @@
 logs
 target
 **/target
+**/node_modules
+**/dist
 deploy/.env

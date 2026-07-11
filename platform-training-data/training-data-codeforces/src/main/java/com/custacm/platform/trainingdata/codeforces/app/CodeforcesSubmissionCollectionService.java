@@ -1,6 +1,6 @@
 package com.custacm.platform.trainingdata.codeforces.app;
 
-import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountService;
+import com.custacm.platform.trainingdata.common.app.account.TrainingUserDirectory;
 import com.custacm.platform.trainingdata.common.collector.OjCollectionRequestExecutor;
 import com.custacm.platform.trainingdata.common.collector.OjHandleAccountCollectionHandleResolver;
 import com.custacm.platform.trainingdata.common.collector.OjSubmissionCollectionService;
@@ -19,7 +19,7 @@ public class CodeforcesSubmissionCollectionService implements OjRecentSubmission
     private final OjSubmissionCollectionService delegate;
 
     public CodeforcesSubmissionCollectionService(
-            OjHandleAccountService handleAccountService,
+            TrainingUserDirectory handleAccountService,
             CodeforcesSubmissionSourceClient sourceClient,
             CodeforcesOdsSubmissionIngestService ingestService,
             ObjectMapper objectMapper,
@@ -39,7 +39,7 @@ public class CodeforcesSubmissionCollectionService implements OjRecentSubmission
     }
 
     public CodeforcesSubmissionCollectionService(
-            OjHandleAccountService handleAccountService,
+            TrainingUserDirectory handleAccountService,
             CodeforcesSubmissionSourceClient sourceClient,
             CodeforcesOdsSubmissionIngestService ingestService,
             ObjectMapper objectMapper,
@@ -72,13 +72,13 @@ public class CodeforcesSubmissionCollectionService implements OjRecentSubmission
     }
 
     @Override
-    public OjSubmissionCollectionResult collectRecentWindowForStudentIdentity(
-            String studentIdentity,
+    public OjSubmissionCollectionResult collectRecentWindowForUsername(
+            String username,
             Duration lookback
     ) throws JsonProcessingException {
-        return delegate.collectRecentWindowForStudentIdentity(
+        return delegate.collectRecentWindowForUsername(
                 OjNames.CODEFORCES,
-                studentIdentity,
+                username,
                 lookback
         );
     }

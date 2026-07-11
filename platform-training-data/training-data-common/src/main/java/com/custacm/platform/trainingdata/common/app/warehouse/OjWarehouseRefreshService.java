@@ -43,6 +43,12 @@ public class OjWarehouseRefreshService {
         ));
     }
 
+    public SqlTaskExecutionResult refreshLatest(String startFromTaskId) {
+        String latestBatchId = intervalRepository.findLatestBatchId()
+                .orElseThrow(() -> new IllegalArgumentException(missingIntervalMessage));
+        return refresh(latestBatchId, startFromTaskId);
+    }
+
     private SqlTaskExecutionRequest executionRequest(
             String batchId,
             OjWarehouseRefreshInterval refreshInterval,

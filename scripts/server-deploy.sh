@@ -33,16 +33,6 @@ prepare_logs_dir() {
   chmod 0777 "${LOG_DIR}"
 }
 
-build_frontend_assets() {
-  local host_uid host_gid
-  host_uid="$(id -u 2>/dev/null || true)"
-  host_gid="$(id -g 2>/dev/null || true)"
-
-  echo "Building frontend static assets ..."
-  HOST_UID="${host_uid}" HOST_GID="${host_gid}" \
-    docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" run --rm frontend-build
-}
-
 pull_latest() {
   if [[ "${SKIP_GIT_PULL}" == "1" ]]; then
     echo "Skipping git pull because SERVER_DEPLOY_SKIP_GIT_PULL=1."
@@ -85,13 +75,9 @@ health_check() {
   source "${ENV_FILE}"
   set +a
 
-  local auth_health_url="http://localhost:${BACKEND_PORT:-8081}/health"
-  local training_health_url="http://localhost:${TRAINING_DATA_PORT:-8082}/health"
-  local frontend_url="http://localhost:${FRONTEND_PORT:-3000}/"
+  local backend_health_url="http://localhost:${BACKEND_PORT:-8090}/health"
 
-  check_url "${auth_health_url}" "custacm-backend"
-  check_url "${training_health_url}" "custacm-training-data-web"
-  check_url "${frontend_url}" "custacm-frontend"
+  check_url "${backend_health_url}" "blog-api"
 
   echo "Server deploy succeeded."
 }
@@ -140,7 +126,6 @@ pull_latest
 prepare_logs_dir
 
 echo "Building and starting Docker Compose services ..."
-build_frontend_assets
 docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --build
 
 health_check

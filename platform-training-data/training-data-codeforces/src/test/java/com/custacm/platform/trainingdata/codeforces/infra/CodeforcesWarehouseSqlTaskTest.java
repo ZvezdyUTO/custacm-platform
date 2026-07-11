@@ -207,6 +207,38 @@ class CodeforcesWarehouseSqlTaskTest {
         assertThat(rating800AcceptedCountOnDate("2024-01-10")).isZero();
     }
 
+    @Test
+    void latestBatchSelectionUsesFetchedAtThenIdAndSkipsRowsWithoutRefreshTime() {
+        writer.upsertBatch(new CodeforcesCollectBatch(
+                "batch-old",
+                Instant.parse("2026-01-01T00:00:00Z")
+        ), List.of(submission(201L, "alice", "A", "2024-01-01T10:00:00", "OK")));
+        writer.upsertBatch(new CodeforcesCollectBatch(
+                "batch-tie-first",
+                Instant.parse("2026-01-02T00:00:00Z")
+        ), List.of(submission(202L, "alice", "B", "2024-01-02T10:00:00", "OK")));
+        writer.upsertBatch(new CodeforcesCollectBatch(
+                "batch-tie-last",
+                Instant.parse("2026-01-02T00:00:00Z")
+        ), List.of(submission(203L, "alice", "C", "2024-01-03T10:00:00", "OK")));
+        writer.upsertBatch(new CodeforcesCollectBatch(
+                "batch-invalid-latest",
+                Instant.parse("2026-01-03T00:00:00Z")
+        ), List.of(submission(204L, "alice", "D", "2024-01-04T10:00:00", "OK")));
+        jdbcTemplate.update("""
+                update ods_codeforces__submission
+                set creation_time_seconds = null
+                where codeforces_submission_id = 204
+                """);
+
+        assertThat(refreshIntervalRepository().findLatestBatchId()).contains("batch-tie-last");
+    }
+
+    @Test
+    void latestBatchSelectionReturnsEmptyWithoutValidOdsRows() {
+        assertThat(refreshIntervalRepository().findLatestBatchId()).isEmpty();
+    }
+
     private void runWarehouseTasks(String batchId) throws Exception {
         Optional<OjWarehouseRefreshInterval> interval = refreshIntervalRepository().findBatchDateInterval(batchId);
         execute(DWD_SQL, batchId, interval);

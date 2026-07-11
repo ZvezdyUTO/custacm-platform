@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 public record OjSubmissionItem(
         String submissionId,
-        String studentIdentity,
+        String username,
         String handle,
         LocalDateTime submittedAtUtcPlus8,
         LocalDate submittedDateUtcPlus8,

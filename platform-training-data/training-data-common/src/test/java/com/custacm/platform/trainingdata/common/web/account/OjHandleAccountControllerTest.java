@@ -33,7 +33,7 @@ class OjHandleAccountControllerTest {
         Map<String, String> handles = Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder");
         when(service.create("112487张三", handles))
                 .thenReturn(account("112487张三", handles, true));
-        when(service.changeStudentIdentity("112487张三", "112488张三", false, handles))
+        when(service.changeUsername("112487张三", "112488张三", false, handles))
                 .thenReturn(account("112488张三", handles, false));
         when(service.listAll()).thenReturn(List.of(
                 account("112487张三", handles, true),
@@ -44,7 +44,7 @@ class OjHandleAccountControllerTest {
                 " 112487张三 ",
                 handles
         ));
-        var changed = controller.changeStudentIdentity(new ChangeOjHandleIdentityRequest(
+        var changed = controller.changeUsername(new ChangeOjHandleIdentityRequest(
                 " 112487张三 ",
                 " 112488张三 ",
                 false,
@@ -53,7 +53,7 @@ class OjHandleAccountControllerTest {
 
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(created.getBody()).isNotNull();
-        assertThat(created.getBody().studentIdentity()).isEqualTo("112487张三");
+        assertThat(created.getBody().username()).isEqualTo("112487张三");
         assertThat(created.getBody().handles()).containsEntry(OjNames.CODEFORCES, "tourist");
         assertThat(created.getBody().handles()).containsEntry(OjNames.ATCODER, "tourist_atcoder");
         assertThat(created.getBody().needCollect()).isTrue();
@@ -61,7 +61,7 @@ class OjHandleAccountControllerTest {
         assertThat(created.getBody().collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isFalse();
         assertThat(created.getBody().collectionStates().get(OjNames.CODEFORCES).lastCollectedAt()).isNull();
         assertThat(changed.getBody()).isNotNull();
-        assertThat(changed.getBody().studentIdentity()).isEqualTo("112488张三");
+        assertThat(changed.getBody().username()).isEqualTo("112488张三");
         assertThat(changed.getBody().handles()).containsEntry(OjNames.CODEFORCES, "tourist");
         assertThat(changed.getBody().handles()).containsEntry(OjNames.ATCODER, "tourist_atcoder");
         assertThat(changed.getBody().needCollect()).isFalse();
@@ -75,7 +75,7 @@ class OjHandleAccountControllerTest {
         assertThat(controller.listAll().getBody().get("112488李四").handles())
                 .containsEntry(OjNames.CODEFORCES, "Benq");
         verify(service).create("112487张三", handles);
-        verify(service).changeStudentIdentity("112487张三", "112488张三", false, handles);
+        verify(service).changeUsername("112487张三", "112488张三", false, handles);
     }
 
     @Test
@@ -85,7 +85,7 @@ class OjHandleAccountControllerTest {
                         assertThat(ex.errorCode()).isEqualTo(
                                 OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_INVALID_REQUEST
                         ));
-        assertThatThrownBy(() -> controller.changeStudentIdentity(null))
+        assertThatThrownBy(() -> controller.changeUsername(null))
                 .isInstanceOfSatisfying(OjHandleAccountException.class, ex ->
                         assertThat(ex.errorCode()).isEqualTo(
                                 OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_INVALID_REQUEST
@@ -103,7 +103,7 @@ class OjHandleAccountControllerTest {
                         assertThat(ex.errorCode()).isEqualTo(
                                 OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_INVALID_REQUEST
                         ));
-        assertThatThrownBy(() -> controller.changeStudentIdentity(new ChangeOjHandleIdentityRequest(
+        assertThatThrownBy(() -> controller.changeUsername(new ChangeOjHandleIdentityRequest(
                 "112487张三",
                 " ",
                 null,
@@ -138,7 +138,7 @@ class OjHandleAccountControllerTest {
         });
     }
 
-    private static OjHandleAccount account(String studentIdentity, Map<String, String> handles, boolean needCollect) {
-        return new OjHandleAccount(studentIdentity, handles, needCollect, NOW, NOW);
+    private static OjHandleAccount account(String username, Map<String, String> handles, boolean needCollect) {
+        return new OjHandleAccount(username, handles, needCollect, NOW, NOW);
     }
 }

@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 public record OjStudentDataPurgeResponse(
-        String studentIdentity,
+        String username,
         String ojName,
         String handle,
         Map<String, String> handles,

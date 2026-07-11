@@ -5,14 +5,14 @@ import com.custacm.platform.trainingdata.common.app.query.result.OjAcceptedSumma
 import java.util.List;
 
 public record OjAcceptedSummaryResponse(
-        String studentIdentity,
+        String username,
         String authorHandle,
         int totalAcceptedProblemCount,
         List<OjRatingAcceptedCountResponse> ratingCounts
 ) {
     public static OjAcceptedSummaryResponse from(OjAcceptedSummaryReport report) {
         return new OjAcceptedSummaryResponse(
-                report.studentIdentity(),
+                report.username(),
                 report.authorHandle(),
                 report.totalAcceptedProblemCount(),
                 report.ratingCounts().stream()

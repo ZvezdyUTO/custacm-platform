@@ -54,9 +54,7 @@ require_remote() {
 classify_changes() {
   local file
   local needs_full=0
-  local needs_auth=0
-  local needs_training=0
-  local needs_frontend=0
+  local needs_blog=0
   local has_runtime_change=0
 
   for file in "$@"; do
@@ -65,16 +63,8 @@ classify_changes() {
         needs_full=1
         has_runtime_change=1
         ;;
-      platform-auth/pom.xml|platform-auth/auth-domain/*|platform-auth/auth-app/*|platform-auth/auth-core/*|platform-auth/auth-infra/*|platform-auth/auth-web/*)
-        needs_auth=1
-        has_runtime_change=1
-        ;;
-      platform-training-data/pom.xml|platform-training-data/training-data-codeforces/*|platform-training-data/training-data-web/*)
-        needs_training=1
-        has_runtime_change=1
-        ;;
-      frontend/*)
-        needs_frontend=1
+      platform-blog/*|platform-training-data/*|platform-common/*)
+        needs_blog=1
         has_runtime_change=1
         ;;
       *)
@@ -88,14 +78,8 @@ classify_changes() {
     echo "none"
   else
     local modules=()
-    if [[ "${needs_auth}" == "1" ]]; then
-      modules+=("auth-web")
-    fi
-    if [[ "${needs_training}" == "1" ]]; then
-      modules+=("training-data-web")
-    fi
-    if [[ "${needs_frontend}" == "1" ]]; then
-      modules+=("frontend")
+    if [[ "${needs_blog}" == "1" ]]; then
+      modules+=("blog-api")
     fi
     local IFS=,
     echo "modules:${modules[*]}"

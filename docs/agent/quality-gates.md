@@ -15,7 +15,7 @@ Use the smallest check that proves the changed surface, then run broader checks 
 | Documentation sync rules | `./scripts/check-doc-sync.sh origin/main WORKTREE` |
 | Docs-only changes | No Maven required unless examples/config changed |
 
-Training-data storage changes should include focused tests for fixture parsing, OJ-specific ODS idempotency, writer wiring, collection HTTP behavior, and DWD/DWM/DWS SQL task behavior when those layers change. OJ-specific tests belong in that OJ Maven module; shared `training-data-web` security tests belong in `training-data-web`. Codeforces external parsing and warehouse SQL checks must stay fixture-backed in default tests. The current JDBC tests use H2 in MySQL compatibility mode to keep default verification independent of local Docker availability.
+Training-data storage changes should include focused tests for fixture parsing, OJ-specific ODS idempotency, writer wiring, Blog API collection/security behavior, and DWD/DWM/DWS SQL task behavior. OJ-specific tests belong in that OJ Maven module; integrated HTTP/security tests belong in Blog API. Codeforces external parsing and warehouse SQL checks must stay fixture-backed in default tests. JDBC unit tests use H2 in MySQL compatibility mode; final Flyway/foreign-key integration should also be exercised against local MySQL when available.
 
 ## CI
 

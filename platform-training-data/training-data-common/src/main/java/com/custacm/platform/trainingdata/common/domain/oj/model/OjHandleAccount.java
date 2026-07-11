@@ -11,7 +11,7 @@ import java.util.Objects;
 import static com.custacm.platform.trainingdata.common.support.Texts.requireText;
 
 public record OjHandleAccount(
-        String studentIdentity,
+        String username,
         Map<String, String> handles,
         boolean needCollect,
         Map<String, OjHandleCollectionState> collectionStates,
@@ -19,17 +19,17 @@ public record OjHandleAccount(
         Instant updatedAt
 ) {
     public OjHandleAccount(
-            String studentIdentity,
+            String username,
             Map<String, String> handles,
             boolean needCollect,
             Instant createdAt,
             Instant updatedAt
     ) {
-        this(studentIdentity, handles, needCollect, Map.of(), createdAt, updatedAt);
+        this(username, handles, needCollect, Map.of(), createdAt, updatedAt);
     }
 
     public OjHandleAccount {
-        requireText(studentIdentity, "studentIdentity");
+        requireText(username, "username");
         handles = normalizeHandles(handles);
         collectionStates = normalizeCollectionStates(handles, collectionStates);
         Objects.requireNonNull(createdAt, "createdAt must not be null");

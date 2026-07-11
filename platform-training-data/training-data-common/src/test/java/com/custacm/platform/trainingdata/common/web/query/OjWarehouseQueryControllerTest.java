@@ -71,7 +71,7 @@ class OjWarehouseQueryControllerTest {
         );
 
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().studentIdentity()).isEqualTo("112487张三");
+        assertThat(response.getBody().username()).isEqualTo("112487张三");
         assertThat(response.getBody().authorHandle()).isEqualTo("tourist");
         assertThat(response.getBody().totalAcceptedProblemCount()).isEqualTo(3);
         assertThat(response.getBody().ratingCounts())
@@ -153,7 +153,7 @@ class OjWarehouseQueryControllerTest {
         );
 
         assertThat(studentResponse.getBody()).isNotNull();
-        assertThat(studentResponse.getBody().studentIdentity()).isEqualTo("112487张三");
+        assertThat(studentResponse.getBody().username()).isEqualTo("112487张三");
         assertThat(studentResponse.getBody().page()).isEqualTo(2);
         assertThat(studentResponse.getBody().limit()).isEqualTo(50);
         assertThat(studentResponse.getBody().total()).isEqualTo(51);
@@ -306,7 +306,7 @@ class OjWarehouseQueryControllerTest {
         );
 
         assertThat(studentResponse.getBody()).isNotNull();
-        assertThat(studentResponse.getBody().studentIdentity()).isEqualTo("112487张三");
+        assertThat(studentResponse.getBody().username()).isEqualTo("112487张三");
         assertThat(studentResponse.getBody().totalAcceptedProblemCount()).isEqualTo(1);
         assertThat(studentResponse.getBody().page()).isEqualTo(2);
         assertThat(studentResponse.getBody().limit()).isEqualTo(50);
@@ -321,7 +321,7 @@ class OjWarehouseQueryControllerTest {
         assertThat(problemResponse.getBody().total()).isEqualTo(51);
         assertThat(problemResponse.getBody().totalPages()).isEqualTo(2);
         assertThat(problemResponse.getBody().hasMore()).isFalse();
-        assertThat(problemResponse.getBody().acceptedHandles().getFirst().studentIdentity()).isEqualTo("112487张三");
+        assertThat(problemResponse.getBody().acceptedHandles().getFirst().username()).isEqualTo("112487张三");
         verify(firstAcceptedProblemQueryService)
                 .summarizeStudentFirstAcceptedProblems(OjNames.CODEFORCES, "112487张三", from, to, 800, 1600, 2, 50);
         verify(firstAcceptedProblemQueryService).summarizeProblemFirstAcceptedHandles(problemQuery);
@@ -421,12 +421,12 @@ class OjWarehouseQueryControllerTest {
 
     private static OjSubmissionItem submissionItem(
             long codeforcesSubmissionId,
-            String studentIdentity,
+            String username,
             String authorHandle
     ) {
         return new OjSubmissionItem(
                 String.valueOf(codeforcesSubmissionId),
-                studentIdentity,
+                username,
                 authorHandle,
                 LocalDateTime.parse("2026-07-01T12:00:00"),
                 LocalDate.parse("2026-07-01"),

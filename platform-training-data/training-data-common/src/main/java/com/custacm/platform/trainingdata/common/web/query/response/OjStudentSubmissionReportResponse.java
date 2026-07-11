@@ -5,7 +5,7 @@ import com.custacm.platform.trainingdata.common.app.query.result.OjHandleSubmiss
 import java.util.List;
 
 public record OjStudentSubmissionReportResponse(
-        String studentIdentity,
+        String username,
         String authorHandle,
         int page,
         int limit,
@@ -16,7 +16,7 @@ public record OjStudentSubmissionReportResponse(
 ) {
     public static OjStudentSubmissionReportResponse from(OjHandleSubmissionReport report) {
         return new OjStudentSubmissionReportResponse(
-                report.studentIdentity(),
+                report.username(),
                 report.authorHandle(),
                 report.page(),
                 report.limit(),

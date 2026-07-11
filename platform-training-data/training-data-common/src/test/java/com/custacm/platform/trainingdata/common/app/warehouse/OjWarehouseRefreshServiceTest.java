@@ -62,6 +62,39 @@ class OjWarehouseRefreshServiceTest {
     }
 
     @Test
+    void refreshesLatestBatchWithTheSameStrictIntervalExecution() {
+        OjWarehouseRefreshInterval interval = new OjWarehouseRefreshInterval(
+                LocalDate.parse("2026-07-04"),
+                LocalDate.parse("2026-07-06")
+        );
+        when(intervalRepository.findLatestBatchId()).thenReturn(Optional.of("batch-latest"));
+        when(intervalRepository.findBatchDateInterval("batch-latest")).thenReturn(Optional.of(interval));
+        when(runner.execute(any())).thenReturn(successResult());
+
+        SqlTaskExecutionResult result = service.refreshLatest(" example.dws.daily_summary ");
+
+        ArgumentCaptor<SqlTaskExecutionRequest> captor = ArgumentCaptor.forClass(SqlTaskExecutionRequest.class);
+        verify(intervalRepository).findLatestBatchId();
+        verify(intervalRepository).findBatchDateInterval("batch-latest");
+        verify(runner).execute(captor.capture());
+        assertThat(result.status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+        assertThat(captor.getValue().parameters().get("batchId")).isEqualTo("batch-latest");
+        assertThat(captor.getValue().startFromTaskId()).isEqualTo("example.dws.daily_summary");
+    }
+
+    @Test
+    void rejectsLatestRefreshWhenOdsHasNoValidBatch() {
+        when(intervalRepository.findLatestBatchId()).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.refreshLatest(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("batchId has no example submissions");
+
+        verify(intervalRepository).findLatestBatchId();
+        verifyNoInteractions(runner);
+    }
+
+    @Test
     void rejectsBlankBatchIdBeforeCallingRunner() {
         assertThatThrownBy(() -> service.refresh(" ", null))
                 .isInstanceOf(IllegalArgumentException.class)

@@ -1,6 +1,6 @@
 package com.custacm.platform.trainingdata.common.app.query;
 
-import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountService;
+import com.custacm.platform.trainingdata.common.app.account.TrainingUserDirectory;
 import com.custacm.platform.trainingdata.common.app.query.result.OjHandleFirstAcceptedProblemReport;
 import com.custacm.platform.trainingdata.common.app.query.result.OjProblemFirstAcceptedHandleReport;
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjHandleFirstAcceptedProblemCriteria;
@@ -17,18 +17,18 @@ import java.util.Map;
 
 public class OjFirstAcceptedProblemQueryService {
     private final OjFirstAcceptedProblemRepository repository;
-    private final OjHandleAccountService handleAccountService;
+    private final TrainingUserDirectory handleAccountService;
 
     public OjFirstAcceptedProblemQueryService(
             OjFirstAcceptedProblemRepository repository,
-            OjHandleAccountService handleAccountService
+            TrainingUserDirectory handleAccountService
     ) {
         this.repository = repository;
         this.handleAccountService = handleAccountService;
     }
 
     public OjHandleFirstAcceptedProblemReport summarizeStudentFirstAcceptedProblems(
-            String studentIdentity,
+            String username,
             LocalDateTime firstAcceptedFromUtcPlus8,
             LocalDateTime firstAcceptedToUtcPlus8,
             Integer minProblemRating,
@@ -38,7 +38,7 @@ public class OjFirstAcceptedProblemQueryService {
     ) {
         return summarizeStudentFirstAcceptedProblems(
                 OjNames.CODEFORCES,
-                studentIdentity,
+                username,
                 firstAcceptedFromUtcPlus8,
                 firstAcceptedToUtcPlus8,
                 minProblemRating,
@@ -50,7 +50,7 @@ public class OjFirstAcceptedProblemQueryService {
 
     public OjHandleFirstAcceptedProblemReport summarizeStudentFirstAcceptedProblems(
             String ojName,
-            String studentIdentity,
+            String username,
             LocalDateTime firstAcceptedFromUtcPlus8,
             LocalDateTime firstAcceptedToUtcPlus8,
             Integer minProblemRating,
@@ -58,7 +58,7 @@ public class OjFirstAcceptedProblemQueryService {
             int page,
             int limit
     ) {
-        OjHandleAccount account = handleAccountService.getByStudentIdentity(studentIdentity);
+        OjHandleAccount account = handleAccountService.getByUsername(username);
         String ojHandle = handleAccountService.getHandle(account, ojName);
         OjHandleFirstAcceptedProblemCriteria query = new OjHandleFirstAcceptedProblemCriteria(
                 ojName,
@@ -74,7 +74,7 @@ public class OjFirstAcceptedProblemQueryService {
         long totalPages = totalPages(total, limit);
         if (query.offset() >= total) {
             return new OjHandleFirstAcceptedProblemReport(
-                    account.studentIdentity(),
+                    account.username(),
                     ojHandle,
                     Math.toIntExact(total),
                     page,
@@ -90,7 +90,7 @@ public class OjFirstAcceptedProblemQueryService {
                         .map(OjFirstAcceptedProblemQueryService::toProblemItem)
                         .toList();
         return new OjHandleFirstAcceptedProblemReport(
-                account.studentIdentity(),
+                account.username(),
                 ojHandle,
                 Math.toIntExact(total),
                 page,
@@ -121,11 +121,11 @@ public class OjFirstAcceptedProblemQueryService {
             );
         }
         List<OjFirstAcceptedProblem> rows = repository.findProblemFirstAcceptedHandles(query);
-        Map<String, String> studentIdentityByHandle = studentIdentityByHandle(query.ojName(), rows);
+        Map<String, String> usernameByHandle = usernameByHandle(query.ojName(), rows);
         List<OjProblemFirstAcceptedHandleReport.OjFirstAcceptedHandle> acceptedHandles =
                 rows.stream()
                         .map(row -> new OjProblemFirstAcceptedHandleReport.OjFirstAcceptedHandle(
-                                studentIdentityByHandle.get(row.handle()),
+                                usernameByHandle.get(row.handle()),
                                 row.handle(),
                                 row.firstAcceptedAtUtcPlus8()
                         ))
@@ -158,15 +158,15 @@ public class OjFirstAcceptedProblemQueryService {
         return Math.toIntExact(query.offset() / query.limit() + 1);
     }
 
-    private Map<String, String> studentIdentityByHandle(String ojName, List<OjFirstAcceptedProblem> rows) {
-        Map<String, String> studentIdentityByHandle = new LinkedHashMap<>();
+    private Map<String, String> usernameByHandle(String ojName, List<OjFirstAcceptedProblem> rows) {
+        Map<String, String> usernameByHandle = new LinkedHashMap<>();
         for (OjFirstAcceptedProblem row : rows) {
-            studentIdentityByHandle.computeIfAbsent(
+            usernameByHandle.computeIfAbsent(
                     row.handle(),
-                    handle -> handleAccountService.getByHandle(ojName, handle).studentIdentity()
+                    handle -> handleAccountService.getByHandle(ojName, handle).username()
             );
         }
-        return studentIdentityByHandle;
+        return usernameByHandle;
     }
 
     private static OjHandleFirstAcceptedProblemReport.OjFirstAcceptedProblemItem toProblemItem(

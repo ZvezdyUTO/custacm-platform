@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.List;
 
 public interface OjCollectionHandleResolver {
-    String getHandleByStudentIdentity(String ojName, String studentIdentity);
+    String getHandleByUsername(String ojName, String username);
 
     List<String> listHandlesForCollection(String ojName);
 

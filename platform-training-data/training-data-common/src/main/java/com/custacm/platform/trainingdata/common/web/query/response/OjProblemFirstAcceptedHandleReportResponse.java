@@ -33,7 +33,7 @@ public record OjProblemFirstAcceptedHandleReportResponse(
     }
 
     public record OjFirstAcceptedHandleResponse(
-            String studentIdentity,
+            String username,
             String handle,
             LocalDateTime firstAcceptedAtUtcPlus8
     ) {
@@ -41,7 +41,7 @@ public record OjProblemFirstAcceptedHandleReportResponse(
                 OjProblemFirstAcceptedHandleReport.OjFirstAcceptedHandle item
         ) {
             return new OjFirstAcceptedHandleResponse(
-                    item.studentIdentity(),
+                    item.username(),
                     item.handle(),
                     item.firstAcceptedAtUtcPlus8()
             );

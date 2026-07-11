@@ -11,15 +11,15 @@ import java.util.Optional;
 public interface OjHandleAccountRepository {
     List<OjHandleAccount> findAll();
 
-    Optional<OjHandleAccount> findByStudentIdentity(String studentIdentity);
+    Optional<OjHandleAccount> findByUsername(String username);
 
     Optional<OjHandleAccount> findByHandle(String ojName, String handle);
 
     OjHandleAccount save(OjHandleAccount account);
 
-    OjHandleAccount updateStudentIdentityAndNeedCollect(
-            String oldStudentIdentity,
-            String newStudentIdentity,
+    OjHandleAccount updateUsernameAndNeedCollect(
+            String oldUsername,
+            String newUsername,
             Map<String, String> handles,
             boolean needCollect,
             Map<String, OjHandleCollectionState> collectionStates,
@@ -27,7 +27,7 @@ public interface OjHandleAccountRepository {
     );
 
     OjHandleAccount updateCollectionStates(
-            String studentIdentity,
+            String username,
             Map<String, OjHandleCollectionState> collectionStates,
             Instant updatedAt
     );

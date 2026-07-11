@@ -1,7 +1,7 @@
 package com.custacm.platform.trainingdata.common.app.purge;
 
 import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountException;
-import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountService;
+import com.custacm.platform.trainingdata.common.app.account.TrainingUserDirectory;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjStudentDataPurgeResult;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleAccount;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjOdsDataPurgeRepository;
@@ -19,13 +19,13 @@ import static com.custacm.platform.trainingdata.common.support.Texts.requireText
 public class OjStudentDataPurgeService {
     private final Map<String, OjOdsDataPurgeRepository> odsDataPurgeRepositories;
     private final OjWarehouseDataPurgeRepository warehouseDataPurgeRepository;
-    private final OjHandleAccountService handleAccountService;
+    private final TrainingUserDirectory handleAccountService;
     private final TransactionOperations transactionOperations;
 
     public OjStudentDataPurgeService(
             Collection<OjOdsDataPurgeRepository> odsDataPurgeRepositories,
             OjWarehouseDataPurgeRepository warehouseDataPurgeRepository,
-            OjHandleAccountService handleAccountService,
+            TrainingUserDirectory handleAccountService,
             TransactionOperations transactionOperations
     ) {
         this.odsDataPurgeRepositories = indexOdsDataPurgeRepositories(odsDataPurgeRepositories);
@@ -34,45 +34,45 @@ public class OjStudentDataPurgeService {
         this.transactionOperations = transactionOperations;
     }
 
-    public OjStudentDataPurgeResult purgeStudentData(String studentIdentity, String ojName) {
-        String normalizedStudentIdentity = requireText(
-                studentIdentity,
-                "studentIdentity",
+    public OjStudentDataPurgeResult purgeStudentData(String username, String ojName) {
+        String normalizedUsername = requireText(
+                username,
+                "username",
                 OjStudentDataPurgeService::invalidRequest
         );
         String normalizedOjName = normalizeRequiredOjName(ojName);
         return transactionOperations.execute(status -> purgeStudentDataInTransaction(
-                normalizedStudentIdentity,
+                normalizedUsername,
                 normalizedOjName
         ));
     }
 
     private OjStudentDataPurgeResult purgeStudentDataInTransaction(
-            String studentIdentity,
+            String username,
             String requestedOjName
     ) {
-        OjHandleAccount account = findAccount(studentIdentity);
+        OjHandleAccount account = findAccount(username);
         if (account == null) {
             return OjStudentDataPurgeResult.aggregate(
-                    studentIdentity,
+                    username,
                     requestedOjName,
                     null,
                     Map.of(),
                     List.of()
             );
         }
-        return purgeSingleRequestedOj(studentIdentity, account, requestedOjName);
+        return purgeSingleRequestedOj(username, account, requestedOjName);
     }
 
     private OjStudentDataPurgeResult purgeSingleRequestedOj(
-            String studentIdentity,
+            String username,
             OjHandleAccount account,
             String ojName
     ) {
         String handle = account.handles().get(ojName);
         if (handle == null) {
             return OjStudentDataPurgeResult.aggregate(
-                    studentIdentity,
+                    username,
                     ojName,
                     null,
                     account.handles(),
@@ -80,7 +80,7 @@ public class OjStudentDataPurgeService {
             );
         }
         return OjStudentDataPurgeResult.aggregate(
-                studentIdentity,
+                username,
                 ojName,
                 handle,
                 account.handles(),
@@ -103,9 +103,9 @@ public class OjStudentDataPurgeService {
         );
     }
 
-    private OjHandleAccount findAccount(String studentIdentity) {
+    private OjHandleAccount findAccount(String username) {
         try {
-            return handleAccountService.getByStudentIdentity(studentIdentity);
+            return handleAccountService.getByUsername(username);
         } catch (OjHandleAccountException ex) {
             if (ex.errorCode() == OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_NOT_FOUND) {
                 return null;

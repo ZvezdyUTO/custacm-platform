@@ -1,45 +1,103 @@
-import type { DashboardTask } from '../types';
+import { OJ_NAMES } from '../types';
+import type {
+  AcceptedSummary,
+  ProblemFirstAcceptedReport,
+  ProblemSubmissionReport,
+  TrainingUser,
+  UserFirstAcceptedReport,
+  UserSubmissionReport,
+} from '../types';
 
-export const dashboardTasksFixture: DashboardTask[] = [
-  {
-    id: 'operation-collection-failed',
-    title: 'Codeforces 采集任务失败',
-    module: 'ods-import',
-    status: 'failed',
-    priority: 'P1',
-    owner: { name: '接口操作', role: 'admin', avatar: 'API' },
-    subjectLabel: '第 55 批',
-    source: 'Codeforces',
-    updatedAt: '2026-07-06T00:10:00Z',
-    action: '结果',
-    detail: '第 55 批采集任务失败。',
-  },
-  {
-    id: 'user-bound',
-    title: '队员账号：230511214李明',
-    module: 'codeforces',
-    status: 'completed',
-    priority: 'P3',
-    owner: { name: 'Benq', role: 'player', avatar: '明' },
-    subjectLabel: '230511214李明 / Benq',
-    studentIdentity: '230511214李明',
-    source: 'Codeforces',
-    updatedAt: '2026-07-06T00:08:00Z',
-    action: '查询',
-    detail: 'DWS 首次通过 102 题，handle=Benq',
-  },
-  {
-    id: 'user-unbound',
-    title: '队员账号：230511213黄炳睿',
-    module: 'accounts',
-    status: 'pending',
-    priority: 'P2',
-    owner: { name: '平台账号', role: 'player', avatar: '睿' },
-    subjectLabel: '230511213黄炳睿',
-    studentIdentity: '230511213黄炳睿',
-    source: 'Auth',
-    updatedAt: '2026-07-06T00:07:00Z',
-    action: '绑定',
-    detail: 'auth-web 中存在账号，training-data 暂无 OJ handle 绑定。',
-  },
+export const trainingUsersFixture: TrainingUser[] = [
+  { username: 'player-a', nickname: '队员 A', ojNames: [OJ_NAMES.CODEFORCES] },
+  { username: 'player-b', nickname: '', ojNames: [OJ_NAMES.CODEFORCES, OJ_NAMES.ATCODER] },
 ];
+
+export const acceptedSummaryFixture: AcceptedSummary = {
+  username: 'player-a',
+  authorHandle: 'tourist',
+  totalAcceptedProblemCount: 2,
+  ratingCounts: [
+    { problemRating: '1800', acceptedProblemCount: 1 },
+    { problemRating: '2100', acceptedProblemCount: 1 },
+  ],
+};
+
+export const userSubmissionsFixture: UserSubmissionReport = {
+  username: 'player-a',
+  authorHandle: 'tourist',
+  page: 1,
+  limit: 15,
+  total: 1,
+  totalPages: 1,
+  hasMore: false,
+  submissions: [{
+    submissionId: '1',
+    username: 'player-a',
+    handle: 'tourist',
+    submittedAtUtcPlus8: '2026-07-05T12:00:00',
+    submittedDateUtcPlus8: '2026-07-05',
+    problemKey: '2053:D',
+    problemIndex: 'D',
+    problemName: 'Remove and Add',
+    difficulty: '1800',
+    language: 'Kotlin 1.9',
+    verdict: 'OK',
+    accepted: true,
+    timeConsumedMillis: 93,
+    sourceUrl: 'https://codeforces.com/contest/2053/submission/1',
+  }],
+};
+
+export const userFirstAcceptedFixture: UserFirstAcceptedReport = {
+  username: 'player-a',
+  authorHandle: 'tourist',
+  totalAcceptedProblemCount: 1,
+  page: 1,
+  limit: 15,
+  total: 1,
+  totalPages: 1,
+  hasMore: false,
+  problems: [{
+    problemKey: '2053:D',
+    problemIndex: 'D',
+    problemName: 'Remove and Add',
+    difficulty: '1800',
+    firstAcceptedSubmissionId: '1',
+    firstAcceptedAtUtcPlus8: '2026-07-05T12:00:00',
+    firstAcceptedDateUtcPlus8: '2026-07-05',
+    firstAcceptedLanguage: 'Kotlin 1.9',
+    firstAcceptedSourceUrl: 'https://codeforces.com/contest/2053/submission/1',
+  }],
+};
+
+export const problemSubmissionsFixture: ProblemSubmissionReport = {
+  problemKey: '2242:C',
+  page: 1,
+  limit: 15,
+  total: 1,
+  totalPages: 1,
+  hasMore: false,
+  submissions: [{
+    ...userSubmissionsFixture.submissions[0]!,
+    submissionId: '21',
+    problemKey: '2242:C',
+    problemIndex: 'C',
+    problemName: 'Sample Problem',
+  }],
+};
+
+export const problemFirstAcceptedFixture: ProblemFirstAcceptedReport = {
+  problemKey: '2242:C',
+  acceptedHandleCount: 1,
+  page: 1,
+  limit: 15,
+  total: 1,
+  totalPages: 1,
+  hasMore: false,
+  acceptedHandles: [{
+    username: 'player-a',
+    handle: 'tourist',
+    firstAcceptedAtUtcPlus8: '2026-07-05T12:00:00',
+  }],
+};

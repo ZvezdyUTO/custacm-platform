@@ -60,7 +60,7 @@ class JdbcOjHandleAccountRepositoryTest {
     }
 
     @Test
-    void savesListsAndChangesStudentIdentityWithoutChangingHandle() {
+    void savesListsAndChangesUsernameWithoutChangingHandle() {
         repository.save(new OjHandleAccount(
                 "112487张三",
                 Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder"),
@@ -75,7 +75,7 @@ class JdbcOjHandleAccountRepositoryTest {
 
         OjHandleAccount listed = repository.findAll().get(0);
 
-        assertThat(listed.studentIdentity()).isEqualTo("112487张三");
+        assertThat(listed.username()).isEqualTo("112487张三");
         assertThat(listed.handles()).containsEntry(OjNames.CODEFORCES, "tourist");
         assertThat(listed.handles()).containsEntry(OjNames.ATCODER, "tourist_atcoder");
         assertThat(listed.needCollect()).isFalse();
@@ -84,7 +84,7 @@ class JdbcOjHandleAccountRepositoryTest {
                 .isEqualTo(Instant.parse("2026-07-04T00:00:00Z"));
         assertThat(listed.collectionStates().get(OjNames.ATCODER).historyStartReached()).isFalse();
 
-        OjHandleAccount changed = repository.updateStudentIdentityAndNeedCollect(
+        OjHandleAccount changed = repository.updateUsernameAndNeedCollect(
                 "112487张三",
                 "112488张三",
                 Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder"),
@@ -98,7 +98,7 @@ class JdbcOjHandleAccountRepositoryTest {
                 UPDATED_AT
         );
 
-        assertThat(changed.studentIdentity()).isEqualTo("112488张三");
+        assertThat(changed.username()).isEqualTo("112488张三");
         assertThat(changed.handles()).containsEntry(OjNames.CODEFORCES, "tourist");
         assertThat(changed.handles()).containsEntry(OjNames.ATCODER, "tourist_atcoder");
         assertThat(changed.needCollect()).isTrue();
@@ -107,7 +107,7 @@ class JdbcOjHandleAccountRepositoryTest {
         assertThat(changed.createdAt()).isEqualTo(CREATED_AT);
         assertThat(changed.updatedAt()).isEqualTo(UPDATED_AT);
         assertThat(repository.findAll())
-                .extracting(OjHandleAccount::studentIdentity)
+                .extracting(OjHandleAccount::username)
                 .containsExactly("112488张三");
         assertThat(repository.findAll().get(0).handles())
                 .containsEntry(OjNames.CODEFORCES, "tourist")
@@ -115,7 +115,7 @@ class JdbcOjHandleAccountRepositoryTest {
     }
 
     @Test
-    void findsAllHandleAccountsOrderedByStudentIdentity() {
+    void findsAllHandleAccountsOrderedByUsername() {
         repository.save(new OjHandleAccount(
                 "112488李四",
                 Map.of(OjNames.CODEFORCES, "Benq"),
@@ -132,7 +132,7 @@ class JdbcOjHandleAccountRepositoryTest {
         ));
 
         assertThat(repository.findAll())
-                .extracting(OjHandleAccount::studentIdentity)
+                .extracting(OjHandleAccount::username)
                 .containsExactly("112487张三", "112488李四");
         assertThat(repository.findAll())
                 .extracting(account -> account.handles().get(OjNames.CODEFORCES))
@@ -158,11 +158,11 @@ class JdbcOjHandleAccountRepositoryTest {
 
         assertThat(repository.findByHandle("codeforces", "tourist"))
                 .get()
-                .extracting(OjHandleAccount::studentIdentity)
+                .extracting(OjHandleAccount::username)
                 .isEqualTo("112487张三");
         assertThat(repository.findByHandle("atcoder", "tourist"))
                 .get()
-                .extracting(OjHandleAccount::studentIdentity)
+                .extracting(OjHandleAccount::username)
                 .isEqualTo("112488李四");
         assertThat(repository.findByHandle(OjNames.ATCODER, "missing")).isEmpty();
     }
@@ -177,7 +177,7 @@ class JdbcOjHandleAccountRepositoryTest {
                 CREATED_AT
         ));
 
-        OjHandleAccount changed = repository.updateStudentIdentityAndNeedCollect(
+        OjHandleAccount changed = repository.updateUsernameAndNeedCollect(
                 "112487张三",
                 "112487张三",
                 Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder"),
@@ -215,7 +215,7 @@ class JdbcOjHandleAccountRepositoryTest {
                 UPDATED_AT
         );
 
-        assertThat(changed.studentIdentity()).isEqualTo("112487张三");
+        assertThat(changed.username()).isEqualTo("112487张三");
         assertThat(changed.handles())
                 .containsEntry(OjNames.CODEFORCES, "tourist")
                 .containsEntry(OjNames.ATCODER, "tourist_atcoder");
@@ -229,7 +229,7 @@ class JdbcOjHandleAccountRepositoryTest {
     @Test
     void databaseDefaultsNeedCollectToTrueForExistingInsertShape() {
         jdbcTemplate.update("""
-                insert into oj_handle_account (student_identity, handles_json, created_at, updated_at)
+                insert into oj_handle_account (username, handles_json, created_at, updated_at)
                 values ('112487张三', '{"CODEFORCES":"tourist"}', current_timestamp, current_timestamp)
                 """);
 

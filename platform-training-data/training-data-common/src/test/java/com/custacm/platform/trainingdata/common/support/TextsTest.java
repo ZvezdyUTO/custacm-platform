@@ -13,13 +13,13 @@ class TextsTest {
 
     @Test
     void requireTextRejectsNullAndBlankWithDefaultException() {
-        assertThatThrownBy(() -> Texts.requireText(null, "studentIdentity"))
+        assertThatThrownBy(() -> Texts.requireText(null, "username"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("studentIdentity must not be blank");
+                .hasMessage("username must not be blank");
 
-        assertThatThrownBy(() -> Texts.requireText(" ", "studentIdentity"))
+        assertThatThrownBy(() -> Texts.requireText(" ", "username"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("studentIdentity must not be blank");
+                .hasMessage("username must not be blank");
     }
 
     @Test

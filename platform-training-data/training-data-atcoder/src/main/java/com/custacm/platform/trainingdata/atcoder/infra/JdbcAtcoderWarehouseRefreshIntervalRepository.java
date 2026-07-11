@@ -16,6 +16,22 @@ public class JdbcAtcoderWarehouseRefreshIntervalRepository implements OjWarehous
     }
 
     @Override
+    public Optional<String> findLatestBatchId() {
+        return jdbcTemplate.query("""
+                select batch_id
+                from ods_atcoder__submission
+                where batch_id is not null
+                  and trim(batch_id) <> ''
+                  and fetched_at is not null
+                  and epoch_second is not null
+                order by fetched_at desc, id desc
+                limit 1
+                """, new MapSqlParameterSource(), (rs, rowNum) -> rs.getString("batch_id"))
+                .stream()
+                .findFirst();
+    }
+
+    @Override
     public Optional<OjWarehouseRefreshInterval> findBatchDateInterval(String batchId) {
         return jdbcTemplate.queryForObject("""
                 select

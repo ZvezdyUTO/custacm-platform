@@ -84,6 +84,26 @@ class JdbcAtcoderWarehouseRefreshIntervalRepositoryTest {
         assertThat(repository.findBatchDateInterval("missing")).isEmpty();
     }
 
+    @Test
+    void returnsLatestValidBatchByFetchedAtThenId() {
+        insertOds("batch-old", 10L, "tourist", "abc100_a", "2026-07-01T00:00:00Z", "AC",
+                "2026-07-08 00:00:00");
+        insertOds("batch-tie-first", 11L, "tourist", "abc100_b", "2026-07-02T00:00:00Z", "AC",
+                "2026-07-09 00:00:00");
+        insertOds("batch-tie-last", 12L, "tourist", "abc100_c", "2026-07-03T00:00:00Z", "AC",
+                "2026-07-09 00:00:00");
+
+        assertThat(repository.findLatestBatchId()).contains("batch-tie-last");
+    }
+
+    @Test
+    void ignoresBlankLatestBatchAndReturnsEmptyWithoutValidRows() {
+        insertOds(" ", 20L, "tourist", "abc100_a", "2026-07-01T00:00:00Z", "AC",
+                "2026-07-10 00:00:00");
+
+        assertThat(repository.findLatestBatchId()).isEmpty();
+    }
+
     private void insertOds(
             String batchId,
             long submissionId,
@@ -91,6 +111,19 @@ class JdbcAtcoderWarehouseRefreshIntervalRepositoryTest {
             String problemId,
             String submittedAtUtc,
             String result
+    ) {
+        insertOds(batchId, submissionId, handle, problemId, submittedAtUtc, result,
+                "2026-07-08 00:00:00");
+    }
+
+    private void insertOds(
+            String batchId,
+            long submissionId,
+            String handle,
+            String problemId,
+            String submittedAtUtc,
+            String result,
+            String fetchedAt
     ) {
         jdbcTemplate.update("""
                 insert into ods_atcoder__submission (
@@ -108,8 +141,7 @@ class JdbcAtcoderWarehouseRefreshIntervalRepositoryTest {
                     fetched_at,
                     raw_payload,
                     payload_hash
-                ) values (?, ?, ?, 'abc100', ?, 'C++23', 100.0, 1024, ?, 46, ?,
-                    timestamp '2026-07-08 00:00:00', '{}', ?)
+                ) values (?, ?, ?, 'abc100', ?, 'C++23', 100.0, 1024, ?, 46, ?, ?, '{}', ?)
                 """,
                 submissionId,
                 Instant.parse(submittedAtUtc).getEpochSecond(),
@@ -117,6 +149,7 @@ class JdbcAtcoderWarehouseRefreshIntervalRepositoryTest {
                 handle,
                 result,
                 batchId,
+                Timestamp.valueOf(fetchedAt),
                 hash(submissionId));
     }
 

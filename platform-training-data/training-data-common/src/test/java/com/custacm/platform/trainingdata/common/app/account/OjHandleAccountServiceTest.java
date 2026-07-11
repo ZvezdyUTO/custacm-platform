@@ -33,7 +33,7 @@ class OjHandleAccountServiceTest {
                 Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, " tourist_atcoder ")
         );
 
-        assertThat(account.studentIdentity()).isEqualTo("112487张三");
+        assertThat(account.username()).isEqualTo("112487张三");
         assertThat(account.handles()).containsEntry(OjNames.CODEFORCES, "tourist");
         assertThat(account.handles()).containsEntry(OjNames.ATCODER, "tourist_atcoder");
         assertThat(account.needCollect()).isTrue();
@@ -67,16 +67,16 @@ class OjHandleAccountServiceTest {
     }
 
     @Test
-    void changesStudentIdentityWithoutChangingHandle() {
+    void changesUsernameWithoutChangingHandle() {
         service.create("112487张三", Map.of(OjNames.CODEFORCES, "tourist"));
 
-        OjHandleAccount changed = service.changeStudentIdentity("112487张三", "112488张三", null);
+        OjHandleAccount changed = service.changeUsername("112487张三", "112488张三", null);
 
-        assertThat(changed.studentIdentity()).isEqualTo("112488张三");
+        assertThat(changed.username()).isEqualTo("112488张三");
         assertThat(changed.handles().get(OjNames.CODEFORCES)).isEqualTo("tourist");
         assertThat(changed.needCollect()).isTrue();
         assertThat(service.listAll())
-                .extracting(OjHandleAccount::studentIdentity)
+                .extracting(OjHandleAccount::username)
                 .containsExactly("112488张三");
         assertThat(service.listAll().get(0).handles().get(OjNames.CODEFORCES)).isEqualTo("tourist");
     }
@@ -85,9 +85,9 @@ class OjHandleAccountServiceTest {
     void changesNeedCollectWithoutChangingIdentity() {
         service.create("112487张三", Map.of(OjNames.CODEFORCES, "tourist"));
 
-        OjHandleAccount changed = service.changeStudentIdentity("112487张三", "112487张三", false);
+        OjHandleAccount changed = service.changeUsername("112487张三", "112487张三", false);
 
-        assertThat(changed.studentIdentity()).isEqualTo("112487张三");
+        assertThat(changed.username()).isEqualTo("112487张三");
         assertThat(changed.handles().get(OjNames.CODEFORCES)).isEqualTo("tourist");
         assertThat(changed.needCollect()).isFalse();
         assertThat(changed.updatedAt()).isEqualTo(NOW);
@@ -98,14 +98,14 @@ class OjHandleAccountServiceTest {
     void changesHandlesWithoutChangingIdentity() {
         service.create("112487张三", Map.of(OjNames.CODEFORCES, "tourist"));
 
-        OjHandleAccount changed = service.changeStudentIdentity(
+        OjHandleAccount changed = service.changeUsername(
                 "112487张三",
                 "112487张三",
                 null,
                 Map.of(OjNames.ATCODER, " tourist_atcoder ")
         );
 
-        assertThat(changed.studentIdentity()).isEqualTo("112487张三");
+        assertThat(changed.username()).isEqualTo("112487张三");
         assertThat(changed.handles())
                 .containsEntry(OjNames.CODEFORCES, "tourist")
                 .containsEntry(OjNames.ATCODER, "tourist_atcoder");
@@ -140,7 +140,7 @@ class OjHandleAccountServiceTest {
     void resetsCollectionStateWhenOjHandleChanges() {
         OjHandleAccount created = service.create("112487张三", Map.of(OjNames.CODEFORCES, "tourist"));
         repository.accountsByIdentity.put("112487张三", new OjHandleAccount(
-                created.studentIdentity(),
+                created.username(),
                 created.handles(),
                 created.needCollect(),
                 Map.of(
@@ -151,7 +151,7 @@ class OjHandleAccountServiceTest {
                 created.updatedAt()
         ));
 
-        OjHandleAccount changed = service.changeStudentIdentity(
+        OjHandleAccount changed = service.changeUsername(
                 "112487张三",
                 "112487张三",
                 null,
@@ -168,7 +168,7 @@ class OjHandleAccountServiceTest {
         service.create("112487张三", Map.of(OjNames.CODEFORCES, "tourist"));
         service.create("112488李四", Map.of(OjNames.ATCODER, "tourist_atcoder"));
 
-        assertThatThrownBy(() -> service.changeStudentIdentity(
+        assertThatThrownBy(() -> service.changeUsername(
                 "112487张三",
                 "112487张三",
                 null,
@@ -185,12 +185,12 @@ class OjHandleAccountServiceTest {
         service.create("112487张三", Map.of(OjNames.CODEFORCES, "tourist"));
         service.create("112488李四", Map.of(OjNames.CODEFORCES, "Benq"));
 
-        assertThatThrownBy(() -> service.changeStudentIdentity("missing", "112489王五", null))
+        assertThatThrownBy(() -> service.changeUsername("missing", "112489王五", null))
                 .isInstanceOfSatisfying(OjHandleAccountException.class, ex ->
                         assertThat(ex.errorCode()).isEqualTo(
                                 OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_NOT_FOUND
                         ));
-        assertThatThrownBy(() -> service.changeStudentIdentity("112487张三", "112488李四", null))
+        assertThatThrownBy(() -> service.changeUsername("112487张三", "112488李四", null))
                 .isInstanceOfSatisfying(OjHandleAccountException.class, ex ->
                         assertThat(ex.errorCode()).isEqualTo(
                                 OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_IDENTITY_EXISTS
@@ -206,8 +206,8 @@ class OjHandleAccountServiceTest {
         }
 
         @Override
-        public java.util.Optional<OjHandleAccount> findByStudentIdentity(String studentIdentity) {
-            return java.util.Optional.ofNullable(accountsByIdentity.get(studentIdentity));
+        public java.util.Optional<OjHandleAccount> findByUsername(String username) {
+            return java.util.Optional.ofNullable(accountsByIdentity.get(username));
         }
 
         @Override
@@ -219,48 +219,48 @@ class OjHandleAccountServiceTest {
 
         @Override
         public OjHandleAccount save(OjHandleAccount account) {
-            accountsByIdentity.put(account.studentIdentity(), account);
+            accountsByIdentity.put(account.username(), account);
             return account;
         }
 
         @Override
-        public OjHandleAccount updateStudentIdentityAndNeedCollect(
-                String oldStudentIdentity,
-                String newStudentIdentity,
+        public OjHandleAccount updateUsernameAndNeedCollect(
+                String oldUsername,
+                String newUsername,
                 Map<String, String> handles,
                 boolean needCollect,
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {
-            OjHandleAccount existing = accountsByIdentity.remove(oldStudentIdentity);
+            OjHandleAccount existing = accountsByIdentity.remove(oldUsername);
             OjHandleAccount updated = new OjHandleAccount(
-                    newStudentIdentity,
+                    newUsername,
                     handles,
                     needCollect,
                     collectionStates,
                     existing.createdAt(),
                     updatedAt
             );
-            accountsByIdentity.put(newStudentIdentity, updated);
+            accountsByIdentity.put(newUsername, updated);
             return updated;
         }
 
         @Override
         public OjHandleAccount updateCollectionStates(
-                String studentIdentity,
+                String username,
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {
-            OjHandleAccount existing = accountsByIdentity.get(studentIdentity);
+            OjHandleAccount existing = accountsByIdentity.get(username);
             OjHandleAccount updated = new OjHandleAccount(
-                    existing.studentIdentity(),
+                    existing.username(),
                     existing.handles(),
                     existing.needCollect(),
                     collectionStates,
                     existing.createdAt(),
                     updatedAt
             );
-            accountsByIdentity.put(studentIdentity, updated);
+            accountsByIdentity.put(username, updated);
             return updated;
         }
     }

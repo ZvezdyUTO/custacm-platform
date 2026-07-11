@@ -19,7 +19,7 @@ import com.custacm.platform.trainingdata.atcoder.infra.JdbcAtcoderOdsProblemWrit
 import com.custacm.platform.trainingdata.atcoder.infra.JdbcAtcoderOdsSubmissionWriter;
 import com.custacm.platform.trainingdata.atcoder.infra.JdbcAtcoderWarehouseRefreshIntervalRepository;
 import com.custacm.platform.trainingdata.atcoder.infra.RestClientAtcoderSourceClient;
-import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountService;
+import com.custacm.platform.trainingdata.common.app.account.TrainingUserDirectory;
 import com.custacm.platform.trainingdata.common.app.warehouse.OjWarehouseRefreshService;
 import com.custacm.platform.trainingdata.common.collector.job.OjWarehouseRefreshHandler;
 import com.custacm.platform.trainingdata.common.collector.job.SqlTaskOjWarehouseRefreshHandler;
@@ -107,7 +107,7 @@ public class AtcoderTrainingDataConfig {
 
     @Bean
     AtcoderSubmissionCollectionService atcoderSubmissionCollectionService(
-            OjHandleAccountService handleAccountService,
+            TrainingUserDirectory handleAccountService,
             AtcoderSubmissionSourceClient sourceClient,
             AtcoderOdsIngestService ingestService,
             ObjectMapper objectMapper,

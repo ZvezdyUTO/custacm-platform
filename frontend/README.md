@@ -1,121 +1,100 @@
 # frontend
 
-`frontend` 是 `custacm-platform` 的第一个可运行前端切片。当前实现是 React + Vite + TypeScript 的训练数据管理面板，并已接入本地真实后端接口。页面分为两个工作区：
+`frontend` 是 Vue 3 + Vite + TypeScript 训练中心。生产环境中，它与 `platform-blog/upstream/nblog/blog-view` 的 Vue 3 + Vite Blog 一起打进同一个 Nginx 镜像：
 
-- `训练查询`：默认入口，包含多人统计、单人查询和题目查询三个页面；查询区可以在 Codeforces 和 AtCoder 之间切换，OJ、队员、题号、日期和 rating 筛选变更后自动查询，刷新页面会自动加载默认最近 7 天范围的多人统计，单人和题目查询页也默认带入该起始日期。单人查询围绕单个队员展示指定 OJ 的 AC、倒序提交、后端分页最近通过和 rating 分布；题目查询按题目编号展示后端分页提交明细和首 AC handle 列表；提交明细、最近通过题目和首 AC handle 列表都按后端 `page + limit` 分页展示，默认每页 15 条，当前都支持每页 15/50/100/200 条和上一页/下一页切换；多人统计不调用后端自动汇总接口，而是按现役队员且绑定当前 OJ handle 的队员逐个读取公开单人 AC 汇总并按通过题数降序展示；左侧按功能模块展示入口，模块列表带图标辅助识别，并把可用功能和暂未开放功能分组展示；当前仅训练数据管理模块可用，博客模块和编辑器模块显示为未支持；
-- `管理员操作`：admin 登录后才展示，是独立于训练查询的管理员工作区；左侧菜单切换创建用户、管理用户、数据采集、操作记录四个页面。创建用户页负责文本导入填充创建信息栏、通过批量创建接口创建账号并补充 Codeforces/AtCoder OJ handle 绑定；管理用户页在按学号降序展示的所有账号列表中展开修改角色/密码、补充空缺 OJ handle、迁移 OJ handle 绑定的 `studentIdentity`、调整现役/退役标记和删除用户信息，同时展示每个已绑定 OJ 是否已经采到历史最早数据和最近采集时间；`root` 只展示账号管理项，不展示现役/退役标记，也不提供 OJ 绑定入口；数据采集页按 OJ 列出现役队员中已绑定对应 handle 的队员，支持按统一回看小时数一键全部采集（默认 1440 小时，可清空为不限时间范围），也支持每行按单个队员设置回看小时数并启动采集任务；页面下方轮询当前采集任务列表并支持展开详情；操作记录页展示账号/数据列表和告警信息。登录后右上角账号区支持当前用户修改自己的密码。
+| 浏览器路径 | 页面/服务 |
+| --- | --- |
+| `/` | Vue Blog |
+| `/training/**` | Vue 3 训练中心 |
+| `/api/**` | Nginx 去掉 `/api` 后转发到唯一的 Blog API |
 
-工作区和页签使用浏览器路径保存当前页面，刷新或直接打开链接不会回到默认页：
+Vue Blog 持有公开 `/training/**` 路由和唯一顶栏，训练内容通过同源 frame 加载内部 `/training-app/**` 产物。两套 Vue Router 仍彼此独立，但进入训练中心时 Blog 的 `Nav.vue` 不会卸载或被复制顶栏替换。
 
-```text
-/query/multiple
-/query/single
-/query/problem
-/admin/user-create
-/admin/user-edit
-/admin/collection
-/admin/records
-```
+## 页面与权限
 
-- `auth-web`：服务健康/module-info、登录、当前用户、当前用户修改密码、公开用户列表、admin 批量创建账号、admin 用户角色更新、密码重置和 admin 删除账号；
-- `training-data-web`：服务健康/module-info、OJ handle 公开全量 `studentIdentity -> account` map（含 per-OJ collection state）与 admin 创建/更新/身份迁移、单人 DWS AC 汇总、DWD 按队员/题目提交明细、DWM 按队员/题目首 AC 明细、admin recent-lookback OJ 采集任务 start/list 和 admin OJ 用户训练数据清理。
-
-前端不修改认证模型，不签发 JWT，不处理密码存储，也不拆分 `studentIdentity`。
-
-## 本地运行
-
-首次安装依赖：
-
-```bash
-pnpm install
-```
-
-确保本地后端可用：
+训练中心的正式路由如下：
 
 ```text
-auth-web:           http://localhost:8081
-training-data-web:  http://localhost:8082
+/training/login
+/training/multiple
+/training/single
+/training/problem
+/training/admin/create-users
+/training/admin/users
+/training/admin/training
+/training/admin/appearance
 ```
 
-启动前端：
+- `multiple`：从受保护用户目录取得允许采集且已绑定 OJ 的用户，以最大并发数 6 拉取个人汇总并生成多人视图。
+- `single`：按 `username`、OJ、日期和难度范围查询个人汇总、提交与首 AC。
+- `problem`：按题目、OJ 和日期范围查询提交与首 AC。
+- `admin/create-users`：文本导入后生成可编辑信息行，也可逐行新增或删除，确认后批量创建账号并绑定 OJ handle。
+- `admin/users`：承载编辑、改名、密码、角色、OJ handle、采集状态和删除用户；“保存修改”会一次提交账号字段、handle 与现役/退役状态，全部成功后才显示成功。
+- `admin/training`：按 OJ 对全部或单个现役队员发起采集并查看任务；每次采集都固定在完成后刷新数仓。
+- `admin/appearance`：选择一张或多张本地图片，逐张裁成 1920×1080，上传后按从左到右的首页切换顺序调整或删除。
 
-```bash
-pnpm dev -- --host 0.0.0.0
-```
+训练查询要求 `ROLE_player` 或 `ROLE_admin`；管理员页面只允许 `ROLE_admin`。账号业务身份统一使用 `username`，角色只有 `ROLE_admin` 和 `ROLE_player`。
 
-默认访问地址：
+当前产品验收只覆盖 1280–2560 px 桌面端，重点分辨率为 1440×900 与 1920×1080；移动端不在本阶段范围内。
+
+## 认证与 API
+
+训练中心与 Vue Blog 共享以下浏览器会话：
 
 ```text
-http://localhost:5173/
+custacm.accessToken
+custacm.user
 ```
 
-Vite dev server 会把这些同源路径代理到后端，避免浏览器跨域：
+`custacm.user` 是展示摘要，不能作为权限依据。训练中心启动时会调用 `/player/me` 校验 JWT；受保护请求逐个显式发送 `Authorization: Bearer <token>`。只有确定的 401 会清理本地会话，403 和网络错误保留当前会话并显示错误。
+
+所有浏览器 API 使用 `/api/**`。例如用户目录：
 
 ```text
-/api/auth/**          -> http://localhost:8081/api/auth/**
-/api/training-data/** -> http://localhost:8082/api/training-data/**
-/health/auth          -> http://localhost:8081/health
-/health/training-data -> http://localhost:8082/health
-/module-info/auth     -> http://localhost:8081/module-info
-/module-info/training-data -> http://localhost:8082/module-info
+浏览器：GET /api/player/training-data/users
+Blog API：GET /player/training-data/users
 ```
 
-登录页面不会内置密码。使用 `deploy/.env` 中配置的 bootstrap admin 或其它 admin 账号登录；勾选“记住我一个月”会请求后端签发 30 天有效期的登录 token。
+该接口只返回可采集且至少绑定一个 OJ 账号的用户摘要：
 
-## 本地种子数据
+```json
+[
+  {
+    "username": "player1",
+    "nickname": "队员一",
+    "ojNames": ["CODEFORCES", "ATCODER"]
+  }
+]
+```
 
-可用脚本通过真实 HTTP API 创建一组本地演示账号和 OJ handle，并启动 Codeforces 采集任务：
+响应不包含邮箱、角色、真实 OJ handle、采集状态或管理员私有字段。
+
+Vue Blog 的公开请求不会全局附加训练 JWT。登录用户提交评论时，Vue 只对该受保护请求显式使用共享 Bearer JWT；密码文章 token 继续使用自己的原始格式。
+
+## 本地开发
+
+要求 Node.js 20.19+、pnpm 10.33.2，并先启动监听 `http://localhost:8090` 的 Blog API。
+
+分别在两个终端启动训练应用和 Blog 外壳：
 
 ```bash
-./scripts/seed-local-codeforces-data.sh
+# 终端 1：训练应用
+cd frontend
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev
+
+# 终端 2：统一 Blog 外壳
+cd platform-blog/upstream/nblog/blog-view
+npm ci
+npm run dev
 ```
 
-脚本会执行：
+统一访问 `http://localhost:4180/training/multiple`。Blog Vite 在 4180 提供公开路由，将内部 `/training-app/**` 和训练 HMR 通道代理到 5173，并将 `/api/**` 代理到 8090。修改任一 Vue 应用的源码后会自动热更新；生产环境仍由 Nginx 提供构建后的静态资源。
 
-1. 调用 `POST /api/auth/login` 获取 admin token；
-2. 调用 `POST /api/auth/admin/users:batch-create` 创建或复用样例账号；
-3. 调用 `POST /api/training-data/admin/oj-handles` 创建或复用 OJ handle 绑定，请求体使用 `handles` map，例如 `{"CODEFORCES":"tourist"}`；
-4. 调用 `POST /api/training-data/admin/codeforces/submissions:collect-batch-jobs` 启动采集任务；
-5. 轮询采集任务列表，采集完成后调用公开 DWS 查询接口打印 AC 汇总验证结果。
+## 构建与验证
 
-脚本不会打印 token 或密码。
-
-## 一键部署
-
-项目级部署入口是：
-
-```bash
-./scripts/deploy.sh
-```
-
-`deploy/docker-compose.yml` 会构建并启动：
-
-- `auth-db`
-- `custacm-backend` (`platform-auth/auth-web`)
-- `training-data-db`
-- `custacm-training-data-web` (`platform-training-data/training-data-web`)
-- `custacm-frontend`
-
-部署脚本会先运行 `frontend-build` 一次性服务生成 `frontend/dist`。运行态
-`custacm-frontend` 使用固定 `nginx:1.27-alpine` 镜像，挂载
-`frontend/dist` 和 `frontend/nginx.conf`，把 `/api/auth/**`、
-`/api/training-data/**`、health 和 module-info 路径反向代理到 Compose 内部后端服务。
-
-只改前端时可以运行：
-
-```bash
-./scripts/update-module.sh frontend
-```
-
-该命令只刷新静态产物并 reload Nginx，不重建前端镜像。
-
-默认前端容器访问地址：
-
-```text
-http://localhost:3000/
-```
-
-## 验证
+Vue 3 训练中心：
 
 ```bash
 pnpm lint
@@ -124,40 +103,98 @@ pnpm typecheck
 pnpm build
 ```
 
-渲染验证需要真实浏览器打开 `http://localhost:5173/` 或 Compose 前端地址，并确认训练查询范围筛选自动触发、刷新后多人统计自动加载、切换 OJ 后自动刷新当前查询、左侧模块入口与模块图标、登录、当前用户改密码、admin 操作区隔离、左侧管理员菜单切换、创建用户页、管理用户页、所有用户表按学号倒序、用户列表内展开修改、OJ handle 修改/身份迁移、最早采集覆盖状态、最近采集时间、数据采集逐行确认弹窗、逐人采集结果、采集任务列表轮询与展开详情、队员切换、题目查询、真实训练数据展示、console、桌面/移动布局。
+Vue Blog：
+
+```bash
+cd ../platform-blog/upstream/nblog/blog-view
+npm ci
+npm test
+npm run build
+```
+
+统一前端镜像会在 `frontend/Dockerfile` 内执行这两套锁定安装与构建。Compose 启动后默认入口是：
+
+```text
+Blog:     http://localhost:3000/
+Training: http://localhost:3000/training/multiple
+API:      http://localhost:3000/api/health
+```
+
+端口由 `deploy/.env` 的 `FRONTEND_PORT` 控制。只重建前端服务可运行：
+
+```bash
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build frontend
+```
 
 ## 目录结构
 
 ```text
 frontend/
+  Dockerfile
   nginx.conf
-  index.html
-  public/
   package.json
+  pnpm-lock.yaml
   vite.config.ts
-  tsconfig.json
-  eslint.config.js
   src/
     api/
+    auth/
     components/
-    data/
-    hooks/
+    composables/
+    router/
     styles/
     test/
     utils/
-    App.tsx
-    main.tsx
+    views/
+    App.vue
+    main.ts
+    routing.ts
     styles.css
+    types.ts
 ```
 
 ## 文件职责
 
-- `nginx.conf`：生产/Compose 前端同源 API 反向代理配置。
-- `vite.config.ts`：React 插件、本地端口和 dev proxy。
-- `src/api/platform.ts`：auth/training-data HTTP client 和错误封装，包括服务 module-info、公开 auth 用户列表、当前用户改密码、公开 OJ handle 全量 map 查询、单人/题目 DWD/DWM/DWS 查询、OJ handle 创建/更新/身份迁移、采集任务 start/list、auth 用户删除和 OJ 用户训练数据清理接口。
-- `src/hooks/usePlatformDashboard.ts`：登录态、训练查询范围、当前 OJ 选择、公开 auth 用户列表和 OJ handle 全量列表驱动的游客查询、单人/多人/题目训练查询自动刷新、提交明细和 DWM 首 AC 明细后端分页状态、当前用户改密码、用户创建/修改、OJ handle 绑定/迁移与现役/退役开关、批量采集后台任务轮询、采集任务列表和彻底删除用户数据状态编排。
-- `src/utils/dashboardModels.ts`：把真实 API 响应派生为指标、表格、告警、时间线和权限概览。
-- `src/data/dashboard.ts`：本地种子 identity 列表和默认采集小时数。
-- `src/components/`：应用壳（含当前用户改密码入口）、登录面板、训练查询面板（多人/单人/题目筛选即查询）、创建/管理用户页（含所有账号倒序总览和列表内编辑）、训练数据采集页、管理员工具栏、表格、侧栏和状态条。
-- `src/App.tsx`：工作区组合、URL 路径与页签状态同步、登录弹窗、全局操作提示和跨面板事件编排。
-- `src/test/`：筛选、工具栏和表格行为测试。
+| 文件/目录 | 职责 |
+| --- | --- |
+| `Dockerfile` | 用 Node 20.19 分别构建两套 Vue 3 应用，再复制到 Nginx 1.27 镜像 |
+| `nginx.conf` | Blog `/training/**` 外壳、内部 `/training-app/**` 产物 fallback 和 `/api/**` 反向代理 |
+| `vite.config.ts` | 内部 `/training-app/` base、本地开发服务器与 `/api` proxy |
+| `src/main.ts` | Vue 应用与 Vue Router 挂载入口 |
+| `src/App.vue` | 顶层会话恢复、权限分流与页面组合 |
+| `src/router/index.ts` | 内部 `/training-app/**` 路由表与 history base |
+| `src/views/TrainingView.vue` | 训练查询和管理员页面的路由级容器 |
+| `src/routing.ts` | 训练路径、管理员独立页面与安全登录回跳解析 |
+| `src/types.ts` | 当前页面和 Blog API DTO 类型 |
+| `src/auth/session.ts` | 共享 JWT/用户摘要的校验、持久化与清理 |
+| `src/api/client.ts` | `/api` 基址、Blog envelope 解析、Bearer header 与 `ApiError` |
+| `src/api/auth.ts` | 登录、当前用户、修改本人密码 |
+| `src/api/training.ts` | 用户目录和多人/单人/题目训练查询 |
+| `src/api/admin.ts` | 用户、OJ handle、采集任务、数仓刷新与首页图片管理 |
+| `src/composables/useAuthSession.ts` | 会话恢复、登录竞态隔离、退出与密码修改 |
+| `src/composables/usePlatformDashboard.ts` | 查询、分页、用户管理、采集与刷新状态编排 |
+| `src/utils/runLimited.ts` | 保持结果顺序的有限并发执行器 |
+| `src/utils/adminUsers.ts` | 创建用户文本导入、角色和 handle 行模型转换 |
+| `src/utils/adminTraining.ts` | 构造固定刷新数仓的采集请求 |
+| `src/components/AppShell.vue` | 训练内容外壳；独立开发时提供调试顶栏，同源嵌入 Blog 时不渲染第二条顶栏 |
+| `src/components/LoginPanel.vue` | 登录表单和安全回跳 |
+| `src/components/TrainingQueryPanel.vue` | 多人、单人、题目查询界面 |
+| `src/components/TrainingAdminPanel.vue` | 创建用户、管理用户、数据采集、首页图片四个独立管理员页面的导航容器 |
+| `src/components/HomepageBannerAdminPanel.vue` | 最多两张首页图片的多选、固定比例裁剪、左右排序与删除；未满时在列表末尾显示透明加号卡片 |
+| `src/components/CreateUsersPanel.vue` | 文本导入、可编辑创建行与批量创建提交 |
+| `src/components/AdminUserManagementPanel.vue` | 已有用户的账号、角色、密码、采集状态与 OJ handle 管理 |
+| `src/components/TrainingDataOpsPanel.vue` | 全部/单人采集、固定数仓刷新与采集任务记录 |
+| `src/styles/theme.css` | Blog 风格的颜色、字体和视觉变量 |
+| `src/styles/homepage-banner-admin.css` | 首页图片列表和裁剪弹窗样式 |
+| `src/styles.css`、其余 `src/styles/*.css` | 样式入口、桌面外壳、内容、表格和侧栏规则 |
+| `src/test/session.test.ts` | 共享会话读写与坏数据清理测试 |
+| `src/test/routing.test.ts` | 路径、管理员 section 与安全回跳测试 |
+| `src/test/login-panel-vue.test.ts` | 登录表单和安全回跳测试 |
+| `src/test/run-limited.test.ts` | 有限并发、顺序与失败传播测试 |
+| `src/test/` | API、认证、路由、并发器、composable 与 Vue 页面回归测试 |
+
+## 模块边界
+
+- Blog API 是唯一后端，前端不签发 JWT、不保存密码、不复制服务端授权逻辑。
+- 训练数据查询和管理都通过 `/player/**`、`/admin/**` 的正式 HTTP contract 完成。
+- 原始数据写入仍是后端接口能力，不在当前管理员 UI 中暴露。
+- Vue Blog 继续负责公开内容浏览与评论界面；独立的 Vue 3 应用负责训练中心。

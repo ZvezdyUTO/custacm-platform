@@ -24,7 +24,7 @@ class OjSubmissionCollectionDispatcherTest {
                 List.of(codeforces, atcoder)
         );
 
-        var result = dispatcher.collectRecentWindowForStudentIdentity(null, "112487张三", LOOKBACK);
+        var result = dispatcher.collectRecentWindowForUsername(null, "112487张三", LOOKBACK);
 
         assertThat(result.ojName()).isEqualTo(OjNames.CODEFORCES);
         assertThat(codeforces.studentCalls).isEqualTo(1);
@@ -80,8 +80,8 @@ class OjSubmissionCollectionDispatcherTest {
         }
 
         @Override
-        public OjSubmissionCollectionResult collectRecentWindowForStudentIdentity(
-                String studentIdentity,
+        public OjSubmissionCollectionResult collectRecentWindowForUsername(
+                String username,
                 Duration lookback
         ) {
             studentCalls++;

@@ -6,7 +6,7 @@ import com.custacm.platform.trainingdata.common.collector.result.OjSubmissionCol
 import java.time.Instant;
 
 public record OjSubmissionCollectionJobItem(
-        String studentIdentity,
+        String username,
         String ojName,
         OjSubmissionCollectionJobItemStatus itemStatus,
         OjSubmissionCollectionStatus collectionStatus,
@@ -21,13 +21,13 @@ public record OjSubmissionCollectionJobItem(
         OjSubmissionCollectionJobRefreshStatus refreshStatus,
         String refreshMessage
 ) {
-    public static OjSubmissionCollectionJobItem pending(String studentIdentity) {
-        return pending(studentIdentity, null);
+    public static OjSubmissionCollectionJobItem pending(String username) {
+        return pending(username, null);
     }
 
-    public static OjSubmissionCollectionJobItem pending(String studentIdentity, String ojName) {
+    public static OjSubmissionCollectionJobItem pending(String username, String ojName) {
         return new OjSubmissionCollectionJobItem(
-                studentIdentity,
+                username,
                 ojName,
                 OjSubmissionCollectionJobItemStatus.PENDING,
                 null,
@@ -46,7 +46,7 @@ public record OjSubmissionCollectionJobItem(
 
     public OjSubmissionCollectionJobItem running() {
         return new OjSubmissionCollectionJobItem(
-                studentIdentity,
+                username,
                 ojName,
                 OjSubmissionCollectionJobItemStatus.RUNNING,
                 collectionStatus,
@@ -64,7 +64,7 @@ public record OjSubmissionCollectionJobItem(
     }
 
     public static OjSubmissionCollectionJobItem collected(
-            String studentIdentity,
+            String username,
             OjSubmissionCollectionResult result,
             OjSubmissionCollectionJobRefreshResult refreshResult
     ) {
@@ -77,7 +77,7 @@ public record OjSubmissionCollectionJobItem(
                 ? OjSubmissionCollectionJobRefreshResult.notRequested()
                 : refreshResult;
         return new OjSubmissionCollectionJobItem(
-                studentIdentity,
+                username,
                 result.ojName(),
                 itemStatus,
                 result.status(),
@@ -94,13 +94,13 @@ public record OjSubmissionCollectionJobItem(
         );
     }
 
-    public static OjSubmissionCollectionJobItem failed(String studentIdentity, String message) {
-        return failed(studentIdentity, null, message);
+    public static OjSubmissionCollectionJobItem failed(String username, String message) {
+        return failed(username, null, message);
     }
 
-    public static OjSubmissionCollectionJobItem failed(String studentIdentity, String ojName, String message) {
+    public static OjSubmissionCollectionJobItem failed(String username, String ojName, String message) {
         return new OjSubmissionCollectionJobItem(
-                studentIdentity,
+                username,
                 ojName,
                 OjSubmissionCollectionJobItemStatus.FAILED,
                 OjSubmissionCollectionStatus.FAILED,

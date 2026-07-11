@@ -32,12 +32,12 @@ public class OjSubmissionCollectionDispatcher implements OjScheduledSubmissionCo
     }
 
     @Override
-    public OjSubmissionCollectionResult collectRecentWindowForStudentIdentity(
+    public OjSubmissionCollectionResult collectRecentWindowForUsername(
             String ojName,
-            String studentIdentity,
+            String username,
             Duration lookback
     ) throws JsonProcessingException {
-        return collector(ojName).collectRecentWindowForStudentIdentity(studentIdentity, lookback);
+        return collector(ojName).collectRecentWindowForUsername(username, lookback);
     }
 
     private OjRecentSubmissionCollector collector(String ojName) {
