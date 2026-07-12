@@ -58,7 +58,7 @@ exp         = expiration instant
 - Vue 3 训练中心与 Vue Blog 共享 `custacm.accessToken` 和 `custacm.user`；摘要不能替代服务端授权。
 - 训练中心访问训练查询时要求已恢复的有效会话；`/training/admin` 还要求 `ROLE_admin`。未经认证会转到 `/training/login`，回跳路径只能来自固定白名单。
 - 训练中心的 protected API adapter 为每个请求显式附加 Bearer token；只有后端 401 会清理会话，403 和网络失败不会自动退出。
-- Vue Blog 的公开文章、列表和导航请求不得通过 Axios 全局拦截器附加共享 JWT。
+- Vue Blog 的公开文章、列表和导航请求不得通过 Axios 全局拦截器附加共享 JWT；文章列表、分类、标签、搜索和站点精选读取会在存在共享会话时由各自 API adapter 显式附带 Bearer，以便获得内部文章，其余公开读取保持匿名。
 - Vue Blog 在文章详情页匿名读取 `/profiles/{authorUsername}` 显示文章作者名片；非文章页面仍显示共享会话中的当前用户名片。
 - Vue Blog 的个人页为 `GET /player/me`、`PATCH /player/me/profile`、`PUT /player/me/profile-links` 和 `POST /player/me/avatar` 显式附加 Bearer token；头像文件必须先在浏览器裁剪为 512×512 PNG。
 - 头像只能通过 `POST /player/me/avatar` 上传本地图片更新；管理员创建/修改用户接口不接受 avatar 字段或外部头像 URL。
@@ -67,4 +67,4 @@ exp         = expiration instant
 - Vue Blog 公开读取首页图片时不附加 JWT；训练中心首页图片管理页只为 `/admin/homepage-banners/**` 请求显式附加 Bearer token，上传前在浏览器裁剪为 1920×1080 JPEG。
 - 登录用户提交评论时，Vue 从共享会话读取 JWT，只为 `POST /player/comment` 显式发送 `Authorization: Bearer <token>`。该请求收到 401 会清理共享会话并转到 `/training/login`；403 与网络错误不清理会话。
 - 文章编辑与评论 401 跳转会携带经白名单校验的同源 Blog `returnTo`，登录成功后返回原文章或编辑页。
-- 文章不再支持独立密码或文章 token。内部文章只能由 `ROLE_player`/`ROLE_admin` 通过 `/player/internal-blog` 读取，并从所有公开聚合接口排除。
+- 文章不再支持独立密码或文章 token。内部文章对游客不进入列表、分类、标签、搜索或精选；登录用户会在这些聚合读取中看到它们，正文仍通过 `GET /player/internal-blog?id={id}` 读取，评论通过 `GET /player/comments` 读取。

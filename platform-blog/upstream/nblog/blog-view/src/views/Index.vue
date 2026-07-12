@@ -56,6 +56,7 @@
 	import Tocbot from "@/components/sidebar/Tocbot";
 	import {mapState} from 'vuex'
 	import getPageTitle from '@/util/get-page-title'
+	import {SESSION_CHANGE_EVENT} from '@/auth/session'
 	import {SAVE_CLIENT_SIZE, SAVE_INTRODUCTION, SAVE_SITE_INFO, RESTORE_COMMENT_FORM} from "@/store/mutations-types";
 
 	export default {
@@ -94,14 +95,25 @@
 			//从localStorage恢复之前的评论信息
 			this.$store.commit(RESTORE_COMMENT_FORM)
 		},
-		mounted() {
+	mounted() {
+			window.addEventListener('storage', this.refreshVisibleContent)
+			window.addEventListener(SESSION_CHANGE_EVENT, this.refreshVisibleContent)
 			//保存可视窗口大小
 			this.$store.commit(SAVE_CLIENT_SIZE, {clientHeight: document.body.clientHeight, clientWidth: document.body.clientWidth})
 			window.onresize = () => {
 				this.$store.commit(SAVE_CLIENT_SIZE, {clientHeight: document.body.clientHeight, clientWidth: document.body.clientWidth})
 			}
 		},
+		beforeUnmount() {
+			window.removeEventListener('storage', this.refreshVisibleContent)
+			window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshVisibleContent)
+		},
 		methods: {
+			refreshVisibleContent(event) {
+				if (!event || event.key === null || event.key === 'custacm.accessToken' || event.key === 'custacm.user') {
+					this.getSite()
+				}
+			},
 			getSite() {
 				getSite().then(res => {
 					if (res.code === 200) {

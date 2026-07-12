@@ -8,6 +8,7 @@
 	import BlogList from "@/components/blog/BlogList";
 	import {getBlogList} from "@/api/home";
 	import {SET_IS_BLOG_TO_HOME} from "../../store/mutations-types";
+	import {SESSION_CHANGE_EVENT} from '@/auth/session'
 
 	export default {
 		name: "Home",
@@ -37,6 +38,11 @@
 			})
 		},
 		methods: {
+			refreshVisibleBlogs(event) {
+				if (!event || event.key === null || event.key === 'custacm.accessToken' || event.key === 'custacm.user') {
+					this.getBlogList()
+				}
+			},
 			getBlogList(pageNum) {
 				getBlogList(pageNum).then(res => {
 					if (res.code === 200) {
@@ -53,6 +59,14 @@
 					this.msgError("请求失败")
 				})
 			}
+		},
+		mounted() {
+			window.addEventListener('storage', this.refreshVisibleBlogs)
+			window.addEventListener(SESSION_CHANGE_EVENT, this.refreshVisibleBlogs)
+		},
+		beforeUnmount() {
+			window.removeEventListener('storage', this.refreshVisibleBlogs)
+			window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshVisibleBlogs)
 		}
 	}
 </script>

@@ -1,5 +1,7 @@
 package top.naccl.controller;
 
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -39,12 +41,13 @@ public class IndexController {
 	 * @return
 	 */
 	@GetMapping("/site")
-	public Result site() {
+	public Result site(Authentication authentication) {
 		Map<String, Object> map = siteSettingService.getSiteInfo();
-		List<NewBlog> newBlogList = blogService.getNewBlogListByIsPublished();
+		boolean includeInternal = authentication != null && !(authentication instanceof AnonymousAuthenticationToken);
+		List<NewBlog> newBlogList = blogService.getNewBlogListByIsPublished(includeInternal);
 		List<Category> categoryList = categoryService.getCategoryNameList();
 		List<Tag> tagList = tagService.getTagListNotId();
-		List<RandomBlog> featuredBlogList = blogService.getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend();
+		List<RandomBlog> featuredBlogList = blogService.getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(includeInternal);
 		map.put("newBlogList", newBlogList);
 		map.put("categoryList", categoryList);
 		map.put("tagList", tagList);

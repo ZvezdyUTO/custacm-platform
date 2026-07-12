@@ -1,6 +1,7 @@
 package top.naccl.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 import top.naccl.entity.Blog;
 import top.naccl.model.dto.BlogView;
@@ -26,19 +27,23 @@ public interface BlogMapper {
 
 	List<Blog> getListByTitleAndCategoryIdAndUserId(String title, Integer categoryId, Long userId);
 
-	List<SearchBlog> getSearchBlogListByQueryAndIsPublished(String query);
+	List<SearchBlog> getSearchBlogListByQueryAndIsPublished(@Param("query") String query,
+			@Param("includeInternal") boolean includeInternal);
 
 	List<Blog> getIdAndTitleList();
 
-	List<NewBlog> getNewBlogListByIsPublished();
+	List<NewBlog> getNewBlogListByIsPublished(@Param("includeInternal") boolean includeInternal);
 
-	List<BlogInfo> getBlogInfoListByIsPublished();
+	List<BlogInfo> getBlogInfoListByIsPublished(@Param("includeInternal") boolean includeInternal);
 
-	List<BlogInfo> getBlogInfoListByCategoryNameAndIsPublished(String categoryName);
+	List<BlogInfo> getBlogInfoListByCategoryNameAndIsPublished(@Param("categoryName") String categoryName,
+			@Param("includeInternal") boolean includeInternal);
 
-	List<BlogInfo> getBlogInfoListByTagNameAndIsPublished(String tagName);
+	List<BlogInfo> getBlogInfoListByTagNameAndIsPublished(@Param("tagName") String tagName,
+			@Param("includeInternal") boolean includeInternal);
 
-	List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(Integer limitNum);
+	List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(@Param("limitNum") Integer limitNum,
+			@Param("includeInternal") boolean includeInternal);
 
 	List<BlogView> getBlogViewsList();
 

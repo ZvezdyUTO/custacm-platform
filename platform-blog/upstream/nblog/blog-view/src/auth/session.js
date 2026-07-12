@@ -52,6 +52,7 @@ export function writeUser(user) {
 		username: user.username,
 		nickname: user.nickname || user.username,
 		avatar: user.avatar || '',
+		avatarOriginalUrl: user.avatarOriginalUrl || '',
 		signature: user.signature || '',
 		links: Array.isArray(user.links) ? user.links : [],
 		role: user.role,

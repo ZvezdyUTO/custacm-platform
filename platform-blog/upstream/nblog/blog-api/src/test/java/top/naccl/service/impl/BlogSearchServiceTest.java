@@ -36,21 +36,22 @@ class BlogSearchServiceTest {
 	void buildsSafeLeadingContentSnippetsForTitleMatches() {
 		SearchBlog titleMatch = searchBlog(2L, "Needle 标题", "正文开头");
 		SearchBlog emptyContent = searchBlog(3L, "Needle 空正文", null);
-		when(blogMapper.getSearchBlogListByQueryAndIsPublished("needle"))
+		when(blogMapper.getSearchBlogListByQueryAndIsPublished("needle", false))
 				.thenReturn(List.of(titleMatch, emptyContent));
 
-		List<SearchBlog> results = service.getSearchBlogListByQueryAndIsPublished("needle");
+		List<SearchBlog> results = service.getSearchBlogListByQueryAndIsPublished("needle", false);
 
 		assertEquals("正文开头", results.get(0).getContent());
 		assertEquals("", results.get(1).getContent());
 	}
 
 	@Test
-	void mapperSearchesOnlyPublicTitlesWithAResultLimit() throws IOException {
+	void mapperLimitsAnonymousSearchButLetsAuthenticatedReadsIncludeInternalArticles() throws IOException {
 		String mapper = new String(getClass().getResourceAsStream("/mapper/BlogMapper.xml").readAllBytes(), StandardCharsets.UTF_8);
 
 		assertTrue(mapper.contains("is_published=true"));
 		assertTrue(mapper.contains("is_internal=false"));
+		assertTrue(mapper.contains("<if test=\"includeInternal == false\">"));
 		assertTrue(mapper.contains("and title like #{queryPattern}"));
 		assertTrue(!mapper.contains("title like #{queryPattern} or content like #{queryPattern}"));
 		assertTrue(mapper.contains("order by update_time desc, id desc"));

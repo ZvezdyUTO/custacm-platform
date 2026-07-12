@@ -24,6 +24,7 @@ import top.naccl.util.JwtUtils;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.mockito.Mockito.when;
 
@@ -57,6 +58,19 @@ class SecurityConfigTest {
 		String token = token("player1", "ROLE_player");
 		mockMvc.perform(get("/player/probe").header("Authorization", token)).andExpect(status().isOk());
 		mockMvc.perform(get("/admin/probe").header("Authorization", token)).andExpect(status().isForbidden());
+	}
+
+	@Test
+	void validJwtAuthenticatesAnOptionalPublicReadButInvalidJwtStaysAnonymous() throws Exception {
+		stubUser("player1", "ROLE_player");
+		String token = token("player1", "ROLE_player");
+
+		mockMvc.perform(get("/public-probe").header("Authorization", token))
+				.andExpect(status().isOk())
+				.andExpect(content().string("player1"));
+		mockMvc.perform(get("/public-probe").header("Authorization", "not-a-jwt"))
+				.andExpect(status().isOk())
+				.andExpect(content().string("guest"));
 	}
 
 	@Test
@@ -124,7 +138,9 @@ class SecurityConfigTest {
 
 	@RestController
 	static class ProbeController {
-		@GetMapping("/public-probe") String publicProbe() { return "ok"; }
+		@GetMapping("/public-probe") String publicProbe(org.springframework.security.core.Authentication authentication) {
+			return authentication == null ? "guest" : authentication.getName();
+		}
 		@GetMapping("/player/probe") String playerProbe() { return "ok"; }
 		@GetMapping("/admin/probe") String adminProbe() { return "ok"; }
 		@PostMapping("/comment") String publicWriteProbe() { return "not allowed"; }

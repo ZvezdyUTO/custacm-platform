@@ -15,19 +15,21 @@ import java.util.Map;
 public interface BlogService {
 	List<Blog> getListByTitleAndCategoryId(String title, Integer categoryId);
 
-	List<SearchBlog> getSearchBlogListByQueryAndIsPublished(String query);
+	List<SearchBlog> getSearchBlogListByQueryAndIsPublished(String query, boolean includeInternal);
 
 	List<Blog> getIdAndTitleList();
 
-	List<NewBlog> getNewBlogListByIsPublished();
+	List<NewBlog> getNewBlogListByIsPublished(boolean includeInternal);
 
-	PageResult<BlogInfo> getBlogInfoListByIsPublished(Integer pageNum);
+	PageResult<BlogInfo> getBlogInfoListByIsPublished(Integer pageNum, boolean includeInternal);
 
-	PageResult<BlogInfo> getBlogInfoListByCategoryNameAndIsPublished(String categoryName, Integer pageNum);
+	PageResult<BlogInfo> getBlogInfoListByCategoryNameAndIsPublished(String categoryName, Integer pageNum,
+			boolean includeInternal);
 
-	PageResult<BlogInfo> getBlogInfoListByTagNameAndIsPublished(String tagName, Integer pageNum);
+	PageResult<BlogInfo> getBlogInfoListByTagNameAndIsPublished(String tagName, Integer pageNum,
+			boolean includeInternal);
 
-	List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend();
+	List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(boolean includeInternal);
 
 	void deleteBlogById(Long id);
 
