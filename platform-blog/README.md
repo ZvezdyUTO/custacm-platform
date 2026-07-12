@@ -32,9 +32,9 @@ Blog API 负责：
 
 - Vue Blog 与 Vue 3 训练中心共享 `custacm.accessToken` 和 `custacm.user`。
 - 用户摘要只负责展示，真正授权由 Blog API 的 JWT 校验与数据库当前角色决定。
-- 公开 Blog 请求不全局携带 JWT。登录用户提交评论时，Vue 只为该请求显式发送 `Authorization: Bearer <token>`。
+- 公开 Blog 请求不全局携带 JWT。登录用户的文章列表、分类、标签、搜索和精选读取，以及评论提交，均由对应 Vue adapter 显式发送 `Authorization: Bearer <token>`；因此内部文章仅对登录用户出现在这些聚合结果中。
 - Vue Blog 顶栏向登录用户提供“发布文章”；“我的主页”内嵌本人文章列表，文章详情只对作者显示编辑入口。
-- 文章不再支持独立密码；内部文章只允许登录用户通过 `/player/**` 读取。
+- 文章不再支持独立密码；内部文章只对登录用户出现在聚合列表中，正文只允许登录用户通过 `/player/**` 读取。
 
 ## 目录结构
 

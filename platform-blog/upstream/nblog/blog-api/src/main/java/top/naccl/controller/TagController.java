@@ -1,5 +1,7 @@
 package top.naccl.controller;
 
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -31,8 +33,13 @@ public class TagController {
 	@VisitLogger(VisitBehavior.TAG)
 	@GetMapping("/tag")
 	public Result tag(@RequestParam String tagName,
-	                  @RequestParam(defaultValue = "1") Integer pageNum) {
-		PageResult<BlogInfo> pageResult = blogService.getBlogInfoListByTagNameAndIsPublished(tagName, pageNum);
+	                  @RequestParam(defaultValue = "1") Integer pageNum, Authentication authentication) {
+		PageResult<BlogInfo> pageResult = blogService.getBlogInfoListByTagNameAndIsPublished(tagName, pageNum,
+				isAuthenticated(authentication));
 		return Result.ok("请求成功", pageResult);
+	}
+
+	private static boolean isAuthenticated(Authentication authentication) {
+		return authentication != null && !(authentication instanceof AnonymousAuthenticationToken);
 	}
 }

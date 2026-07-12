@@ -65,6 +65,7 @@ describe('shared Blog session', () => {
 			username: 'alice',
 			nickname: '新昵称',
 			avatar: '/api/image/avatar.png',
+			avatarOriginalUrl: '/api/image/assets/avatar/original.png',
 			signature: '保持好奇',
 			links: [{id: 1, label: 'GitHub', url: 'https://github.com/alice', sortOrder: 0}],
 			role: 'ROLE_player',
@@ -72,6 +73,7 @@ describe('shared Blog session', () => {
 		expect(readUser()).toMatchObject({
 			nickname: '新昵称',
 			avatar: '/api/image/avatar.png',
+			avatarOriginalUrl: '/api/image/assets/avatar/original.png',
 			signature: '保持好奇',
 			links: [{label: 'GitHub'}],
 		})

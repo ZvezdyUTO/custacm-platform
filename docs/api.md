@@ -146,9 +146,9 @@ GET /player/training-data/users
 
 文章、分类、标签、动态、友链、关于页、首页图片及评论列表等公开 GET 请求不要求登录。评论列表仅在评论仍关联现存账号时返回只读 `username`；游客评论或账号删除后的匿名评论不返回该身份。没有公开 OJ handle map、guest 训练查询、独立 handle 管理 API 或独立用户训练数据删除 API；删除用户时由用户服务在内部编排清理。
 
-`GET /searchBlog?query={keyword}` 只对公开文章标题做大小写不敏感的子串匹配，按更新时间倒序返回最多十条候选。正文和内部文章不参与搜索。空关键词、特殊通配字符或超过 20 个字符的关键词会返回参数错误。
+`GET /searchBlog?query={keyword}` 只对已发布文章标题做大小写不敏感的子串匹配，按更新时间倒序返回最多十条候选。游客只获得公开文章；登录用户显式携带 Bearer 时也获得内部文章。正文不参与搜索。空关键词、特殊通配字符或超过 20 个字符的关键词会返回参数错误。
 
-文章可见性由 `published` 与 `internal` 共同表达：`published=false` 是仅作者和管理员管理的草稿；`published=true, internal=false` 是公开文章；`published=true, internal=true` 是内部文章。内部文章不进入公开列表、分类、标签、搜索或精选接口，登录用户通过 `GET /player/internal-blog?id={id}` 阅读并通过 `GET /player/comments` 读取评论；评论提交统一要求登录。密码文章及文章密码 token 已移除。
+文章可见性由 `published` 与 `internal` 共同表达：`published=false` 是仅作者和管理员管理的草稿；`published=true, internal=false` 是公开文章；`published=true, internal=true` 是内部文章。游客的列表、分类、标签、搜索和精选接口排除内部文章；已登录用户在同一聚合接口中会看到内部文章，但正文仍通过 `GET /player/internal-blog?id={id}` 阅读，并通过 `GET /player/comments` 读取评论；评论提交统一要求登录。密码文章及文章密码 token 已移除。
 
 `GET /blog?id={id}` 的文章详情包含 `authorUsername`、`authorNickname` 和 `authorAvatar`。`authorUsername` 用于展示作者自己的编辑入口，不是写接口的授权依据。
 

@@ -1,5 +1,7 @@
 package top.naccl.controller;
 
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -34,8 +36,8 @@ public class BlogController {
 	 */
 	@VisitLogger(VisitBehavior.INDEX)
 	@GetMapping("/blogs")
-	public Result blogs(@RequestParam(defaultValue = "1") Integer pageNum) {
-		PageResult<BlogInfo> pageResult = blogService.getBlogInfoListByIsPublished(pageNum);
+	public Result blogs(@RequestParam(defaultValue = "1") Integer pageNum, Authentication authentication) {
+		PageResult<BlogInfo> pageResult = blogService.getBlogInfoListByIsPublished(pageNum, isAuthenticated(authentication));
 		return Result.ok("请求成功", pageResult);
 	}
 
@@ -61,12 +63,16 @@ public class BlogController {
 	 */
 	@VisitLogger(VisitBehavior.SEARCH)
 	@GetMapping("/searchBlog")
-	public Result searchBlog(@RequestParam String query) {
+	public Result searchBlog(@RequestParam String query, Authentication authentication) {
 		//校验关键字字符串合法性
 		if (StringUtils.isEmpty(query) || StringUtils.hasSpecialChar(query) || query.trim().length() > 20) {
 			return Result.error("参数错误");
 		}
-		List<SearchBlog> searchBlogs = blogService.getSearchBlogListByQueryAndIsPublished(query.trim());
+		List<SearchBlog> searchBlogs = blogService.getSearchBlogListByQueryAndIsPublished(query.trim(), isAuthenticated(authentication));
 		return Result.ok("获取成功", searchBlogs);
+	}
+
+	private static boolean isAuthenticated(Authentication authentication) {
+		return authentication != null && !(authentication instanceof AnonymousAuthenticationToken);
 	}
 }

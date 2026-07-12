@@ -36,27 +36,29 @@ public class JwtFilter extends GenericFilterBean {
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
 		HttpServletRequest request = (HttpServletRequest) servletRequest;
 		HttpServletResponse response = (HttpServletResponse) servletResponse;
-		//仅后台管理和登录用户路径需要解析 JWT
+		// 受保护路由必须解析 JWT；公开读取端点携带有效 JWT 时也解析，以便按登录态返回内部可见内容。
 		String requestUri = request.getRequestURI();
 		String contextPath = request.getContextPath();
-		if (!requestUri.startsWith(contextPath + "/admin") && !requestUri.startsWith(contextPath + "/player")) {
+		boolean protectedRoute = requestUri.startsWith(contextPath + "/admin")
+				|| requestUri.startsWith(contextPath + "/player");
+		String jwt = request.getHeader("Authorization");
+		if (!JwtUtils.judgeTokenIsExist(jwt)) {
 			filterChain.doFilter(request, servletResponse);
 			return;
 		}
-		String jwt = request.getHeader("Authorization");
-		if (JwtUtils.judgeTokenIsExist(jwt)) {
-			try {
-				Claims claims = JwtUtils.getTokenBody(jwt);
-				String username = claims.getSubject();
-				UserDetails currentUser = userService.loadUserByUsername(username);
-				if (!currentUser.isEnabled()) {
-					throw new UsernameNotFoundException("用户不可用");
-				}
-				UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-						currentUser.getUsername(), null, currentUser.getAuthorities());
-				SecurityContextHolder.getContext().setAuthentication(token);
-			} catch (Exception e) {
-				SecurityContextHolder.clearContext();
+		try {
+			Claims claims = JwtUtils.getTokenBody(jwt);
+			String username = claims.getSubject();
+			UserDetails currentUser = userService.loadUserByUsername(username);
+			if (!currentUser.isEnabled()) {
+				throw new UsernameNotFoundException("用户不可用");
+			}
+			UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
+					currentUser.getUsername(), null, currentUser.getAuthorities());
+			SecurityContextHolder.getContext().setAuthentication(token);
+		} catch (Exception e) {
+			SecurityContextHolder.clearContext();
+			if (protectedRoute) {
 				response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 				response.setContentType("application/json;charset=utf-8");
 				Result result = Result.error(401, "AUTH_TOKEN_INVALID", "凭证已失效，请重新登录！");

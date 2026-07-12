@@ -33,7 +33,7 @@ platform-blog/upstream/nblog/blog-api/
 
 Blog 顶栏“训练中心”与“分类”一致采用点击开关型下拉菜单：点击标题只展开或收起，悬停不展示，选择多人、单人或题目查询项后才发生路由跳转。
 
-Vue Blog 的公开请求不全局附加 JWT。受保护写入和内部文章读取由具体 API adapter 显式发送共享 Bearer token。训练中心的 `/player/**`、`/admin/**` 请求也采用相同方式。
+Vue Blog 的公开请求不全局附加 JWT。文章列表、分类、标签、搜索和精选读取仅在存在共享会话时由具体 API adapter 显式发送 Bearer，使登录用户获得内部文章；受保护写入和内部文章正文读取同样由具体 adapter 发送 token。训练中心的 `/player/**`、`/admin/**` 请求也采用相同方式。
 
 Vue Blog 的本人文章列表、发布、编辑、图片上传和删除通过独立 adapter 显式发送 Bearer；`/write` 和 `/write/{id}` 支持 Markdown 导入、首图裁剪及正文图片选择/拖拽/粘贴。公开文章详情的 `authorUsername` 只决定是否显示编辑入口，写入仍由 Blog API 校验 `blog.user_id`。
 

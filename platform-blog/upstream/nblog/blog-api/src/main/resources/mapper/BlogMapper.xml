@@ -87,7 +87,9 @@
         select id, title, content
         from blog
         where is_published=true
+        <if test="includeInternal == false">
           and is_internal=false
+        </if>
           and title like #{queryPattern}
         order by update_time desc, id desc
         limit 10
@@ -113,7 +115,9 @@
         select id, title
         from blog
         where is_published=true
+        <if test="includeInternal == false">
           and is_internal=false
+        </if>
         order by create_time desc
     </select>
 
@@ -140,7 +144,10 @@
         select b.id, b.title, b.description, b.is_top, b.create_time, b.views, b.words, b.read_time,
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from blog as b left join category as c on b.category_id=c.id left join user as u on b.user_id=u.id
-        where b.is_published=true and b.is_internal=false
+        where b.is_published=true
+        <if test="includeInternal == false">
+          and b.is_internal=false
+        </if>
     </select>
 
     <!--根据分类name查询公开博客List-->
@@ -148,7 +155,10 @@
         select b.id, b.title, b.description, b.is_top, b.create_time, b.views, b.words, b.read_time,
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from category as c left join blog as b on b.category_id=c.id left join user as u on b.user_id=u.id
-        where c.category_name=#{categoryName} and b.is_published=true and b.is_internal=false
+        where c.category_name=#{categoryName} and b.is_published=true
+        <if test="includeInternal == false">
+          and b.is_internal=false
+        </if>
     </select>
 
     <!--根据标签name查询公开博客List-->
@@ -157,7 +167,10 @@
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from tag as t left join blog_tag as bt on t.id=bt.tag_id left join blog as b on bt.blog_id=b.id
         left join category as c on b.category_id=c.id left join user as u on b.user_id=u.id
-        where t.tag_name=#{tagName} and b.is_published=true and b.is_internal=false
+        where t.tag_name=#{tagName} and b.is_published=true
+        <if test="includeInternal == false">
+          and b.is_internal=false
+        </if>
     </select>
 
     <resultMap id="randomBlog" type="top.naccl.model.vo.RandomBlog">
@@ -171,7 +184,10 @@
     <select id="getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend" resultMap="randomBlog">
         select id, title, create_time, first_picture
         from blog
-        where is_published=true and is_internal=false and is_recommend=true
+        where is_published=true and is_recommend=true
+        <if test="includeInternal == false">
+          and is_internal=false
+        </if>
         order by is_top desc, update_time desc, id desc limit #{limitNum}
     </select>
 

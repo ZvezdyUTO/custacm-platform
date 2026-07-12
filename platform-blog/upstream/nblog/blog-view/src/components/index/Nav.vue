@@ -452,9 +452,9 @@
 		color: rgba(0, 0, 0, .70);
 	}
 
-	.nav-auth-trigger {
-		display: flex;
-		max-width: 200px;
+		.nav-auth-trigger {
+			display: flex;
+			max-width: 260px;
 		align-items: center;
 		border: 0;
 		background: transparent;
@@ -463,9 +463,9 @@
 		font: inherit;
 	}
 
-	.nav-auth-trigger > span {
-		min-width: 0;
-		max-width: 180px;
+		.nav-auth-trigger > span {
+			min-width: 0;
+			max-width: 240px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -489,9 +489,9 @@
 			min-width: 160px;
 		}
 
-		.nav-auth-trigger,
-		.nav-auth-trigger > span {
-			max-width: 120px;
+			.nav-auth-trigger,
+			.nav-auth-trigger > span {
+				max-width: 180px;
 		}
 	}
 </style>

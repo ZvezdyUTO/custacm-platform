@@ -32,7 +32,7 @@
 - 本人文章列表、发布、编辑和删除只调用 `/player/blog**`；前端显式携带 Bearer JWT，后端仍以 `blog.user_id` 做最终所有权校验。
 - 首页文章标题最多展示三行；发布与编辑共用标题 100 字、简介 255 字、正文 200000 字的输入约束，后端仍执行同样的最终校验。
 - 本人文章图片只调用 `/player/images`：首图在浏览器裁剪为 1920×1080，正文 JPEG/PNG 最大 15MB；正文插入标准图片 Markdown 并在实时编辑区直接显示缩略图，阅读预览仅在点击“加载原图”后请求高清图。尚未保存的正文图片从编辑器移除后立即回收，已绑定图片在文章保存成功后回收。
-- 文章不再支持独立密码；内部文章通过共享登录 JWT 调用 `/player/internal-blog` 和 `/player/comments` 读取正文及评论，不会出现在公开列表、搜索或精选中。
+- 文章不再支持独立密码；内部文章通过共享登录 JWT 调用 `/player/internal-blog` 和 `/player/comments` 读取正文及评论；文章列表、分类、标签、搜索和精选读取在存在会话时显式发送 Bearer，因此仅登录用户会在这些聚合结果中看到内部文章。
 - 受保护请求的 JWT 和权限校验由训练中心及 Blog API 负责。
 - 不在本模块中引入训练中心组件、后端业务代码或部署配置。
 
@@ -44,14 +44,14 @@
 - `src/plugins/axios.js`：创建同源 Blog API 客户端并维护评论访客标识。
 - `src/auth/session.js`：成对校验并读取共享用户摘要或裸 JWT；清理时发送稳定的同页 `custacm:session-change` 事件，同时移除旧 `memberToken/memberUser`，但保留评论 identification。
 - `src/auth/account-menu.js`：按当前角色生成账号菜单；统一使用“我的主页”，管理员额外显示“管理员界面”。
-- `src/components/index/Nav.vue`：使用 `public/img/custacm-wordmark.png` 渲染固定的藏青色 CUSTACM 字标、Blog/训练导航；“训练中心”标题只通过点击展开或收起下拉菜单，悬停不展开且标题本身不跳转；登录用户可见顶栏“发布文章”入口；右侧搜索框仅在按 Enter 后匿名查询公开文章标题，最多展示十条结果，内部文章不参与搜索。
+- `src/components/index/Nav.vue`：使用 `public/img/custacm-wordmark.png` 渲染固定的藏青色 CUSTACM 字标、Blog/训练导航；“训练中心”标题只通过点击展开或收起下拉菜单，悬停不展开且标题本身不跳转；登录用户可见顶栏“发布文章”入口；右侧搜索框仅在按 Enter 后查询文章标题，最多展示十条结果，游客只获得公开文章，登录用户也可获得内部文章；账号名称栏为较长用户名保留桌面展示空间。
 - `src/components/index/Footer.vue`：渲染平台欢迎语，以及带官网图标的圆角项目仓库、Codeforces、AtCoder、洛谷、牛客竞赛和 QOJ 固定链接。
 - `src/components/index/Header.vue`：从公开首页图片接口读取一至两张有序横幅，保留鼠标左右移动时的相邻图片渐变切换；首屏通过 Google Fonts 加载 Bowlby One SC，以冷调象牙白填充和黑色描边在画面上方呈现双行 `WELCOME TO CUSTACM`，并保留原逐字浮动、品牌浮动和整组淡入动画；接口失败时使用 `src/settings.js` 指向的构建内置默认图。
 - `public/img/homepage-banner-default.png`：构建时随 Blog 静态产物发布的唯一默认首页图，同时供 Flyway 初始化数据和接口失败回退使用。
 - `public/favicon.svg`：浏览器标签页使用的简约几何气球品牌图标。
 - `src/util/homepageBanner.js`：把鼠标位置映射为任意数量横幅的相邻图层透明度。
 - `src/assets/css/base.css`：提供 Blog 全局基础样式，以共享的 `#f4f6f8` 雾灰画布与训练、管理页面保持底色一致；前端不再加载播放器或歌词组件。
-- `src/components/sidebar/Introduction.vue`：普通页面显示当前登录用户的名片，文章详情页改为显示文章作者的公开头像、nickname、username、个性签名和有序友情链接；资料保持纯展示，在本人个人页仍可通过原有头像交互打开裁剪器。
+- `src/components/sidebar/Introduction.vue`：普通页面显示当前登录用户的名片，文章详情页改为显示文章作者的公开头像、nickname、username、个性签名和有序友情链接；当前用户的大尺寸名片优先使用头像原图，小尺寸缩略图仅作为兼容回退，资料保持纯展示，在本人个人页仍可通过原有头像交互打开裁剪器。
 - `src/components/profile/AvatarCropDialog.vue`：允许拖动、缩放本地 PNG/JPEG，并导出 512×512 PNG 交给头像 API。
 - `src/views/about/About.vue`：“我的主页”，展示当前用户资料、OJ handle、友情链接与本人文章区，并在资料编辑面板内提供本人密码修改表单。
 - `src/views/blog/Blog.vue`：渲染公开文章详情、分类标签、正文和评论；详情页标题下方沿用作者、日期、浏览量、字数和估算阅读时长的横排摘要。
@@ -79,6 +79,8 @@
 - `src/test/getPageTitle.test.js`：验证浏览器标题的页面名称与平台品牌组合规则。
 - `src/test/homepageBanner.test.js`：验证单图、首尾定位与相邻图片交叉淡入淡出。
 - `src/test/profileApi.test.js`：验证本人资料和友情链接请求使用正确路径、方法与显式 Bearer header。
+- `src/test/publicVisibilityApi.test.js`：验证文章列表、分类、标签、搜索和精选读取仅在存在会话时显式附加 Bearer。
+- `src/test/introduction.test.js`：验证当前用户名片优先使用头像原图，并在原图缺失时回退缩略图或默认头像。
 - `src/test/playerBlogApi.test.js`、`src/test/articleForm.test.js`：验证本人文章路径/Bearer header、请求组装、Markdown 导入与作者匹配。
 - `src/test/markdownEditor.test.js`、`src/test/liveMarkdownEditor.test.js`：验证标准公式识别、Markdown 插入模板、CodeMirror 挂载、KaTeX 实时预览和正文双向同步。
 - `src/test/commentApi.test.js`：验证登录评论只调用 `/player/comment` 并显式附加 Bearer JWT。

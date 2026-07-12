@@ -77,7 +77,7 @@
 				return this.$route.name === 'about'
 			},
 			avatarSrc() {
-				return this.displayProfile?.avatar || '/img/default-avatar.jpg'
+				return this.displayProfile?.avatarOriginalUrl || this.displayProfile?.avatar || '/img/default-avatar.jpg'
 			},
 			profileLinks() {
 				return Array.isArray(this.displayProfile?.links) ? this.displayProfile.links : []
@@ -148,16 +148,21 @@
 				}
 				this.saving = true
 				this.errorMessage = ''
+				let saved = false
 				try {
 					const profile = await updateCurrentAvatar(token, blob)
 					writeUser(profile)
 					this.authUser = readUser()
-					this.$refs.cropDialog.close()
+					saved = true
 					this.msgSuccess('头像已更新')
 				} catch (error) {
 					this.errorMessage = error?.response?.data?.msg || '头像上传失败，请稍后重试。'
 				} finally {
 					this.saving = false
+					if (saved) {
+						await this.$nextTick()
+						this.$refs.cropDialog.close()
+					}
 				}
 			},
 		},

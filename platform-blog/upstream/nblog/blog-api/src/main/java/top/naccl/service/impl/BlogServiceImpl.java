@@ -74,8 +74,8 @@ public class BlogServiceImpl implements BlogService {
 	}
 
 	@Override
-	public List<SearchBlog> getSearchBlogListByQueryAndIsPublished(String query) {
-		List<SearchBlog> searchBlogs = blogMapper.getSearchBlogListByQueryAndIsPublished(query);
+	public List<SearchBlog> getSearchBlogListByQueryAndIsPublished(String query, boolean includeInternal) {
+		List<SearchBlog> searchBlogs = blogMapper.getSearchBlogListByQueryAndIsPublished(query, includeInternal);
 		for (SearchBlog searchBlog : searchBlogs) {
 			String content = searchBlog.getContent() == null ? "" : searchBlog.getContent();
 			searchBlog.setContent(content.substring(0, Math.min(80, content.length())));
@@ -89,20 +89,28 @@ public class BlogServiceImpl implements BlogService {
 	}
 
 	@Override
-	public List<NewBlog> getNewBlogListByIsPublished() {
+	public List<NewBlog> getNewBlogListByIsPublished(boolean includeInternal) {
+		if (includeInternal) {
+			PageHelper.startPage(1, newBlogPageSize);
+			return blogMapper.getNewBlogListByIsPublished(true);
+		}
 		String redisKey = RedisKeyConstants.NEW_BLOG_LIST;
 		List<NewBlog> newBlogListFromRedis = redisService.getListByValue(redisKey);
 		if (newBlogListFromRedis != null) {
 			return newBlogListFromRedis;
 		}
 		PageHelper.startPage(1, newBlogPageSize);
-		List<NewBlog> newBlogList = blogMapper.getNewBlogListByIsPublished();
+		List<NewBlog> newBlogList = blogMapper.getNewBlogListByIsPublished(false);
 		redisService.saveListToValue(redisKey, newBlogList);
 		return newBlogList;
 	}
 
 	@Override
-	public PageResult<BlogInfo> getBlogInfoListByIsPublished(Integer pageNum) {
+	public PageResult<BlogInfo> getBlogInfoListByIsPublished(Integer pageNum, boolean includeInternal) {
+		if (includeInternal) {
+			PageHelper.startPage(pageNum, pageSize, orderBy);
+			return pageResult(blogMapper.getBlogInfoListByIsPublished(true));
+		}
 		String redisKey = RedisKeyConstants.HOME_BLOG_INFO_LIST;
 		//redis已有当前页缓存
 		PageResult<BlogInfo> pageResultFromRedis = redisService.getBlogInfoPageResultByHash(redisKey, pageNum);
@@ -112,10 +120,7 @@ public class BlogServiceImpl implements BlogService {
 		}
 		//redis没有缓存，从数据库查询，并添加缓存
 		PageHelper.startPage(pageNum, pageSize, orderBy);
-		List<BlogInfo> blogInfos = processBlogInfos(blogMapper.getBlogInfoListByIsPublished());
-		PageInfo<BlogInfo> pageInfo = new PageInfo<>(blogInfos);
-		PageResult<BlogInfo> pageResult = new PageResult<>(pageInfo.getPages(), pageInfo.getList());
-		setBlogViewsFromRedisToPageResult(pageResult);
+		PageResult<BlogInfo> pageResult = pageResult(blogMapper.getBlogInfoListByIsPublished(false));
 		//添加首页缓存
 		redisService.saveKVToHash(redisKey, pageNum, pageResult);
 		return pageResult;
@@ -151,20 +156,22 @@ public class BlogServiceImpl implements BlogService {
 	}
 
 	@Override
-	public PageResult<BlogInfo> getBlogInfoListByCategoryNameAndIsPublished(String categoryName, Integer pageNum) {
+	public PageResult<BlogInfo> getBlogInfoListByCategoryNameAndIsPublished(String categoryName, Integer pageNum,
+			boolean includeInternal) {
 		PageHelper.startPage(pageNum, pageSize, orderBy);
-		List<BlogInfo> blogInfos = processBlogInfos(blogMapper.getBlogInfoListByCategoryNameAndIsPublished(categoryName));
-		PageInfo<BlogInfo> pageInfo = new PageInfo<>(blogInfos);
-		PageResult<BlogInfo> pageResult = new PageResult<>(pageInfo.getPages(), pageInfo.getList());
-		setBlogViewsFromRedisToPageResult(pageResult);
-		return pageResult;
+		return pageResult(blogMapper.getBlogInfoListByCategoryNameAndIsPublished(categoryName, includeInternal));
 	}
 
 	@Override
-	public PageResult<BlogInfo> getBlogInfoListByTagNameAndIsPublished(String tagName, Integer pageNum) {
+	public PageResult<BlogInfo> getBlogInfoListByTagNameAndIsPublished(String tagName, Integer pageNum,
+			boolean includeInternal) {
 		PageHelper.startPage(pageNum, pageSize, orderBy);
-		List<BlogInfo> blogInfos = processBlogInfos(blogMapper.getBlogInfoListByTagNameAndIsPublished(tagName));
-		PageInfo<BlogInfo> pageInfo = new PageInfo<>(blogInfos);
+		return pageResult(blogMapper.getBlogInfoListByTagNameAndIsPublished(tagName, includeInternal));
+	}
+
+	private PageResult<BlogInfo> pageResult(List<BlogInfo> blogInfos) {
+		List<BlogInfo> processed = processBlogInfos(blogInfos);
+		PageInfo<BlogInfo> pageInfo = new PageInfo<>(processed);
 		PageResult<BlogInfo> pageResult = new PageResult<>(pageInfo.getPages(), pageInfo.getList());
 		setBlogViewsFromRedisToPageResult(pageResult);
 		return pageResult;
@@ -179,8 +186,8 @@ public class BlogServiceImpl implements BlogService {
 	}
 
 	@Override
-	public List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend() {
-		return blogMapper.getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(randomBlogLimitNum);
+	public List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(boolean includeInternal) {
+		return blogMapper.getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(randomBlogLimitNum, includeInternal);
 	}
 
 	private Map<Long, Integer> getBlogViewsMap() {
