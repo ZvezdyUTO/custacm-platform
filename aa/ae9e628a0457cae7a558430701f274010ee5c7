@@ -1,0 +1,25 @@
+CHANGELOG.md
+  s_5010dbf7aaf7e7::t_6a7544dd4e4ebd 9
+README.md
+  s_5010dbf7aaf7e7::t_93d7624ec26d89 7-9,17
+docs/README.md
+  s_5010dbf7aaf7e7::t_e097e923ac2a4b 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "aaae9e628a0457cae7a558430701f274010ee5c7",
+  "prompts": {},
+  "sessions": {
+    "s_5010dbf7aaf7e7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f56b6-1b74-7da1-8ac5-597dba45d6de",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
