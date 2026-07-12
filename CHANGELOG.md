@@ -6,7 +6,7 @@
 
 ### 2026-07-12 - 完善 Blog 阅读体验与可选 HTTPS 部署
 
-- 成果：Blog 文章列表和详情页展示首图，修复多行公式、长代码横向滚动、列表内代码块样式污染与窄视口布局问题，并为作者友情链接自动加载站点图标；训练多人统计按通过数降序展示并区分 AtCoder 难度色阶。
+- 成果：Blog 文章列表和详情页展示首图，修复多行公式、长代码横向滚动、列表内代码块样式污染与窄视口布局问题，并为作者友情链接自动加载站点图标；根 README 同步介绍博客平台的队内沉淀与访客交流定位；训练多人统计按通过数降序展示并区分 AtCoder 难度色阶。
 - 影响：Blog API 的公开文章摘要与详情响应新增 `firstPicture`；Nginx 前端支持通过 `TLS_ENABLED` 和挂载证书启用 HTTPS，HTTP 模式仍为默认行为；部署脚本会按实际协议检查网关。
 - 验证：已运行 `mvn clean verify`、`mvn clean package -DskipTests`、`./scripts/check-test-policy.sh`、训练前端 lint/69 项测试/类型检查/生产构建、Blog 63 项测试/生产构建、前端 Docker 镜像构建、Compose 配置检查、部署脚本语法检查、文档同步检查和 `git diff --check`。
 
