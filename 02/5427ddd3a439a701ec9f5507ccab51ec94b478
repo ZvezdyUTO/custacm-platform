@@ -1,0 +1,127 @@
+deploy/.env.example
+  s_6a7009b6880ded::t_bda25d2fcc44d0 12-14
+deploy/AGENTS.md
+  s_6a7009b6880ded::t_f7ba7cfb522aa4 5,8
+deploy/README.md
+  s_6a7009b6880ded::t_1a0bc2c748a569 10,71-73,101-109,119
+deploy/UPDATE.md
+  s_6a7009b6880ded::t_09d12e351ba62a 69-77,81-82
+deploy/docker-compose.yml
+  s_6a7009b6880ded::t_f9b23391aa0771 67-68,71,74
+docs/agent/README.md
+  s_6a7009b6880ded::t_b1390aa004ea29 18
+docs/agent/context-map.md
+  s_ca08fd9467fff8::t_8ac13d11923c8e 7
+docs/architecture.md
+  s_ca08fd9467fff8::t_0e3d884de9c55a 98
+docs/server-deployment.md
+  s_6a7009b6880ded::t_e57898b4887c69 26-30,49-57
+frontend/Dockerfile
+  s_6a7009b6880ded::t_a246977f23cf03 13-14,20-23
+frontend/README.md
+  s_f7a6b97c45c95e::t_39d60d076c50a3 32,114,122,158-159
+frontend/docker-entrypoint.d/10-select-nginx-config.sh
+  s_6a7009b6880ded::t_1d7ff7021cadc1 1-9
+frontend/nginx-https.conf
+  s_6a7009b6880ded::t_5d5c1e0428089d 1-57
+frontend/src/components/TrainingQueryPanel.vue
+  s_2bd17a9cb5d732::t_43849de8ac53c6 45,48-50,154-161
+frontend/src/composables/usePlatformDashboard.ts
+  s_f7a6b97c45c95e::t_e840fcb9ad7bb0 78-88,201,323
+frontend/src/styles/dashboard.css
+  s_2bd17a9cb5d732::t_984707e92d9bda 739-744,834
+frontend/src/test/multi-user-summary-sort.test.ts
+  s_f7a6b97c45c95e::t_c743f5ccf30b0a 1-31
+frontend/src/test/training-query-panel.test.ts
+  s_2bd17a9cb5d732::t_90d429b1249302 87-107
+platform-blog/upstream/nblog/blog-api/README.md
+  s_5010dbf7aaf7e7::t_5948b912db4b2e 13,60
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/BlogDetail.java
+  s_5010dbf7aaf7e7::t_8465a67ba41564 29
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/BlogInfo.java
+  s_5010dbf7aaf7e7::t_fc5b0037fdb927 31
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/MarkdownUtils.java
+  s_5010dbf7aaf7e7::t_a473a01a303504 28-29,37-39,43-44,137-152
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/BlogMapper.xml
+  s_5010dbf7aaf7e7::t_693a1c4add5e9c 127,145,156,167,279,304,315
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/BlogAuthorContractTest.java
+  s_5010dbf7aaf7e7::t_2ea16ae1284c22 29-36
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/util/markdown/MarkdownUtilsTest.java
+  s_5010dbf7aaf7e7::t_386ddb6dbb7c38 33-55
+platform-blog/upstream/nblog/blog-view/README.md
+  s_5010dbf7aaf7e7::t_fdded439757a81 54-55,58-59,66,74
+platform-blog/upstream/nblog/blog-view/src/assets/css/typo.css
+  s_5010dbf7aaf7e7::t_1c7e6ed893d101 183-184,194-201,256-262,268-321,334-348
+platform-blog/upstream/nblog/blog-view/src/components/article/LiveMarkdownEditor.vue
+  s_884edc729a8ea3::t_dc0e95e15ac5bc 80,91,99-134
+platform-blog/upstream/nblog/blog-view/src/components/blog/BlogItem.vue
+  s_5010dbf7aaf7e7::t_feda21d84fb644 3,9-19,22-40,80-107,112,133-134,197-201,250-296
+platform-blog/upstream/nblog/blog-view/src/components/sidebar/Introduction.vue
+  s_5010dbf7aaf7e7::t_5a6d8521ba2aac 40-49,79,112-118,274-296
+platform-blog/upstream/nblog/blog-view/src/test/liveMarkdownEditor.test.js
+  s_884edc729a8ea3::t_a0da0d06aca112 12,18,37-38,77-96
+platform-blog/upstream/nblog/blog-view/src/views/Index.vue
+  s_5010dbf7aaf7e7::t_f7a08596ab70c9 137-138,145-146,152-154,159-162
+platform-blog/upstream/nblog/blog-view/src/views/blog/Blog.vue
+  s_5010dbf7aaf7e7::t_a7fe0ce067f68c 7-10,28-30,249-270
+scripts/deploy.sh
+  s_6a7009b6880ded::t_b3db777527e7f7 31,77-89,91-93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "025427ddd3a439a701ec9f5507ccab51ec94b478",
+  "prompts": {},
+  "sessions": {
+    "s_2bd17a9cb5d732": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f56b2-b001-74e1-91ef-e6d6ad8bd445",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_5010dbf7aaf7e7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f56b6-1b74-7da1-8ac5-597dba45d6de",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_6a7009b6880ded": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f55d2-8615-7eb3-b1b2-96090b445b91",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_884edc729a8ea3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f56ad-ebf9-79c0-9ab2-dc1bd51eed20",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_ca08fd9467fff8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f55fb-c82a-7c02-ad26-3c2ad38f837d",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_f7a6b97c45c95e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f56b1-290f-7f63-9b93-07080b6ba03f",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
