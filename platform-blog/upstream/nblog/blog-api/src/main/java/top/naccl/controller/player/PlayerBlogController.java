@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.naccl.entity.Blog;
 import top.naccl.model.vo.Result;
+import top.naccl.service.BlogService;
 import top.naccl.service.CategoryService;
 import top.naccl.service.PlayerBlogService;
 import top.naccl.service.TagService;
@@ -29,6 +30,7 @@ public class PlayerBlogController {
 	@Autowired private PlayerBlogService playerBlogService;
 	@Autowired private CategoryService categoryService;
 	@Autowired private TagService tagService;
+	@Autowired private BlogService blogService;
 
 	@GetMapping("/blogs")
 	public Result blogs(Authentication authentication,
@@ -48,6 +50,13 @@ public class PlayerBlogController {
 		return Result.ok("获取成功", playerBlogService.get(authentication.getName(), id));
 	}
 
+	@GetMapping("/internal-blog")
+	public Result internalBlog(@RequestParam Long id) {
+		var blog = blogService.getInternalBlogById(id);
+		blogService.updateViewsToRedis(id);
+		return Result.ok("获取成功", blog);
+	}
+
 	@GetMapping("/categoryAndTag")
 	public Result categoryAndTag() {
 		Map<String, Object> data = new HashMap<>(4);
@@ -58,8 +67,7 @@ public class PlayerBlogController {
 
 	@PostMapping("/blog")
 	public Result create(Authentication authentication, @RequestBody top.naccl.model.dto.Blog blog) {
-		playerBlogService.create(authentication.getName(), blog);
-		return Result.ok("添加成功");
+		return Result.ok("添加成功", playerBlogService.create(authentication.getName(), blog));
 	}
 
 	@PutMapping("/blog")

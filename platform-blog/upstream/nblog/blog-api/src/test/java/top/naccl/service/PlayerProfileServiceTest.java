@@ -16,6 +16,7 @@ import top.naccl.model.dto.PlayerProfileUpdateRequest;
 import top.naccl.model.dto.ProfileLinkInput;
 import top.naccl.model.dto.ProfileLinksReplaceRequest;
 import top.naccl.model.vo.PlayerProfile;
+import top.naccl.model.vo.PublicProfile;
 
 import java.util.List;
 
@@ -36,13 +37,15 @@ class PlayerProfileServiceTest {
 	private UserProfileLinkMapper linkMapper;
 	@Mock
 	private RedisService redisService;
+	@Mock
+	private ImageAssetService imageAssetService;
 
 	private PlayerProfileService service;
 	private User player;
 
 	@BeforeEach
 	void setUp() {
-		service = new PlayerProfileService(userMapper, linkMapper, redisService);
+		service = new PlayerProfileService(userMapper, linkMapper, redisService, imageAssetService);
 		player = new User();
 		player.setId(7L);
 		player.setUsername("player1");
@@ -63,6 +66,20 @@ class PlayerProfileServiceTest {
 
 		assertEquals("player1", profile.getUsername());
 		assertEquals("GitHub", profile.getLinks().getFirst().label());
+	}
+
+	@Test
+	void returnsPublicProfileWithoutAccountRole() {
+		player.setSignature("保持好奇");
+		UserProfileLink link = link("主页", "https://example.com", 0);
+		when(userMapper.findByUsername("player1")).thenReturn(player);
+		when(linkMapper.findByUserId(7L)).thenReturn(List.of(link));
+
+		PublicProfile profile = service.getPublic("player1");
+
+		assertEquals("player1", profile.getUsername());
+		assertEquals("保持好奇", profile.getSignature());
+		assertEquals("主页", profile.getLinks().getFirst().label());
 	}
 
 	@Test

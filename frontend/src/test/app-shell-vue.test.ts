@@ -30,7 +30,7 @@ describe('Vue training app shell', () => {
     expect(links).toEqual(['多人统计', '单人查询', '题目查询', '管理员操作']);
     expect(wrapper.get('.site-name').text()).toBe("Naccl's Blog");
     expect(wrapper.findAll('nav > a, nav > .top-nav-menu > button').map((item) => item.text())).toEqual([
-      '首页', '分类', '归档', '动态', '友人帐', '关于我', '训练中心',
+      '首页', '分类', '动态', '友人帐', '关于我', '训练中心',
     ]);
     expect(wrapper.get('.blog-nav-search input').attributes('placeholder')).toBe('Search...');
   });

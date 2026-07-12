@@ -17,6 +17,7 @@ import top.naccl.model.vo.PageComment;
 import top.naccl.model.vo.PageResult;
 import top.naccl.model.vo.Result;
 import top.naccl.service.CommentService;
+import top.naccl.service.BlogService;
 import top.naccl.service.impl.UserServiceImpl;
 import top.naccl.util.JwtUtils;
 import top.naccl.util.StringUtils;
@@ -40,6 +41,8 @@ public class CommentController {
 	UserServiceImpl userService;
 	@Autowired
 	CommentUtils commentUtils;
+	@Autowired
+	BlogService blogService;
 
 	/**
 	 * 根据页面分页查询评论列表
@@ -48,49 +51,22 @@ public class CommentController {
 	 * @param blogId   如果page==0，需要博客id参数
 	 * @param pageNum  页码
 	 * @param pageSize 每页个数
-	 * @param jwt      若文章受密码保护，需要获取访问Token
 	 * @return
 	 */
 	@GetMapping("/comments")
 	public Result comments(@RequestParam Integer page,
 	                       @RequestParam(defaultValue = "") Long blogId,
 	                       @RequestParam(defaultValue = "1") Integer pageNum,
-	                       @RequestParam(defaultValue = "10") Integer pageSize,
-	                       @RequestHeader(value = "Authorization", defaultValue = "") String jwt) {
+	                       @RequestParam(defaultValue = "10") Integer pageSize) {
+		if (page == 0 && Boolean.TRUE.equals(blogService.getInternalByBlogId(blogId))) {
+			return Result.create(404, "该博客不存在");
+		}
 		CommentOpenStateEnum openState = commentUtils.judgeCommentState(page, blogId);
 		switch (openState) {
 			case NOT_FOUND:
 				return Result.create(404, "该博客不存在");
 			case CLOSE:
 				return Result.create(403, "评论已关闭");
-			case PASSWORD:
-				//文章受密码保护，需要验证Token
-				if (JwtUtils.judgeTokenIsExist(jwt)) {
-					try {
-						String subject = JwtUtils.getTokenBody(jwt).getSubject();
-						if (subject.startsWith(JwtConstants.ADMIN_PREFIX)) {
-							//博主身份Token
-							String username = subject.replace(JwtConstants.ADMIN_PREFIX, "");
-							User admin = (User) userService.loadUserByUsername(username);
-							if (admin == null) {
-								return Result.create(403, "博主身份Token已失效，请重新登录！");
-							}
-						} else {
-							//经密码验证后的Token
-							Long tokenBlogId = Long.parseLong(subject);
-							//博客id不匹配，验证不通过，可能博客id改变或客户端传递了其它密码保护文章的Token
-							if (!tokenBlogId.equals(blogId)) {
-								return Result.create(403, "Token不匹配，请重新验证密码！");
-							}
-						}
-					} catch (Exception e) {
-						e.printStackTrace();
-						return Result.create(403, "Token已失效，请重新验证密码！");
-					}
-				} else {
-					return Result.create(403, "此文章受密码保护，请验证密码！");
-				}
-				break;
 			default:
 				break;
 		}
@@ -152,48 +128,9 @@ public class CommentController {
 				return Result.create(404, "该博客不存在");
 			case CLOSE:
 				return Result.create(403, "评论已关闭");
-			case PASSWORD:
-				//文章受密码保护
-				//验证Token合法性
-				if (JwtUtils.judgeTokenIsExist(jwt)) {
-					String subject;
-					try {
-						subject = JwtUtils.getTokenBody(jwt).getSubject();
-					} catch (Exception e) {
-						e.printStackTrace();
-						return Result.create(403, "Token已失效，请重新验证密码！");
-					}
-					//博主评论，不受密码保护限制，根据博主信息设置评论属性
-					if (subject.startsWith(JwtConstants.ADMIN_PREFIX)) {
-						//Token验证通过，获取Token中用户名
-						String username = subject.replace(JwtConstants.ADMIN_PREFIX, "");
-						User admin = (User) userService.loadUserByUsername(username);
-						if (admin == null) {
-							return Result.create(403, "博主身份Token已失效，请重新登录！");
-						}
-						commentUtils.setAdminComment(comment, request, admin);
-						isVisitorComment = false;
-					} else {//普通访客经文章密码验证后携带Token
-						//对访客的评论昵称、邮箱合法性校验
-						if (StringUtils.isEmpty(comment.getNickname(), comment.getEmail()) || comment.getNickname().length() > 15) {
-							return Result.error("参数有误");
-						}
-						//对于受密码保护的文章，则Token是必须的
-						Long tokenBlogId = Long.parseLong(subject);
-						//博客id不匹配，验证不通过，可能博客id改变或客户端传递了其它密码保护文章的Token
-						if (!tokenBlogId.equals(comment.getBlogId())) {
-							return Result.create(403, "Token不匹配，请重新验证密码！");
-						}
-						commentUtils.setVisitorComment(comment, request);
-						isVisitorComment = true;
-					}
-				} else {//不存在Token则无评论权限
-					return Result.create(403, "此文章受密码保护，请验证密码！");
-				}
-				break;
 			case OPEN:
 				//评论正常开放
-				//有Token则为博主评论，或文章原先为密码保护，后取消保护，但客户端仍存在Token
+				//有 Token 则识别登录用户，否则按访客评论处理。
 				if (JwtUtils.judgeTokenIsExist(jwt)) {
 					String subject;
 					try {
@@ -212,7 +149,7 @@ public class CommentController {
 						}
 						commentUtils.setAdminComment(comment, request, admin);
 						isVisitorComment = false;
-					} else {//文章原先为密码保护，后取消保护，但客户端仍存在Token，则忽略Token
+					} else {
 						//对访客的评论昵称、邮箱合法性校验
 						if (StringUtils.isEmpty(comment.getNickname(), comment.getEmail()) || comment.getNickname().length() > 15) {
 							return Result.error("参数有误");

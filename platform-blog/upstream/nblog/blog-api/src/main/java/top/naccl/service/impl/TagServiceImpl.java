@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.naccl.constant.RedisKeyConstants;
+import top.naccl.constant.TaxonomyColorPalette;
 import top.naccl.entity.Tag;
 import top.naccl.exception.NotFoundException;
 import top.naccl.exception.PersistenceException;
@@ -50,6 +51,7 @@ public class TagServiceImpl implements TagService {
 	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void saveTag(Tag tag) {
+		tag.setColor(TaxonomyColorPalette.randomDark());
 		if (tagMapper.saveTag(tag) != 1) {
 			throw new PersistenceException("标签添加失败");
 		}
@@ -82,6 +84,7 @@ public class TagServiceImpl implements TagService {
 	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void updateTag(Tag tag) {
+		tag.setColor(TaxonomyColorPalette.normalize(tag.getColor()));
 		if (tagMapper.updateTag(tag) != 1) {
 			throw new PersistenceException("标签更新失败");
 		}

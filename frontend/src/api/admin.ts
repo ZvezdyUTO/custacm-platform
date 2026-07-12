@@ -2,10 +2,15 @@ import type {
   AdminUserCreateRequest,
   AdminUserMutationResponse,
   AdminUserPatchRequest,
+  AdminArticleListResponse,
+  AdminCategory,
+  AdminCategoryPage,
+  AdminTagPage,
   CollectionJob,
   CollectionJobStartRequest,
   HomepageBannerImage,
   OjHandlesUpdateRequest,
+  OjHandleReplaceRequest,
   OjName,
   WarehouseRefreshRequest,
   WarehouseRefreshResult,
@@ -70,6 +75,19 @@ export function updateOjHandles(
     token,
     `/admin/users/${encodeURIComponent(username)}/oj-handles`,
     'PUT',
+    request,
+  );
+}
+
+export function replaceOjHandle(
+  token: string,
+  username: string,
+  request: OjHandleReplaceRequest,
+): Promise<AdminUserMutationResponse> {
+  return jsonRequest(
+    token,
+    `/admin/users/${encodeURIComponent(username)}/oj-handles:replace`,
+    'POST',
     request,
   );
 }
@@ -142,6 +160,73 @@ export function reorderHomepageBanners(token: string, ids: number[]): Promise<Ho
 
 export function deleteHomepageBanner(token: string, id: number): Promise<HomepageBannerImage[]> {
   return requestData(`/admin/homepage-banners/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
+export function listAdminArticles(
+  token: string,
+  query: { title?: string; categoryId?: number | null; pageNum?: number; pageSize?: number } = {},
+): Promise<AdminArticleListResponse> {
+  const params = new URLSearchParams({
+    title: query.title || '',
+    pageNum: String(query.pageNum || 1),
+    pageSize: String(query.pageSize || 10),
+  });
+  if (query.categoryId) params.set('categoryId', String(query.categoryId));
+  return requestData(`/admin/blogs?${params.toString()}`, { headers: authHeaders(token) });
+}
+
+export function updateArticleFeatured(token: string, id: number, featured: boolean): Promise<void> {
+  const params = new URLSearchParams({ id: String(id), recommend: String(featured) });
+  return requestData(`/admin/blog/recommend?${params.toString()}`, {
+    method: 'PUT',
+    headers: authHeaders(token),
+  });
+}
+
+export function deleteArticle(token: string, id: number): Promise<void> {
+  const params = new URLSearchParams({ id: String(id) });
+  return requestData(`/admin/blog?${params.toString()}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
+export function listAdminCategories(
+  token: string,
+  pageNum = 1,
+  pageSize = 10,
+): Promise<AdminCategoryPage> {
+  const params = new URLSearchParams({ pageNum: String(pageNum), pageSize: String(pageSize) });
+  return requestData(`/admin/categories?${params.toString()}`, { headers: authHeaders(token) });
+}
+
+export function createCategory(token: string, name: string, color = '#8B1E3F'): Promise<void> {
+  return jsonRequest(token, '/admin/category', 'POST', { name, color });
+}
+
+export function listAdminTags(token: string, pageNum = 1, pageSize = 10): Promise<AdminTagPage> {
+  const params = new URLSearchParams({ pageNum: String(pageNum), pageSize: String(pageSize) });
+  return requestData(`/admin/tags?${params.toString()}`, { headers: authHeaders(token) });
+}
+
+export function createTag(token: string, name: string): Promise<void> {
+  return jsonRequest(token, '/admin/tag', 'POST', { name });
+}
+
+export function deleteTag(token: string, id: number): Promise<void> {
+  return requestData(`/admin/tag?id=${encodeURIComponent(id)}`, { method: 'DELETE', headers: authHeaders(token) });
+}
+
+export function updateCategory(token: string, category: AdminCategory): Promise<void> {
+  return jsonRequest(token, '/admin/category', 'PUT', category);
+}
+
+export function deleteCategory(token: string, id: number): Promise<void> {
+  const params = new URLSearchParams({ id: String(id) });
+  return requestData(`/admin/category?${params.toString()}`, {
     method: 'DELETE',
     headers: authHeaders(token),
   });

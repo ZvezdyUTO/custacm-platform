@@ -1,18 +1,27 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   batchCreateUsers,
+  createCategory,
+  createTag,
   createUser,
   deleteUser,
   deleteHomepageBanner,
+  deleteCategory,
+  deleteTag,
+  deleteArticle,
   getCollectionJob,
   listAdminUsers,
   listCollectionJobs,
   listHomepageBanners,
+  listAdminCategories,
+  listAdminTags,
   patchUser,
   refreshWarehouse,
+  replaceOjHandle,
   reorderHomepageBanners,
   startCollectionJob,
   updateOjHandles,
+  updateCategory,
   uploadHomepageBanner,
 } from '../api/admin';
 import { changeCurrentPassword, getCurrentUser, login } from '../api/auth';
@@ -307,6 +316,7 @@ describe('focused Blog admin API', () => {
       handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
       needCollect: true,
     });
+    await replaceOjHandle('token', 'player/a', { ojName: OJ_NAMES.CODEFORCES, newHandle: 'Benq' });
     await deleteUser('token', 'player/a');
 
     expect(requestAt(fetchMock, 0).url.pathname).toBe('/api/admin/users');
@@ -322,9 +332,12 @@ describe('focused Blog admin API', () => {
     expect(JSON.parse(String(requestAt(fetchMock, 2).init.body))).toEqual({ nickname: 'A' });
     expect(requestAt(fetchMock, 3).url.pathname).toBe('/api/admin/users/player%2Fa/oj-handles');
     expect(requestAt(fetchMock, 3).init.method).toBe('PUT');
-    expect(requestAt(fetchMock, 4).url.pathname).toBe('/api/admin/users/player%2Fa');
-    expect(requestAt(fetchMock, 4).init.method).toBe('DELETE');
-    expectBearer(requestAt(fetchMock, 4).init);
+    expect(requestAt(fetchMock, 4).url.pathname).toBe('/api/admin/users/player%2Fa/oj-handles:replace');
+    expect(requestAt(fetchMock, 4).init.method).toBe('POST');
+    expect(JSON.parse(String(requestAt(fetchMock, 4).init.body))).toEqual({ ojName: 'CODEFORCES', newHandle: 'Benq' });
+    expect(requestAt(fetchMock, 5).url.pathname).toBe('/api/admin/users/player%2Fa');
+    expect(requestAt(fetchMock, 5).init.method).toBe('DELETE');
+    expectBearer(requestAt(fetchMock, 5).init);
   });
 
   it('passes the refresh abort signal to the admin user list request', async () => {
@@ -334,6 +347,53 @@ describe('focused Blog admin API', () => {
     await listAdminUsers('token', controller.signal);
 
     expect(requestAt(fetchMock).init.signal).toBe(controller.signal);
+  });
+
+  it('maps category list, create, update and delete to Blog admin routes', async () => {
+    const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: {} });
+
+    await listAdminCategories('token', 2, 20);
+    await createCategory('token', '算法');
+    await updateCategory('token', { id: 7, name: '赛事题解' });
+    await deleteCategory('token', 7);
+
+    expect(requestAt(fetchMock, 0).url.pathname).toBe('/api/admin/categories');
+    expect(requestAt(fetchMock, 0).url.searchParams.get('pageNum')).toBe('2');
+    expect(requestAt(fetchMock, 0).url.searchParams.get('pageSize')).toBe('20');
+    expect(requestAt(fetchMock, 1).init.method).toBe('POST');
+    expect(JSON.parse(String(requestAt(fetchMock, 1).init.body))).toEqual({ name: '算法', color: '#8B1E3F' });
+    expect(requestAt(fetchMock, 2).init.method).toBe('PUT');
+    expect(JSON.parse(String(requestAt(fetchMock, 2).init.body))).toEqual({ id: 7, name: '赛事题解' });
+    expect(requestAt(fetchMock, 3).url.searchParams.get('id')).toBe('7');
+    expect(requestAt(fetchMock, 3).init.method).toBe('DELETE');
+    expectBearer(requestAt(fetchMock, 3).init);
+  });
+
+  it('deletes an article through the Blog admin route', async () => {
+    const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: null });
+
+    await deleteArticle('token', 42);
+
+    const { init, url } = requestAt(fetchMock);
+    expect(url.pathname).toBe('/api/admin/blog');
+    expect(url.searchParams.get('id')).toBe('42');
+    expect(init.method).toBe('DELETE');
+    expectBearer(init);
+  });
+
+  it('lists, creates without a color choice and deletes tags', async () => {
+    const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: {} });
+
+    await listAdminTags('token', 2, 20);
+    await createTag('token', '图论');
+    await deleteTag('token', 9);
+
+    expect(requestAt(fetchMock, 0).url.pathname).toBe('/api/admin/tags');
+    expect(requestAt(fetchMock, 0).url.searchParams.get('pageNum')).toBe('2');
+    expect(JSON.parse(String(requestAt(fetchMock, 1).init.body))).toEqual({ name: '图论' });
+    expect(requestAt(fetchMock, 2).url.pathname).toBe('/api/admin/tag');
+    expect(requestAt(fetchMock, 2).url.searchParams.get('id')).toBe('9');
+    expect(requestAt(fetchMock, 2).init.method).toBe('DELETE');
   });
 
   it('maps collection jobs and warehouse refresh to Blog admin routes', async () => {

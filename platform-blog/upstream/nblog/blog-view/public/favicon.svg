@@ -1,0 +1,13 @@
+<!-- Author: huangbingrui.awa -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="简约几何气球">
+  <defs>
+    <linearGradient id="balloon" x1="18" y1="9" x2="47" y2="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF8A72"/>
+      <stop offset="1" stop-color="#E34F5F"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#balloon)" d="M32 4C18.7 4 10 13.6 10 26c0 11.3 8.2 20.8 19.4 22.6L32 52l2.6-3.4C45.8 46.8 54 37.3 54 26 54 13.6 45.3 4 32 4Z"/>
+  <path fill="#17263C" d="m32 48 5 7H27l5-7Z"/>
+  <path d="M32 55c0 3.5 5 3.1 5 6.5" fill="none" stroke="#17263C" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M21 17c2.1-3.3 5.1-5.3 8.4-5.8" fill="none" stroke="#FFD7CB" stroke-width="4" stroke-linecap="round"/>
+</svg>

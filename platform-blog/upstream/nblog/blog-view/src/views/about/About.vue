@@ -3,7 +3,7 @@
 		<template v-if="authUser">
 			<header class="profile-heading">
 				<div>
-					<p class="profile-eyebrow">PERSONAL PROFILE</p>
+						<p class="profile-eyebrow">MY HOMEPAGE</p>
 					<h1>{{ profileName }}</h1>
 					<p class="profile-handle">@{{ authUser.username }}</p>
 				</div>
@@ -33,7 +33,7 @@
 				<p :class="{'is-empty': !currentProfile.signature}">{{ currentProfile.signature || '还没有个性签名' }}</p>
 			</section>
 
-			<form v-if="editing" class="profile-editor" @submit.prevent="saveProfile">
+				<form v-if="editing" class="profile-editor" @submit.prevent="saveProfile">
 				<header class="editor-heading">
 					<div>
 						<p class="profile-eyebrow">EDIT PROFILE</p>
@@ -75,31 +75,47 @@
 					<button v-else type="button" class="empty-links" @click="addLink"><i class="linkify icon"></i>添加第一条友情链接</button>
 				</div>
 
+				<section class="password-editor" aria-labelledby="password-editor-title">
+					<div class="links-heading">
+						<div><strong id="password-editor-title">修改密码</strong><span>新密码至少 6 个字符</span></div>
+					</div>
+					<div class="password-fields">
+						<label><span>旧密码</span><input v-model="passwordDraft.oldPassword" type="password" autocomplete="current-password"></label>
+						<label><span>新密码</span><input v-model="passwordDraft.newPassword" type="password" minlength="6" autocomplete="new-password"></label>
+						<label><span>确认新密码</span><input v-model="passwordDraft.confirmPassword" type="password" minlength="6" autocomplete="new-password"></label>
+					</div>
+					<p v-if="passwordError" class="save-error" role="alert">{{ passwordError }}</p>
+					<div class="password-actions"><button type="button" class="primary" :disabled="passwordSaving" @click="savePassword">{{ passwordSaving ? '修改中…' : '修改密码' }}</button></div>
+				</section>
+
 				<p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
 				<footer class="editor-actions">
 					<button type="button" :disabled="saving" @click="cancelEditing">取消</button>
 					<button type="submit" class="primary" :disabled="saving">{{ saving ? '保存中…' : '保存修改' }}</button>
 				</footer>
-			</form>
-		</template>
-		<div v-else class="profile-empty">
-			<p class="profile-eyebrow">PERSONAL PROFILE</p>
-			<h1>登录后查看个人资料</h1>
-			<p>你的头像、昵称和用户名会显示在这里。</p>
+				</form>
+				<MyArticles/>
+			</template>
+			<div v-else class="profile-empty">
+				<p class="profile-eyebrow">MY HOMEPAGE</p>
+				<h1>登录后查看我的主页</h1>
+				<p>你的个人资料、OJ 账号和已发布内容会集中在这里。</p>
 			<router-link to="/training/login?returnTo=/about" class="ui button">登录训练中心</router-link>
 		</div>
 	</section>
 </template>
 
 <script>
-	// Author: huangbingrui.awa
-	import {getCurrentOjHandles, getCurrentProfile, replaceCurrentProfileLinks, updateCurrentProfile} from '@/api/profile'
-	import {readToken, readUser, SESSION_CHANGE_EVENT, writeUser} from '@/auth/session'
+		// Author: huangbingrui.awa
+		import {changeCurrentPassword, getCurrentOjHandles, getCurrentProfile, replaceCurrentProfileLinks, updateCurrentProfile} from '@/api/profile'
+		import {readToken, readUser, SESSION_CHANGE_EVENT, writeUser} from '@/auth/session'
+		import MyArticles from '@/components/profile/MyArticles.vue'
 
 	let nextLinkKey = 1
 
-	export default {
-		name: 'About',
+		export default {
+			name: 'About',
+			components: {MyArticles},
 		data() {
 			const authUser = readUser()
 			return {
@@ -111,6 +127,9 @@
 				saving: false,
 				saveError: '',
 				draft: {nickname: '', signature: '', links: []},
+				passwordDraft: {oldPassword: '', newPassword: '', confirmPassword: ''},
+				passwordSaving: false,
+				passwordError: '',
 			}
 		},
 		computed: {
@@ -152,7 +171,7 @@
 				this.editing = true
 				this.$nextTick(() => this.$refs.nicknameInput?.focus())
 			},
-			cancelEditing() { this.editing = false; this.saveError = '' },
+			cancelEditing() { this.editing = false; this.saveError = ''; this.resetPasswordDraft() },
 			addLink() { if (this.draft.links.length < 8) this.draft.links.push({key: nextLinkKey++, label: '', url: ''}) },
 			removeLink(index) { this.draft.links.splice(index, 1) },
 			moveLink(index, offset) {
@@ -174,6 +193,25 @@
 					this.msgSuccess('个人资料已保存')
 				} catch (error) { this.saveError = this.errorMessage(error, '保存失败，请检查填写内容。') }
 				finally { this.saving = false }
+			},
+			resetPasswordDraft() {
+				this.passwordDraft = {oldPassword: '', newPassword: '', confirmPassword: ''}
+				this.passwordError = ''
+			},
+			async savePassword() {
+				this.passwordError = ''
+				if (!this.passwordDraft.oldPassword || !this.passwordDraft.newPassword) return this.passwordError = '请填写旧密码和新密码。'
+				if (this.passwordDraft.newPassword.length < 6) return this.passwordError = '新密码至少需要 6 个字符。'
+				if (this.passwordDraft.newPassword !== this.passwordDraft.confirmPassword) return this.passwordError = '两次输入的新密码必须一致。'
+				const token = readToken()
+				if (!token) return this.passwordError = '登录状态已失效，请重新登录。'
+				this.passwordSaving = true
+				try {
+					await changeCurrentPassword(token, this.passwordDraft.oldPassword, this.passwordDraft.newPassword)
+					this.resetPasswordDraft()
+					this.msgSuccess('密码修改成功')
+				} catch (error) { this.passwordError = this.errorMessage(error, '密码修改失败。') }
+				finally { this.passwordSaving = false }
 			},
 			errorMessage(error, fallback) { return error?.response?.data?.msg || error?.message || fallback },
 			ojHandleText(ojName) { return this.ojHandlesLoading ? '读取中…' : (this.ojHandles[ojName] || '未绑定') },
@@ -230,6 +268,15 @@
 	.editor-fields label small { position: absolute; right: 10px; bottom: 9px; color: #9aa3ac; font-size: 11px; }
 
 	.links-editor { margin-top: 24px; border-top: 1px solid #dfe4e9; padding-top: 22px; }
+	.password-editor { margin-top: 24px; border-top: 1px solid #dfe4e9; padding-top: 22px; }
+	.password-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+	.password-fields label { display: grid; gap: 8px; }
+	.password-fields label > span { color: #36424d; font-size: 13px; font-weight: 700; }
+	.password-fields input { width: 100%; border: 1px solid #d6dce2; border-radius: 3px; background: #fff; color: #27313a; padding: 11px 12px; font: inherit; font-size: 14px; outline: none; }
+	.password-fields input:focus { border-color: #17324d; box-shadow: 0 0 0 2px rgba(23, 50, 77, .1); }
+	.password-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+	.password-actions button { border: 1px solid #17324d; border-radius: 3px; background: #17324d; color: #fff; padding: 9px 13px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+	.password-actions button:disabled { cursor: wait; opacity: .6; }
 	.links-heading > div { display: grid; gap: 4px; }
 	.links-heading span { color: #89939d; font-size: 12px; }
 	.links-heading button:disabled { cursor: not-allowed; opacity: .5; }
@@ -251,5 +298,6 @@
 		.profile-page { padding: 34px 36px !important; }
 		.link-row { grid-template-columns: 28px minmax(100px, .6fr) minmax(180px, 1.4fr); }
 		.link-actions { grid-column: 2 / -1; justify-content: flex-end; }
+		.password-fields { grid-template-columns: 1fr; }
 	}
 </style>

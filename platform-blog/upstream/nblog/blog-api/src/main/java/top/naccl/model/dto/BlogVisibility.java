@@ -20,5 +20,5 @@ public class BlogVisibility {
 	private Boolean commentEnabled;//评论开关
 	private Boolean top;//是否置顶
 	private Boolean published;//公开或私密
-	private String password;//密码保护
+	private Boolean internal;//仅登录用户可见
 }

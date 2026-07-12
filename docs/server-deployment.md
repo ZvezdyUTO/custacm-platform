@@ -29,7 +29,7 @@ Gateway health: http://localhost:3000/api/health
 
 - 后端镜像打包 `platform-blog/upstream/nblog/blog-api` 及其 reactor 依赖。
 - 前端镜像在 Node 20.19 stage 内分别构建 Vue 3 Training/pnpm 与 Vue 3 Blog/npm 产物，再由 Nginx 1.27 Alpine 提供静态文件。
-- 应用日志 bind mount 到 `logs/combined.log`、`logs/error.log`，上传目录 bind mount 到 `uploads/`。
+- 应用日志 bind mount 到 `logs/combined.log`、`logs/error.log`。上传目录对 Blog API 为读写挂载、对前端 Nginx 为只读挂载；托管图片由 Nginx 从 `/api/image/**` 直接返回。
 - MySQL 与 Redis 使用 `BLOG_DB_VOLUME_NAME`、`BLOG_REDIS_VOLUME_NAME` 命名卷，容器重建后继续保留。
 
 ## 验证
@@ -50,25 +50,15 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 
 还要使用真实浏览器验证 `/` 与 `/training/**` 的刷新、登录、`ROLE_player`/`ROLE_admin` 权限，以及“创建用户”“管理用户”“数据采集”三个管理员页面；数据采集页面不得出现可选数仓刷新开关。
 
-## 更新
+## 服务器部署与更新入口
 
-完整重建：
+无论首次部署、日常更新、后端变化或前端变化，都从仓库根目录运行：
 
 ```bash
 ./scripts/deploy.sh
 ```
 
-只重建 Blog API：
-
-```bash
-./scripts/update-module.sh blog-api
-```
-
-只重建统一前端：
-
-```bash
-docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build frontend
-```
+脚本不会拉取或切换 Git 分支。操作者先显式更新源码，再用普通模式入口一起校验、构建、启动和检查四个服务。`./scripts/dev.sh` 仅用于本机前端 HMR 开发，不用于服务器部署；仓库不维护按模块部署或第三个启动入口。
 
 更完整流程见 [../deploy/UPDATE.md](../deploy/UPDATE.md)。
 

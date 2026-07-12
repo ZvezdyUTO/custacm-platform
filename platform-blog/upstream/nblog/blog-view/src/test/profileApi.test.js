@@ -6,7 +6,9 @@ const {request} = vi.hoisted(() => ({request: vi.fn()}))
 vi.mock('@/plugins/axios', () => ({default: request}))
 
 import {
+	changeCurrentPassword,
 	getCurrentProfile,
+	getPublicProfile,
 	replaceCurrentProfileLinks,
 	updateCurrentProfile,
 } from '@/api/profile'
@@ -23,6 +25,16 @@ describe('profile API', () => {
 			method: 'GET',
 			headers: {Authorization: 'Bearer token-value'},
 		}))
+	})
+
+	it('loads an article author profile anonymously with an encoded username', async () => {
+		request.mockResolvedValue({code: 200, data: {username: 'alice smith', links: []}})
+
+		await expect(getPublicProfile('alice smith')).resolves.toMatchObject({username: 'alice smith'})
+		expect(request).toHaveBeenCalledWith({
+			url: 'profiles/alice%20smith',
+			method: 'GET',
+		})
 	})
 
 	it('updates nickname and signature through the profile endpoint', async () => {
@@ -48,5 +60,18 @@ describe('profile API', () => {
 			method: 'PUT',
 			data: {links},
 		}))
+	})
+
+	it('changes the current password with an explicit bearer token', async () => {
+		request.mockResolvedValue({code: 200})
+
+		await changeCurrentPassword('token-value', 'old-password', 'new-password')
+
+		expect(request).toHaveBeenCalledWith({
+			url: 'player/me/password',
+			method: 'PATCH',
+			data: {oldPassword: 'old-password', newPassword: 'new-password'},
+			headers: {Authorization: 'Bearer token-value'},
+		})
 	})
 })

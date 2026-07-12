@@ -1,5 +1,6 @@
 import {createRouter, createWebHistory} from 'vue-router'
 import getPageTitle from '@/util/get-page-title'
+import {readToken} from '@/auth/session'
 
 const routes = [
 	{
@@ -25,18 +26,18 @@ const routes = [
 				component: () => import('@/views/home/Home.vue'),
 				meta: {title: '首页'}
 			},
-			{
-				path: '/archives',
-				name: 'archives',
-				component: () => import('@/views/archives/Archives.vue'),
-				meta: {title: '归档'}
-			},
-			{
-				path: '/blog/:id',
+				{
+					path: '/blog/:id',
 				name: 'blog',
 				component: () => import('@/views/blog/Blog.vue'),
 				meta: {title: '博客'}
-			},
+				},
+				{
+					path: '/write/:id(\\d+)?',
+					name: 'write',
+					component: () => import('@/views/article/ArticleEditor.vue'),
+					meta: {title: '发布文章', requiresAuth: true}
+				},
 			{
 				path: '/tag/:name',
 				name: 'tag',
@@ -61,11 +62,11 @@ const routes = [
 				component: () => import('@/views/friends/Friends.vue'),
 				meta: {title: '友人帐'}
 			},
-			{
-				path: '/about',
-				name: 'about',
-				component: () => import('@/views/about/About.vue'),
-				meta: {title: '个人资料'}
+				{
+					path: '/about',
+					name: 'about',
+					component: () => import('@/views/about/About.vue'),
+					meta: {title: '我的主页'}
 			}
 		]
 	}
@@ -79,6 +80,9 @@ const router = createRouter({
 //挂载路由守卫
 router.beforeEach(to => {
 	document.title = getPageTitle(to.meta.title)
+	if (to.meta.requiresAuth && !readToken()) {
+		return {path: '/training/login', query: {returnTo: to.fullPath}}
+	}
 })
 
 export default router

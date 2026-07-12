@@ -6,6 +6,7 @@ import com.custacm.platform.trainingdata.common.app.purge.OjStudentDataPurgeServ
 import com.custacm.platform.trainingdata.common.app.query.OjAcceptedSummaryQueryService;
 import com.custacm.platform.trainingdata.common.app.query.OjFirstAcceptedProblemQueryService;
 import com.custacm.platform.trainingdata.common.app.query.OjSubmissionQueryService;
+import com.custacm.platform.trainingdata.common.app.query.OjWarehouseQueryFacade;
 import com.custacm.platform.trainingdata.common.collector.config.OjCollectorSchedulingProperties;
 import com.custacm.platform.trainingdata.common.collector.dispatch.OjRecentSubmissionCollector;
 import com.custacm.platform.trainingdata.common.collector.dispatch.OjSubmissionCollectionDispatcher;
@@ -119,6 +120,19 @@ public class CommonTrainingDataConfig {
             TrainingUserDirectory handleAccountService
     ) {
         return new OjFirstAcceptedProblemQueryService(repository, handleAccountService);
+    }
+
+    @Bean
+    OjWarehouseQueryFacade ojWarehouseQueryFacade(
+            OjAcceptedSummaryQueryService acceptedSummaryQueryService,
+            OjSubmissionQueryService submissionQueryService,
+            OjFirstAcceptedProblemQueryService firstAcceptedProblemQueryService
+    ) {
+        return new OjWarehouseQueryFacade(
+                acceptedSummaryQueryService,
+                submissionQueryService,
+                firstAcceptedProblemQueryService
+        );
     }
 
     @Bean

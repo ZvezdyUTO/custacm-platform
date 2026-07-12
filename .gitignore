@@ -9,6 +9,7 @@ target/
 
 *.log
 logs/
+uploads/
 
 deploy/.env
 deploy/secrets/*.pem

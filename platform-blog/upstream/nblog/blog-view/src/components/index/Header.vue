@@ -55,7 +55,7 @@
 			})
 			return {
 				loaded: false,
-				images: [defaultSettings.bg1, defaultSettings.bg2],
+				images: [defaultSettings.homepageBanner],
 				pointerRatio: 0,
 				defaultSettings,
 				welcomeText,
@@ -89,7 +89,7 @@
 						this.images = urls
 					}
 				} catch {
-					// 后端不可用时继续使用两张静态图片，保证首页仍可展示。
+					// 后端不可用时继续使用构建内置的默认图片，保证首页仍可展示。
 				}
 			},
 			layerStyle(image, index) {

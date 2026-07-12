@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.naccl.constant.RedisKeyConstants;
+import top.naccl.constant.TaxonomyColorPalette;
 import top.naccl.entity.Category;
 import top.naccl.exception.NotFoundException;
 import top.naccl.exception.PersistenceException;
@@ -48,6 +49,7 @@ public class CategoryServiceImpl implements CategoryService {
 	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void saveCategory(Category category) {
+		category.setColor(TaxonomyColorPalette.normalize(category.getColor()));
 		if (categoryMapper.saveCategory(category) != 1) {
 			throw new PersistenceException("分类添加失败");
 		}
@@ -80,6 +82,7 @@ public class CategoryServiceImpl implements CategoryService {
 	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void updateCategory(Category category) {
+		category.setColor(TaxonomyColorPalette.normalize(category.getColor()));
 		if (categoryMapper.updateCategory(category) != 1) {
 			throw new PersistenceException("分类更新失败");
 		}

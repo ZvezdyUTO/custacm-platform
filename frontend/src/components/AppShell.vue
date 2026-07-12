@@ -14,7 +14,6 @@
               <span v-if="categories.length === 0" class="top-nav-empty">暂无分类</span>
             </div>
           </div>
-          <a href="/archives"><Copy :size="17" aria-hidden="true" />归档</a>
           <a href="/moments"><MessageCircle :size="17" aria-hidden="true" />动态</a>
           <a href="/friends"><Users :size="17" aria-hidden="true" />友人帐</a>
           <a href="/about"><Info :size="17" aria-hidden="true" />关于我</a>
@@ -69,7 +68,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { BarChart3, ChevronDown, Copy, Home, Info, KeyRound, Lightbulb, LogOut, MessageCircle, Save, Search, UserRound, Users } from '@lucide/vue';
+import { BarChart3, ChevronDown, Home, Info, KeyRound, Lightbulb, LogOut, MessageCircle, Save, Search, UserRound, Users } from '@lucide/vue';
 import { requestData } from '../api/client';
 import type { CurrentUser } from '../types';
 

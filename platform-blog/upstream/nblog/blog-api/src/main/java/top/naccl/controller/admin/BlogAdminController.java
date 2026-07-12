@@ -3,6 +3,7 @@ package top.naccl.controller.admin;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,14 +17,15 @@ import top.naccl.annotation.OperationLogger;
 import top.naccl.entity.Blog;
 import top.naccl.entity.Category;
 import top.naccl.entity.Tag;
-import top.naccl.entity.User;
 import top.naccl.model.dto.BlogVisibility;
 import top.naccl.model.vo.Result;
 import top.naccl.service.BlogService;
 import top.naccl.service.CategoryService;
 import top.naccl.service.CommentService;
 import top.naccl.service.TagService;
+import top.naccl.service.UserService;
 import top.naccl.util.StringUtils;
+import top.naccl.util.BlogContentLimits;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -47,6 +49,8 @@ public class BlogAdminController {
 	TagService tagService;
 	@Autowired
 	CommentService commentService;
+	@Autowired
+	UserService userService;
 
 	/**
 	 * 获取博客文章列表
@@ -164,7 +168,8 @@ public class BlogAdminController {
 	 */
 	@OperationLogger("发布博客")
 	@PostMapping("/blog")
-	public Result saveBlog(@RequestBody top.naccl.model.dto.Blog blog) {
+	public Result saveBlog(Authentication authentication, @RequestBody top.naccl.model.dto.Blog blog) {
+		blog.setUser(userService.findUserByUsername(authentication.getName()));
 		return getResult(blog, "save");
 	}
 
@@ -188,6 +193,10 @@ public class BlogAdminController {
 	 * @return
 	 */
 	private Result getResult(top.naccl.model.dto.Blog blog, String type) {
+		String lengthError = BlogContentLimits.validate(blog);
+		if (lengthError != null) {
+			return Result.error(lengthError);
+		}
 		//验证普通字段
 		if (StringUtils.isEmpty(blog.getTitle(), blog.getFirstPicture(), blog.getContent(), blog.getDescription())
 				|| blog.getWords() == null || blog.getWords() < 0) {
@@ -245,13 +254,11 @@ public class BlogAdminController {
 		if (blog.getViews() == null || blog.getViews() < 0) {
 			blog.setViews(0);
 		}
+		blog.setPublished(Boolean.TRUE.equals(blog.getPublished()));
+		blog.setInternal(blog.getPublished() && Boolean.TRUE.equals(blog.getInternal()));
 		if ("save".equals(type)) {
 			blog.setCreateTime(date);
 			blog.setUpdateTime(date);
-			User user = new User();
-			user.setId(1L);//个人博客默认只有一个作者
-			blog.setUser(user);
-
 			blogService.saveBlog(blog);
 			//关联博客和标签(维护 blog_tag 表)
 			for (Tag t : tags) {

@@ -6,6 +6,7 @@ import {
   getCollectionJob,
   deleteHomepageBanner as deleteHomepageBannerApi,
   listAdminUsers,
+  listAdminArticles,
   listCollectionJobs,
   listHomepageBanners as listHomepageBannersApi,
   patchUser as patchUserApi,
@@ -14,6 +15,14 @@ import {
   startCollectionJob,
   uploadHomepageBanner as uploadHomepageBannerApi,
   updateOjHandles as updateOjHandlesApi,
+  replaceOjHandle as replaceOjHandleApi,
+  updateArticleFeatured as updateArticleFeaturedApi,
+  deleteArticle as deleteArticleApi,
+  listAdminCategories as listAdminCategoriesApi,
+  createCategory as createCategoryApi,
+  updateCategory as updateCategoryApi,
+  deleteCategory as deleteCategoryApi,
+  listAdminTags as listAdminTagsApi, createTag as createTagApi, deleteTag as deleteTagApi,
 } from '../api/admin';
 import { ApiError } from '../api/client';
 import {
@@ -27,6 +36,9 @@ import {
 import { OJ_NAMES } from '../types';
 import type {
   AcceptedSummary,
+  AdminArticleListResponse,
+  AdminCategoryPage,
+  AdminTagPage,
   AdminUserCreateRequest,
   AdminUserMutationResponse,
   AdminUserPatchRequest,
@@ -129,6 +141,9 @@ export function usePlatformDashboard(options: {
   const collectionJob = ref<CollectionJob | null>(null);
   const collectionJobs = ref<CollectionJob[]>([]);
   const homepageBanners = ref<HomepageBannerImage[]>([]);
+  const adminArticles = ref<AdminArticleListResponse | null>(null);
+  const adminCategories = ref<AdminCategoryPage | null>(null);
+  const adminTags = ref<AdminTagPage | null>(null);
   let requestSequence = 0;
   let pollTimer: number | null = null;
 
@@ -230,8 +245,11 @@ export function usePlatformDashboard(options: {
       const users = await listTrainingUsers(token);
       if (sequence !== requestSequence) return;
       trainingUsers.value = users;
-      if (!selectedUsername.value || !users.some((item) => item.username === selectedUsername.value)) {
-        selectedUsername.value = users[0]?.username ?? null;
+      if (selectedUsername.value && !users.some((item) => item.username === selectedUsername.value)) {
+        selectedUsername.value = null;
+        acceptedSummary.value = null;
+        submissions.value = null;
+        firstAccepted.value = null;
       }
       if (options.user.value?.role === 'ROLE_admin') {
         const [allUsers, jobs] = await Promise.all([
@@ -331,6 +349,12 @@ export function usePlatformDashboard(options: {
       ? withoutGeneratedPassword(result) : item);
     return result;
   }
+  async function replaceOjHandle(username: Username, ojName: OjName, newHandle: string) {
+    const result = await replaceOjHandleApi(activeToken(), username, { ojName, newHandle });
+    adminUsers.value = adminUsers.value.map((item) => item.user.username === username
+      ? withoutGeneratedPassword(result) : item);
+    return result;
+  }
   async function deleteUser(username: Username) {
     await deleteUserApi(activeToken(), username);
     adminUsers.value = adminUsers.value.filter((item) => item.user.username !== username);
@@ -382,6 +406,58 @@ export function usePlatformDashboard(options: {
     homepageBanners.value = await deleteHomepageBannerApi(activeToken(), id);
   }
 
+  async function loadAdminArticles(query: { title?: string; categoryId?: number | null; pageNum?: number; pageSize?: number } = {}) {
+    adminArticles.value = await listAdminArticles(activeToken(), query);
+    return adminArticles.value;
+  }
+
+  async function updateArticleFeatured(id: number, featured: boolean) {
+    await updateArticleFeaturedApi(activeToken(), id, featured);
+    if (adminArticles.value) {
+      adminArticles.value = {
+        ...adminArticles.value,
+        blogs: {
+          ...adminArticles.value.blogs,
+          list: adminArticles.value.blogs.list.map((article) => article.id === id
+            ? { ...article, recommend: featured }
+            : article),
+        },
+      };
+    }
+  }
+
+  async function deleteArticle(id: number) {
+    await deleteArticleApi(activeToken(), id);
+  }
+
+  async function loadAdminCategories(pageNum = 1, pageSize = 10) {
+    adminCategories.value = await listAdminCategoriesApi(activeToken(), pageNum, pageSize);
+    return adminCategories.value;
+  }
+
+  async function createCategory(name: string, color: string) {
+    await createCategoryApi(activeToken(), name, color);
+    await loadAdminCategories(1, adminCategories.value?.pageSize || 10);
+  }
+
+  async function updateCategory(id: number, name: string, color: string) {
+    await updateCategoryApi(activeToken(), { id, name, color });
+    await loadAdminCategories(adminCategories.value?.pageNum || 1, adminCategories.value?.pageSize || 10);
+  }
+
+  async function loadAdminTags(pageNum = 1, pageSize = 10) { adminTags.value = await listAdminTagsApi(activeToken(), pageNum, pageSize); }
+  async function createTag(name: string) { await createTagApi(activeToken(), name); await loadAdminTags(); }
+  async function deleteTag(id: number) { await deleteTagApi(activeToken(), id); await loadAdminTags(adminTags.value?.pageNum || 1); }
+
+  async function deleteCategory(id: number) {
+    await deleteCategoryApi(activeToken(), id);
+    const currentPage = adminCategories.value?.pageNum || 1;
+    const nextPage = adminCategories.value?.list.length === 1 && currentPage > 1
+      ? currentPage - 1
+      : currentPage;
+    await loadAdminCategories(nextPage, adminCategories.value?.pageSize || 10);
+  }
+
   watch(() => options.token.value, (token) => {
     if (!token) {
       requestSequence += 1;
@@ -407,12 +483,15 @@ export function usePlatformDashboard(options: {
     problemFirstAccepted, submissionPage, submissionLimit, firstAcceptedPage,
     firstAcceptedLimit, problemSubmissionPage, problemSubmissionLimit,
     problemFirstAcceptedPage, problemFirstAcceptedLimit, collectionJob, collectionJobs,
-    homepageBanners,
+    homepageBanners, adminArticles, adminCategories, adminTags,
     refreshDashboard, applyTrainingQuery, chooseUsername, chooseOjName,
     retryMultiUserSummary, changeSubmissionPage, changeFirstAcceptedPage,
     changeProblemSubmissionPage, changeProblemFirstAcceptedPage,
-    batchCreateUsers, patchUser, updateOjHandles, deleteUser,
+    batchCreateUsers, patchUser, updateOjHandles, replaceOjHandle, deleteUser,
     batchCollectSubmissions, refreshTrainingWarehouse,
     loadHomepageBanners, uploadHomepageBanner, reorderHomepageBanners, deleteHomepageBanner,
+    loadAdminArticles, updateArticleFeatured, deleteArticle,
+    loadAdminCategories, createCategory, updateCategory, deleteCategory,
+    loadAdminTags, createTag, deleteTag,
   };
 }

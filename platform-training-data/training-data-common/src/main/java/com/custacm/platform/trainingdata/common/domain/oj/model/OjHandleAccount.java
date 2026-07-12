@@ -37,9 +37,7 @@ public record OjHandleAccount(
     }
 
     public static Map<String, String> normalizeHandles(Map<String, String> handles) {
-        if (handles == null || handles.isEmpty()) {
-            throw new IllegalArgumentException("handles must not be empty");
-        }
+        if (handles == null) return Map.of();
         Map<String, String> normalized = new LinkedHashMap<>();
         handles.forEach((ojName, handle) -> {
             String normalizedOjName = OjNames.normalize(ojName);

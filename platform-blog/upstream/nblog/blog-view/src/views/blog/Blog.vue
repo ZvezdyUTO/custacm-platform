@@ -6,46 +6,27 @@
 			</div>
 			<div class="ui middle aligned mobile reversed stackable">
 				<div class="ui grid m-margin-lr">
-					<!--标题-->
 					<div class="row m-padded-tb-small">
 						<h2 class="ui header m-center">{{ blog.title }}</h2>
 					</div>
-					<!--文章简要信息-->
 					<div class="row m-padded-tb-small">
 						<div class="ui horizontal link list m-center">
-							<div class="item m-common-black" v-if="blog.authorNickname">
-								<i class="small user icon"></i><span>{{ blog.authorNickname }}</span>
-							</div>
-							<div class="item m-datetime">
-								<i class="small calendar icon"></i><span>{{ $filters.dateFormat(blog.createTime, 'YYYY-MM-DD') }}</span>
-							</div>
-							<div class="item m-views">
-								<i class="small eye icon"></i><span>{{ blog.views }}</span>
-							</div>
-							<div class="item m-common-black">
-								<i class="small pencil alternate icon"></i><span>字数≈{{ blog.words }}字</span>
-							</div>
-							<div class="item m-common-black">
-								<i class="small clock icon"></i><span>阅读时长≈{{ blog.readTime }}分</span>
-							</div>
-							<a class="item m-common-black" @click.prevent="bigFontSize=!bigFontSize">
-								<div data-inverted="" data-tooltip="点击切换字体大小" data-position="top center">
-									<i class="font icon"></i>
-								</div>
-							</a>
-							<a class="item m-common-black" @click.prevent="changeFocusMode">
-								<div data-inverted="" data-tooltip="专注模式" data-position="top center">
-									<i class="book icon"></i>
-								</div>
-							</a>
+							<div class="item m-common-black" v-if="blog.authorNickname"><i class="small user icon"></i><span>{{ blog.authorNickname }}</span></div>
+							<div class="item m-datetime"><i class="small calendar icon"></i><span>{{ $filters.dateFormat(blog.createTime, 'YYYY-MM-DD') }}</span></div>
+							<div class="item m-views"><i class="small eye icon"></i><span>{{ blog.views }}</span></div>
+							<div class="item m-common-black"><i class="small pencil alternate icon"></i><span>字数≈{{ blog.words }}字</span></div>
+							<div class="item m-common-black"><i class="small clock icon"></i><span>阅读时长≈{{ blog.readTime }}分</span></div>
+							<a class="item m-common-black" aria-label="切换字体大小" @click.prevent="bigFontSize=!bigFontSize"><div data-inverted="" data-tooltip="点击切换字体大小" data-position="top center"><i class="font icon"></i></div></a>
+							<a class="item m-common-black" aria-label="切换专注模式" @click.prevent="changeFocusMode"><div data-inverted="" data-tooltip="专注模式" data-position="top center"><i class="book icon"></i></div></a>
+							<router-link v-if="isAuthor" :to="`/write/${blog.id}`" class="item article-edit-link"><i class="edit outline icon"></i><span>编辑文章</span></router-link>
 						</div>
 					</div>
 					<!--分类-->
-					<router-link :to="`/category/${blog.category.name}`" class="ui orange large ribbon label" v-if="blog.category">
+					<router-link :to="`/category/${blog.category.name}`" class="ui large ribbon label" :style="taxonomyStyle(blog.category.color)" v-if="blog.category">
 						<i class="small folder open icon"></i><span class="m-text-500">{{ blog.category.name }}</span>
 					</router-link>
 					<!--文章Markdown正文-->
-					<div class="typo js-toc-content m-padded-tb-small match-braces rainbow-braces" v-lazy-container="{selector: 'img'}" v-viewer :class="{'m-big-fontsize':bigFontSize}" v-html="blog.content"></div>
+					<div class="typo js-toc-content m-padded-tb-small match-braces rainbow-braces" v-lazy-container="{selector: 'img'}" v-viewer :class="{'m-big-fontsize':bigFontSize}" @click.capture="openManagedImage" v-html="sanitizeHtml(blog.content)"></div>
 					<!--赞赏-->
 					<div style="margin: 2em auto">
 						<el-popover placement="top" :width="220" trigger="click" v-if="blog.appreciation">
@@ -66,7 +47,7 @@
 					<!--标签-->
 					<div class="row m-padded-tb-no">
 						<div class="column m-padding-left-no">
-							<router-link :to="`/tag/${tag.name}`" class="ui tag label m-text-500 m-margin-small" :class="tag.color" v-for="(tag,index) in blog.tags" :key="index">{{ tag.name }}</router-link>
+							<router-link :to="`/tag/${tag.name}`" class="ui tag label m-text-500 m-margin-small" :style="taxonomyStyle(tag.color)" v-for="(tag,index) in blog.tags" :key="index">{{ tag.name }}</router-link>
 						</div>
 					</div>
 				</div>
@@ -83,32 +64,45 @@
 		</div>
 		<!--评论-->
 		<div class="ui bottom teal attached segment threaded comments">
-			<CommentList :page="0" :blogId="blogId" v-if="blog.commentEnabled"/>
+			<CommentList :page="0" :blogId="blogId" :internal="Boolean(blog.internal)" v-if="blog.commentEnabled"/>
 			<h3 class="ui header" v-else>评论已关闭</h3>
 		</div>
+		<ManagedImageViewer ref="managedImageViewer"/>
 	</div>
 </template>
 
 <script>
 	import {getBlogById} from "@/api/blog";
+	import {getInternalBlog} from '@/api/player-blog'
 	import CommentList from "@/components/comment/CommentList";
-	import {mapState} from "vuex";
-	import {SET_FOCUS_MODE, SET_IS_BLOG_RENDER_COMPLETE} from '@/store/mutations-types';
+		import {mapState} from "vuex";
+		import {SET_FOCUS_MODE, SET_IS_BLOG_RENDER_COMPLETE} from '@/store/mutations-types';
+	import {readToken, readUser, SESSION_CHANGE_EVENT} from '@/auth/session'
+	import getPageTitle from '@/util/get-page-title'
+	import {isArticleAuthor} from '@/util/articleForm'
+	import renderMathInElement from 'katex/contrib/auto-render'
+	import 'katex/dist/katex.css'
+	import ManagedImageViewer from '@/components/article/ManagedImageViewer.vue'
+	import {originalUrlForManagedThumbnail} from '@/util/articleImages'
+	import {sanitizeHtml} from '@/util/sanitizeHtml'
 
 	export default {
 		name: "Blog",
-		components: {CommentList},
-		data() {
-			return {
-				blog: {},
-				bigFontSize: false,
-			}
-		},
+		components: {CommentList, ManagedImageViewer},
+		emits: ['article-author-change'],
+			data() {
+				return {
+					blog: {},
+					bigFontSize: false,
+					authUser: readUser(),
+				}
+			},
 		computed: {
 			blogId() {
 				return parseInt(this.$route.params.id)
 			},
-			...mapState(['siteInfo', 'focusMode'])
+				isAuthor() { return isArticleAuthor(this.blog, this.authUser) },
+				...mapState(['siteInfo', 'focusMode'])
 		},
 		beforeRouteEnter(to, from, next) {
 			//路由到博客文章页面之前，应将文章的渲染完成状态置为 false
@@ -141,20 +135,79 @@
 				next()
 			}
 		},
-		created() {
-			this.getBlog()
-		},
+			created() {
+				this.getBlog()
+			},
+			mounted() {
+				window.addEventListener('storage', this.refreshUser)
+				window.addEventListener(SESSION_CHANGE_EVENT, this.refreshUser)
+			},
+			beforeUnmount() {
+				window.removeEventListener('storage', this.refreshUser)
+				window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshUser)
+			},
 		methods: {
-			getBlog(id = this.blogId) {
-				//密码保护的文章，需要发送密码验证通过后保存在localStorage的Token
-				const blogToken = window.localStorage.getItem(`blog${id}`)
-				const token = blogToken ? blogToken : ''
-				getBlogById(token, id).then(res => {
+			sanitizeHtml,
+			taxonomyStyle(color) { return {backgroundColor: color || '#8B1E3F', color: '#fff'} },
+				refreshUser() { this.authUser = readUser() },
+			openManagedImage(event) {
+				const image = event.target instanceof HTMLImageElement ? event.target : null
+				const link = image?.closest('a')
+				if (!image) return
+				const thumbnail = image.getAttribute('src') || ''
+				const thumbnailMatch = thumbnail.match(/\/api\/image\/assets\/([0-9a-f-]{36})\/thumbnail\.(?:jpg|png)/i)
+				if (!thumbnailMatch) return
+				const linkedOriginal = link?.getAttribute('href') || ''
+				const originalMatch = linkedOriginal.match(/\/api\/image\/assets\/([0-9a-f-]{36})\/original\.(?:jpg|png)/i)
+				const original = originalMatch?.[1] === thumbnailMatch[1]
+					? linkedOriginal : originalUrlForManagedThumbnail(thumbnail)
+				if (!original) return
+				event.preventDefault()
+				event.stopImmediatePropagation()
+				this.$refs.managedImageViewer.open(thumbnail, original, image.alt || '')
+			},
+			async getBlog(id = this.blogId) {
+				let res
+				try {
+					res = await getBlogById(id)
+					if (res.code !== 200) throw new Error(res.msg || '文章获取失败')
+				} catch (error) {
+					const token = readToken()
+					if (!token) {
+						this.msgError(error?.response?.data?.msg || error?.message || '文章不存在')
+						return
+					}
+					try {
+						res = {code: 200, data: await getInternalBlog(token, id)}
+					} catch (internalError) {
+						this.msgError(internalError?.response?.data?.msg || internalError?.message || '文章不存在')
+						return
+					}
+				}
+				Promise.resolve(res).then(res => {
 					if (res.code === 200) {
 						this.blog = res.data
-						document.title = this.blog.title + this.siteInfo.webTitleSuffix
+						this.$emit('article-author-change', this.blog.authorUsername ? {
+							username: this.blog.authorUsername,
+							nickname: this.blog.authorNickname,
+							avatar: this.blog.authorAvatar,
+						} : null)
+						document.title = getPageTitle(this.blog.title)
 						//v-html渲染完毕后，渲染代码块样式
 						this.$nextTick(() => {
+							const article = this.$el.querySelector('.js-toc-content')
+							article?.querySelectorAll('img').forEach(image => {
+								image.loading = 'lazy'
+								image.decoding = 'async'
+							})
+							if (article) renderMathInElement(article, {
+								delimiters: [
+									{left: '$$', right: '$$', display: true},
+									{left: '$', right: '$', display: false},
+								],
+								throwOnError: false,
+								trust: false,
+							})
 							Prism.highlightAll()
 							//将文章渲染完成状态置为 true
 							this.$store.commit(SET_IS_BLOG_RENDER_COMPLETE, true)
@@ -184,5 +237,10 @@
 		height: 55px;
 		margin-top: -55px;
 		visibility: hidden;
+	}
+
+	.article-edit-link {
+		color: #17324d !important;
+		font-weight: 700;
 	}
 </style>

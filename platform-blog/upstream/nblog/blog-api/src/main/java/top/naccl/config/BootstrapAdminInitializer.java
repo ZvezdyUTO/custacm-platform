@@ -13,33 +13,31 @@ import top.naccl.util.HashUtils;
 @Component
 public class BootstrapAdminInitializer implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(BootstrapAdminInitializer.class);
+    public static final String ROOT_USERNAME = "root";
 
     private final UserMapper userMapper;
-    private final String username;
     private final String password;
 
     public BootstrapAdminInitializer(
             UserMapper userMapper,
-            @Value("${blog.bootstrap-admin.username:}") String username,
             @Value("${blog.bootstrap-admin.password:}") String password
     ) {
         this.userMapper = userMapper;
-        this.username = username == null ? "" : username.trim();
         this.password = password == null ? "" : password;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        if (username.isEmpty() || password.isEmpty()) {
+        if (password.isEmpty()) {
             log.info("Bootstrap administrator skipped, reason=credentials-not-configured");
             return;
         }
-        if (userMapper.findByUsername(username) != null) {
+        if (userMapper.findByUsername(ROOT_USERNAME) != null) {
             log.info("Bootstrap administrator skipped, reason=user-already-exists");
             return;
         }
         User admin = new User();
-        admin.setUsername(username);
+        admin.setUsername(ROOT_USERNAME);
         admin.setPassword(HashUtils.getBC(password));
         admin.setNickname("Administrator");
 		admin.setAvatar("");

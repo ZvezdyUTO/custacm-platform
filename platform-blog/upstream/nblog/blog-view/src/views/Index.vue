@@ -14,19 +14,19 @@
 					<div class="ui stackable grid">
 						<!--左侧-->
 						<div class="three wide column m-mobile-hide">
-							<Introduction :class="{'m-display-none':focusMode}"/>
+							<Introduction :author-username="articleAuthor?.username || ''" :author-summary="articleAuthor" :class="{'m-display-none':focusMode}"/>
 						</div>
 						<!--中间-->
 						<div class="ten wide column">
 							<router-view v-slot="{ Component }">
 								<keep-alive include="Home">
-									<component :is="Component"/>
+									<component :is="Component" @article-author-change="articleAuthor = $event"/>
 								</keep-alive>
 							</router-view>
 						</div>
 						<!--右侧-->
 						<div class="three wide column m-mobile-hide">
-							<RandomBlog :randomBlogList="randomBlogList" :class="{'m-display-none':focusMode}"/>
+							<FeaturedBlog :featuredBlogList="featuredBlogList" :class="{'m-display-none':focusMode}"/>
 							<Tags :tagList="tagList" :class="{'m-display-none':focusMode}"/>
 							<!--只在文章页面显示目录-->
 							<Tocbot v-if="$route.name==='blog'"/>
@@ -35,9 +35,6 @@
 				</div>
 			</div>
 		</div>
-
-		<!--私密文章密码对话框-->
-		<BlogPasswordDialog v-if="$route.name!=='training'"/>
 
 		<!--回到顶部-->
 		<el-backtop v-if="$route.name!=='training'" style="box-shadow: none;background: none;z-index: 9999;">
@@ -55,15 +52,15 @@
 	import Footer from "@/components/index/Footer";
 	import Introduction from "@/components/sidebar/Introduction";
 	import Tags from "@/components/sidebar/Tags";
-	import RandomBlog from "@/components/sidebar/RandomBlog";
+	import FeaturedBlog from "@/components/sidebar/FeaturedBlog";
 	import Tocbot from "@/components/sidebar/Tocbot";
-	import BlogPasswordDialog from "@/components/index/BlogPasswordDialog";
 	import {mapState} from 'vuex'
+	import getPageTitle from '@/util/get-page-title'
 	import {SAVE_CLIENT_SIZE, SAVE_INTRODUCTION, SAVE_SITE_INFO, RESTORE_COMMENT_FORM} from "@/store/mutations-types";
 
 	export default {
 		name: "Index",
-		components: {Header, BlogPasswordDialog, Tocbot, RandomBlog, Tags, Nav, Footer, Introduction},
+		components: {Header, Tocbot, FeaturedBlog, Tags, Nav, Footer, Introduction},
 		data() {
 			return {
 				siteInfo: {
@@ -72,7 +69,8 @@
 				},
 				categoryList: [],
 				tagList: [],
-				randomBlogList: [],
+				featuredBlogList: [],
+				articleAuthor: null,
 			}
 		},
 		computed: {
@@ -88,6 +86,7 @@
 			//路由改变时，页面滚动至顶部
 			'$route.path'() {
 				this.scrollToTop()
+				if (this.$route.name !== 'blog') this.articleAuthor = null
 			}
 		},
 		created() {
@@ -109,10 +108,10 @@
 						this.siteInfo = res.data.siteInfo
 						this.categoryList = res.data.categoryList
 						this.tagList = res.data.tagList
-						this.randomBlogList = res.data.randomBlogList
+						this.featuredBlogList = res.data.featuredBlogList || []
 						this.$store.commit(SAVE_SITE_INFO, this.siteInfo)
 						this.$store.commit(SAVE_INTRODUCTION, res.data.introduction)
-						document.title = this.$route.meta.title + this.siteInfo.webTitleSuffix
+						document.title = getPageTitle(this.$route.meta.title)
 					}
 				})
 			}

@@ -30,6 +30,7 @@ public class User implements UserDetails {
 	private String password;
 	private String nickname;
 	private String avatar;
+	private Long avatarAssetId;
 	private String signature;
 	private String email;
 	private Date createTime;

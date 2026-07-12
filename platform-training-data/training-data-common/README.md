@@ -1,6 +1,6 @@
 # training-data-common
 
-共享的 OJ 训练数据 jar。它提供跨 OJ 的领域契约、应用编排、JDBC 查询、HTTP 接口、采集任务和定时调度，不包含具体 OJ payload 或 ODS 实现。
+共享的 OJ 训练数据 jar。它提供跨 OJ 的领域契约、应用编排、JDBC 查询、无传输层依赖的查询 facade、采集任务和定时调度，不包含具体 OJ payload、ODS 实现或 HTTP Controller。
 
 ## Directory Layout
 
@@ -13,17 +13,17 @@ src/main/java/com/custacm/platform/trainingdata/common/
   infra/oj/   handle 与同层 DWD/DWM/DWS JDBC adapter
   scheduler/  定时采集
   support/    小型非业务工具
-  web/        account、collector、purge、query HTTP 层
-src/main/resources/db/migration/  公共同层仓库迁移
-src/test/                         对应单元和 JDBC/HTTP 测试
+  web/        Blog API 复用的 collector 请求/响应 DTO
+src/main/resources/db/migration/  共享身份与同层仓库迁移
+src/test/                         对应单元和 JDBC 测试
 ```
 
 ## Dependency And Layer Rules
 
-- 依赖 `common-core` 的 SQL task runner，以及 Spring JDBC/Web/Context；不依赖 Codeforces 或 AtCoder 模块。
+- 依赖 `common-core` 的 SQL task runner，以及 Spring JDBC/Context；不依赖 Spring MVC、Codeforces 或 AtCoder 模块。
 - OJ 模块通过 common port 注册 source collector、ODS purge 和 warehouse refresh 实现。
 - common 可以按受控 `ojName` 查询同结构 DWD/DWM/DWS 表，但不能解析 OJ payload 或写 OJ ODS。
-- Controller 只做输入输出映射，编排留在 app/collector service。
+- Blog API 的 `top.naccl` package 独占 Spring MVC HTTP adapter；训练查询通过无 MVC 注解的 `OjWarehouseQueryFacade` 暴露 application report。
 
 ## File And Path Responsibilities
 
@@ -32,8 +32,9 @@ src/test/                         对应单元和 JDBC/HTTP 测试
 | `pom.xml` | 共享 jar 及 Spring/JDBC/SQL-task 依赖。 |
 | `config/CommonTrainingDataConfig.java` | 注册 common repository、service、dispatcher、job executor 和 SQL task runner。 |
 | `app/account/TrainingUserDirectory.java` | 训练模块读取 username/handle 和回写采集状态的内部契约。 |
-| `app/account/OjHandleAccountService.java` | Blog API 提供的同进程目录实现及 handle 领域校验。 |
+| `app/account/OjHandleAccountService.java` | Blog API 提供的同进程目录实现及 handle/采集资格领域校验；允许在尚未绑定 OJ handle 时先持久化 `needCollect`，普通更新拒绝覆盖已有 handle，清理完成后才允许专用换绑并重置该 OJ 采集状态。 |
 | `app/query/*Service.java` | DWD/DWM/DWS 公开查询编排。 |
+| `app/query/OjWarehouseQueryFacade.java` | 统一校验查询参数、分页和日期并返回 application report，不依赖 Spring MVC。 |
 | `app/purge/OjStudentDataPurgeService.java` | 按学生和 OJ 删除 ODS/warehouse 数据。 |
 | `app/warehouse/OjWarehouseRefreshService.java` | 按显式 batch 严格运行 OJ SQL task manifest，或为人工刷新选择最新有效 ODS batch 后复用严格流程。 |
 | `collector/OjSubmissionCollectionService.java` | 计算窗口、解析 handle、互斥执行并聚合采集结果。 |
@@ -44,9 +45,10 @@ src/test/                         对应单元和 JDBC/HTTP 测试
 | `domain/oj/` | OJ-generic 模型、查询条件、仓储接口和名称/难度策略。 |
 | `infra/oj/repo/` | handle、查询和 warehouse purge 的 JDBC 实现。 |
 | `scheduler/` | 从配置读取 OJ schedule 并调用相同采集用例。 |
-| `web/` | 供 Blog API 适配复用的 DTO、响应映射和旧控制器实现；生产单体不扫描这些 Controller。 |
-| `src/main/resources/db/migration/` | 符合公共查询契约的同层表迁移。 |
-| `src/test/` | app/domain/collector/JDBC/scheduler/web 的聚焦测试。 |
+| `web/collector/request`、`web/collector/response` | Blog API 管理接口复用的采集请求与响应 DTO。 |
+| `src/main/resources/db/migration/V018__rename_oj_handle_account_and_store_handles_map.sql` | 将 Codeforces 单 OJ handle 表提升为共享 `oj_handle_account`；版本与内容保持历史兼容。 |
+| `src/main/resources/db/migration/` | 共享身份与符合公共查询契约的同层表迁移。 |
+| `src/test/` | app/domain/collector/JDBC/scheduler/query facade 的聚焦测试。 |
 | `src/test/.../OjWarehouseRefreshServiceTest.java` | 覆盖显式 batch 严格刷新、最新 batch 刷新与无有效 batch 拒绝。 |
 
 ## Invariants

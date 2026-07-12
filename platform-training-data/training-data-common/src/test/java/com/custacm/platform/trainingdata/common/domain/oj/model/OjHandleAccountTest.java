@@ -48,6 +48,15 @@ class OjHandleAccountTest {
     }
 
     @Test
+    void keepsCollectionEligibilityBeforeAnOjHandleIsBound() {
+        OjHandleAccount account = new OjHandleAccount("112487张三", Map.of(), false, NOW, NOW);
+
+        assertThat(account.handles()).isEmpty();
+        assertThat(account.collectionStates()).isEmpty();
+        assertThat(account.needCollect()).isFalse();
+    }
+
+    @Test
     void normalizesOjNamesToUppercaseConstants() {
         OjHandleAccount account = new OjHandleAccount(
                 "112487张三",

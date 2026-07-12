@@ -17,6 +17,4 @@ import lombok.ToString;
 public class NewBlog {
 	private Long id;
 	private String title;
-	private String password;
-	private Boolean privacy;
 }

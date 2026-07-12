@@ -10,6 +10,4 @@ scripts/*	scripts/AGENTS.md,docs/agent/doc-sync.md,docs/agent/quality-gates.md,d
 platform-training-data/*	platform-training-data/README.md,platform-training-data/AGENTS.md,docs/authorization.md,docs/architecture.md,docs/api.md,docs/agent/context-map.md	Training data library or integrated API changed.
 platform-training-data/*/src/main/resources/logback-spring.xml	docs/logging.md	Logging config changed.
 platform-blog/*	platform-blog/README.md,platform-blog/AGENTS.md,platform-blog/upstream/nblog/blog-api/README.md,docs/architecture.md,docs/api.md,docs/authorization.md,docs/agent/context-map.md	Blog monolith changed.
-platform-editor/*	platform-editor/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Editor module changed.
-platform-article-storage/*	platform-article-storage/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Article storage module changed.
 frontend/*	frontend/AGENTS.md,frontend/README.md,docs/architecture.md,docs/agent/README.md,docs/agent/context-map.md	Frontend implementation, scripts, or boundary changed.

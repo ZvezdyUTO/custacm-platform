@@ -31,4 +31,6 @@ When changing code, scripts, CI, deployment configuration, or module boundaries,
 
 Docs-only changes should still keep links and facts consistent, but they do not require Maven verification unless they change executable examples or configuration.
 
+The Java test policy and the exact GitHub gate command are defined in [agent/quality-gates.md](agent/quality-gates.md): CI runs existing tests, while focused tests are expected for new or materially changed behavior without forcing historical coverage backfills.
+
 The current integrated identity and admin-surface decisions, including homepage image management, are documented in [architecture.md](architecture.md); older auth ADRs are historical context.

@@ -15,7 +15,7 @@ import {useRoute} from 'vue-router'
 
 // Author: huangbingrui.awa
 const route = useRoute()
-const allowedPages = new Set(['login', 'multiple', 'single', 'problem', 'admin', 'admin/create-users', 'admin/users', 'admin/training'])
+const allowedPages = new Set(['login', 'multiple', 'single', 'problem', 'admin', 'admin/create-users', 'admin/users', 'admin/articles', 'admin/training', 'admin/appearance'])
 const frameSource = computed(() => {
 	const rawPath = Array.isArray(route.params.trainingPath) ? route.params.trainingPath.join('/') : route.params.trainingPath
 	const page = allowedPages.has(rawPath) ? rawPath : 'multiple'
@@ -29,7 +29,7 @@ const frameSource = computed(() => {
 function syncTrainingUrl(event) {
 	if (event.origin !== window.location.origin || event.data?.type !== 'custacm:training-route') return
 	const path = typeof event.data.path === 'string' ? event.data.path : ''
-	if (!/^\/(?:login|multiple|single|problem|admin(?:\/(?:create-users|users|training))?)(?:\?|$)/.test(path)) return
+	if (!/^\/(?:login|multiple|single|problem|admin(?:\/(?:create-users|users|articles|training|appearance))?)(?:\?|$)/.test(path)) return
 	window.history.replaceState(window.history.state, '', `/training${path}`)
 }
 

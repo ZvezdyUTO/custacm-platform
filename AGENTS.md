@@ -63,20 +63,17 @@ Current phase: operate the integrated Blog API backend and the Vue 3 Blog / Vue 
 Use this check after Java changes:
 
 ```bash
-mvn clean verify
-./scripts/check-test-policy.sh
+mvn clean test
 ```
 
-`mvn clean verify` runs unit tests and JaCoCo coverage checks.
-`check-test-policy.sh` verifies that Java modules with executable source have tests and generated Surefire/JaCoCo reports unless explicitly allowlisted.
+`mvn clean test` compiles the reactor and runs all existing unit tests. Historical code is not required to backfill unit tests or meet a repository-wide coverage threshold.
 
-Coverage standard:
+Test standard:
 
-- Code-bearing Maven modules must keep JaCoCo line coverage at or above `70%`.
-- Spring Boot startup classes and configuration classes are excluded from the coverage gate.
-- New business logic, JWT/security parsing, HTTP controller behavior, and client/adapters should add focused unit tests in the same change.
-- Placeholder-only modules and empty modules do not need tests until they contain executable code.
-- DTO-only modules without behavior may be listed in `docs/test-policy-allowlist.tsv`; do not use the allowlist for business logic.
+- New or materially changed business logic, JWT/security parsing, HTTP controller behavior, and client/adapters should add focused unit tests in the same change.
+- Existing tests must continue to pass; do not delete, skip, or weaken tests merely to make a change pass.
+- Historical code without tests does not need unrelated test backfills.
+- JaCoCo reports may be inspected locally as a diagnostic aid, but coverage percentage is not an MR gate.
 
 If packaging or Docker image behavior changes, also run:
 

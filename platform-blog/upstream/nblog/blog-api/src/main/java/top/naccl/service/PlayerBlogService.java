@@ -13,6 +13,7 @@ import top.naccl.exception.NotFoundException;
 import top.naccl.mapper.BlogMapper;
 import top.naccl.mapper.UserMapper;
 import top.naccl.util.StringUtils;
+import top.naccl.util.BlogContentLimits;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -31,6 +32,7 @@ public class PlayerBlogService {
 	@Autowired private TagService tagService;
 	@Autowired private BlogService blogService;
 	@Autowired private CommentService commentService;
+	@Autowired private ImageAssetService imageAssetService;
 
 	public PageInfo<top.naccl.entity.Blog> list(String username, String title, Integer categoryId,
 	                                           int pageNum, int pageSize) {
@@ -40,13 +42,19 @@ public class PlayerBlogService {
 	}
 
 	public top.naccl.entity.Blog get(String username, Long blogId) {
-		return requireOwnedBlog(requireUser(username), blogId);
+		top.naccl.entity.Blog blog = requireOwnedBlog(requireUser(username), blogId);
+		blog.setCoverImage(imageAssetService.response(blog.getFirstPictureAssetId()));
+		return blog;
 	}
 
 	@Transactional(rollbackFor = Exception.class)
-	public void create(String username, top.naccl.model.dto.Blog blog) {
+	public Long create(String username, top.naccl.model.dto.Blog blog) {
 		validateCommonFields(blog);
+		normalizeOptionalFields(blog);
 		User user = requireUser(username);
+		ImageAssetService.PreparedBlogAssets assets = imageAssetService.prepareBlogAssets(
+				user.getId(), null, blog.getFirstPictureAssetId(), blog.getContent());
+		blog.setFirstPicture(assets.coverThumbnailUrl(blog.getFirstPicture()));
 		List<Tag> tags = resolveTaxonomy(blog);
 		Date now = new Date();
 		blog.setUser(user);
@@ -55,23 +63,29 @@ public class PlayerBlogService {
 		blog.setViews(0);
 		blog.setReadTime(normalizeReadTime(blog));
 		blog.setPublished(Boolean.TRUE.equals(blog.getPublished()));
+		blog.setInternal(blog.getPublished() && Boolean.TRUE.equals(blog.getInternal()));
 		blog.setCommentEnabled(Boolean.TRUE.equals(blog.getCommentEnabled()));
 		blog.setTop(false);
 		blog.setRecommend(false);
 		blog.setAppreciation(false);
-		blog.setPassword("");
 		blogService.saveBlog(blog);
+		imageAssetService.bindBlogAssets(blog.getId(), assets);
 		saveTags(blog.getId(), tags);
+		return blog.getId();
 	}
 
 	@Transactional(rollbackFor = Exception.class)
 	public void update(String username, top.naccl.model.dto.Blog blog) {
 		validateCommonFields(blog);
+		normalizeOptionalFields(blog);
 		if (blog.getId() == null) {
 			throw new BadRequestException("文章 id 不能为空");
 		}
 		User user = requireUser(username);
 		top.naccl.entity.Blog stored = requireOwnedBlog(user, blog.getId());
+		ImageAssetService.PreparedBlogAssets assets = imageAssetService.prepareBlogAssets(
+				user.getId(), blog.getId(), blog.getFirstPictureAssetId(), blog.getContent());
+		blog.setFirstPicture(assets.coverThumbnailUrl(blog.getFirstPicture()));
 		List<Tag> tags = resolveTaxonomy(blog);
 		blog.setUser(user);
 		blog.setCreateTime(stored.getCreateTime());
@@ -79,12 +93,13 @@ public class PlayerBlogService {
 		blog.setViews(stored.getViews());
 		blog.setReadTime(normalizeReadTime(blog));
 		blog.setPublished(Boolean.TRUE.equals(blog.getPublished()));
+		blog.setInternal(blog.getPublished() && Boolean.TRUE.equals(blog.getInternal()));
 		blog.setCommentEnabled(Boolean.TRUE.equals(blog.getCommentEnabled()));
 		blog.setTop(stored.getTop());
 		blog.setRecommend(stored.getRecommend());
 		blog.setAppreciation(stored.getAppreciation());
-		blog.setPassword(stored.getPassword());
 		blogService.updateBlog(blog);
+		imageAssetService.bindBlogAssets(blog.getId(), assets);
 		blogService.deleteBlogTagByBlogId(blog.getId());
 		saveTags(blog.getId(), tags);
 	}
@@ -115,10 +130,18 @@ public class PlayerBlogService {
 	}
 
 	private void validateCommonFields(top.naccl.model.dto.Blog blog) {
-		if (StringUtils.isEmpty(blog.getTitle(), blog.getFirstPicture(), blog.getContent(), blog.getDescription())
+		String lengthError = BlogContentLimits.validate(blog);
+		if (lengthError != null) {
+			throw new BadRequestException(lengthError);
+		}
+		if (StringUtils.isEmpty(blog.getTitle(), blog.getContent(), blog.getDescription())
 				|| blog.getWords() == null || blog.getWords() < 0 || blog.getTagList() == null) {
 			throw new BadRequestException("文章参数有误");
 		}
+	}
+
+	private void normalizeOptionalFields(top.naccl.model.dto.Blog blog) {
+		blog.setFirstPicture(blog.getFirstPicture() == null ? "" : blog.getFirstPicture().trim());
 	}
 
 	private int normalizeReadTime(top.naccl.model.dto.Blog blog) {

@@ -13,6 +13,7 @@ import top.naccl.exception.NotFoundException;
 import top.naccl.exception.BadRequestException;
 import top.naccl.exception.PersistenceException;
 import top.naccl.exception.ForbiddenException;
+import top.naccl.exception.ImageAssetException;
 import top.naccl.model.vo.Result;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -75,6 +76,12 @@ public class ControllerExceptionHandler {
 	public ResponseEntity<Result> badRequestExceptionHandler(HttpServletRequest request, BadRequestException e) {
 		logger.warn("errorCode=BAD_REQUEST requestUrl={} message={}", request.getRequestURL(), e.getMessage());
 		return ResponseEntity.badRequest().body(Result.error(400, "BAD_REQUEST", e.getMessage()));
+	}
+
+	@ExceptionHandler(ImageAssetException.class)
+	public ResponseEntity<Result> imageAssetExceptionHandler(HttpServletRequest request, ImageAssetException e) {
+		logger.warn("errorCode={} requestUrl={} message={}", e.errorCode(), request.getRequestURL(), e.getMessage());
+		return ResponseEntity.badRequest().body(Result.error(400, e.errorCode().name(), e.getMessage()));
 	}
 
 	@ExceptionHandler(ForbiddenException.class)

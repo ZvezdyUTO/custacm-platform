@@ -44,23 +44,17 @@
 ./scripts/deploy.sh
 ```
 
-## 按服务更新
+## 普通模式更新入口
 
-只更新唯一后端：
-
-```bash
-./scripts/update-module.sh blog-api
-```
-
-该脚本只支持 `blog-api`（别名 `blog`、`backend`），完成后轮询直接后端 `/health`。
-
-只更新包含两份静态应用的前端 Nginx：
+验收、稳定运行和服务器更新统一运行：
 
 ```bash
-docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build frontend
+./scripts/deploy.sh
 ```
 
-仓库当前没有前端专用 update script，不要记录不存在的命令。
+该入口一起构建并启动 `blog-db`、`blog-redis`、`blog-api` 和 `frontend`，Compose 会复用未变化的镜像层与持久化命名卷。源码更新由操作者在运行脚本前显式完成，部署脚本不会隐式执行 Git 操作。
+
+本地只频繁修改前端时运行 `./scripts/dev.sh`；它不强制重建后端镜像，使用 Vite/HMR 即时加载前端变化。开发结束后按 Ctrl-C，再运行 `./scripts/deploy.sh` 即可切回普通 Nginx 模式。仓库不提供按单个服务更新、自动拉取部署或第三个启动入口。
 
 ## 更新后验证
 
@@ -79,6 +73,8 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 ```
 
 同时检查登录、player/admin protected routes、Flyway 日志、`logs/combined.log` 与 `logs/error.log`。前端变更要检查两套 Vue 3 应用的 history fallback、跨前端会话显示和浏览器 console。
+
+涉及托管图片时，再确认 Blog API 能写入 `uploads/assets/`、Nginx 能通过 `/api/image/assets/{uuid}/thumbnail.*` 读取同一文件，并在删除文章或更换头像后返回 404。
 
 ## 数据安全
 

@@ -461,6 +461,52 @@
   align-items: end;
 }
 
+.admin-user-edit-grid .collect-toggle-field {
+  grid-column: span 2;
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  align-self: end;
+  gap: 10px;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+.admin-user-edit-grid .collect-toggle-field input {
+  position: absolute;
+  width: 1px;
+  min-height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.collect-toggle-track {
+  display: flex;
+  width: 42px;
+  height: 24px;
+  flex: 0 0 auto;
+  align-items: center;
+  border-radius: 999px;
+  background: #c9c2c0;
+  padding: 3px;
+  transition: background-color .16s ease;
+}
+
+.collect-toggle-track span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(45, 31, 29, .28);
+  transition: transform .16s ease;
+}
+
+.collect-toggle-field input:checked ~ .collect-toggle-track { background: #2f8f5b; }
+.collect-toggle-field input:checked ~ .collect-toggle-track span { transform: translateX(18px); }
+.collect-toggle-field input:focus-visible ~ .collect-toggle-track { outline: 3px solid rgba(126, 53, 61, .2); outline-offset: 2px; }
+.collect-toggle-field > strong { color: var(--text); font-size: 13px; white-space: nowrap; }
+.collect-toggle-field > small { color: var(--muted); font-size: 12px; font-weight: 500; white-space: nowrap; }
+
 .admin-user-edit-actions {
   justify-content: flex-end;
   border-top: 1px solid var(--border);

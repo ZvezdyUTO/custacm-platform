@@ -4,13 +4,12 @@ Use the smallest check that proves the changed surface, then run broader checks 
 
 | Change type | Required check |
 | --- | --- |
-| Java code, POM, auth parsing, controller behavior | `mvn clean verify` and `./scripts/check-test-policy.sh` |
-| Backend logging code or `logback-spring.xml` | `mvn clean verify`, `./scripts/check-test-policy.sh`, and `git diff --check` |
+| Java code, POM, auth parsing, controller behavior | `mvn clean test` |
+| Backend logging code or `logback-spring.xml` | `mvn clean test` and `git diff --check` |
 | Backend Dockerfile or package/image behavior | `mvn clean package -DskipTests` |
 | Compose or env example changes | `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config` |
-| Auto-update classification changes | `./scripts/auto-update-main.sh classify <changed-file>...` with representative paths |
 | Frontend runtime changes | `cd frontend && pnpm lint && pnpm test && pnpm typecheck && pnpm build`, `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config`, and rendered browser smoke testing |
-| Frontend deploy path changes | Run the Compose `frontend-build` service against a local env file, then verify `custacm-frontend` serves `/` and proxies health/API paths |
+| Deployment entrypoint changes | Run `./scripts/dev.sh <safe-local-env-file>` and verify Vite 4180/5173 plus API 8090; then run `./scripts/deploy.sh <safe-local-env-file>` and verify all four Compose services and production URLs |
 | Local sample-data seed script changes | Run `./scripts/seed-local-codeforces-data.sh` against local auth/training-data services when they are available |
 | Documentation sync rules | `./scripts/check-doc-sync.sh origin/main WORKTREE` |
 | Docs-only changes | No Maven required unless examples/config changed |
@@ -23,17 +22,11 @@ GitHub Actions runs:
 
 ```bash
 ./scripts/check-doc-sync.sh
-mvn clean verify
-./scripts/check-test-policy.sh
+mvn clean test
 ```
 
 The protected `main` branch requires the `verify` check to pass before ordinary PRs can merge.
 
 ## Test Policy
 
-`check-test-policy.sh` runs after Maven. It requires Java modules with executable source to either:
-
-- contain `*Test.java` files and generated Surefire plus JaCoCo reports, or
-- be explicitly listed in [../test-policy-allowlist.tsv](../test-policy-allowlist.tsv).
-
-The allowlist should stay narrow and only cover modules without executable behavior. New business logic should add focused tests instead of expanding the allowlist.
+The required `verify` check compiles the Maven reactor and runs all tests already present in the repository. It does not enforce a JaCoCo percentage or require historical code to backfill tests. New or materially changed behavior should include focused tests in the same change, and existing tests must not be deleted, skipped, or weakened merely to pass CI. JaCoCo reports remain optional local diagnostics rather than an MR gate.

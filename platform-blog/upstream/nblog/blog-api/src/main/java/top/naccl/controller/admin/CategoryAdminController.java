@@ -17,6 +17,7 @@ import top.naccl.model.vo.Result;
 import top.naccl.service.BlogService;
 import top.naccl.service.CategoryService;
 import top.naccl.util.StringUtils;
+import top.naccl.constant.TaxonomyColorPalette;
 
 /**
  * @Description: 博客分类后台管理
@@ -81,6 +82,7 @@ public class CategoryAdminController {
 		if (StringUtils.isEmpty(category.getName())) {
 			return Result.error("分类名称不能为空");
 		}
+		category.setColor(TaxonomyColorPalette.normalize(category.getColor()));
 		//查询分类是否已存在
 		Category category1 = categoryService.getCategoryByName(category.getName());
 		//如果 category1.getId().equals(category.getId()) == true 就是更新分类

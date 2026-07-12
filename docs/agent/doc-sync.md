@@ -14,6 +14,8 @@ Run locally:
 
 The GitHub workflow runs the same check on PRs.
 
+For Java verification, the workflow separately runs `mvn clean test`. Coverage reports are not part of the required MR gate; new or materially changed behavior is expected to carry focused tests through review.
+
 ## How The Map Works
 
 Each non-comment row in [../doc-sync-map.tsv](../doc-sync-map.tsv) has three tab-separated columns:
@@ -32,7 +34,6 @@ If a changed file matches the pattern, at least one listed required doc must als
 - Runnable service status changed: update [README.md](../../README.md), [../architecture.md](../architecture.md), [context-map.md](context-map.md), and [README.md](README.md).
 - Tests changed materially: update the module `TESTING.md`.
 - Deployment or scripts changed: update `deploy/` docs, [../server-deployment.md](../server-deployment.md), and [../../scripts/AGENTS.md](../../scripts/AGENTS.md) when the runnable container set, one-click deploy flow, module update flow, or seed scripts change.
-- Auto-update path classification changed: update [../../deploy/UPDATE.md](../../deploy/UPDATE.md), [quality-gates.md](quality-gates.md), and [../../scripts/AGENTS.md](../../scripts/AGENTS.md).
 - Logging changed: read and update [../logging.md](../logging.md) if the logging contract changes.
 - PR outcome changed: update [../../CHANGELOG.md](../../CHANGELOG.md) using [changelog.md](changelog.md).
 - New module slice added: add a module `AGENTS.md`, add tests or explain why not, update [context-map.md](context-map.md), [../architecture.md](../architecture.md), and [../doc-sync-map.tsv](../doc-sync-map.tsv).

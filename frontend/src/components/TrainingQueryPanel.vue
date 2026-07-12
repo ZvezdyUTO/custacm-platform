@@ -1,6 +1,6 @@
 <template>
   <section class="training-query" aria-label="训练数据查询">
-    <form :class="['query-form', { 'multi-query-form': mode === 'multiple' }]" @submit.prevent="apply">
+    <component :is="mode === 'problem' ? 'form' : 'div'" :class="['query-form', { 'multi-query-form': mode === 'multiple' }]" @submit.prevent="apply(filterSignature(), true)">
       <label class="query-field query-oj-field compact"><span class="query-field-label">OJ</span>
         <select v-model="selectedOjName" aria-label="选择 OJ" :disabled="isRefreshing" @change="changeOj">
           <option :value="OJ_NAMES.CODEFORCES">{{ OJ_LABELS.CODEFORCES }}</option>
@@ -25,8 +25,9 @@
         <label class="query-field compact"><span class="query-field-label">最低 rating</span><input v-model="draft.minProblemRating" min="0" placeholder="不限" type="number" /></label>
         <label class="query-field compact"><span class="query-field-label">最高 rating</span><input v-model="draft.maxProblemRating" min="0" placeholder="不限" type="number" /></label>
       </template>
-      <button class="primary-button query-apply-button" :disabled="isRefreshing || Boolean(queryError)" type="submit">查询</button>
-    </form>
+      <button v-if="mode === 'problem'" class="primary-button query-problem-apply-button" :disabled="isRefreshing || Boolean(queryError)" type="submit">查询</button>
+      <span v-else class="query-auto-refresh-hint" aria-live="polite">{{ isRefreshing ? '正在刷新…' : '筛选后自动刷新' }}</span>
+    </component>
     <div class="query-meta-row">
       <span>更新于 {{ updatedAt }}</span>
       <button class="query-refresh-button" :disabled="isRefreshing" aria-label="刷新训练数据" type="button" @click="refresh">
@@ -92,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { RefreshCw } from '@lucide/vue';
 import PaginationBar from './PaginationBar.vue';
 import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
@@ -116,15 +117,35 @@ const queryError = computed(() => {
   if (draft.minProblemRating && draft.maxProblemRating && Number(draft.minProblemRating) > Number(draft.maxProblemRating)) return '最低 rating 不能大于最高 rating。';
   return '';
 });
+let autoApplyTimer: number | undefined;
+let lastAppliedSignature = filterSignature();
 const multiAcceptedCount = computed(() => multiUserRows.value.reduce((sum, row) => sum + (row.summary?.totalAcceptedProblemCount || 0), 0));
 const ratingBuckets = computed(() => [...new Set(multiUserRows.value.flatMap((row) => row.summary?.ratingCounts.map((item) => item.problemRating) || []))].sort(compareRating));
 const displayRows = computed(() => multiUserRows.value.map((row) => ({ row, counts: new Map(row.summary?.ratingCounts.map((item) => [item.problemRating, item.acceptedProblemCount]) || []) })));
 const maxRatingCount = computed(() => Math.max(1, ...(acceptedSummary.value?.ratingCounts.map((item) => item.acceptedProblemCount) || [])));
 watch(trainingQuery, (query) => Object.assign(draft, query), { deep: true });
+watch(draft, scheduleAutoApply, { deep: true });
+onBeforeUnmount(() => window.clearTimeout(autoApplyTimer));
 
-async function apply() { if (!queryError.value) await dashboard.applyTrainingQuery({ ...draft }, props.mode); }
+function filterSignature() { return JSON.stringify({ ...draft, problemKey: props.mode === 'problem' ? problemKey.value.trim() : '' }); }
+function scheduleAutoApply() {
+  window.clearTimeout(autoApplyTimer);
+  if (props.mode === 'problem' || queryError.value) return;
+  const signature = filterSignature();
+  if (signature === lastAppliedSignature) return;
+  autoApplyTimer = window.setTimeout(() => { void apply(signature); }, 250);
+}
+async function apply(signature = filterSignature(), force = false) {
+  if (queryError.value || (!force && signature === lastAppliedSignature)) return;
+  lastAppliedSignature = signature;
+  await dashboard.applyTrainingQuery({
+    ...draft,
+    minProblemRating: String(draft.minProblemRating ?? ''),
+    maxProblemRating: String(draft.maxProblemRating ?? ''),
+  }, props.mode);
+}
 async function refresh() { await dashboard.refreshDashboard(props.mode); }
-async function changeOj() { await dashboard.chooseOjName(selectedOjName.value); }
+async function changeOj() { if (props.mode !== 'problem') await dashboard.chooseOjName(selectedOjName.value); }
 async function chooseUser() { if (selectedUsername.value) await dashboard.chooseUsername(selectedUsername.value); }
 async function retry(username: string) { await dashboard.retryMultiUserSummary(username); }
 function ratingStart(value: string) { return Number(value.match(/^\d+/)?.[0] ?? Number.NaN); }

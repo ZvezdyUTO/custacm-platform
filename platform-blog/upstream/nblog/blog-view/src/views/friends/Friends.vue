@@ -19,7 +19,7 @@
 		</div>
 		<!--页面描述-->
 		<div class="ui teal attached segment">
-			<div class="typo content" v-lazy-container="{selector: 'img'}" v-viewer v-html="info.content"></div>
+			<div class="typo content" v-lazy-container="{selector: 'img'}" v-viewer v-html="sanitizeHtml(info.content)"></div>
 		</div>
 		<!--评论-->
 		<div class="ui bottom teal attached segment threaded comments">
@@ -30,6 +30,7 @@
 </template>
 
 <script>
+	import {sanitizeHtml} from '@/util/sanitizeHtml'
 	import {getData, addViewsByNickname} from "@/api/friend";
 	import CommentList from "@/components/comment/CommentList";
 
@@ -54,6 +55,7 @@
 			this.getData()
 		},
 		methods: {
+			sanitizeHtml,
 			getData() {
 				getData().then(res => {
 					if (res.code === 200) {

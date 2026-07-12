@@ -1,5 +1,6 @@
 package top.naccl.model.vo;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -20,7 +21,9 @@ import java.util.List;
 @Getter
 @Setter
 @ToString
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class BlogInfo {
+	private String authorUsername;
 	private String authorNickname;
 	private String authorAvatar;
 	private Long id;
@@ -31,8 +34,6 @@ public class BlogInfo {
 	private Integer words;//文章字数
 	private Integer readTime;//阅读时长(分钟)
 	private Boolean top;//是否置顶
-	private String password;//文章密码
-	private Boolean privacy;//是否私密文章
 
 	private Category category;//文章分类
 	private List<Tag> tags = new ArrayList<>();//文章标签

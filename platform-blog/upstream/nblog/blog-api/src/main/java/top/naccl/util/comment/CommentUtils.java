@@ -185,11 +185,6 @@ public class CommentUtils {
 					//博客评论已关闭
 					return CommentOpenStateEnum.CLOSE;
 				}
-				//判断文章是否存在密码
-				String password = blogService.getBlogPassword(blogId);
-				if (!StringUtils.isEmpty(password)) {
-					return CommentOpenStateEnum.PASSWORD;
-				}
 				break;
 			case PageConstants.ABOUT:
 				//关于我页面

@@ -19,8 +19,4 @@ public enum CommentOpenStateEnum {
 	 * 评论已关闭
 	 */
 	CLOSE,
-	/**
-	 * 评论所在页面需要密码
-	 */
-	PASSWORD,
 }

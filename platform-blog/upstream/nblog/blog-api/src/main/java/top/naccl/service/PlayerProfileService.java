@@ -14,6 +14,7 @@ import top.naccl.model.dto.ProfileLinkInput;
 import top.naccl.model.dto.ProfileLinksReplaceRequest;
 import top.naccl.model.vo.PlayerProfile;
 import top.naccl.model.vo.ProfileLinkResponse;
+import top.naccl.model.vo.PublicProfile;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -36,16 +37,26 @@ public class PlayerProfileService {
 	private final UserMapper userMapper;
 	private final UserProfileLinkMapper linkMapper;
 	private final RedisService redisService;
+	private final ImageAssetService imageAssetService;
 
-	public PlayerProfileService(UserMapper userMapper, UserProfileLinkMapper linkMapper, RedisService redisService) {
+	public PlayerProfileService(UserMapper userMapper, UserProfileLinkMapper linkMapper, RedisService redisService,
+			ImageAssetService imageAssetService) {
 		this.userMapper = userMapper;
 		this.linkMapper = linkMapper;
 		this.redisService = redisService;
+		this.imageAssetService = imageAssetService;
 	}
 
 	public PlayerProfile get(String username) {
 		User user = requireUser(username);
 		return profile(user);
+	}
+
+	public PublicProfile getPublic(String username) {
+		User user = requireUser(username);
+		List<ProfileLinkResponse> links = links(user);
+		var avatar = imageAssetService.response(user.getAvatarAssetId());
+		return new PublicProfile(user, links, avatar == null ? user.getAvatar() : avatar.originalUrl());
 	}
 
 	@Transactional
@@ -93,10 +104,15 @@ public class PlayerProfileService {
 	}
 
 	private PlayerProfile profile(User user) {
-		List<ProfileLinkResponse> links = linkMapper.findByUserId(user.getId()).stream()
+		List<ProfileLinkResponse> links = links(user);
+		var avatar = imageAssetService.response(user.getAvatarAssetId());
+		return new PlayerProfile(user, links, avatar == null ? user.getAvatar() : avatar.originalUrl());
+	}
+
+	private List<ProfileLinkResponse> links(User user) {
+		return linkMapper.findByUserId(user.getId()).stream()
 				.map(ProfileLinkResponse::new)
 				.toList();
-		return new PlayerProfile(user, links);
 	}
 
 	private User requireUser(String username) {

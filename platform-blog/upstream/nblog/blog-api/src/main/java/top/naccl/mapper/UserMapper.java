@@ -28,7 +28,8 @@ public interface UserMapper {
 	int updateProfileByUsername(@Param("username") String username, @Param("nickname") String nickname,
 			@Param("signature") String signature);
 
-	int updateAvatarByUsername(String username, String avatar);
+	int updateAvatarByUsername(@Param("username") String username, @Param("avatar") String avatar,
+			@Param("avatarAssetId") Long avatarAssetId);
 
 	int updatePasswordByUsername(String username, String password);
 

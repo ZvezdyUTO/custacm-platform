@@ -15,6 +15,15 @@ export async function getCurrentProfile(token) {
 	return response.data
 }
 
+export async function getPublicProfile(username) {
+	const response = await axios({
+		url: `profiles/${encodeURIComponent(username)}`,
+		method: 'GET',
+	})
+	if (response.code !== 200) throw new Error(response.msg || '作者资料获取失败')
+	return response.data
+}
+
 export async function getCurrentOjHandles(token) {
 	const response = await axios({
 		url: 'player/me/oj-handles',
@@ -47,6 +56,16 @@ export async function updateCurrentProfile(token, profile) {
 	})
 	if (response.code !== 200) throw new Error(response.msg || '个人资料保存失败')
 	return response.data
+}
+
+export async function changeCurrentPassword(token, oldPassword, newPassword) {
+	const response = await axios({
+		url: 'player/me/password',
+		method: 'PATCH',
+		data: {oldPassword, newPassword},
+		headers: bearer(token),
+	})
+	if (response.code !== 200) throw new Error(response.msg || '密码修改失败')
 }
 
 export async function replaceCurrentProfileLinks(token, links) {

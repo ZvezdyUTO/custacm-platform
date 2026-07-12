@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import top.naccl.entity.Category;
 import top.naccl.entity.User;
 import top.naccl.exception.NotFoundException;
+import top.naccl.exception.BadRequestException;
 import top.naccl.mapper.BlogMapper;
 import top.naccl.mapper.UserMapper;
 
@@ -33,6 +34,7 @@ class PlayerBlogServiceTest {
 	@Mock private TagService tagService;
 	@Mock private BlogService blogService;
 	@Mock private CommentService commentService;
+	@Mock private ImageAssetService imageAssetService;
 	@InjectMocks private PlayerBlogService playerBlogService;
 
 	private User player;
@@ -45,6 +47,22 @@ class PlayerBlogServiceTest {
 		player.setUsername("player1");
 		category = new Category();
 		category.setId(3L);
+		org.mockito.Mockito.lenient().when(imageAssetService.prepareBlogAssets(
+				org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.nullable(Long.class),
+				org.mockito.ArgumentMatchers.nullable(Long.class), org.mockito.ArgumentMatchers.anyString()))
+				.thenReturn(new ImageAssetService.PreparedBlogAssets(null, java.util.List.of(), java.util.List.of()));
+	}
+
+	@Test
+	void createRejectsTextFieldsOverTheirLimits() {
+		top.naccl.model.dto.Blog input = validBlog();
+		input.setTitle("题".repeat(101));
+
+		BadRequestException error = assertThrows(BadRequestException.class,
+				() -> playerBlogService.create("player1", input));
+
+		assertEquals("文章标题不能超过 100 字", error.getMessage());
+		verify(blogService, never()).saveBlog(any());
 	}
 
 	@Test
@@ -54,7 +72,7 @@ class PlayerBlogServiceTest {
 		top.naccl.model.dto.Blog input = validBlog();
 		input.setTop(true);
 		input.setRecommend(true);
-		input.setPassword("forged");
+		input.setInternal(true);
 
 		playerBlogService.create("player1", input);
 
@@ -62,7 +80,21 @@ class PlayerBlogServiceTest {
 		assertFalse(input.getTop());
 		assertFalse(input.getRecommend());
 		assertFalse(input.getAppreciation());
-		assertEquals("", input.getPassword());
+		assertEquals(true, input.getInternal());
+		assertEquals(true, input.getCommentEnabled());
+		verify(blogService).saveBlog(input);
+	}
+
+	@Test
+	void createAllowsMissingFirstPictureAndNormalizesItToEmptyString() {
+		when(userMapper.findByUsername("player1")).thenReturn(player);
+		when(categoryService.getCategoryById(3L)).thenReturn(category);
+		top.naccl.model.dto.Blog input = validBlog();
+		input.setFirstPicture(null);
+
+		playerBlogService.create("player1", input);
+
+		assertEquals("", input.getFirstPicture());
 		verify(blogService).saveBlog(input);
 	}
 
@@ -76,7 +108,6 @@ class PlayerBlogServiceTest {
 		stored.setTop(true);
 		stored.setRecommend(true);
 		stored.setAppreciation(true);
-		stored.setPassword("admin-secret");
 		stored.setViews(88);
 		when(blogMapper.getBlogByIdAndUserId(10L, 7L)).thenReturn(stored);
 		top.naccl.model.dto.Blog input = validBlog();
@@ -87,7 +118,6 @@ class PlayerBlogServiceTest {
 		assertEquals(true, input.getTop());
 		assertEquals(true, input.getRecommend());
 		assertEquals(true, input.getAppreciation());
-		assertEquals("admin-secret", input.getPassword());
 		assertEquals(88, input.getViews());
 		verify(blogService).updateBlog(input);
 	}

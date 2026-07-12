@@ -47,10 +47,6 @@ public class PlayerCommentService {
 		if (state == CommentOpenStateEnum.CLOSE) {
 			throw new ForbiddenException("评论已关闭");
 		}
-		if (state == CommentOpenStateEnum.PASSWORD) {
-			throw new ForbiddenException("受密码保护的文章不可通过此入口评论");
-		}
-
 		User user = userMapper.findByUsername(username);
 		if (user == null) {
 			throw new NotFoundException("用户不存在");

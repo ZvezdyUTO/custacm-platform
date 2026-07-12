@@ -1,13 +1,11 @@
 import {
 	SAVE_COMMENT_RESULT,
 	SET_PARENT_COMMENT_ID,
-	RESET_COMMENT_FORM,
-	SET_BLOG_PASSWORD_DIALOG_VISIBLE,
-	SET_BLOG_PASSWORD_FORM
+	RESET_COMMENT_FORM
 } from "./mutations-types";
 
-import {getCommentListByQuery, submitComment} from "@/api/comment";
-import {clearSession} from "@/auth/session";
+import {getCommentListByQuery, getInternalCommentList, submitComment} from "@/api/comment";
+import {clearSession, readToken} from "@/auth/session";
 import {ElMessage, ElNotification} from "element-plus";
 import router from "../router";
 import tvMapper from '@/plugins/tvMapper.json'
@@ -26,10 +24,6 @@ function escapeCommentHtml(value) {
 
 export default {
 	getCommentList({commit, rootState}) {
-		//密码保护的文章，需要发送密码验证通过后保存在localStorage的Token
-		const blogToken = window.localStorage.getItem(`blog${rootState.commentQuery.blogId}`)
-		const token = blogToken ? blogToken : ''
-
 		function replaceEmoji(comment, emoji) {
 			comment.content = comment.content.replace(new RegExp(emoji.reg, 'g'), `<img src="${emoji.src}">`)
 		}
@@ -46,7 +40,10 @@ export default {
 			})
 		}
 
-		getCommentListByQuery(token, rootState.commentQuery).then(res => {
+		const request = rootState.commentQuery.internal
+			? getInternalCommentList(readToken(), rootState.commentQuery)
+			: getCommentListByQuery(rootState.commentQuery)
+		request.then(res => {
 			if (res.code === 200) {
 				res.data.comments.list.forEach(comment => {
 					//转义评论中的html
@@ -75,7 +72,7 @@ export default {
 		form.page = rootState.commentQuery.page
 		form.blogId = rootState.commentQuery.blogId
 		form.parentCommentId = rootState.parentCommentId
-		submitComment(token, form).then(res => {
+		return submitComment(token, form).then(res => {
 			if (res.code === 200) {
 				ElNotification({
 					title: res.msg,
@@ -99,26 +96,18 @@ export default {
 					message: '登录状态已失效，请重新登录',
 					type: 'error'
 				})
-				window.location.replace('/training/login')
-				return
-			}
-			ElNotification({
-				title: '评论失败',
-				message: '异常错误',
-				type: 'error'
+					const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`
+					window.location.replace(`/training/login?returnTo=${encodeURIComponent(returnTo)}`)
+					return
+				}
+				ElNotification({
+					title: '评论失败',
+					message: error?.response?.data?.msg || (error?.response?.status === 403 ? '当前文章不允许评论' : '评论发送失败'),
+					type: 'error'
 			})
 		})
 	},
-	goBlogPage({commit}, blog) {
-		if (blog.privacy) {
-			const blogToken = window.localStorage.getItem(`blog${blog.id}`)
-			if (blogToken) {
-				return router.push(`/blog/${blog.id}`)
-			}
-			commit(SET_BLOG_PASSWORD_FORM, {blogId: blog.id, password: ''})
-			commit(SET_BLOG_PASSWORD_DIALOG_VISIBLE, true)
-		} else {
-			router.push(`/blog/${blog.id}`)
-		}
+	goBlogPage(context, blog) {
+		return router.push(`/blog/${blog.id}`)
 	},
 }

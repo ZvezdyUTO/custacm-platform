@@ -14,6 +14,9 @@ import org.commonmark.renderer.html.AttributeProvider;
 import org.commonmark.renderer.html.AttributeProviderContext;
 import org.commonmark.renderer.html.AttributeProviderFactory;
 import org.commonmark.renderer.html.HtmlRenderer;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.safety.Safelist;
 import top.naccl.util.markdown.ext.heimu.HeimuExtension;
 import top.naccl.util.markdown.ext.cover.CoverExtension;
 
@@ -29,6 +32,20 @@ import java.util.Set;
  * @Date: 2020-04-29
  */
 public class MarkdownUtils {
+	private static final Safelist HTML_SAFELIST = Safelist.relaxed()
+			.addTags("del", "s", "span", "input")
+			.addAttributes("a", "class", "target", "rel")
+			.addAttributes("h1", "id").addAttributes("h2", "id").addAttributes("h3", "id")
+			.addAttributes("h4", "id").addAttributes("h5", "id").addAttributes("h6", "id")
+			.addAttributes("img", "data-src", "loading", "decoding")
+			.addAttributes("table", "class")
+			.addAttributes("span", "class")
+			.addAttributes("input", "type", "checked", "disabled")
+			.addProtocols("a", "href", "http", "https", "mailto")
+			.addProtocols("img", "src", "http", "https")
+			.addProtocols("img", "data-src", "http", "https")
+			.preserveRelativeLinks(true);
+	private static final Document.OutputSettings HTML_OUTPUT_SETTINGS = new Document.OutputSettings().prettyPrint(false);
 	//为h标签生成id 供tocbot目录生成
 	private static final Set<Extension> headingAnchorExtensions = Collections.singleton(HeadingAnchorExtension.create());
 	//转换table的HTML
@@ -103,7 +120,7 @@ public class MarkdownUtils {
 		Parser parser = Parser.builder().build();
 		Node document = parser.parse(markdown);
 		HtmlRenderer renderer = HtmlRenderer.builder().build();
-		return renderer.render(document);
+		return sanitize(renderer.render(document));
 	}
 
 	/**
@@ -111,10 +128,10 @@ public class MarkdownUtils {
 	 */
 	public static String markdownToHtmlExtensions(String markdown) {
 		Node document = parser.parse(markdown);
-		return renderer.render(document);
+		return sanitize(renderer.render(document));
 	}
 
-	public static void main(String[] args) {
-		System.out.println(markdownToHtmlExtensions(""));
+	private static String sanitize(String html) {
+		return Jsoup.clean(html, "https://localhost/", HTML_SAFELIST, HTML_OUTPUT_SETTINGS);
 	}
 }

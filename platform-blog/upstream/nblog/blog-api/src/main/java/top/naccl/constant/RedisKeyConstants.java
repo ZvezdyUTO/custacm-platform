@@ -36,10 +36,6 @@ public class RedisKeyConstants {
 	 */
 	public static final String FRIEND_INFO_MAP = "friendInfoMap";
 	/**
-	 * 博客归档key
-	 */
-	public static final String ARCHIVE_BLOG_MAP = "archiveBlogMap";
-	/**
 	 * 博客访问量key
 	 */
 	public static final String BLOG_VIEWS_MAP = "blogViewsMap";

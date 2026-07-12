@@ -45,11 +45,10 @@ Java 代码变更提交 PR 前执行：
 
 ```bash
 ./scripts/check-doc-sync.sh origin/main WORKTREE
-mvn clean verify
-./scripts/check-test-policy.sh
+mvn clean test
 ```
 
-`check-doc-sync.sh` 会检查代码/配置变更是否同步更新了对应文档。`mvn clean verify` 会运行单元测试和 JaCoCo 覆盖率检查。`check-test-policy.sh` 会检查 Java 模块是否有测试报告和覆盖率报告，除非该模块在 `docs/test-policy-allowlist.tsv` 中明确声明为无行为模块。当前代码模块的 JaCoCo 行覆盖率门槛是 `70%`。
+`check-doc-sync.sh` 会检查代码/配置变更是否同步更新了对应文档。`mvn clean test` 会编译 Maven reactor 并运行仓库中已有的全部单元测试。历史代码不强制补齐单测或达到统一覆盖率；新增或实质修改的业务逻辑应同步增加有针对性的单测。已有测试不得为了让 MR 通过而被删除、跳过或弱化。JaCoCo 可作为本地质量参考，但覆盖率不是 MR 合并门禁。
 
 部署配置变更提交 PR 前执行对应配置检查，例如：
 

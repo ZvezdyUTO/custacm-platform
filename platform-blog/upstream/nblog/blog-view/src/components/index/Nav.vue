@@ -19,36 +19,40 @@
 					</el-dropdown-menu>
 				</template>
 			</el-dropdown>
-			<router-link to="/archives" class="item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='archives'}">
-				<i class="clone icon"></i>归档
-			</router-link>
 			<router-link to="/moments" class="item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='moments'}">
 				<i class="comment alternate outline icon"></i>动态
 			</router-link>
-			<el-dropdown trigger="hover" :class="{'m-mobile-hide': mobileHide}">
-				<router-link to="/training/multiple" class="el-dropdown-link item" :class="{'active':$route.name==='training'}">
+			<el-dropdown class="nav-training-dropdown" trigger="click" :class="{'m-mobile-hide': mobileHide}" @command="trainingRoute">
+				<button type="button" class="el-dropdown-link item nav-training-trigger" :class="{'active':$route.name==='training'}">
 					<i class="chart bar icon"></i>训练中心<i class="caret down icon"></i>
-				</router-link>
+				</button>
 				<template #dropdown>
 					<el-dropdown-menu>
-						<el-dropdown-item><router-link to="/training/multiple">多人统计</router-link></el-dropdown-item>
-						<el-dropdown-item><router-link to="/training/single">单人查询</router-link></el-dropdown-item>
-						<el-dropdown-item><router-link to="/training/problem">题目查询</router-link></el-dropdown-item>
+						<el-dropdown-item command="multiple">多人统计</el-dropdown-item>
+						<el-dropdown-item command="single">单人查询</el-dropdown-item>
+						<el-dropdown-item command="problem">题目查询</el-dropdown-item>
 					</el-dropdown-menu>
 				</template>
-			</el-dropdown>
-			<el-autocomplete v-model="queryString" :fetch-suggestions="debounceQuery" placeholder="Search..."
-			                 class="right item m-search" :class="{'m-mobile-hide': mobileHide}"
-			                 popper-class="m-search-item" @select="handleSelect">
-				<template #suffix>
-					<i class="search icon el-input__icon"></i>
-				</template>
-				<template #default="{ item }">
-					<div class="title">{{ item.title }}</div>
-					<span class="content">{{ item.content }}</span>
-				</template>
-			</el-autocomplete>
-			<router-link v-if="!authUser" to="/training/login" class="item" :class="{'m-mobile-hide': mobileHide}">
+				</el-dropdown>
+				<router-link v-if="authUser" to="/write" class="item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='write'}">
+					<i class="pencil alternate icon"></i>发布文章
+				</router-link>
+			<div class="right item m-search" :class="{'m-mobile-hide': mobileHide}">
+				<el-input v-model="queryString" placeholder="搜索文章" aria-label="搜索文章"
+				          @input="handleSearchInput" @keyup.enter="submitSearch" @blur="closeSearchResults">
+					<template #suffix>
+						<i :class="[searchLoading ? 'spinner loading' : 'search', 'icon', 'el-input__icon']"></i>
+					</template>
+				</el-input>
+				<div v-if="searchOpen" class="m-search-item m-search-panel">
+					<button v-for="item in queryResult" :key="item.id || item.title" type="button"
+					        :disabled="!item.id" @mousedown.prevent="handleSelect(item)">
+						<span class="title">{{ item.title }}</span>
+						<span v-if="item.content" class="content">{{ item.content }}</span>
+					</button>
+				</div>
+			</div>
+			<router-link v-if="!authUser" :to="loginTarget" class="item" :class="{'m-mobile-hide': mobileHide}">
 				<i class="user outline icon"></i>登录
 			</router-link>
 			<el-dropdown v-else trigger="click" :class="{'m-mobile-hide': mobileHide}" @command="accountCommand">
@@ -97,11 +101,16 @@
 				mobileHide: true,
 				queryString: '',
 				queryResult: [],
-				timer: null
+				searchOpen: false,
+				searchLoading: false,
+				searchRequestId: 0
 			}
 		},
 		computed: {
 			...mapState(['clientSize']),
+			loginTarget() {
+				return {path: '/training/login', query: {returnTo: this.$route.fullPath || '/home'}}
+			},
 			accountItems() {
 				return accountMenuItems(this.authUser)
 			}
@@ -172,35 +181,50 @@
 			categoryRoute(name) {
 				this.$router.push(`/category/${name}`)
 			},
-			debounceQuery(queryString, callback) {
-				this.timer && clearTimeout(this.timer)
-				this.timer = setTimeout(() => this.querySearchAsync(queryString, callback), 1000)
+			trainingRoute(path) {
+				this.$router.push(`/training/${path}`)
 			},
-			querySearchAsync(queryString, callback) {
-				if (queryString == null
-						|| queryString.trim() === ''
-						|| queryString.indexOf('%') !== -1
-						|| queryString.indexOf('_') !== -1
-						|| queryString.indexOf('[') !== -1
-						|| queryString.indexOf('#') !== -1
-						|| queryString.indexOf('*') !== -1
-						|| queryString.trim().length > 20) {
-					return
+			handleSearchInput() {
+				this.searchRequestId += 1
+				this.searchLoading = false
+				this.searchOpen = false
+			},
+			closeSearchResults() {
+				this.searchOpen = false
+			},
+			submitSearch() {
+				const query = this.queryString.trim()
+				this.searchOpen = false
+				if (query === ''
+						|| query.indexOf('%') !== -1
+						|| query.indexOf('_') !== -1
+						|| query.indexOf('[') !== -1
+						|| query.indexOf('#') !== -1
+						|| query.indexOf('*') !== -1
+						|| query.length > 20) {
+					return Promise.resolve()
 				}
-				getSearchBlogList(queryString).then(res => {
+				const requestId = ++this.searchRequestId
+				this.searchLoading = true
+				return getSearchBlogList(query).then(res => {
+					if (requestId !== this.searchRequestId) return
 					if (res.code === 200) {
-						this.queryResult = res.data
+						this.queryResult = Array.isArray(res.data) ? res.data : []
 						if (this.queryResult.length === 0) {
 							this.queryResult.push({title: '无相关搜索结果'})
 						}
-						callback(this.queryResult)
+						this.searchOpen = true
 					}
 				}).catch(() => {
+					if (requestId !== this.searchRequestId) return
 					this.msgError("请求失败")
+				}).finally(() => {
+					if (requestId === this.searchRequestId) this.searchLoading = false
 				})
 			},
 			handleSelect(item) {
 				if (item.id) {
+					this.searchOpen = false
 					this.$router.push(`/blog/${item.id}`)
 				}
 			}
@@ -255,6 +279,14 @@
 		background: transparent !important;
 	}
 
+	.ui.inverted.pointing.menu.transparent .ui.container > .item:not(.nav-brand):not(.m-search),
+	.ui.inverted.pointing.menu.transparent .el-dropdown-link.item,
+	.ui.inverted.pointing.menu.transparent .nav-auth-trigger {
+		-webkit-text-stroke: .35px rgba(13, 20, 26, .9);
+		paint-order: stroke fill;
+		text-shadow: 0 1px 2px rgba(13, 20, 26, .72), 0 0 1px rgba(13, 20, 26, .9);
+	}
+
 	.ui.inverted.pointing.menu.transparent .active.item:after {
 		background: transparent !important;
 		transition: .3s ease-out;
@@ -269,6 +301,13 @@
 		outline-color: unset !important;
 		height: 100%;
 		cursor: pointer;
+	}
+
+	.nav-training-trigger {
+		border: 0;
+		background: transparent;
+		color: inherit;
+		font: inherit;
 	}
 
 	.el-dropdown-menu {
@@ -341,6 +380,7 @@
 	}
 
 	.m-search {
+		position: relative;
 		width: 220px;
 		min-width: 220px;
 		margin-left: auto !important;
@@ -348,33 +388,66 @@
 	}
 
 	.m-search input {
-		color: rgba(255, 255, 255, .9);;
+		color: #1f2933 !important;
 		border: 0px !important;
-		background-color: inherit;
-		padding: .67857143em 2.1em .67857143em 1em;
+		background-color: #fff;
+		padding: .67857143em .25em .67857143em .85em;
+	}
+
+	.m-search input::placeholder {
+		color: #909399;
+		font-size: 13px;
 	}
 
 	.m-search i {
-		color: rgba(255, 255, 255, .9) !important;
+		color: #606266 !important;
 	}
 
 	.m-search-item {
 		min-width: 350px !important;
 	}
 
-	.m-search-item li {
-		line-height: normal !important;
-		padding: 8px 10px !important;
+	.m-search-panel {
+		position: absolute;
+		top: calc(100% + 8px);
+		right: 0;
+		z-index: 2100;
+		overflow: hidden;
+		border: 1px solid #e4e7ed;
+		border-radius: 4px;
+		background: #fff;
+		box-shadow: 0 6px 18px rgba(0, 0, 0, .14);
 	}
 
-	.m-search-item li .title {
+	.m-search-panel button {
+		display: block;
+		width: 100%;
+		border: 0;
+		background: #fff;
+		padding: 9px 12px;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.m-search-panel button:hover:not(:disabled) {
+		background: #f5f7fa;
+	}
+
+	.m-search-panel button:disabled {
+		cursor: default;
+	}
+
+	.m-search-panel .title {
+		display: block;
 		text-overflow: ellipsis;
 		overflow: hidden;
 		color: rgba(0, 0, 0, 0.87);
 	}
 
-	.m-search-item li .content {
+	.m-search-panel .content {
+		display: block;
 		text-overflow: ellipsis;
+		overflow: hidden;
 		font-size: 12px;
 		color: rgba(0, 0, 0, .70);
 	}

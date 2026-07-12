@@ -24,9 +24,15 @@ describe('admin training collection', () => {
     } as unknown as ReturnType<typeof usePlatformDashboard>;
     const wrapper = mount(TrainingDataOpsPanel, { props: { dashboard } });
 
+    expect(wrapper.get('.collection-member-identity strong').text()).toBe('ui-test-jiangly·临时测试');
+
     await wrapper.get('.collection-member-row .primary-button').trigger('click');
+    expect(wrapper.get('[role="alertdialog"]').text()).toContain('ui-test-jiangly · 临时测试');
+    expect(batchCollectSubmissions).not.toHaveBeenCalled();
+    await wrapper.get('.confirm-collection-button').trigger('click');
     await wrapper.get('.collection-reference-controls select').setValue('ATCODER');
     await wrapper.get('.collection-member-row .primary-button').trigger('click');
+    await wrapper.get('.confirm-collection-button').trigger('click');
 
     expect(batchCollectSubmissions).toHaveBeenNthCalledWith(1, {
       usernames: ['ui-test-jiangly'], lookbackHours: 1_000_000_000, ojName: 'CODEFORCES', refreshWarehouse: true,
@@ -37,7 +43,6 @@ describe('admin training collection', () => {
   });
 
   it('accepts the numeric value emitted by the all-users lookback input', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const batchCollectSubmissions = vi.fn().mockResolvedValue(undefined);
     const dashboard = {
       adminUsers: ref([{
@@ -50,6 +55,11 @@ describe('admin training collection', () => {
 
     await wrapper.get('.collection-reference-controls input').setValue(14400);
     await wrapper.get('.collect-all-button').trigger('click');
+
+    expect(wrapper.get('[role="alertdialog"]').text()).toContain('全部 1 名队员');
+    expect(wrapper.get('[role="alertdialog"]').text()).toContain('最近 14400 小时');
+    expect(batchCollectSubmissions).not.toHaveBeenCalled();
+    await wrapper.get('.confirm-collection-button').trigger('click');
 
     expect(batchCollectSubmissions).toHaveBeenCalledWith({
       usernames: ['ui-test-jiangly'], lookbackHours: 14400, ojName: 'CODEFORCES', refreshWarehouse: true,

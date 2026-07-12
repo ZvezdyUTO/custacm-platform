@@ -1,0 +1,37 @@
+/* Author: huangbingrui.awa */
+.article-admin-header { margin-bottom: 22px; }
+.article-admin-filters { display: grid; grid-template-columns: minmax(280px, 1fr) 220px auto; align-items: end; gap: 14px; margin-bottom: 18px; padding: 18px; border: 1px solid var(--admin-border); background: var(--admin-surface, #fff); }
+.article-admin-filters label { display: grid; gap: 7px; color: var(--admin-text-muted); font-size: 13px; font-weight: 700; }
+.article-admin-filters input, .article-admin-filters select { height: 42px; border: 1px solid var(--admin-border); background: #fff; padding: 0 12px; color: var(--admin-text); font: inherit; }
+.article-admin-filters button { height: 42px; }
+.article-admin-list { overflow: hidden; border: 1px solid var(--admin-border); background: #fff; }
+.article-admin-card { display: grid; grid-template-columns: 112px minmax(0, 1fr) 90px 226px; align-items: center; gap: 18px; min-height: 92px; padding: 14px 18px; border-bottom: 1px solid var(--admin-divider); }
+.article-admin-card:last-child { border-bottom: 0; }
+.article-admin-cover { display: grid; width: 112px; height: 63px; place-items: center; overflow: hidden; background: #f0eceb; color: #9b8e8b; }
+.article-admin-cover img { width: 100%; height: 100%; object-fit: cover; }
+.article-admin-info { min-width: 0; }
+.article-admin-title { display: flex; align-items: center; gap: 8px; }
+.article-admin-title strong { overflow: hidden; color: var(--admin-text); font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.article-admin-title span { flex: 0 0 auto; border-radius: 999px; background: #f2dfd7; padding: 3px 7px; color: #8c473c; font-size: 11px; }
+.article-admin-info p { margin: 8px 0 0; color: var(--admin-text-muted); font-size: 12px; }
+.article-publish-state { color: #9a746e; font-size: 12px; font-weight: 700; }
+.article-publish-state.is-published { color: #28794d; }
+.featured-toggle { display: inline-flex; height: 38px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #b9a29e; background: #fff; color: #76534d; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.featured-toggle.is-featured { border-color: #8d473f; background: #8d473f; color: #fff; }
+.featured-toggle:disabled { cursor: not-allowed; opacity: .5; }
+.article-admin-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.article-delete-button { display: inline-flex; height: 38px; align-items: center; justify-content: center; gap: 6px; border: 1px solid #bd7a72; background: #fff; padding: 0 12px; color: #9d3c35; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.article-delete-button:disabled { cursor: not-allowed; opacity: .5; }
+.article-delete-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; background: rgb(24 15 15 / 58%); padding: 24px; }
+.article-delete-dialog { display: grid; width: min(520px, 100%); grid-template-columns: auto 1fr; gap: 16px; border: 1px solid #b44c43; background: #fff; padding: 26px; box-shadow: 0 20px 60px rgb(36 14 14 / 28%); }
+.article-delete-warning-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: #fbe8e5; color: #a43129; }
+.article-delete-dialog h3 { margin: 2px 0 8px; color: #351b19; font-size: 19px; }
+.article-delete-dialog p { margin: 0; color: #735b57; font-size: 14px; line-height: 1.7; }
+.article-delete-dialog-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+.article-delete-dialog-actions button { height: 40px; border: 1px solid var(--admin-border); background: #fff; padding: 0 16px; color: var(--admin-text); font: inherit; font-weight: 700; cursor: pointer; }
+.article-delete-dialog-actions .confirm-delete-button { border-color: #9d3028; background: #9d3028; color: #fff; }
+.article-delete-dialog-actions button:disabled { cursor: not-allowed; opacity: .5; }
+.article-admin-empty { margin: 0; padding: 42px; color: var(--admin-text-muted); text-align: center; }
+.article-admin-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 16px; color: var(--admin-text-muted); font-size: 13px; }
+.article-admin-pagination button { border: 1px solid var(--admin-border); background: #fff; padding: 8px 13px; color: var(--admin-text); cursor: pointer; }
+@media (max-width: 1100px) { .article-admin-card { grid-template-columns: 96px minmax(0, 1fr) 70px 210px; gap: 12px; } .article-admin-cover { width: 96px; height: 54px; } }

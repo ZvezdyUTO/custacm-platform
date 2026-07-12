@@ -11,7 +11,7 @@ src/main/java/com/custacm/platform/trainingdata/codeforces/
   domain/  batch、ODS record、parser/writer/source port
   infra/   REST client、Jackson parser、JDBC writer/purge/interval adapter
 src/main/resources/
-  db/migration/  Codeforces ODS 与历史演进迁移
+  db/migration/  Codeforces 专属 ODS 与历史演进迁移
   fixtures/      本地 API fixture
   sql/           ODS upsert、DWD/DWM/DWS 清洗和 task manifest
 src/test/        parser、collector、JDBC、SQL task 和配置测试
@@ -39,7 +39,7 @@ src/test/        parser、collector、JDBC、SQL task 和配置测试
 | `infra/JdbcCodeforcesOdsSubmissionWriter.java` | 执行幂等 ODS upsert。 |
 | `infra/JdbcCodeforcesOdsDataPurgeRepository.java` | 删除指定 handle 的 Codeforces ODS。 |
 | `infra/JdbcCodeforcesWarehouseRefreshIntervalRepository.java` | 按 `fetched_at DESC, id DESC` 选择最新可计算时间的 ODS batch，并从指定 batch 推导 warehouse 刷新区间。 |
-| `src/main/resources/db/migration/` | Codeforces ODS、索引、handle 历史和仓库迁移。 |
+| `src/main/resources/db/migration/` | Codeforces 专属 ODS、索引、单 OJ handle 前置历史和仓库迁移；提升为共享 `oj_handle_account` 的 V018 归 `training-data-common`。 |
 | `src/main/resources/sql/` | ODS upsert、DWD/DWM/DWS 幂等刷新与 manifest。 |
 | `src/main/resources/fixtures/codeforces/` | 可重复的本地源数据及来源说明。 |
 | `src/test/` | 生产路径对应的聚焦测试。 |

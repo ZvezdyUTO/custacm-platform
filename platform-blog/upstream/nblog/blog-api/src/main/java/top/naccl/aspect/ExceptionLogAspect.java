@@ -13,14 +13,11 @@ import top.naccl.annotation.OperationLogger;
 import top.naccl.annotation.VisitLogger;
 import top.naccl.entity.ExceptionLog;
 import top.naccl.service.ExceptionLogService;
-import top.naccl.util.AopUtils;
 import top.naccl.util.IpAddressUtils;
-import top.naccl.util.JacksonUtils;
 import top.naccl.util.StringUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
-import java.util.Map;
 
 /**
  * @Description: AOP记录异常日志
@@ -61,8 +58,6 @@ public class ExceptionLogAspect {
 		String description = getDescriptionFromAnnotations(joinPoint);
 		String error = StringUtils.getStackTrace(e);
 		ExceptionLog log = new ExceptionLog(uri, method, description, error, ip, userAgent);
-		Map<String, Object> requestParams = AopUtils.getRequestParams(joinPoint);
-		log.setParam(StringUtils.substring(JacksonUtils.writeValueAsString(requestParams), 0, 2000));
 		return log;
 	}
 

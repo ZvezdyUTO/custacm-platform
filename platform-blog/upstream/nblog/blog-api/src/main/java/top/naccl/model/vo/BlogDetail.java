@@ -21,11 +21,13 @@ import java.util.List;
 @Setter
 @ToString
 public class BlogDetail {
+	private String authorUsername;
 	private String authorNickname;
 	private String authorAvatar;
 	private Long id;
 	private String title;//文章标题
 	private String content;//文章正文
+	private Boolean internal;//仅登录用户可见
 	private Boolean appreciation;//赞赏开关
 	private Boolean commentEnabled;//评论开关
 	private Boolean top;//是否置顶
@@ -34,7 +36,6 @@ public class BlogDetail {
 	private Integer views;//浏览次数
 	private Integer words;//文章字数
 	private Integer readTime;//阅读时长(分钟)
-	private String password;//密码保护
 
 	private Category category;//文章分类
 	private List<Tag> tags = new ArrayList<>();//文章标签

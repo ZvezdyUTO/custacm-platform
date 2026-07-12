@@ -64,7 +64,7 @@
 				<el-switch v-model="commentForm.notice"></el-switch>
 			</el-form-item>
 			<el-form-item>
-				<el-button type="primary" v-throttle="[postForm,`click`,3000]">发表评论</el-button>
+					<el-button type="primary" :disabled="submitting" v-throttle="[postForm,`click`,3000]">{{ submitting ? '发送中…' : '发表评论' }}</el-button>
 			</el-form-item>
 		</el-form>
 	</div>
@@ -112,7 +112,8 @@
 				tvMapper: [],
 				aruMapper: [],
 				paopaoMapper: [],
-				textarea: null,
+					textarea: null,
+					submitting: false,
 				start: 0,
 				end: 0,
 			}
@@ -148,13 +149,15 @@
 				this.textarea.focus()
 				this.textarea.setSelectionRange(this.start, this.end)
 			},
-			postForm() {
-				const token = readToken()
-				if (!token || this.commentForm.content === '' || this.commentForm.content.length > 250) {
-					return this.$notify({title: '评论失败', message: token ? '评论内容有误' : '请先登录', type: 'warning'})
+				async postForm() {
+					const token = readToken()
+					if (this.submitting || !token || this.commentForm.content === '' || this.commentForm.content.length > 250) {
+						return this.$notify({title: '评论失败', message: token ? '评论内容有误' : '请先登录', type: 'warning'})
+					}
+					this.submitting = true
+					try { await this.$store.dispatch('submitCommentForm', token) }
+					finally { this.submitting = false }
 				}
-				this.$store.dispatch('submitCommentForm', token)
-			}
 		}
 	}
 </script>

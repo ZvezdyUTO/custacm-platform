@@ -7,7 +7,6 @@ public record AdminUserCreateRequest(
         String password,
         String nickname,
         String email,
-        String avatar,
         String role,
         Map<String, String> handles,
         Boolean needCollect

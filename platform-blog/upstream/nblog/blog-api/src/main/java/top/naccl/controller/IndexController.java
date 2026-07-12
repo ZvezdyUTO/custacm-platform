@@ -34,7 +34,7 @@ public class IndexController {
 	TagService tagService;
 
 	/**
-	 * 获取站点配置信息、最新推荐博客、分类列表、标签云、随机博客
+	 * 获取站点配置信息、最新推荐博客、分类列表、标签云、精选文章
 	 *
 	 * @return
 	 */
@@ -44,11 +44,11 @@ public class IndexController {
 		List<NewBlog> newBlogList = blogService.getNewBlogListByIsPublished();
 		List<Category> categoryList = categoryService.getCategoryNameList();
 		List<Tag> tagList = tagService.getTagListNotId();
-		List<RandomBlog> randomBlogList = blogService.getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend();
+		List<RandomBlog> featuredBlogList = blogService.getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend();
 		map.put("newBlogList", newBlogList);
 		map.put("categoryList", categoryList);
 		map.put("tagList", tagList);
-		map.put("randomBlogList", randomBlogList);
+		map.put("featuredBlogList", featuredBlogList);
 		return Result.ok("请求成功", map);
 	}
 }

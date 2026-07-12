@@ -137,7 +137,7 @@ class OjHandleAccountServiceTest {
     }
 
     @Test
-    void resetsCollectionStateWhenOjHandleChanges() {
+    void rejectsHandleReplacementThroughRegularUpdate() {
         OjHandleAccount created = service.create("112487张三", Map.of(OjNames.CODEFORCES, "tourist"));
         repository.accountsByIdentity.put("112487张三", new OjHandleAccount(
                 created.username(),
@@ -151,12 +151,29 @@ class OjHandleAccountServiceTest {
                 created.updatedAt()
         ));
 
-        OjHandleAccount changed = service.changeUsername(
+        assertThatThrownBy(() -> service.changeUsername(
                 "112487张三",
                 "112487张三",
                 null,
                 Map.of(OjNames.CODEFORCES, "Benq")
-        );
+        )).isInstanceOfSatisfying(OjHandleAccountException.class, ex ->
+                assertThat(ex.errorCode()).isEqualTo(
+                        OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_REPLACEMENT_REQUIRES_PURGE
+                ));
+    }
+
+    @Test
+    void replacesHandleAfterPurgeAndResetsCollectionState() {
+        OjHandleAccount created = service.create("112487张三", Map.of(OjNames.CODEFORCES, "tourist"));
+        repository.accountsByIdentity.put("112487张三", new OjHandleAccount(
+                created.username(), created.handles(), created.needCollect(),
+                Map.of(OjNames.CODEFORCES,
+                        new OjHandleCollectionState(true, Instant.parse("2026-07-04T00:00:00Z"))),
+                created.createdAt(), created.updatedAt()
+        ));
+
+        OjHandleAccount changed = service.replaceHandleAfterPurge(
+                "112487张三", OjNames.CODEFORCES, "Benq");
 
         assertThat(changed.handles().get(OjNames.CODEFORCES)).isEqualTo("Benq");
         assertThat(changed.collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isFalse();

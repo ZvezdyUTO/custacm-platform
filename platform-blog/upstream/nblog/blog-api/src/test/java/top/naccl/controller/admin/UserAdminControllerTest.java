@@ -8,10 +8,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import top.naccl.service.impl.AdminUserService;
+import top.naccl.model.dto.OjHandleReplaceRequest;
 
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -41,5 +43,18 @@ class UserAdminControllerTest {
                 .andExpect(status().isOk());
 
         verify(userService).batchCreate(List.of());
+    }
+
+    @Test
+    void replaceHandleUsesDedicatedHighRiskRoute() throws Exception {
+        mockMvc.perform(post("/admin/users/player/oj-handles:replace")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ojName\":\"CODEFORCES\",\"newHandle\":\"Benq\"}"))
+                .andExpect(status().isOk());
+
+        verify(userService).replaceHandle(
+                eq("player"),
+                eq(new OjHandleReplaceRequest("CODEFORCES", "Benq"))
+        );
     }
 }

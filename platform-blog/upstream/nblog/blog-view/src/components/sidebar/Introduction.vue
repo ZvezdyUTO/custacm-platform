@@ -1,23 +1,24 @@
 <template>
 	<div class="ui segments m-box profile-card">
-		<div v-if="authUser" class="ui card">
+		<div v-if="displayProfile" class="ui card">
 			<div class="profile-avatar-shell">
 				<button
 					type="button"
 					class="profile-avatar-button"
-					:aria-label="isProfilePage ? '更换头像' : '进入个人页面'"
+					:aria-label="authorUsername ? '文章作者头像' : (isProfilePage ? '更换头像' : '进入个人页面')"
+					:disabled="Boolean(authorUsername)"
 					@click="handleAvatarClick"
 				>
-					<img :src="avatarSrc" :alt="`${authUser.nickname || authUser.username} 的头像`">
-					<span class="avatar-action">{{ isProfilePage ? '更换头像' : '个人页面' }}</span>
+					<img :src="avatarSrc" :alt="`${displayProfile.nickname || displayProfile.username} 的头像`">
+					<span v-if="!authorUsername" class="avatar-action">{{ isProfilePage ? '更换头像' : '个人页面' }}</span>
 				</button>
 				<input ref="fileInput" class="visually-hidden" type="file" accept="image/png,image/jpeg" @change="selectAvatar">
 			</div>
 			<div class="content profile-identity" align="center">
-				<div class="header">{{ authUser.nickname || authUser.username }}</div>
-				<div class="profile-username">@{{ authUser.username }}</div>
-				<p class="profile-signature" :class="{'is-empty': !authUser.signature}">
-					{{ authUser.signature || '还没有个性签名' }}
+				<div class="header">{{ displayProfile.nickname || displayProfile.username }}</div>
+				<div class="profile-username">@{{ displayProfile.username }}</div>
+				<p class="profile-signature" :class="{'is-empty': !displayProfile.signature}">
+					{{ displayProfile.signature || '还没有个性签名' }}
 				</p>
 			</div>
 		</div>
@@ -29,7 +30,7 @@
 				<router-link to="/training/login?returnTo=/about" class="ui button profile-login">登录训练中心</router-link>
 			</div>
 		</div>
-		<div v-if="authUser" class="ui segment profile-notes">
+		<div v-if="displayProfile" class="ui segment profile-notes">
 			<div class="profile-links-heading">
 				<span>友情链接</span>
 				<small>{{ profileLinks.length }}/8</small>
@@ -50,28 +51,42 @@
 <script>
 	// Author: huangbingrui.awa
 	import AvatarCropDialog from '@/components/profile/AvatarCropDialog.vue'
-	import {getCurrentProfile, updateCurrentAvatar} from '@/api/profile'
+	import {getCurrentProfile, getPublicProfile, updateCurrentAvatar} from '@/api/profile'
 	import {readToken, readUser, SESSION_CHANGE_EVENT, writeUser} from '@/auth/session'
 
 	export default {
 		name: 'Introduction',
 		components: {AvatarCropDialog},
+		props: {
+			authorUsername: {type: String, default: ''},
+			authorSummary: {type: Object, default: null},
+		},
 		data() {
 			return {
 				authUser: readUser(),
+				authorProfile: null,
 				saving: false,
 				errorMessage: '',
 			}
 		},
 		computed: {
+			displayProfile() {
+				return this.authorUsername ? (this.authorProfile || this.authorSummary) : this.authUser
+			},
 			isProfilePage() {
 				return this.$route.name === 'about'
 			},
 			avatarSrc() {
-				return this.authUser?.avatar || '/img/avatar.jpg'
+				return this.displayProfile?.avatar || '/img/default-avatar.jpg'
 			},
 			profileLinks() {
-				return Array.isArray(this.authUser?.links) ? this.authUser.links : []
+				return Array.isArray(this.displayProfile?.links) ? this.displayProfile.links : []
+			},
+		},
+		watch: {
+			authorUsername: {
+				immediate: true,
+				handler() { this.loadAuthorProfile() },
 			},
 		},
 		mounted() {
@@ -84,6 +99,17 @@
 			window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshUser)
 		},
 		methods: {
+			async loadAuthorProfile() {
+				const username = this.authorUsername
+				this.authorProfile = null
+				if (!username) return
+				try {
+					const profile = await getPublicProfile(username)
+					if (this.authorUsername === username) this.authorProfile = profile
+				} catch {
+					// The article remains readable if its author profile is temporarily unavailable.
+				}
+			},
 			async loadProfile() {
 				const token = readToken()
 				if (!token) return
@@ -99,6 +125,7 @@
 				this.authUser = readUser()
 			},
 			handleAvatarClick() {
+				if (this.authorUsername) return
 				if (!this.isProfilePage) {
 					this.$router.push('/about')
 					return

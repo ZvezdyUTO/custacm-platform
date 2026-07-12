@@ -39,7 +39,7 @@ import TrainingAdminPanel from '../components/TrainingAdminPanel.vue';
 import TrainingQueryPanel from '../components/TrainingQueryPanel.vue';
 import { useAuthSession } from '../composables/useAuthSession';
 import { usePlatformDashboard } from '../composables/usePlatformDashboard';
-import { safeReturnPath, type AdminSection, type TrainingPage } from '../routing';
+import { navigateToBlogReturnPath, safeReturnPath, type AdminSection, type TrainingPage } from '../routing';
 import type { TrainingQueryMode } from '../types';
 
 // Author: huangbingrui.awa
@@ -80,6 +80,10 @@ watch(() => route.fullPath, (path) => {
 async function signIn(username: string, password: string) {
   const returnTo = safeReturnPath(typeof route.query.returnTo === 'string' ? route.query.returnTo : null);
   await auth.signIn(username, password);
+	if (!returnTo.startsWith('/training')) {
+		navigateToBlogReturnPath(returnTo);
+		return;
+	}
   await router.replace(returnTo.replace(/^\/training/, '') || '/multiple');
 }
 
@@ -100,6 +104,10 @@ function changeAdminSection(section: AdminSection) {
   }
   void router.push(section === 'create'
     ? '/admin/create-users'
+    : section === 'articles'
+      ? '/admin/articles'
+    : section === 'categories'
+      ? '/admin/categories'
     : section === 'training'
       ? '/admin/training'
       : section === 'appearance'

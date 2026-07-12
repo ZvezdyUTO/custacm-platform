@@ -1,10 +1,7 @@
 package top.naccl.controller.player;
 
-import com.custacm.platform.trainingdata.common.app.query.OjAcceptedSummaryQueryService;
-import com.custacm.platform.trainingdata.common.app.query.OjFirstAcceptedProblemQueryService;
-import com.custacm.platform.trainingdata.common.app.query.OjSubmissionQueryService;
+import com.custacm.platform.trainingdata.common.app.query.OjWarehouseQueryFacade;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
-import com.custacm.platform.trainingdata.common.web.query.OjWarehouseQueryController;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,17 +12,14 @@ import top.naccl.service.TrainingUserQueryService;
 @RestController
 @RequestMapping("/player/training-data")
 public class TrainingDataQueryController {
-    private final OjWarehouseQueryController delegate;
+    private final OjWarehouseQueryFacade queryFacade;
     private final TrainingUserQueryService trainingUserQueryService;
 
     public TrainingDataQueryController(
-            OjAcceptedSummaryQueryService acceptedSummaryQueryService,
-            OjSubmissionQueryService submissionQueryService,
-            OjFirstAcceptedProblemQueryService firstAcceptedProblemQueryService,
+            OjWarehouseQueryFacade queryFacade,
             TrainingUserQueryService trainingUserQueryService
     ) {
-        this.delegate = new OjWarehouseQueryController(
-                acceptedSummaryQueryService, submissionQueryService, firstAcceptedProblemQueryService);
+        this.queryFacade = queryFacade;
         this.trainingUserQueryService = trainingUserQueryService;
     }
 
@@ -43,9 +37,9 @@ public class TrainingDataQueryController {
             @RequestParam(required = false) Integer minProblemRating,
             @RequestParam(required = false) Integer maxProblemRating
     ) {
-        return Result.ok("获取成功", delegate.summarizeAcceptedProblems(
+        return Result.ok("获取成功", queryFacade.summarizeAcceptedProblems(
                 ojName, username, acceptedFromDateUtcPlus8, acceptedToDateUtcPlus8,
-                minProblemRating, maxProblemRating).getBody());
+                minProblemRating, maxProblemRating));
     }
 
     @GetMapping("/submissions/by-user")
@@ -59,9 +53,9 @@ public class TrainingDataQueryController {
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer limit
     ) {
-        return Result.ok("获取成功", delegate.listStudentSubmissions(
+        return Result.ok("获取成功", queryFacade.listStudentSubmissions(
                 ojName, username, submittedFromUtcPlus8, submittedToUtcPlus8,
-                minProblemRating, maxProblemRating, page, limit).getBody());
+                minProblemRating, maxProblemRating, page, limit));
     }
 
     @GetMapping("/submissions/by-problem")
@@ -73,8 +67,8 @@ public class TrainingDataQueryController {
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer limit
     ) {
-        return Result.ok("获取成功", delegate.listProblemSubmissions(
-                ojName, problemKey, submittedFromUtcPlus8, submittedToUtcPlus8, page, limit).getBody());
+        return Result.ok("获取成功", queryFacade.listProblemSubmissions(
+                ojName, problemKey, submittedFromUtcPlus8, submittedToUtcPlus8, page, limit));
     }
 
     @GetMapping("/first-accepted/by-user")
@@ -88,9 +82,9 @@ public class TrainingDataQueryController {
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer limit
     ) {
-        return Result.ok("获取成功", delegate.summarizeStudentFirstAcceptedProblems(
+        return Result.ok("获取成功", queryFacade.summarizeStudentFirstAcceptedProblems(
                 ojName, username, firstAcceptedFromUtcPlus8, firstAcceptedToUtcPlus8,
-                minProblemRating, maxProblemRating, page, limit).getBody());
+                minProblemRating, maxProblemRating, page, limit));
     }
 
     @GetMapping("/first-accepted/by-problem")
@@ -102,7 +96,7 @@ public class TrainingDataQueryController {
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer limit
     ) {
-        return Result.ok("获取成功", delegate.summarizeProblemFirstAcceptedHandles(
-                ojName, problemKey, firstAcceptedFromUtcPlus8, firstAcceptedToUtcPlus8, page, limit).getBody());
+        return Result.ok("获取成功", queryFacade.summarizeProblemFirstAcceptedHandles(
+                ojName, problemKey, firstAcceptedFromUtcPlus8, firstAcceptedToUtcPlus8, page, limit));
     }
 }

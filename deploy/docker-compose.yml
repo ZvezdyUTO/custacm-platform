@@ -42,7 +42,6 @@ services:
       BLOG_REDIS_PORT: 6379
       BLOG_TOKEN_SECRET: ${BLOG_TOKEN_SECRET}
       BLOG_TOKEN_TTL_MILLIS: ${BLOG_TOKEN_TTL_MILLIS}
-      BLOG_BOOTSTRAP_ADMIN_USERNAME: ${BLOG_BOOTSTRAP_ADMIN_USERNAME}
       BLOG_BOOTSTRAP_ADMIN_PASSWORD: ${BLOG_BOOTSTRAP_ADMIN_PASSWORD}
       LOG_DIR: /app/logs
     ports:
@@ -67,6 +66,8 @@ services:
       dockerfile: frontend/Dockerfile
     ports:
       - "${FRONTEND_PORT}:80"
+    volumes:
+      - ../uploads:/srv/custacm-uploads:ro
     depends_on:
       blog-api:
         condition: service_healthy

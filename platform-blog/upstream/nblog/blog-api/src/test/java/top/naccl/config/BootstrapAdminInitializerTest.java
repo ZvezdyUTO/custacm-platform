@@ -15,17 +15,19 @@ class BootstrapAdminInitializerTest {
     @Test
     void createsFirstAdminWithoutOverwritingExistingUser() {
         UserMapper mapper = mock(UserMapper.class);
-        BootstrapAdminInitializer initializer = new BootstrapAdminInitializer(mapper, "root-admin", "safe-password");
-        when(mapper.findByUsername("root-admin")).thenReturn(null);
+        BootstrapAdminInitializer initializer = new BootstrapAdminInitializer(mapper, "safe-password");
+        when(mapper.findByUsername("root")).thenReturn(null);
 
         initializer.run(null);
 
-        verify(mapper).insert(argThat(user -> "ROLE_admin".equals(user.getRole())
+        verify(mapper).insert(argThat(user -> "root".equals(user.getUsername())
+                && "ROLE_admin".equals(user.getRole())
+                && "".equals(user.getAvatar())
                 && HashUtils.matchBC("safe-password", user.getPassword())));
 
         User existing = new User();
-        existing.setUsername("root-admin");
-        when(mapper.findByUsername("root-admin")).thenReturn(existing);
+        existing.setUsername("root");
+        when(mapper.findByUsername("root")).thenReturn(existing);
         initializer.run(null);
         verify(mapper, never()).updateAdminFields(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }

@@ -10,7 +10,6 @@ public enum VisitBehavior {
 	UNKNOWN("UNKNOWN", "UNKNOWN"),
 
 	INDEX("访问页面", "首页"),
-	ARCHIVE("访问页面", "归档"),
 	MOMENT("访问页面", "动态"),
 	FRIEND("访问页面", "友链"),
 	ABOUT("访问页面", "关于我"),
@@ -21,7 +20,6 @@ public enum VisitBehavior {
 	SEARCH("搜索博客", ""),
 	CLICK_FRIEND("点击友链", ""),
 	LIKE_MOMENT("点赞动态", ""),
-	CHECK_PASSWORD("校验博客密码", ""),
 	;
 
 	/**

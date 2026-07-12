@@ -5,7 +5,6 @@ import org.springframework.stereotype.Repository;
 import top.naccl.entity.Blog;
 import top.naccl.model.dto.BlogView;
 import top.naccl.model.dto.BlogVisibility;
-import top.naccl.model.vo.ArchiveBlog;
 import top.naccl.model.vo.BlogDetail;
 import top.naccl.model.vo.BlogInfo;
 import top.naccl.model.vo.CategoryBlogCount;
@@ -39,10 +38,6 @@ public interface BlogMapper {
 
 	List<BlogInfo> getBlogInfoListByTagNameAndIsPublished(String tagName);
 
-	List<String> getGroupYearMonthByIsPublished();
-
-	List<ArchiveBlog> getArchiveBlogListByYearMonthAndIsPublished(String yearMonth);
-
 	List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(Integer limitNum);
 
 	List<BlogView> getBlogViewsList();
@@ -71,7 +66,7 @@ public interface BlogMapper {
 
 	BlogDetail getBlogByIdAndIsPublished(Long id);
 
-	String getBlogPassword(Long blogId);
+	BlogDetail getInternalBlogById(Long id);
 
 	int updateBlog(top.naccl.model.dto.Blog blog);
 
@@ -86,6 +81,8 @@ public interface BlogMapper {
 	Boolean getCommentEnabledByBlogId(Long blogId);
 
 	Boolean getPublishedByBlogId(Long blogId);
+
+	Boolean getInternalByBlogId(Long blogId);
 
 	List<CategoryBlogCount> getCategoryBlogCountList();
 }

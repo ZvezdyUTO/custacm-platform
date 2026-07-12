@@ -1,0 +1,25 @@
+/* Author: huangbingrui.awa */
+.category-admin-header { margin-bottom: 22px; }
+.category-create-form { display: grid; align-items: end; gap: 14px; margin-bottom: 18px; padding: 18px; border: 1px solid var(--admin-border); background: #fff; }
+.category-color-form { grid-template-columns: minmax(280px, 1fr) 92px 150px auto; }
+.tag-create-form { grid-template-columns: minmax(280px, 1fr) minmax(260px, .7fr) auto; }
+.tag-create-form p { margin: 0 0 10px; color: var(--admin-text-muted); font-size: 12px; }
+.category-create-form label { display: grid; gap: 7px; color: var(--admin-text-muted); font-size: 13px; font-weight: 700; }
+.category-create-form input, .category-admin-row input { height: 42px; border: 1px solid var(--admin-border); background: #fff; padding: 0 12px; color: var(--admin-text); font: inherit; }
+.category-create-form input[type="color"], .category-admin-row input[type="color"] { width: 70px; padding: 4px; cursor: pointer; }
+.category-create-form button { height: 42px; }
+.category-admin-notice { margin: 0 0 14px; color: #28794d; font-size: 13px; font-weight: 700; }
+.category-admin-list { overflow: hidden; border: 1px solid var(--admin-border); background: #fff; }
+.taxonomy-list-header, .category-admin-row { display: grid; align-items: center; gap: 20px; }
+.taxonomy-list-header { padding: 12px 18px; background: #f6f1f0; color: var(--admin-text-muted); font-size: 12px; font-weight: 700; }
+.category-grid { grid-template-columns: minmax(180px,1fr) 92px minmax(140px,.5fr) 180px; }
+.tag-grid { grid-template-columns: minmax(180px,1fr) 120px; }
+.category-admin-row { min-height: 72px; padding: 14px 18px; border-top: 1px solid var(--admin-divider); }
+.category-admin-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.category-admin-actions button { display: inline-flex; height: 38px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #b9a29e; background: #fff; padding: 0 14px; color: #76534d; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.category-admin-actions .danger-button { border-color: #bd7a72; color: #9d3c35; }
+.category-admin-actions button:disabled { cursor: not-allowed; opacity: .45; }
+.category-admin-empty { margin: 0; padding: 42px; border-top: 1px solid var(--admin-divider); color: var(--admin-text-muted); text-align: center; }
+.taxonomy-admin-section { margin-top: 24px; }
+.taxonomy-color-preview { display:inline-flex;min-height:34px;align-items:center;justify-content:center;border-radius:6px;padding:5px 12px;color:#fff;font-size:12px;font-weight:800; }
+.tag-preview { justify-self: start; min-width: 100px; }

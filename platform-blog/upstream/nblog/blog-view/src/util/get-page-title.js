@@ -1,13 +1,8 @@
-import store from '@/store'
+const BRAND_NAME = 'custacm-platpform'
 
 export default function getPageTitle(pageTitle) {
-	const title = store.state.siteInfo.webTitleSuffix
-
 	if (pageTitle) {
-		if (title) {
-			return `${pageTitle}${title}`
-		}
-		return pageTitle
+		return `${pageTitle} - ${BRAND_NAME}`
 	}
-	return title
+	return BRAND_NAME
 }

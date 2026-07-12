@@ -125,16 +125,8 @@ public class OjHandleAccountService implements TrainingUserDirectory {
             );
         }
         Map<String, String> updatedHandles = handles == null ? existing.handles() : mergeHandles(existing.handles(), handles);
-        for (Map.Entry<String, String> entry : updatedHandles.entrySet()) {
-            Optional<OjHandleAccount> conflictingAccount = repository.findByHandle(entry.getKey(), entry.getValue())
-                    .filter(account -> !normalizedOldUsername.equals(account.username()));
-            if (conflictingAccount.isPresent()) {
-                throw new OjHandleAccountException(
-                        OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_HANDLE_EXISTS,
-                        entry.getKey() + " handle already belongs to a username"
-                );
-            }
-        }
+        rejectReplacedHandles(existing.handles(), updatedHandles);
+        validateHandleOwnership(normalizedOldUsername, updatedHandles);
         boolean updatedNeedCollect = needCollect == null ? existing.needCollect() : needCollect;
         boolean handlesChanged = !updatedHandles.equals(existing.handles());
         if (!identityChanged && needCollect == null && !handlesChanged) {
@@ -148,6 +140,62 @@ public class OjHandleAccountService implements TrainingUserDirectory {
                 collectionStatesForUpdatedHandles(existing, updatedHandles),
                 clock.instant()
         );
+    }
+
+    public OjHandleAccount replaceHandleAfterPurge(String username, String ojName, String newHandle) {
+        String normalizedUsername = requireText(username, "username", OjHandleAccountService::invalidRequest);
+        String normalizedOjName = requireOjName(ojName);
+        String normalizedHandle = requireText(newHandle, "newHandle", OjHandleAccountService::invalidRequest);
+        OjHandleAccount existing = repository.findByUsername(normalizedUsername)
+                .orElseThrow(OjHandleAccountService::notFound);
+        if (!existing.handles().containsKey(normalizedOjName)) {
+            throw new OjHandleAccountException(
+                    OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_NOT_FOUND,
+                    normalizedOjName + " handle is not bound"
+            );
+        }
+        if (normalizedHandle.equals(existing.handles().get(normalizedOjName))) {
+            return existing;
+        }
+        Map<String, String> updatedHandles = new LinkedHashMap<>(existing.handles());
+        updatedHandles.put(normalizedOjName, normalizedHandle);
+        validateHandleOwnership(normalizedUsername, updatedHandles);
+        return repository.updateUsernameAndNeedCollect(
+                normalizedUsername,
+                normalizedUsername,
+                updatedHandles,
+                existing.needCollect(),
+                collectionStatesForUpdatedHandles(existing, updatedHandles),
+                clock.instant()
+        );
+    }
+
+    private void validateHandleOwnership(String currentUsername, Map<String, String> handles) {
+        for (Map.Entry<String, String> entry : handles.entrySet()) {
+            Optional<OjHandleAccount> conflictingAccount = repository.findByHandle(entry.getKey(), entry.getValue())
+                    .filter(account -> !currentUsername.equals(account.username()));
+            if (conflictingAccount.isPresent()) {
+                throw new OjHandleAccountException(
+                        OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_HANDLE_EXISTS,
+                        entry.getKey() + " handle already belongs to a username"
+                );
+            }
+        }
+    }
+
+    private static void rejectReplacedHandles(
+            Map<String, String> existingHandles,
+            Map<String, String> updatedHandles
+    ) {
+        for (Map.Entry<String, String> entry : existingHandles.entrySet()) {
+            String updatedHandle = updatedHandles.get(entry.getKey());
+            if (updatedHandle != null && !entry.getValue().equals(updatedHandle)) {
+                throw new OjHandleAccountException(
+                        OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_REPLACEMENT_REQUIRES_PURGE,
+                        entry.getKey() + " handle replacement requires training data purge"
+                );
+            }
+        }
     }
 
     public Optional<OjHandleAccount> markCollectedByHandle(

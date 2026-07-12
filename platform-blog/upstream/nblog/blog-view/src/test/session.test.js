@@ -35,17 +35,15 @@ describe('shared Blog session', () => {
 		expect(readUser()).toMatchObject({username: 'admin', role: 'ROLE_admin'})
 	})
 
-	it('clears orphaned session data without removing Blog-specific tokens', () => {
+	it('clears orphaned session data without touching unrelated storage', () => {
 		window.localStorage.setItem('custacm.accessToken', 'orphan-token')
 		window.localStorage.setItem('memberToken', 'legacy-token')
 		window.localStorage.setItem('identification', 'comment-identity')
-		window.localStorage.setItem('blog12', 'password-article-token')
 
 		expect(readToken()).toBeNull()
 		expect(window.localStorage.getItem('custacm.accessToken')).toBeNull()
 		expect(window.localStorage.getItem('memberToken')).toBeNull()
 		expect(window.localStorage.getItem('identification')).toBe('comment-identity')
-		expect(window.localStorage.getItem('blog12')).toBe('password-article-token')
 	})
 
 	it('emits the stable session change event when logging out', () => {

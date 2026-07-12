@@ -27,8 +27,6 @@ public interface BlogService {
 
 	PageResult<BlogInfo> getBlogInfoListByTagNameAndIsPublished(String tagName, Integer pageNum);
 
-	Map<String, Object> getArchiveBlogAndCountByIsPublished();
-
 	List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend();
 
 	void deleteBlogById(Long id);
@@ -55,7 +53,7 @@ public interface BlogService {
 
 	BlogDetail getBlogByIdAndIsPublished(Long id);
 
-	String getBlogPassword(Long blogId);
+	BlogDetail getInternalBlogById(Long id);
 
 	void updateBlog(top.naccl.model.dto.Blog blog);
 
@@ -68,4 +66,6 @@ public interface BlogService {
 	Boolean getCommentEnabledByBlogId(Long blogId);
 
 	Boolean getPublishedByBlogId(Long blogId);
+
+	Boolean getInternalByBlogId(Long blogId);
 }

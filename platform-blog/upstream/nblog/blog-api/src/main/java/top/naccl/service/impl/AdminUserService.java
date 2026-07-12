@@ -14,8 +14,11 @@ import top.naccl.mapper.UserMapper;
 import top.naccl.model.dto.AdminUserCreateRequest;
 import top.naccl.model.dto.AdminUserPatchRequest;
 import top.naccl.model.dto.OjHandlesUpdateRequest;
+import top.naccl.model.dto.OjHandleReplaceRequest;
 import top.naccl.model.vo.AdminUserMutationResponse;
 import top.naccl.util.HashUtils;
+import top.naccl.service.ImageAssetService;
+import top.naccl.config.BootstrapAdminInitializer;
 
 import java.security.SecureRandom;
 import java.util.List;
@@ -34,15 +37,18 @@ public class AdminUserService {
     private final UserMapper userMapper;
     private final OjHandleAccountService handleAccountService;
     private final OjStudentDataPurgeService purgeService;
+    private final ImageAssetService imageAssetService;
 
     public AdminUserService(
             UserMapper userMapper,
             OjHandleAccountService handleAccountService,
-            OjStudentDataPurgeService purgeService
+            OjStudentDataPurgeService purgeService,
+            ImageAssetService imageAssetService
     ) {
         this.userMapper = userMapper;
         this.handleAccountService = handleAccountService;
         this.purgeService = purgeService;
+        this.imageAssetService = imageAssetService;
     }
 
     @Transactional
@@ -66,7 +72,7 @@ public class AdminUserService {
         user.setNickname(request.nickname() == null || request.nickname().isBlank()
 				? username : request.nickname().trim());
         user.setEmail(trimToEmpty(request.email()));
-        user.setAvatar(trimToEmpty(request.avatar()));
+        user.setAvatar("");
         user.setRole(role);
         if (userMapper.insert(user) != 1) {
             throw new IllegalStateException("创建用户失败");
@@ -103,17 +109,22 @@ public class AdminUserService {
         String oldUsername = normalizeUsername(username);
         User user = requireUser(oldUsername);
         String newUsername = request.newUsername() == null ? oldUsername : normalizeUsername(request.newUsername());
+        if (isRoot(oldUsername) && !oldUsername.equals(newUsername)) {
+            throw new ForbiddenException("root 用户名不可修改");
+        }
         if (!oldUsername.equals(newUsername) && userMapper.findByUsername(newUsername) != null) {
             throw new BadRequestException("用户名已存在");
         }
         String newRole = request.role() == null ? user.getRole() : normalizeRole(request.role());
+        if (isRoot(oldUsername) && !"ROLE_admin".equals(newRole)) {
+            throw new ForbiddenException("root 必须保持管理员角色");
+        }
         if ("ROLE_admin".equals(user.getRole()) && !"ROLE_admin".equals(newRole)) {
             requireAnotherAdmin();
         }
         user.setUsername(newUsername);
         user.setNickname(request.nickname() == null ? user.getNickname() : trimToEmpty(request.nickname()));
         user.setEmail(request.email() == null ? user.getEmail() : trimToEmpty(request.email()));
-        user.setAvatar(request.avatar() == null ? user.getAvatar() : trimToEmpty(request.avatar()));
         user.setRole(newRole);
         String generatedPassword = null;
         if (request.password() != null) {
@@ -133,37 +144,71 @@ public class AdminUserService {
 
     @Transactional
     public AdminUserMutationResponse updateHandles(String username, OjHandlesUpdateRequest request) {
-        if (request == null || request.handles() == null || request.handles().isEmpty()) {
-            throw new BadRequestException("handles 不能为空");
+        if (request == null || (request.needCollect() == null
+                && (request.handles() == null || request.handles().isEmpty()))) {
+            throw new BadRequestException("handles 和 needCollect 不能同时为空");
         }
         String normalizedUsername = normalizeUsername(username);
         User user = requireUser(normalizedUsername);
+        if (isRoot(normalizedUsername)) {
+            throw new ForbiddenException("root 不能绑定 OJ handle 或设置队员状态");
+        }
         boolean needCollect = request.needCollect() == null || request.needCollect();
+        Map<String, String> handles = request.handles() == null ? Map.of() : request.handles();
         OjHandleAccount account;
         try {
             account = handleAccountService.changeUsername(
-                    normalizedUsername, normalizedUsername, needCollect, request.handles());
+                    normalizedUsername, normalizedUsername, needCollect, handles);
         } catch (OjHandleAccountException ex) {
             if (ex.errorCode() != OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_NOT_FOUND) {
                 throw ex;
             }
-            account = handleAccountService.create(normalizedUsername, request.handles(), needCollect);
+            account = handleAccountService.create(normalizedUsername, handles, needCollect);
         }
         return response(user, account.handles(), account.needCollect(), null, false);
+    }
+
+    @Transactional
+    public AdminUserMutationResponse replaceHandle(String username, OjHandleReplaceRequest request) {
+        if (request == null) {
+            throw new BadRequestException("请求体不能为空");
+        }
+        String normalizedUsername = normalizeUsername(username);
+        User user = requireUser(normalizedUsername);
+        if (isRoot(normalizedUsername)) {
+            throw new ForbiddenException("root 不能更换 OJ handle");
+        }
+        if (request.newHandle() == null || request.newHandle().isBlank()) {
+            throw new BadRequestException("newHandle 不能为空");
+        }
+        String normalizedNewHandle = request.newHandle().trim();
+        OjHandleAccount existing = handleAccountService.getByUsername(normalizedUsername);
+        String oldHandle = handleAccountService.getHandle(existing, request.ojName());
+        if (oldHandle.equals(normalizedNewHandle)) {
+            return response(user, existing.handles(), existing.needCollect(), null, false);
+        }
+        purgeService.purgeStudentData(normalizedUsername, request.ojName());
+        OjHandleAccount replaced = handleAccountService.replaceHandleAfterPurge(
+                normalizedUsername, request.ojName(), normalizedNewHandle);
+        return response(user, replaced.handles(), replaced.needCollect(), null, false);
     }
 
     @Transactional
     public void delete(String username) {
         String normalizedUsername = normalizeUsername(username);
         User user = requireUser(normalizedUsername);
+        if (isRoot(normalizedUsername)) {
+            throw new ForbiddenException("root 用户不可删除");
+        }
         if ("ROLE_admin".equals(user.getRole())) {
             requireAnotherAdmin();
         }
         OjHandleAccount account = findHandleAccount(normalizedUsername);
         if (account != null) {
             account.handles().keySet().forEach(ojName -> purgeService.purgeStudentData(normalizedUsername, ojName));
-        }
+		}
 		userMapper.anonymizeCommentsByUserId(user.getId());
+		imageAssetService.prepareUserAssetDeletion(user.getId());
         if (userMapper.deleteByUsername(normalizedUsername) != 1) {
             throw new IllegalStateException("删除用户失败");
         }
@@ -249,5 +294,9 @@ public class AdminUserService {
             password.append(PASSWORD_ALPHABET[RANDOM.nextInt(PASSWORD_ALPHABET.length)]);
         }
         return password.toString();
+    }
+
+    private static boolean isRoot(String username) {
+        return BootstrapAdminInitializer.ROOT_USERNAME.equals(username);
     }
 }

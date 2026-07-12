@@ -65,15 +65,15 @@ public class IpAddressUtils {
 	private static Method method;
 
 	/**
-	 * 在服务启动时加载 ip2region.db 到内存中
-	 * 解决打包jar后找不到 ip2region.db 的问题
+	 * 在服务启动时加载 ip2region.xdb 到内存中
+	 * 解决打包 jar 后找不到 ip2region.xdb 的问题
 	 *
 	 * @throws Exception 出现异常应该直接抛出终止程序启动，避免后续invoke时出现更多错误
 	 */
 	@PostConstruct
 	private void initIp2regionResource() throws Exception {
 		InputStream inputStream = new ClassPathResource("/ipdb/ip2region.xdb").getInputStream();
-		//将 ip2region.db 转为 ByteArray
+		//将 ip2region.xdb 转为 ByteArray
 		byte[] dbBinStr = FileCopyUtils.copyToByteArray(inputStream);
 		// 2、使用上述的 dbBinStr 创建一个完全基于内存的查询对象。
 		searcher = new Searcher(null, null, dbBinStr);
@@ -82,7 +82,7 @@ public class IpAddressUtils {
 	}
 
 	/**
-	 * 根据ip从 ip2region.db 中获取地理位置
+	 * 根据 IP 从 ip2region.xdb 中获取地理位置
 	 *
 	 * @param ip
 	 * @return
@@ -99,11 +99,5 @@ public class IpAddressUtils {
 			log.error("getCityInfo exception:", e);
 		}
 		return "";
-	}
-	public static void main(String[] args) throws Exception {
-		IpAddressUtils ipAddressUtils = new IpAddressUtils();
-		ipAddressUtils.initIp2regionResource();
-		String cityInfo = IpAddressUtils.getCityInfo("14.215.177.39");
-		System.out.println(cityInfo);
 	}
 }

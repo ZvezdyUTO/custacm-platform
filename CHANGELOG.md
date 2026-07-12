@@ -4,6 +4,12 @@
 
 ## 未发布
 
+### 2026-07-12 - 清理废弃模块与历史实现
+
+- 成果：移除未参与构建部署的旧管理端、空 Maven/文档占位模块、训练模块旧独立 HTTP Controller、前端旧登录页和未引用资源，并清理已删除认证与训练 Web 服务遗留的本地构建产物。
+- 影响：仓库只保留 Blog API、Vue Blog、Vue 训练中心和实际训练数据模块；本地上传目录继续保留并加入 Git 忽略，现行运行拓扑和 API 不变。
+- 验证：已运行 `mvn clean verify`、`./scripts/check-test-policy.sh`、训练前端 lint/测试/类型检查/生产构建、Blog 测试/生产构建、Compose 配置检查、文档同步检查和 `git diff --check`。
+
 ### 2026-07-12 - 移除 Blog 播放器与歌词组件
 
 - 成果：从 Vue Blog 移除 APlayer/Meting 播放器挂载、歌词样式、CDN 脚本与样式、Meting 自定义元素配置和本地运行脚本。

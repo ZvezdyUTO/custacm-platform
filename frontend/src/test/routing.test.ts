@@ -1,38 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { parseTrainingRoute, safeReturnPath } from '../routing';
-
-describe('training route parsing', () => {
-  it.each([
-    ['/training', { page: 'multiple' }],
-    ['/training/single', { page: 'single' }],
-    ['/training/problem', { page: 'problem' }],
-    ['/training/admin', { page: 'admin', section: 'users' }],
-    ['/training/admin/create-users', { page: 'admin', section: 'create' }],
-    ['/training/admin/users', { page: 'admin', section: 'users' }],
-    ['/training/admin/training', { page: 'admin', section: 'training' }],
-    ['/training/admin/appearance', { page: 'admin', section: 'appearance' }],
-  ] as const)('maps %s to its training page', (pathname, expected) => {
-    expect(parseTrainingRoute(pathname)).toEqual(expected);
-  });
-
-  it('reads the training admin section from the query string', () => {
-    expect(parseTrainingRoute('/training/admin', '?section=training')).toEqual({
-      page: 'admin',
-      section: 'training',
-    });
-  });
-
-  it.each([
-    '/admin',
-    '/other/admin',
-    '/query/single',
-    '/training/unknown',
-    '/training/admin/extra',
-    '/training/problem/extra',
-  ])('canonicalizes a non-whitelisted full path to multiple: %s', (pathname) => {
-    expect(parseTrainingRoute(pathname)).toEqual({ page: 'multiple' });
-  });
-});
+import { describe, expect, it, vi } from 'vitest';
+import { navigateToBlogReturnPath, safeReturnPath } from '../routing';
 
 describe('safe training return paths', () => {
   it.each([
@@ -46,7 +13,24 @@ describe('safe training return paths', () => {
     expect(safeReturnPath('/training/problem')).toBe('/training/problem');
     expect(safeReturnPath('/training/admin/create-users')).toBe('/training/admin/create-users');
     expect(safeReturnPath('/training/admin/appearance')).toBe('/training/admin/appearance');
+    expect(safeReturnPath('/training/admin/articles')).toBe('/training/admin/articles');
+    expect(safeReturnPath('/training/admin/categories')).toBe('/training/admin/categories');
   });
+
+	it('keeps the supported Blog writing return paths', () => {
+		expect(safeReturnPath('/about')).toBe('/about');
+		expect(safeReturnPath('/write')).toBe('/write');
+		expect(safeReturnPath('/write/42')).toBe('/write/42');
+		expect(safeReturnPath('/blog/42#comment-7')).toBe('/blog/42#comment-7');
+	});
+
+	it('keeps public Blog locations', () => {
+		expect(safeReturnPath('/home')).toBe('/home');
+		expect(safeReturnPath('/moments?tab=latest')).toBe('/moments?tab=latest');
+		expect(safeReturnPath('/friends#team')).toBe('/friends#team');
+		expect(safeReturnPath('/category/题解')).toBe('/category/%E9%A2%98%E8%A7%A3');
+		expect(safeReturnPath('/tag/dp')).toBe('/tag/dp');
+	});
 
   it('preserves a supported admin section', () => {
     expect(safeReturnPath('/training/admin?section=training')).toBe(
@@ -58,7 +42,24 @@ describe('safe training return paths', () => {
     '/training/login',
     '/training/%2e%2e/%2e%2e//evil.example',
     '/training/problem/../login',
+		'/write/not-an-id',
   ])('rejects an unsupported or non-canonical path: %s', (value) => {
     expect(safeReturnPath(value)).toBe('/training/multiple');
+  });
+});
+
+describe('Blog login return navigation', () => {
+  it('navigates the top-level Blog window instead of loading Blog inside the training frame', () => {
+    const topAssign = vi.fn();
+    const frameAssign = vi.fn();
+    type TestNavigationWindow = { location: { assign(path: string): void }; top: TestNavigationWindow | null };
+    const topWindow: TestNavigationWindow = { location: { assign: topAssign }, top: null };
+    topWindow.top = topWindow;
+    const frameWindow = { location: { assign: frameAssign }, top: topWindow };
+
+    navigateToBlogReturnPath('/blog/42', frameWindow);
+
+    expect(topAssign).toHaveBeenCalledWith('/blog/42');
+    expect(frameAssign).not.toHaveBeenCalled();
   });
 });

@@ -8,7 +8,7 @@
 <script>
 	import Comment from "./Comment";
 	import Pagination from "./Pagination";
-	import {SET_COMMENT_QUERY_PAGE, SET_COMMENT_QUERY_BLOG_ID, SET_COMMENT_QUERY_PAGE_NUM, SET_PARENT_COMMENT_ID} from "@/store/mutations-types";
+	import {SET_COMMENT_QUERY_PAGE, SET_COMMENT_QUERY_BLOG_ID, SET_COMMENT_QUERY_INTERNAL, SET_COMMENT_QUERY_PAGE_NUM, SET_PARENT_COMMENT_ID} from "@/store/mutations-types";
 
 	export default {
 		name: "CommentList",
@@ -21,7 +21,8 @@
 			blogId: {
 				type: Number,
 				required: false
-			}
+			},
+			internal: {type: Boolean, default: false}
 		},
 		created() {
 			this.init()
@@ -38,6 +39,7 @@
 				this.$store.commit(SET_PARENT_COMMENT_ID, -1)
 				this.$store.commit(SET_COMMENT_QUERY_PAGE, this.page)
 				this.$store.commit(SET_COMMENT_QUERY_BLOG_ID, this.blogId)
+				this.$store.commit(SET_COMMENT_QUERY_INTERNAL, this.internal)
 				this.$store.commit(SET_COMMENT_QUERY_PAGE_NUM, 1)
 				this.$store.dispatch('getCommentList')
 			}

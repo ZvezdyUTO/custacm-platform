@@ -42,7 +42,6 @@ export interface AdminUserCreateRequest {
   password?: string | null;
   nickname?: string | null;
   email?: string | null;
-  avatar?: string | null;
   role: AccountRole;
   handles?: Partial<Record<OjName, string>> | null;
   needCollect?: boolean | null;
@@ -52,7 +51,6 @@ export interface AdminUserPatchRequest {
   newUsername?: Username | null;
   nickname?: string | null;
   email?: string | null;
-  avatar?: string | null;
   role?: AccountRole | null;
   password?: string | null;
 }
@@ -60,6 +58,11 @@ export interface AdminUserPatchRequest {
 export interface OjHandlesUpdateRequest {
   handles?: Partial<Record<OjName, string>> | null;
   needCollect?: boolean | null;
+}
+
+export interface OjHandleReplaceRequest {
+  ojName: OjName;
+  newHandle: string;
 }
 
 export interface CollectionJobStartRequest {
@@ -146,6 +149,48 @@ export interface HomepageBannerImage {
   imageUrl: string;
   sortOrder: number;
 }
+
+export interface AdminArticle {
+  id: number;
+  title: string;
+  firstPicture: string;
+  createTime: string;
+  updateTime: string;
+  published: boolean;
+  recommend: boolean;
+  top: boolean;
+  category: { id: number; name: string } | null;
+}
+
+export interface AdminArticlePage {
+  list: AdminArticle[];
+  pageNum: number;
+  pageSize: number;
+  pages: number;
+  total: number;
+}
+
+export interface AdminArticleListResponse {
+  blogs: AdminArticlePage;
+  categories: Array<{ id: number; name: string }>;
+}
+
+export interface AdminCategory {
+  id: number;
+  name: string;
+  color?: string;
+}
+
+export interface AdminCategoryPage {
+  list: AdminCategory[];
+  pageNum: number;
+  pageSize: number;
+  pages: number;
+  total: number;
+}
+
+export type AdminTag = AdminCategory;
+export type AdminTagPage = AdminCategoryPage;
 
 export interface TrainingQueryRange {
   acceptedFromDateUtcPlus8: string;

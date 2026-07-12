@@ -20,5 +20,6 @@ import java.util.List;
 public class Category {
 	private Long id;
 	private String name;//分类名称
+	private String color;//分类展示颜色
 	private List<Blog> blogs = new ArrayList<>();//该分类下的博客文章
 }

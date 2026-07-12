@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.naccl.model.dto.AdminUserCreateRequest;
 import top.naccl.model.dto.AdminUserPatchRequest;
 import top.naccl.model.dto.OjHandlesUpdateRequest;
+import top.naccl.model.dto.OjHandleReplaceRequest;
 import top.naccl.model.vo.Result;
 import top.naccl.service.impl.AdminUserService;
 
@@ -54,6 +55,11 @@ public class UserAdminController {
     @PutMapping("/users/{username}/oj-handles")
     public Result updateHandles(@PathVariable String username, @RequestBody OjHandlesUpdateRequest request) {
         return Result.ok("修改成功", userService.updateHandles(username, request));
+    }
+
+    @PostMapping("/users/{username}/oj-handles:replace")
+    public Result replaceHandle(@PathVariable String username, @RequestBody OjHandleReplaceRequest request) {
+        return Result.ok("更换成功", userService.replaceHandle(username, request));
     }
 
     @DeleteMapping("/users/{username}")

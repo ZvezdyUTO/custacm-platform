@@ -5,7 +5,6 @@
 Current state:
 
 - `common-core` contains the reusable SQL task DAG execution core. It reads a YAML manifest on every run, rebuilds an adjacency-list graph, validates DAG shape, and executes SQL task nodes with one transaction per node.
-- `common-web` is an empty jar module.
 
 Rules:
 

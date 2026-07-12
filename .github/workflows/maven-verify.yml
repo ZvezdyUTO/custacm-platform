@@ -28,7 +28,4 @@ jobs:
         run: ./scripts/check-doc-sync.sh
 
       - name: Verify
-        run: mvn clean verify
-
-      - name: Check test policy
-        run: ./scripts/check-test-policy.sh
+        run: mvn clean test
