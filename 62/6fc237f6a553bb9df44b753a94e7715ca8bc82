@@ -1,0 +1,1613 @@
+.dockerignore
+  s_9d26a5af148dfd::t_e76f7d888066ab 2,10-11
+.gitignore
+  s_9d26a5af148dfd::t_166b195e3a73a9 3
+  s_d7a6e69b8557fc::t_3e9e9407de507d 12
+AGENTS.md
+  s_e3ca03627a19a6::t_da790d23e4d6ce 7,11-19,23,26-31,90
+  s_856e309f92ca35::t_0a81c101a29c50 66,69,71,73-76
+CHANGELOG.md
+  s_8fa3672d697172::t_cc47a0c0690b7b 25-54
+  s_d7a6e69b8557fc::t_c2c9116b62f898 19-24
+Dockerfile
+  s_9d26a5af148dfd::t_e7be1ff8a6cc30 3-4,13
+deploy/.env.example
+  s_9d26a5af148dfd::t_6cb0ab9fd97a19 1,3-8,10,15-16,17
+  s_6a7009b6880ded::t_bda25d2fcc44d0 12-14
+deploy/AGENTS.md
+  s_8fa3672d697172::t_3ef563146340f1 3,6-7,10-12
+  s_99514bbf7dd524::t_549c35ced59338 4,9
+  s_6a7009b6880ded::t_f7ba7cfb522aa4 5,8
+deploy/README.md
+  s_8fa3672d697172::t_4519b6ba85ac1d 1,3,5-9,15-16,20-21,42,46-51,55,57-62,65,67-70,74-80,83,85-89,91,93,96-100,110,113,115,117,120-121,123
+  s_73ef5fa35ec490::t_8b7ba364b497d3 12,14,24,27,30-40,44,53-54,81,118
+  s_6a7009b6880ded::t_1a0bc2c748a569 10,71-73,101-109,119
+deploy/UPDATE.md
+  s_8fa3672d697172::t_3d490d1c2ce815 1,3,5-6,8-12,14,16-21,23,25-29,31,33-35,37,39,41,59,61,64-66,68,83,87,89-91
+  s_99514bbf7dd524::t_703ff481bae936 47,49,52,55,57,85-86
+  s_6a7009b6880ded::t_09d12e351ba62a 69-77,81-82
+deploy/docker-compose.yml
+  s_9d26a5af148dfd::t_411a651f315e50 2,5-8,10,12-13,15-26,28,33-35,37-44,45,48,51,53-55,58,61,63,66,76-82,85-88
+  s_73ef5fa35ec490::t_1e9fe8f24d2f3b 72-73
+  s_6a7009b6880ded::t_f9b23391aa0771 67-68,71,74
+docs/README.md
+  s_e3ca03627a19a6::t_c436e1e8f85400 22,24,26,36
+  s_856e309f92ca35::t_ad94d220c642d3 34-35
+docs/adr/0005-blog-api-owns-integrated-identity.md
+  s_9d26a5af148dfd::t_a4c667252b2be2 1-18
+docs/adr/README.md
+  s_9d26a5af148dfd::t_325d2c4e79ebfc 8
+docs/agent/README.md
+  s_e3ca03627a19a6::t_17789763040443 1-7,10,13,16,19-20
+  s_856e309f92ca35::t_0752dc1472ac1a 8-9,11-12,14-15,17
+  s_6a7009b6880ded::t_b1390aa004ea29 18
+docs/agent/doc-sync.md
+  s_e3ca03627a19a6::t_9e39f7d6a8b7c6 31
+  s_856e309f92ca35::t_8ca3a5cbc11e29 17-18
+docs/agent/quality-gates.md
+  s_9d26a5af148dfd::t_eba63504faab7c 17
+  s_856e309f92ca35::t_ad68b3123a24fe 7-8,12,25,32
+docs/api.md
+  s_0b661184d73d5c::t_9597493f498ee6 1,3,6-7,10,13,16,18,20,22-25,27-32,35-36,45,47,59,61,63-68,74,76,80,86,88-90,93,97-99,103,105,107,109-114,118,120,122-127,131,133,135-141,145
+  s_b380cc3f57d00d::t_62b45eba152f81 26,33-34,37-44,49-57,69-72,78-79,82-85,116,129,143,147-148,150,152-155
+  s_ca08fd9467fff8::t_d29a133a4552f1 149,151
+docs/doc-sync-map.tsv
+  s_9d26a5af148dfd::t_b6705a7e5e4b97 10,12
+docs/logging.md
+  s_9d26a5af148dfd::t_a0f3ca1ec75b2a 37,65
+docs/server-deployment.md
+  s_8fa3672d697172::t_ab71b59c6a6d52 1,3,5,7,11-13,16,18-23,32,34-35,37,39,41,44-48,58,61,67-68,73,75,77-79
+  s_99514bbf7dd524::t_4358396b1b0327 36,63,65,71
+  s_6a7009b6880ded::t_e57898b4887c69 26-30,49-57
+frontend/AGENTS.md
+  s_e3ca03627a19a6::t_e344131e493382 4-6,8,13,15-25,27-32,34,36-49,51-55,57-63,68-70,72-75,77-91,100-109,111,113
+  s_3713f2d10409b3::t_484254ce90e478 3,7,9-12,14,26,33,35,50,56,64-67,71,76
+frontend/Dockerfile
+  s_8fa3672d697172::t_f0e953d01e9479 1-12,15-19,24-25
+  s_6a7009b6880ded::t_a246977f23cf03 13-14,20-23
+frontend/README.md
+  s_2370c5151b731c::t_ff96a6a48a346d 3,5-9,11-12,15-17,20-25,28-29,33-35,40,42,44,46,48,51-52,55,57,60-61,64,66-73,76,78,88,90,94,96,99-102,105,108-111,117-119,132,135,139,141-142,146-149,151,156-157,160-164,166-170,172-178,183-184,186-188,191-192,194-203
+  s_26f08d32717725::t_6aac12d11ea595 13-14,26-27,36-39,80,82,84-86,89,92,125,165,171,179-182,185,189-190,193
+  s_f7a6b97c45c95e::t_39d60d076c50a3 32,114,122,158-159
+frontend/eslint.config.js
+  s_2370c5151b731c::t_2ee3ea083f714e 2,6,9-14,16,26,28-36,45
+frontend/index.html
+  s_8fa3672d697172::t_1332ffd9457b6f 14-15
+frontend/nginx.conf
+  s_e3ca03627a19a6::t_b0ecaf01b1ce04 6-9,18,24-25,28-39,43
+  s_99514bbf7dd524::t_19aceb89eb0bf7 4,11-17
+frontend/package.json
+  s_e3ca03627a19a6::t_ac27b34e6a5a3e 9-10,12,15-18,22-23,25,29-31
+frontend/pnpm-lock.yaml
+  s_e3ca03627a19a6::t_f225b85e828dca 11-22,27-32,36-38,49-50,52-56,132-133,138-139,144-145,150-151,156-157,162-163,168-169,174-175,180-181,186-187,192-193,198-199,204-205,210-211,216-217,222-223,228-229,234-235,240-241,246-247,252-253,258-259,264-265,270-271,276-277,282-283,355-357,362-368,370-375,515-516,518-519,521-522,589-591,593-594,596-597,599-600,603,610-620,622-623,625-626,628-664,666-681,696-698,703-706,711-713,732-734,738-740,749-750,764-767,771-773,777-779,788-792,815-824,826-827,829-831,837-838,840-841,849-851,853-861,905-907,952-955,965-969,998-1000,1005-1008,1019-1028,1066-1067,1086-1093,1097-1099,1108-1118,1132-1134,1142-1144,1153-1155,1157-1158,1167-1170,1179-1180,1219-1222,1230-1247,1263-1265,1271-1272,1319-1320,1322-1324,1327,1329,1331-1334,1362-1364,1368-1375,1378,1382-1383,1386-1394,1403-1433,1464-1475,1514-1515,1550,1553,1556,1559,1562,1565,1568,1571,1574,1577,1580,1583,1586,1589,1592,1595,1598,1601,1604,1607,1610,1613,1616,1619,1622,1625,1692,1694-1699,1703,1705-1710,1712,1789,1791,1793-1794,1796,1893,1895-1897,1899,1901-1906,1908,1910,1914-1950,1952,1954-1958,1960,1962-1963,1965,1967-1972,1974-2008,2010,2012-2014,2016-2018,2020-2027,2042-2043,2046-2047,2052,2066-2067,2073,2075,2077,2079,2083,2096-2097,2100-2104,2107-2108,2120-2121,2139-2146,2148,2150-2152,2156,2158,2160-2185,2189,2191,2193-2200,2268-2269,2304-2308,2316-2324,2346-2347,2350-2351,2360-2374,2427,2445-2450,2453-2454,2459-2467,2486-2487,2496-2497,2502-2505,2507,2513-2517,2526,2579-2580,2585-2605,2617,2624,2667,2669,2671,2680,2682-2689,2692-2695,2697-2700,2706-2720,2722-2742,2771-2784
+frontend/src/App.vue
+  s_8fa3672d697172::t_540e7211621c26 1-7
+frontend/src/api/admin.ts
+  s_e3ca03627a19a6::t_89d648c8e83148 1-4,9-12,14-20,22,27-37,40-44,47-81,95-98,100,102-115,117-150,152-153,155-166
+  s_26f08d32717725::t_e5329b54c5f532 5-8,13,82-94,167-233
+frontend/src/api/auth.ts
+  s_9d26a5af148dfd::t_ed93544c7ba126 1-41
+frontend/src/api/client.ts
+  s_9d26a5af148dfd::t_b32a7f5f0f4c62 1-45
+frontend/src/api/training.ts
+  s_9d26a5af148dfd::t_af74e0ccc55112 1-10,12,14,16-18,20,23-24,27-28,31-32,35-36,38,42,44-46,49,51-66,68-70,72-83,87,89-104,106-139
+frontend/src/auth/session.ts
+  s_9d26a5af148dfd::t_ecdad8207e4a80 1-57
+frontend/src/components/AdminUserManagementPanel.vue
+  s_2370c5151b731c::t_b740d2cf7132ca 1-8,10-14,16-18,22-23,33-34,39-41,61-65,67-68,70-77,82,84-85,132-137
+  s_26f08d32717725::t_86197781d53617 19,21,24-32,36-38,45-60,66,69,78-81,86-131
+frontend/src/components/AppShell.vue
+  s_8fa3672d697172::t_9c7ef552c45a60 1-16,17-31,33-37,39-54,56-60,62,64-67,69-70,72-73,75-97,99-105,107,109-124,127-129,132-158,160
+  s_1a367a9796447c::t_c4775ece0e879c 71
+frontend/src/components/CreateUsersPanel.vue
+  s_8fa3672d697172::t_c64f6dfa1f64d4 1-39
+frontend/src/components/HomepageBannerAdminPanel.vue
+  s_2370c5151b731c::t_7e415c79823438 1-202
+frontend/src/components/LoginPanel.vue
+  s_8fa3672d697172::t_8958e9a6c4f199 1-43
+frontend/src/components/PaginationBar.vue
+  s_8fa3672d697172::t_0fa8dd6138ea4e 1-17
+frontend/src/components/TrainingAdminPanel.vue
+  s_e3ca03627a19a6::t_a63055b6ff19df 1-2,4-5,8-13,15-18
+  s_3713f2d10409b3::t_f0225215ae07b2 3,6-7,14
+frontend/src/components/TrainingDataOpsPanel.vue
+  s_2370c5151b731c::t_2578b94a0ba61f 1-15,17-28,37-41,43-48,51-53,59-61
+  s_3713f2d10409b3::t_a652cb6765f3b2 16,29-36,42,49-50,54-58
+frontend/src/components/TrainingQueryPanel.vue
+  s_2370c5151b731c::t_661a6fd5989e36 1-2,4-27,31-44,46-47,51-95,97-119,122-126,129,147,149-153,162-164
+  s_6b0247d950059b::t_7e4f3e4b6d5df2 3,28-30,96,120-121,127-128,130-146,148
+  s_2bd17a9cb5d732::t_43849de8ac53c6 45,48-50,154-161
+frontend/src/components/UserFields.vue
+  s_8fa3672d697172::t_ad48666d6a5d5b 1,3-4,6,15-18,20-21
+  s_73ef5fa35ec490::t_456ef829de47a1 2,5,7-14,19
+frontend/src/composables/useAuthSession.ts
+  s_8fa3672d697172::t_65e623d9ddfba2 1-87
+frontend/src/composables/usePlatformDashboard.ts
+  s_e3ca03627a19a6::t_20891430cf4f66 1-8,10-17,26-36,38,42-49,51-60,62,64-68,71-75,89-94,97-107,109-111,113-154,158-167,170-175,178-200,202-207,210-226,229-243,246-248,251-253,255-258,264-277,279-281,285-292,294-296,299-302,304-314,316-322,324-326,329-331,333-343,346-362,369-371,374-376,379-386,389-394,397-399,401-403,405-409,412-414,416-417,419,472-496,498-500,502-503,507
+  s_26f08d32717725::t_83477f8592307b 9,18-25,39-41,155-157,259-263,363-368,420-471,497,501,504-506
+  s_f7a6b97c45c95e::t_e840fcb9ad7bb0 78-88,201,323
+frontend/src/main.ts
+  s_8fa3672d697172::t_cbe4f5cc51f4bb 1-3,6-7
+frontend/src/router/index.ts
+  s_e3ca03627a19a6::t_7a6afed33be6f7 1-15,18-22
+  s_3713f2d10409b3::t_3b686920cb3135 16-17
+frontend/src/routing.ts
+  s_e3ca03627a19a6::t_62a80248983b78 1,3-6,11-16,19-20,23-24,25-28,34-40
+  s_3713f2d10409b3::t_403016e893c325 2,7-10,17-18,21-22,29-33,41-53
+frontend/src/styles.css
+  s_e3ca03627a19a6::t_1323ca24180891 2,7
+  s_3713f2d10409b3::t_d17cd1b4fe268b 8-9
+frontend/src/styles/dashboard.css
+  s_2370c5151b731c::t_53fb0c2de7eded 175-203,206-207,226-227,792-831,1238-1244,1246-1282,1285-1400,1405-1411,1437-1440,1442-1443,1452,1462-1465,1467-1469,1471,1474-1477,1480-1482,1485-1488,1490-1520,1522,1524-1574,1582-1587,1640-1654,1748-1894
+  s_26f08d32717725::t_039d3b12817ebc 45-92,172,204-215,218-225,307,1245,1283-1284,1401-1404,1412-1436,1441-1448,1451,1453-1461,1466,1470,1472-1473,1478-1479,1483-1484,1489,1521,1523,1575-1581,1588-1639
+  s_2bd17a9cb5d732::t_984707e92d9bda 739-744,834
+frontend/src/styles/homepage-banner-admin.css
+  s_2370c5151b731c::t_22e6c086c587df 1-175
+frontend/src/styles/shell.css
+  s_8fa3672d697172::t_85fc0f3928e260 1-7,11,13,15-17,20-31,33-38,41-43,47-51,54-65,67-68,71-76,79-82,85-96,99-110,113-114,117-123,126-129,133-137,139-145,148-151,154-155,158-168,171,173,175-178,180,183-193,195-199,202-209,212-213,216-220,223-224,227-237,239-240,243-248,251-261,264-277,280-292,295-297,300-308,311-317,320-328,331-334,337-341,344-349,352,354-359,362,364-372,374-378,381-382,385-387,390-397,400-404,407-408,411,413-423,425,428-457,459,462-464,467-468,471-478,480-499,510,541-551
+frontend/src/styles/side-panel.css
+  s_9d26a5af148dfd::t_179e08208cc767 171-362
+frontend/src/styles/table.css
+  s_9d26a5af148dfd::t_58346d53a5bb64 105-112,334-463,510-514
+  s_d34323ce1dd83c::t_a256971b5bffc0 464-509
+frontend/src/styles/theme.css
+  s_9d26a5af148dfd::t_8a908ef12fc619 1-40
+frontend/src/test/admin-training.test.ts
+  s_2370c5151b731c::t_5eaae21707075f 1-26,29,33-34,36-45,46-58,64-69
+  s_3713f2d10409b3::t_bd540d815ef20a 27-28,30-32,35,59-63
+frontend/src/test/admin-users-vue.test.ts
+  s_2370c5151b731c::t_2ce09d942823b2 1-11,13-17,19-54,55-63,65-74,79-81,125-127,129-130,136,155-169
+  s_26f08d32717725::t_f13458f4c66396 12,18,64,75-78,82-124,128,131-135,137-154
+frontend/src/test/app-shell-vue.test.ts
+  s_8fa3672d697172::t_10475cf070f37a 1-32,34-37
+  s_1a367a9796447c::t_426035c5e1db99 33
+frontend/src/test/fixtures.ts
+  s_9d26a5af148dfd::t_ee1bf31524c760 1-9,11-13,15-103
+frontend/src/test/homepage-banner-admin.test.ts
+  s_2370c5151b731c::t_6beab2e3b97a8a 1-27,30-41,44-56
+frontend/src/test/login-panel-vue.test.ts
+  s_8fa3672d697172::t_db4c4153bab53d 1-17
+frontend/src/test/platform-api.test.ts
+  s_e3ca03627a19a6::t_8440d38aa40566 6-8,12-15,18-19,21-23,25-31,33-37,46-49,52,54,59-65,67-69,71-72,74-75,77-78,81-90,92,94-95,97-99,102-107,110,112-115,118-123,125,127-130,132-135,137-144,146-149,151,153-154,156-157,159-163,166,168-171,173,175,177-180,183-184,186,188-195,198,200-201,203-205,207-212,215-216,218,220-228,231-232,234,236-244,247-248,250,252-259,262-263,265,267-273,276-277,279,281-288,290,292-296,298,300-306,309-315,317,320-328,330-334,343-345,347,349,399-402,404-405,410-414,417-432,435-450
+  s_26f08d32717725::t_d6632d8de055b1 4-5,9-11,16-17,20,24,319,335-340,352-398
+frontend/src/test/routing.test.ts
+  s_e3ca03627a19a6::t_4922649fbf4839 3-15,18-19,35-44,46-49
+  s_3713f2d10409b3::t_6856ae16efe975 1-2,16-17,20-34,45,50-65
+frontend/src/test/run-limited.test.ts
+  s_9d26a5af148dfd::t_8bebd17d672955 2,4-14,16-17,20-23,26-28,31-33,35-36
+frontend/src/test/session.test.ts
+  s_9d26a5af148dfd::t_e4b6a6827dbd90 1-2,4-15,18-38,41-71,74-84,87-88,90-92,94-99,101-103,106-108,110-112
+frontend/src/types.ts
+  s_e3ca03627a19a6::t_3d90618d93dfc4 1-3,5,10,12,18-20,22-23,26-29,32-37,41-44,46,50-53,54-55,58-60,68-69,72,75-78,80-81,83-84,87,91,93,97-98,100-111,114-116,119-120,122-132,135-144,147-150,202,207-222,228-229,233,236-237,244,247,254,257,260-262,266,269-270,278,281-282,287,295,298
+  s_26f08d32717725::t_900302ec406361 63-67,153-194
+frontend/src/utils/adminTraining.ts
+  s_8fa3672d697172::t_fb13ad700a0ae5 1-2,4-5
+frontend/src/utils/adminUsers.ts
+  s_8fa3672d697172::t_4a2a27abf79501 1,3-8,9-13,16,20,22,24-26,30-34,37-41,43,45-46,49-51,53-56,58-60,63-79
+  s_d34323ce1dd83c::t_a50913a1173e96 17,23,44,52,57
+frontend/src/utils/runLimited.ts
+  s_9d26a5af148dfd::t_fd45968f4ed5d7 1-45
+frontend/src/views/TrainingView.vue
+  s_e3ca03627a19a6::t_6635706aeb4295 1-31,33-41,43,45-62,64-68,70-72,74-82,87-106,111-115,117
+  s_3713f2d10409b3::t_875766e56f21ad 42,83-86,107-110
+frontend/tsconfig.json
+  s_8fa3672d697172::t_8153ad7f8ff70c 17
+frontend/vite.config.ts
+  s_2370c5151b731c::t_cd48ac5261998f 1-2,5-6,10-13,15-16,18,22-27
+platform-blog/upstream/nblog/.gitignore
+  s_9d26a5af148dfd::t_c6b0af18e939ba 1-37
+platform-blog/upstream/nblog/LICENSE
+  s_9d26a5af148dfd::t_8688a9b065ea0e 1,3,5-10,12-13,15-21
+platform-blog/upstream/nblog/README.md
+  s_8fa3672d697172::t_36dec7479c6dae 1-2,4-10,11-14
+  s_d7a6e69b8557fc::t_45d885c51f62c9 3
+platform-blog/upstream/nblog/blog-api/.gitignore
+  s_9d26a5af148dfd::t_b25b6ac073e380 1-37
+platform-blog/upstream/nblog/blog-api/README.md
+  s_0b661184d73d5c::t_d08ccb600daf66 1-8,14,16,23,26-44,46,52,54-55,63,65-66,69-71,75-94,96
+  s_2671908a264ffc::t_5f3aa6f664bcee 9,11-12,15,17-22,24-25,45,47-51,53,56-59,61-62,64,67-68,72-74,95,97-98
+  s_ca08fd9467fff8::t_899e7dcf2a0bd5 10
+  s_5010dbf7aaf7e7::t_5948b912db4b2e 13,60
+platform-blog/upstream/nblog/blog-api/cfworker-tg-api-open.js
+  s_9d26a5af148dfd::t_e9c603cd8bec3c 1-37
+platform-blog/upstream/nblog/blog-api/pom.xml
+  s_9d26a5af148dfd::t_0b80bf3f121d40 2,6-9,11-16,18-22,27-28,32-33,37-38,42-43,45,52-61,65,67,70,72-94,100,102-104,106,108-121,124-149,160,163-208,210-211,213-220,222-227,238-252,259
+  s_2671908a264ffc::t_0903ce26e7ad56 150-159
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/BlogApiApplication.java
+  s_9d26a5af148dfd::t_2a28dec4a02c9f 1,7,9-14
+  s_99514bbf7dd524::t_abc36fb23e38c7 5,8
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/annotation/AccessLimit.java
+  s_9d26a5af148dfd::t_a9f105ba662b69 1-30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/annotation/OperationLogger.java
+  s_9d26a5af148dfd::t_17a559c3e0797b 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/annotation/VisitLogger.java
+  s_9d26a5af148dfd::t_a8a948df836043 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/aspect/ExceptionLogAspect.java
+  s_9d26a5af148dfd::t_55d4e7d4bfc617 1-15,16,17-20,21-60,61-76
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/aspect/OperationLogAspect.java
+  s_9d26a5af148dfd::t_8181260aad2707 1-82
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/aspect/VisitLogAspect.java
+  s_9d26a5af148dfd::t_0824d3c7f89764 1-218
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/BootstrapAdminInitializer.java
+  s_9d26a5af148dfd::t_64bbbf5164232a 1-15,17-18,19-22,23-25,26-30,32-34,36-39,41-49
+  s_73ef5fa35ec490::t_6713fae220539b 16,31,35,40
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/JwtFilter.java
+  s_9d26a5af148dfd::t_c129f7ef41b2ba 1-38,40-41,46-48,62-74
+  s_ca08fd9467fff8::t_f401d7dfa0c73c 39,42-45,49-61
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/JwtLoginFilter.java
+  s_9d26a5af148dfd::t_d6af9545c66a24 1-130
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/MyAuthenticationEntryPoint.java
+  s_9d26a5af148dfd::t_5b05f478b485f4 1-33
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/RedisSerializeConfig.java
+  s_9d26a5af148dfd::t_064104f1a419d5 1,5-13,15-30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/RestTemplateConfig.java
+  s_9d26a5af148dfd::t_207cedf5308a29 1-47
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/SecurityConfig.java
+  s_9d26a5af148dfd::t_56492e3d914d85 1,3,6-9,11-14,16-18,20-24,26-32,34-37,39-75
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/TrainingDataModuleConfiguration.java
+  s_9d26a5af148dfd::t_12b2330dbb57e1 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/TrainingUserDirectoryConfig.java
+  s_9d26a5af148dfd::t_724d13b84ca1a6 1,3-4,8-9,11-12,14-15
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/WebConfig.java
+  s_9d26a5af148dfd::t_4e556cc70c4ea9 1-57
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/properties/BlogProperties.java
+  s_9d26a5af148dfd::t_3053ef63b9324b 1,3-6,8,10-38
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/properties/GithubProperties.java
+  s_9d26a5af148dfd::t_5a25219bcdb8f2 1-39
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/properties/ProxyProperties.java
+  s_9d26a5af148dfd::t_9fe0759d0cc9d6 1-38
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/properties/TelegramProperties.java
+  s_9d26a5af148dfd::t_db0107e2403524 1-48
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/properties/UploadProperties.java
+  s_9d26a5af148dfd::t_309e96980c2e53 1,3-6,8,10-34
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/config/properties/UpyunProperties.java
+  s_9d26a5af148dfd::t_c30d15f7a34eac 1-43
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/constant/CommentConstants.java
+  s_9d26a5af148dfd::t_107ec987f86051 1-19
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/constant/JwtConstants.java
+  s_9d26a5af148dfd::t_98633842938713 1-14
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/constant/PageConstants.java
+  s_9d26a5af148dfd::t_3e8254934c45c4 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/constant/RedisKeyConstants.java
+  s_9d26a5af148dfd::t_c0b225fbcd8c43 1-37,38-50
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/constant/SiteSettingConstants.java
+  s_9d26a5af148dfd::t_8ed723abca0b6e 1-21
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/constant/UploadConstants.java
+  s_9d26a5af148dfd::t_f52132ce9ed4f1 1-26
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/AboutController.java
+  s_9d26a5af148dfd::t_d71afc2dd5b80f 1-31
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/BlogController.java
+  s_9d26a5af148dfd::t_7f19d0aeb777e0 1-2,5-6,7-9,10,11-16,17-29,30-38,41-46,48-51,53,54-58,60-65,67-70,72-73,78
+  s_b380cc3f57d00d::t_ce388320e66df1 47,52,59
+  s_ca08fd9467fff8::t_1ee29ff7ea9d3f 3-4,39-40,66,71,74-77
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/CategoryController.java
+  s_9d26a5af148dfd::t_ce208e2f988f2a 1-2,5-35,39-40,45
+  s_ca08fd9467fff8::t_edbb997e1d02e7 3-4,36-38,41-44
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/CommentController.java
+  s_9d26a5af148dfd::t_e16b4900c930fd 1-19,21-43,46-53,54-59,64-69,70-130,131-132,134-151,153-176
+  s_26f08d32717725::t_e83b19d6f8b25d 20,44-45,60-63,133,152,177
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/FriendController.java
+  s_9d26a5af148dfd::t_440db2fad51c18 1,3,5-6,8-13,15,19-23,25-27,29-56
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/HealthController.java
+  s_9d26a5af148dfd::t_594a83def5ebbb 1,5,10,12-13
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/HomepageBannerController.java
+  s_e3ca03627a19a6::t_e2e523904bd53c 1-25
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/IndexController.java
+  s_9d26a5af148dfd::t_cc7c2e77a957b6 1-2,5-38,40-43,45,48-49,51-53,55-57
+  s_d34323ce1dd83c::t_971ad44d626ceb 39,54
+  s_ca08fd9467fff8::t_639fa11a5cc83d 3-4,44,46-47,50
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/LoginController.java
+  s_9d26a5af148dfd::t_0f8190e6ca1d3f 1-42
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/MomentController.java
+  s_9d26a5af148dfd::t_75a0e603ac8913 1-81
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/TagController.java
+  s_9d26a5af148dfd::t_55c68f1027528e 1-2,5-35,39-40,45
+  s_ca08fd9467fff8::t_8abfc4aaf26670 3-4,36-38,41-44
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/TelegramBotController.java
+  s_9d26a5af148dfd::t_38bf3637df4cf1 1-48
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/AboutAdminController.java
+  s_9d26a5af148dfd::t_fd0d3d44bee435 1-48
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/BlogAdminController.java
+  s_9d26a5af148dfd::t_140ff1825b7456 1-5,7-19,20-25,27,29-51,54-170,173-195,200-256,259-261,262-279
+  s_26f08d32717725::t_2fbfcbf9d5d20f 6,26,28,52-53,171-172,196-199,257-258
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/CategoryAdminController.java
+  s_9d26a5af148dfd::t_09c070bcf4be00 1-19,21-84,86-118
+  s_73ef5fa35ec490::t_e86c819927252f 20,85
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/CommentAdminController.java
+  s_9d26a5af148dfd::t_21b99b39ac134a 1-124
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/DashboardAdminController.java
+  s_9d26a5af148dfd::t_8dab54b55f3bd0 1-52
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/ExceptionLogController.java
+  s_9d26a5af148dfd::t_5782a703b1cbbe 1-61
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/FriendAdminController.java
+  s_9d26a5af148dfd::t_273f75aa8f58c3 1-136
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/HomepageBannerAdminController.java
+  s_e3ca03627a19a6::t_1fe3772924cab8 1,3-4,6,8,11,13-15,17-23,25-31,33-35,38-40,43-45,48-50,53
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/LoginLogController.java
+  s_9d26a5af148dfd::t_f2ee139d4750aa 1-61
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/MomentAdminController.java
+  s_9d26a5af148dfd::t_313e3001dcadab 1-117
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/OperationLogController.java
+  s_9d26a5af148dfd::t_e092c0d20e8763 1-61
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/ScheduleJobController.java
+  s_9d26a5af148dfd::t_54d3d60301e668 1-155
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/SiteSettingAdminController.java
+  s_9d26a5af148dfd::t_763e4d6e5c465d 1-64
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/TagAdminController.java
+  s_9d26a5af148dfd::t_d711ac1c616bb5 1-116
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/TrainingDataAdminController.java
+  s_9d26a5af148dfd::t_526eb9b978c2b8 1-118
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/UserAdminController.java
+  s_8fa3672d697172::t_8feef2b988c055 1,8,12-14,16-17,22-24,26-27,30-37,41-47,50-52,55-57,65-68
+  s_26f08d32717725::t_b1a8edf9ea648f 15,60-64
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/VisitLogController.java
+  s_9d26a5af148dfd::t_b3498b677b8d20 1-64
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/VisitorAdminController.java
+  s_9d26a5af148dfd::t_2c3d4091428739 1-63
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/player/PlayerAccountController.java
+  s_0b661184d73d5c::t_49149df5add202 1-98
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/player/PlayerBlogController.java
+  s_9d26a5af148dfd::t_f8bf812f16c85f 1-15,17-32,34-52,60-69,71-84
+  s_b380cc3f57d00d::t_c34db9861b2097 16,33,53-59,70
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/player/PlayerCommentController.java
+  s_9d26a5af148dfd::t_1861719c20f6a2 1-5,8-12,17,20-22,25-32,57-65
+  s_26f08d32717725::t_0e830ff0db7b63 6-7,13-16,18-19,23-24,33-56
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/player/TrainingDataQueryController.java
+  s_9d26a5af148dfd::t_6f91d707ce8eb4 1-2,4,5-14,16-18,20-21,23-39,41,43-55,57,59-69,72-84,86,88-98,101-102
+  s_e9751d796b4d99::t_7423f616f07998 3,15,19,22,40,42,56,58,70-71,85,87,99-100
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/About.java
+  s_9d26a5af148dfd::t_fd34abb5c5d9e2 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/Blog.java
+  s_9d26a5af148dfd::t_6149df4e519178 1-24,27-29,31-39,40-44
+  s_b380cc3f57d00d::t_117b0df72f74d5 25-26,30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/Category.java
+  s_9d26a5af148dfd::t_ae609fa85833a8 1-22,24-25
+  s_73ef5fa35ec490::t_93980055e2578d 23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/CityVisitor.java
+  s_9d26a5af148dfd::t_07c3238e1f1287 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/Comment.java
+  s_9d26a5af148dfd::t_b8e699031ba31e 1-41
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/ExceptionLog.java
+  s_9d26a5af148dfd::t_c9f204ed83a8cd 1-42
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/Friend.java
+  s_9d26a5af148dfd::t_21957ccd4426cd 1,3-28
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/LoginLog.java
+  s_9d26a5af148dfd::t_f9f040a091950d 1,3-6,8-39
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/Moment.java
+  s_9d26a5af148dfd::t_20d2de7d9d0f2c 1-25
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/OperationLog.java
+  s_9d26a5af148dfd::t_2f0f6193cd43a9 1-44
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/ScheduleJob.java
+  s_9d26a5af148dfd::t_8fab71110709d8 1-30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/ScheduleJobLog.java
+  s_9d26a5af148dfd::t_a18ea8b8ef866a 1-29
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/SiteSetting.java
+  s_9d26a5af148dfd::t_584159950a53fd 1-25
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/Tag.java
+  s_9d26a5af148dfd::t_ce1fa8d2246096 1-25
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/User.java
+  s_0b661184d73d5c::t_efff559ec9e170 1,3-7,10,12,14,17-32,34-70
+  s_99514bbf7dd524::t_24e0c813ace381 33
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/UserProfileLink.java
+  s_0b661184d73d5c::t_a567a9f48c7342 1-23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/VisitLog.java
+  s_9d26a5af148dfd::t_c53a72e02b8803 1-48
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/VisitRecord.java
+  s_9d26a5af148dfd::t_02f114440d7d93 1-28
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/Visitor.java
+  s_9d26a5af148dfd::t_cef591196e2923 1-40
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/enums/CommentOpenStateEnum.java
+  s_9d26a5af148dfd::t_c4e87ad0a11478 1-21,22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/enums/CommentPageEnum.java
+  s_9d26a5af148dfd::t_54de15018e0b00 1-40
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/enums/VisitBehavior.java
+  s_9d26a5af148dfd::t_4b3c3b2d46ceba 1-12,13-22,23-46
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/exception/BadRequestException.java
+  s_9d26a5af148dfd::t_7d4611fe21a561 1,3-7,9-11,13-15,17-19
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/exception/ForbiddenException.java
+  s_9d26a5af148dfd::t_0028e68006f846 1-10
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/exception/NotFoundException.java
+  s_9d26a5af148dfd::t_42997e7de6b99b 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/exception/PersistenceException.java
+  s_9d26a5af148dfd::t_9c00c6d4e3bf3d 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/handler/ControllerExceptionHandler.java
+  s_9d26a5af148dfd::t_ab2181c06a3d8c 1,3-7,12-15,17,19-28,30-80,87-119
+  s_99514bbf7dd524::t_9f6e5d2de2dc2f 16,81-86
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/interceptor/AccessLimitInterceptor.java
+  s_9d26a5af148dfd::t_2f46d3039e6fd5 1,3-11,13-15,17-25,27-65
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/AboutMapper.java
+  s_9d26a5af148dfd::t_16174ad94427a5 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/BlogMapper.java
+  s_9d26a5af148dfd::t_de0bd8fdd56d18 1-3,5-8,9-29,32-34,36,38,41,44,47-73,75-89,92-93
+  s_26f08d32717725::t_0996b650f1d5a6 74,90-91
+  s_ca08fd9467fff8::t_1c893c8fd31842 4,30-31,35,37,39-40,42-43,45-46
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/CategoryMapper.java
+  s_9d26a5af148dfd::t_8d8007892f7097 1-30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/CityVisitorMapper.java
+  s_9d26a5af148dfd::t_6b100fd2da88d9 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/CommentMapper.java
+  s_9d26a5af148dfd::t_f81f23bd7eed18 1-41
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/ExceptionLogMapper.java
+  s_9d26a5af148dfd::t_1e876eeaa20583 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/FriendMapper.java
+  s_9d26a5af148dfd::t_dfaafc9fae80dd 1-30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/LoginLogMapper.java
+  s_9d26a5af148dfd::t_38ea5517070145 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/MomentMapper.java
+  s_9d26a5af148dfd::t_74281b82586963 1-30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/OperationLogMapper.java
+  s_9d26a5af148dfd::t_f9f6326e5dbaf7 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/ScheduleJobLogMapper.java
+  s_9d26a5af148dfd::t_c48b5b6fd7b7e7 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/ScheduleJobMapper.java
+  s_9d26a5af148dfd::t_245f4ce64f143f 1-28
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/SiteSettingMapper.java
+  s_9d26a5af148dfd::t_6a22f675a6bd4e 1-32
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/TagMapper.java
+  s_9d26a5af148dfd::t_71fb062a00ab90 1-34
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/UserMapper.java
+  s_0b661184d73d5c::t_3ac1e41212cd0d 1-30,33-43
+  s_99514bbf7dd524::t_9e9df8b622b88a 31-32
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/UserProfileLinkMapper.java
+  s_0b661184d73d5c::t_de0b10cc91b09f 1-21
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/VisitLogMapper.java
+  s_9d26a5af148dfd::t_0c806c6a4f1ded 1-27
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/VisitRecordMapper.java
+  s_9d26a5af148dfd::t_69b0f07417b9a6 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/VisitorMapper.java
+  s_9d26a5af148dfd::t_5fe77eae5128ec 1-29
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/AdminUserCreateRequest.java
+  s_9d26a5af148dfd::t_efeb929b1743e9 1-9,10-14
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/AdminUserPatchRequest.java
+  s_9d26a5af148dfd::t_f8f5f5ceb1dbdc 1,3-6,8
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/Blog.java
+  s_9d26a5af148dfd::t_93a04bfd68faea 1-27,29-31,33-41,42-49
+  s_b380cc3f57d00d::t_23505e684ae079 28,32
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/BlogView.java
+  s_9d26a5af148dfd::t_1f5c448d7f19e3 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/BlogVisibility.java
+  s_9d26a5af148dfd::t_f9c43a5e41fe25 1-22,24
+  s_b380cc3f57d00d::t_b478d1b7781d45 23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/Comment.java
+  s_9d26a5af148dfd::t_b232bf0cccca0b 1-36
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/Friend.java
+  s_9d26a5af148dfd::t_0c7e69b3048061 1-24
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/LoginInfo.java
+  s_9d26a5af148dfd::t_3e2d07294ab214 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/NicknameUpdate.java
+  s_9d26a5af148dfd::t_df7abbcec6f62c 1-15
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/OjHandlesUpdateRequest.java
+  s_9d26a5af148dfd::t_5020230d5748aa 1,3-5
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/PasswordUpdate.java
+  s_9d26a5af148dfd::t_842a5070d4c074 1-16
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/PlayerProfileUpdateRequest.java
+  s_0b661184d73d5c::t_40158eaf5d68aa 1,3-6
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/ProfileLinkInput.java
+  s_0b661184d73d5c::t_4d7da6a5cfc36a 1,3-6
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/ProfileLinksReplaceRequest.java
+  s_0b661184d73d5c::t_cf8246ea3b4216 1,5-8
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/TgMessage.java
+  s_9d26a5af148dfd::t_c4da9a444b456d 1-63
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/UserAgentDTO.java
+  s_9d26a5af148dfd::t_2339862572d76b 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/VisitLogRemark.java
+  s_9d26a5af148dfd::t_dc10a4dfad3a80 1-30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/VisitLogUuidTime.java
+  s_9d26a5af148dfd::t_2eda3381cb589d 1-25
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/WarehouseRefreshRequest.java
+  s_9d26a5af148dfd::t_48c05919e5cf8f 1,3
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/AdminUserMutationResponse.java
+  s_9d26a5af148dfd::t_f9d81d2b3d26e4 1,3-12
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/Badge.java
+  s_9d26a5af148dfd::t_ab83ffb3dd9a67 1-23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/BlogDetail.java
+  s_9d26a5af148dfd::t_321c028bc6dddd 1-23,25-28,30,32-39,40-43
+  s_b380cc3f57d00d::t_b7f08a915e5e86 24,31
+  s_5010dbf7aaf7e7::t_8465a67ba41564 29
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/BlogIdAndTitle.java
+  s_9d26a5af148dfd::t_7b0e2900317780 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/BlogInfo.java
+  s_9d26a5af148dfd::t_39387b761657a5 1-2,4-23,25,27-30,32-37,38-41
+  s_2671908a264ffc::t_519d5f7afaa9da 3,24,26
+  s_5010dbf7aaf7e7::t_fc5b0037fdb927 31
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/CategoryBlogCount.java
+  s_9d26a5af148dfd::t_7654604bba5e6b 1-21
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/Copyright.java
+  s_9d26a5af148dfd::t_d7baf62f1e89c6 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/Favorite.java
+  s_9d26a5af148dfd::t_ee574aaa00d33b 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/Friend.java
+  s_9d26a5af148dfd::t_d559ee2629fd2d 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/FriendInfo.java
+  s_9d26a5af148dfd::t_fb3ce18ae3de59 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/HomepageBannerImage.java
+  s_e3ca03627a19a6::t_3d035f1f535e63 1-9
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/Introduction.java
+  s_9d26a5af148dfd::t_81e2efa4ccea90 1-33
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/NewBlog.java
+  s_9d26a5af148dfd::t_78b18af7782739 1-19,20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/PageComment.java
+  s_9d26a5af148dfd::t_1140ba565be8ef 1-22,24-34
+  s_3713f2d10409b3::t_8ca674b8ba5fcc 23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/PageResult.java
+  s_9d26a5af148dfd::t_f956aa23cb6a95 1,3-6,10-26
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/PlayerProfile.java
+  s_0b661184d73d5c::t_cb9565452594c1 1-15,17-21,23-25,30-32,34-38
+  s_99514bbf7dd524::t_b628df29d7f2ca 16,22,26-29,33
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/ProfileLinkResponse.java
+  s_0b661184d73d5c::t_555d59652c3a19 1-12
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/QqResultVO.java
+  s_9d26a5af148dfd::t_ef4d14f5665934 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/QqVO.java
+  s_9d26a5af148dfd::t_7c1181daf9b9b5 1-30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/RandomBlog.java
+  s_9d26a5af148dfd::t_1a7f2f8cd6902b 1-23,24
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/Result.java
+  s_9d26a5af148dfd::t_9a58cbf77cc8a7 1-67
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/SearchBlog.java
+  s_9d26a5af148dfd::t_33179713845c94 1-21
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/TagBlogCount.java
+  s_9d26a5af148dfd::t_917d3d1223bc03 1-21
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/TrainingUserSummary.java
+  s_9d26a5af148dfd::t_e5c9ef34098532 1,3-7
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/repository/HomepageBannerRepository.java
+  s_e3ca03627a19a6::t_5c12320d6a2055 1,3-7,9-10,14-21,23,27,29-31,33-36,39-43,45-48,51-65,67,70-75,78-79,82-84
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/AboutService.java
+  s_9d26a5af148dfd::t_6103fbd08a527c 1,3,5-6,8,10,12
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/BlogService.java
+  s_9d26a5af148dfd::t_9328a795e183f5 1,3-10,12-13,15-16,20-21,23,25,28,31,33-57,59-70,73
+  s_26f08d32717725::t_2e0f3cfd8283a8 58,71-72
+  s_ca08fd9467fff8::t_c2e54d2483ad24 18,22,24,26-27,29-30,32
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/CategoryService.java
+  s_9d26a5af148dfd::t_103172b6d2f590 1-21
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/CityVisitorService.java
+  s_9d26a5af148dfd::t_55ee5e8fd7d776 1,3,5-6
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/CommentService.java
+  s_9d26a5af148dfd::t_65cc8943103f0b 1-28
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/DashboardService.java
+  s_9d26a5af148dfd::t_5b6361e27e37bf 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/ExceptionLogService.java
+  s_9d26a5af148dfd::t_72f92fccae206e 1-15
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/FriendService.java
+  s_9d26a5af148dfd::t_dea981201c28b9 1-28
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/HomepageBannerService.java
+  s_2370c5151b731c::t_9c4f533056e27e 1,3-10,12-19,21-22,24-34,36-37,39-41,44-45,48-51,53-60,62-67,69,73-82,85-88,90-93,95-98,101-103,105-106,108-117,121-123,126-133
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/LoginLogService.java
+  s_9d26a5af148dfd::t_ec23b3d54969ba 1-15
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/MomentService.java
+  s_9d26a5af148dfd::t_5bcbd4aac60664 1-23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/OperationLogService.java
+  s_9d26a5af148dfd::t_293378ca017317 1-15
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/PlayerAvatarService.java
+  s_0b661184d73d5c::t_e240e66e47d010 1-3,5,6,8-15,16-20,21-23,25-26,28-30,32-33,35,36-39,43-44,46,49-50,52-53
+  s_99514bbf7dd524::t_83b9ba2f1ac722 4,7,24,27,31,34,40-42,45,47-48,51
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/PlayerBlogService.java
+  s_9d26a5af148dfd::t_7187d73cc5331f 1-15,17-34,36-44,48-50,52,54,58-65,67-70,71,73,75-79,81-85,89-95,97-100,101,103-132,138-142,147-197
+  s_26f08d32717725::t_245e33427898a6 16,35,45-47,51,53,55-57,66,72,74,80,86-88,96,102,133-137,143-146
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/PlayerCommentService.java
+  s_9d26a5af148dfd::t_2ed8a0b9fc9c40 1-49,50-67
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/PlayerProfileService.java
+  s_0b661184d73d5c::t_522e9f0e671212 1-16,18-39,41,44-46,48-54,62-106,114-115,116-184
+  s_e0255f54665c67::t_7749b9b744b9cf 17,40,42-43,47,55-61,107-113
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/RedisService.java
+  s_9d26a5af148dfd::t_fca9b5ab8d708e 1-51
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/ScheduleJobService.java
+  s_9d26a5af148dfd::t_7016fc4e2edd0a 1-26
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/SiteSettingService.java
+  s_9d26a5af148dfd::t_1a6c77c1fff17c 1-17
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/TagService.java
+  s_9d26a5af148dfd::t_f303148f790897 1-23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/TrainingUserQueryService.java
+  s_9d26a5af148dfd::t_e23ceba703379e 1,3-7,9-12,14-17,19-22,24-35
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/UserService.java
+  s_9d26a5af148dfd::t_34fa67f6ac0b09 1-15
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/VisitLogService.java
+  s_9d26a5af148dfd::t_296d6e21bf13d5 1-18
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/VisitRecordService.java
+  s_9d26a5af148dfd::t_cf8ea5100a3014 1-7
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/VisitorService.java
+  s_9d26a5af148dfd::t_93b8a60ff54d7d 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/AboutServiceImpl.java
+  s_9d26a5af148dfd::t_3ff5c8a152eda4 1-88
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/AdminUserService.java
+  s_9d26a5af148dfd::t_66eb615683667d 1-16,18-19,22-23,26-39,41-44,47-50,54-74,76-85,88-93,96-97,100-101,104-111,115-118,122-127,128-142,145-146,150-152,156,158-160,162-165,167-168,196-199,203-204,206-208,210,212-213,217-219,221,223-226,228-229,231-235,237-244,246,248-261,263-266,268,271-273,275-276,278-280,282,284-286,288-289,291-294,296
+  s_26f08d32717725::t_e7e4185c324367 17,20-21,40,45-46,51,75,112-114,119-121,147-149,153-155,157,161,166,171-195,200-202,209,211,298-301
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/BlogServiceImpl.java
+  s_9d26a5af148dfd::t_5f4e151b42b3b6 1-14,15-21,23-29,30-45,48-55,56-76,79,82-91,97-102,104-108,114-122,124-158,161,163-165,168,175-179,181,183-188,191-204,206-248,251-255,256-303,313-326,327-361,367,369-372,373-374
+  s_26f08d32717725::t_5f489f340cc6fe 22,46-47,80-81,180,182,205,249-250,304-312,362-366,368
+  s_ca08fd9467fff8::t_8c30364cc7ea39 77-78,92-96,103,109-113,123,159-160,162,166-167,169-174,189-190
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/CategoryServiceImpl.java
+  s_9d26a5af148dfd::t_ec2788be34a02a 1-6,8-51,53-84,86-93
+  s_3713f2d10409b3::t_c5a81833eb28c9 7,52,85
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/CityVisitorServiceImpl.java
+  s_9d26a5af148dfd::t_a6f49bffbf9d8d 1-25
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/CommentServiceImpl.java
+  s_9d26a5af148dfd::t_467a53f9cafadf 1-188
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/DashboardServiceImpl.java
+  s_9d26a5af148dfd::t_41fbc6099da0a4 1-177
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/ExceptionLogServiceImpl.java
+  s_9d26a5af148dfd::t_b753809fdc6740 1-53
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/FriendServiceImpl.java
+  s_9d26a5af148dfd::t_064d71e7ba4548 1-142
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/LoginLogServiceImpl.java
+  s_9d26a5af148dfd::t_c65ddbb19ed9b0 1-53
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/MomentServiceImpl.java
+  s_9d26a5af148dfd::t_ccac5f5a9ae4db 1,3-12,14,16-30,32-35,37-99
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/OperationLogServiceImpl.java
+  s_9d26a5af148dfd::t_4af927138bb1d7 1-53
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/RedisServiceImpl.java
+  s_9d26a5af148dfd::t_9bc43138c93a68 1-145
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/ScheduleJobServiceImpl.java
+  s_9d26a5af148dfd::t_379965f69f7871 1-120
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/SiteSettingServiceImpl.java
+  s_9d26a5af148dfd::t_7976fc63d227ad 1-199
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/TagServiceImpl.java
+  s_9d26a5af148dfd::t_9d839f8f1cd65f 1-6,8-53,55-86,88-95
+  s_3713f2d10409b3::t_28132eeb20ed12 7,54,87
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/UserServiceImpl.java
+  s_9d26a5af148dfd::t_60589338fa8aa0 1-86
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/VisitLogServiceImpl.java
+  s_9d26a5af148dfd::t_940db1eea4abf3 1,3-13,15,17-27,29-32,34-37,39-50,52-59
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/VisitRecordServiceImpl.java
+  s_9d26a5af148dfd::t_f803be0e6ce0df 1-25
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/VisitorServiceImpl.java
+  s_9d26a5af148dfd::t_43c3f465c5876e 1-76
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/task/RedisSyncScheduleTask.java
+  s_9d26a5af148dfd::t_78dcc524b5038b 1,3-7,9-10,12-35
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/task/VisitorSyncScheduleTask.java
+  s_9d26a5af148dfd::t_2cdf663cc50ea7 1-95
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/AopUtils.java
+  s_9d26a5af148dfd::t_9b188f7e32b5ae 1-63
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/HashUtils.java
+  s_9d26a5af148dfd::t_1b0346d1990be1 1,3,6-12,14-18,20-22,24-26
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/IpAddressUtils.java
+  s_9d26a5af148dfd::t_9880fd55487a3c 1-67,70-75,77-84,86-102
+  s_d7a6e69b8557fc::t_8030151cf299eb 68-69,76,85,103
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/JacksonUtils.java
+  s_9d26a5af148dfd::t_5713a29db0b08d 1-57
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/JwtUtils.java
+  s_9d26a5af148dfd::t_4b5f809af26cfd 1-116
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/MailUtils.java
+  s_9d26a5af148dfd::t_23eea2e622602b 1-63
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/QQInfoUtils.java
+  s_9d26a5af148dfd::t_5c2fb116c89001 1-63
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/StringUtils.java
+  s_9d26a5af148dfd::t_82cd31d915d344 1,3-4,6-25,27-40,42-78
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/UserAgentUtils.java
+  s_9d26a5af148dfd::t_ce0e1d5101a4f5 1-40
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/comment/CommentUtils.java
+  s_9d26a5af148dfd::t_5e127e7698f540 1-187,188-313
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/comment/channel/ChannelFactory.java
+  s_9d26a5af148dfd::t_2bb4816e684189 1-27
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/comment/channel/CommentNotifyChannel.java
+  s_9d26a5af148dfd::t_14b300966eeb38 1-18
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/comment/channel/MailChannel.java
+  s_9d26a5af148dfd::t_509d70c32f2373 1-54
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/comment/channel/TelegramChannel.java
+  s_9d26a5af148dfd::t_1962023f60c937 1-92
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/common/SpringContextUtils.java
+  s_9d26a5af148dfd::t_7f84d7388570ed 1-48
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/common/ValidatorUtils.java
+  s_9d26a5af148dfd::t_5707b2743b4447 1-34
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/MarkdownUtils.java
+  s_9d26a5af148dfd::t_406e8a96e7e306 1-16,20-27,30-36,56-129,131-136,153-154,157-158
+  s_2671908a264ffc::t_d10031491d108e 17-19,40-42,45-55,130,155-156
+  s_5010dbf7aaf7e7::t_a473a01a303504 28-29,37-39,43-44,137-152
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/cover/Cover.java
+  s_9d26a5af148dfd::t_8dab23b800706c 1-23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/cover/CoverExtension.java
+  s_9d26a5af148dfd::t_143b8bce65f8d9 1-53
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/cover/internal/AbstractCoverNodeRenderer.java
+  s_9d26a5af148dfd::t_1f71dabb6f83a5 1,3-5,7-8,10-13
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/cover/internal/CoverDelimiterProcessor.java
+  s_9d26a5af148dfd::t_a6a57364a68af2 1,3-9,11-19,23-24,28-29,31-56
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/cover/internal/CoverHtmlNodeRenderer.java
+  s_9d26a5af148dfd::t_3ba5b1e84294b1 1,3-5,7,10-17,19-21,24-31,33-39
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/cover/internal/CoverTextContentNodeRenderer.java
+  s_9d26a5af148dfd::t_48716e667622c6 1,3-5,7-14,16-18,21-25,28-33
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/heimu/Heimu.java
+  s_9d26a5af148dfd::t_32365fbdc81e92 1-23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/heimu/HeimuExtension.java
+  s_9d26a5af148dfd::t_81656326a0a512 1-53
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/heimu/internal/AbstractHeimuNodeRenderer.java
+  s_9d26a5af148dfd::t_036c04507961ac 1-15
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/heimu/internal/HeimuDelimiterProcessor.java
+  s_9d26a5af148dfd::t_576a830c163490 1-57
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/heimu/internal/HeimuHtmlNodeRenderer.java
+  s_9d26a5af148dfd::t_b4e2333fcbc8b7 1-42
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/markdown/ext/heimu/internal/HeimuTextContentNodeRenderer.java
+  s_9d26a5af148dfd::t_100864b05c8744 1-18,21-25,28-33
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/quartz/ScheduleJob.java
+  s_9d26a5af148dfd::t_a69e0839607ab7 1-62
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/quartz/ScheduleRunnable.java
+  s_9d26a5af148dfd::t_111df00d68fed5 1-42
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/quartz/ScheduleUtils.java
+  s_9d26a5af148dfd::t_b3d26343948479 1,3-13,15-21,23-28,30-35,37-138
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/telegram/TelegramBotMsgHandler.java
+  s_9d26a5af148dfd::t_6c3f510041d3a7 1-295
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/telegram/TelegramUtils.java
+  s_9d26a5af148dfd::t_f85e559c391d3c 1-3,5-7,9-21,24-152
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/upload/UploadUtils.java
+  s_9d26a5af148dfd::t_82c2f3ee1f9b47 1,3-36,38-44,46-54,56-68
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/upload/channel/ChannelFactory.java
+  s_9d26a5af148dfd::t_634b32c67ee087 1-30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/upload/channel/FileUploadChannel.java
+  s_9d26a5af148dfd::t_2102db7d1c8154 1-20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/upload/channel/GithubChannel.java
+  s_9d26a5af148dfd::t_5a57618f92624a 1-63
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/upload/channel/LocalChannel.java
+  s_9d26a5af148dfd::t_7c7bb7f47edc05 1-47
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/upload/channel/UpyunChannel.java
+  s_9d26a5af148dfd::t_64fae6192a6095 1-38
+platform-blog/upstream/nblog/blog-api/src/main/resources/application.properties
+  s_e3ca03627a19a6::t_24802e812e76e0 1-25,26-52,56-64
+  s_73ef5fa35ec490::t_90bd78f6223bfc 53-55
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V001__create_nblog_schema.sql
+  s_9d26a5af148dfd::t_dc64110f69f002 1-365
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V024__integrate_blog_users_and_training_handles.sql
+  s_9d26a5af148dfd::t_dc8ca2ca0b9922 1-24
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V025__create_homepage_banner_image.sql
+  s_e3ca03627a19a6::t_949287e099ca9b 1-13
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V026__limit_homepage_banner_images.sql
+  s_2370c5151b731c::t_6db072339aabea 1-3
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V027__add_user_profile_and_links.sql
+  s_0b661184d73d5c::t_a5c5e27b7bcced 1-17
+platform-blog/upstream/nblog/blog-api/src/main/resources/logback-spring.xml
+  s_9d26a5af148dfd::t_c434e9aad9fc0c 4-5,8,10,12,14,16,19,21-22,24,26,31-32
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/AboutMapper.xml
+  s_9d26a5af148dfd::t_34dc7a99519c64 1-7,9-12,14-18
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/BlogMapper.xml
+  s_9d26a5af148dfd::t_6cda749ef36261 1-8,10-12,14-22,23-35,37-47,50-64,67-83,85-88,96-110,111-114,116-117,121-126,128-133,136-138,140-144,147-148,152-155,158-159,163-166,169-171,175-179,180-183,185,187-188,193-216,221-235,237-246,250-256,259,261-276,278,280,282-289,290-293,295-303,307-309,311-312,322-325,328,330-339,341-362,367-376
+  s_26f08d32717725::t_07ad192b5587e5 9,13,36,48-49,65-66,84,89,91,93-95,115,119,134-135,139,146,157,168,184,186,192,217-220,236,247-249,257-258,260,277,281,294,305-306,310,313-314,316-321,326-327,329,340,363-366
+  s_ca08fd9467fff8::t_b6e196b2514de6 90,92,118,120,148-151,159-162,171-174,188-191
+  s_5010dbf7aaf7e7::t_693a1c4add5e9c 127,145,156,167,279,304,315
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/CategoryMapper.xml
+  s_9d26a5af148dfd::t_4cd7f0b1cd71b5 1-7,9-12,14-17,19-22,24-27,29-32,34-42,44-45
+  s_73ef5fa35ec490::t_f9c59393291d67 8,13,18,23,28,33,43
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/CityVisitorMapper.xml
+  s_9d26a5af148dfd::t_b09547ea77fb18 1-21
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/CommentMapper.xml
+  s_9d26a5af148dfd::t_1e1ab460ffe5a8 1-6,8-67,69-143
+  s_3713f2d10409b3::t_80db39403fb6a0 7,68
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/ExceptionLogMapper.xml
+  s_9d26a5af148dfd::t_b02764f6ee7f23 1-3,5-18,20-41
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/FriendMapper.xml
+  s_9d26a5af148dfd::t_db4628541a7b0d 1-58
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/LoginLogMapper.xml
+  s_9d26a5af148dfd::t_48b866246a854b 1-39
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/MomentMapper.xml
+  s_9d26a5af148dfd::t_b52504e538a231 1-47
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/OperationLogMapper.xml
+  s_9d26a5af148dfd::t_1203d3deabb6aa 1-42
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/ScheduleJobLogMapper.xml
+  s_9d26a5af148dfd::t_15f1b24e504507 1-35
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/ScheduleJobMapper.xml
+  s_9d26a5af148dfd::t_d243795d0f97f4 1-41
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/SiteSettingMapper.xml
+  s_9d26a5af148dfd::t_1b534a997fc4c0 1-44
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/TagMapper.xml
+  s_9d26a5af148dfd::t_a17e2545802d41 1-3,5-9,11-14,16-19,21-26,28-62
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/UserMapper.xml
+  s_0b661184d73d5c::t_05962dd92490a7 1-33,35-64
+  s_99514bbf7dd524::t_7da00b64f9cfc4 34
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/UserProfileLinkMapper.xml
+  s_0b661184d73d5c::t_8156611e6747ce 1-19
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/VisitLogMapper.xml
+  s_9d26a5af148dfd::t_a37ba8ddff980a 1-63
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/VisitRecordMapper.xml
+  s_9d26a5af148dfd::t_bf05c419d57e3f 1-21
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/VisitorMapper.xml
+  s_9d26a5af148dfd::t_3d7a6e315e9196 1-54
+platform-blog/upstream/nblog/blog-api/src/main/resources/templates/guest.html
+  s_9d26a5af148dfd::t_25c39d3e3104ba 1-32
+platform-blog/upstream/nblog/blog-api/src/main/resources/templates/owner.html
+  s_9d26a5af148dfd::t_6ff76f91c35838 1-24
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/BlogApiApplicationTests.java
+  s_9d26a5af148dfd::t_6047b24f2f3ae5 1,4-5,7-9,11-13,15-17
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/BlogApiModuleCompositionTest.java
+  s_9d26a5af148dfd::t_6abe92702b6e38 1,3,5-6,8-20
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/TrainingDataRouteContractTest.java
+  s_9d26a5af148dfd::t_60ad1a12531990 1,4-8,10-13,15,17,19-29,33-46,48-52,55-61
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/UnifiedSchemaMigrationTest.java
+  s_0b661184d73d5c::t_2805902e24f66f 1-3,6,9-10,12-15,17-18,21-29,32-47
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/config/BootstrapAdminInitializerTest.java
+  s_9d26a5af148dfd::t_d063a25e5d7bf4 1,4-6,8-12,14,16-17,21,26,28,31-32
+  s_73ef5fa35ec490::t_54a67cf256149c 18-19,23-25,29-30
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/config/SecurityConfigTest.java
+  s_9d26a5af148dfd::t_f856d797b30fe4 1,3,6-9,11-16,18-22,24,29-62,76-137,139-140,144-147
+  s_ca08fd9467fff8::t_6bbac452d76841 27,63-75,141-143
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/admin/HomepageBannerAdminControllerTest.java
+  s_e3ca03627a19a6::t_38f0c8ec24dac3 1,5-31,34-35,39-55
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/admin/TrainingDataAdminControllerTest.java
+  s_9d26a5af148dfd::t_76a3338a42ae5f 1,3-7,9-11,14,16-19,21,23-38,42-44,48-49,51-54,56-57,61-62,64-67,69-70,74-75,77-80,82,86-88,90,92-97,101-103,105,107-125
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/admin/UserAdminControllerTest.java
+  s_8fa3672d697172::t_fa54cca75eda42 1,3,5-10,15,17-34,37-45
+  s_26f08d32717725::t_5134817ac699fe 11,16,47-59
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/player/PlayerAccountControllerTest.java
+  s_0b661184d73d5c::t_f29942aace6dad 1-100
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/AdminUserServiceTest.java
+  s_9d26a5af148dfd::t_6bf0bb4e1b87bf 1-3,5,8-16,19-20,26-31,34,36-38,42-44,46-49,51,53,55-57,61-63,65,70-76,78,97-105,107-109,112-120,122-128,184,188-194
+  s_26f08d32717725::t_a5ecb767d1db06 4,6,17-18,24,32,39,45,54,64,66,77,81-95,106,121,129-183,185
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/HomepageBannerLimitTest.java
+  s_2370c5151b731c::t_f3e92af7c1d8d3 1,4-9,11-13,15-21,24-26,28,30
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/HomepageBannerServiceTest.java
+  s_e3ca03627a19a6::t_b1b62afbd70be5 1,3,5,7-17,20-36,39,41,43-48,50-64,68-70,72,74,78-82,84,86-88,91-93,95,97,100-104
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/PlayerAvatarServiceTest.java
+  s_0b661184d73d5c::t_d5f8d18d6a8297 1-3,4-7,9,11-14,15-16,17-24,29-30,37,41-42,44,48-50,55-56,59-60,68-69,76-77
+  s_99514bbf7dd524::t_d4d4b018507952 8,10,25-28,31-36,38-40,43,45-47,51-54,57-58,61-67,70-75
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/PlayerBlogServiceTest.java
+  s_9d26a5af148dfd::t_8e610bd96cf5fa 1-13,15-36,38-49,66-74,76-82,98-110,111-120,121-166
+  s_b380cc3f57d00d::t_c924f8476efd94 14,37,50-65,75,83-97
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/PlayerCommentServiceTest.java
+  s_9d26a5af148dfd::t_61967440029503 1-54
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/PlayerProfileServiceTest.java
+  s_0b661184d73d5c::t_a69471d312d566 1-18,20-39,42-47,49-70,85-173
+  s_e0255f54665c67::t_3583aa9a3b3018 19,40-41,48,71-84
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/TrainingUserQueryServiceTest.java
+  s_9d26a5af148dfd::t_c680a46218961e 1,3-4,6-11,14,17-18,20-23,26-34,36,38-39,42-46
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/impl/UserServiceImplTest.java
+  s_9d26a5af148dfd::t_b77031eabc7f75 1-70
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/util/JwtUtilsTest.java
+  s_9d26a5af148dfd::t_72e642e793133e 1,3-5,7,9,11-12,14-21,23-29
+platform-blog/upstream/nblog/blog-view/.gitignore
+  s_9d26a5af148dfd::t_d9cee4ab2f2a07 1-22
+platform-blog/upstream/nblog/blog-view/index.html
+  s_8fa3672d697172::t_7d6d0c9646869b 1-5,8-17
+  s_1c9477b19b60a3::t_599b5bf002ae87 6-7
+platform-blog/upstream/nblog/blog-view/package.json
+  s_8fa3672d697172::t_e86a122f59d819 1-13,20,24,27-37,39-43
+  s_2671908a264ffc::t_3d0d8b187e6b82 14-19,21-23,25-26,38
+platform-blog/upstream/nblog/blog-view/public/lib/css/prism.css
+  s_9d26a5af148dfd::t_a75d15eaa68fdc 1-261
+platform-blog/upstream/nblog/blog-view/public/lib/js/prism.js
+  s_9d26a5af148dfd::t_0d8e5958484698 1-43
+platform-blog/upstream/nblog/blog-view/src/App.vue
+  s_9d26a5af148dfd::t_5eeb23a0b038b2 1-15
+platform-blog/upstream/nblog/blog-view/src/api/about.js
+  s_9d26a5af148dfd::t_ab8acf987776b5 1-8
+platform-blog/upstream/nblog/blog-view/src/api/blog.js
+  s_9d26a5af148dfd::t_4d156f130a559b 1,3,10-12,13-18,19-22,24-27
+  s_b380cc3f57d00d::t_3dab0af263eae9 9,28
+  s_ca08fd9467fff8::t_fa1df57985cd2b 2-7,23
+platform-blog/upstream/nblog/blog-view/src/api/category.js
+  s_9d26a5af148dfd::t_1a5e8f51beb73c 1,8-12,14-18
+  s_ca08fd9467fff8::t_7db2a85422f3e5 2-7,13,19
+platform-blog/upstream/nblog/blog-view/src/api/comment.js
+  s_9d26a5af148dfd::t_0615f67e5c1a38 1-2,4-6,7-12,22-33
+  s_26f08d32717725::t_71ff04705d3a34 3,13-21
+platform-blog/upstream/nblog/blog-view/src/api/friend.js
+  s_9d26a5af148dfd::t_14361b7848a742 1-18
+platform-blog/upstream/nblog/blog-view/src/api/home.js
+  s_9d26a5af148dfd::t_ef9ab218911bb5 1,8-12,14-17
+  s_ca08fd9467fff8::t_84bc3131ffc048 2-7,13,18
+platform-blog/upstream/nblog/blog-view/src/api/index.js
+  s_e3ca03627a19a6::t_64d501c4740384 1,8-11,14-22
+  s_ca08fd9467fff8::t_05001d997afcd9 2-7,12-13
+platform-blog/upstream/nblog/blog-view/src/api/moment.js
+  s_9d26a5af148dfd::t_ec80a47088b3fb 1-21
+platform-blog/upstream/nblog/blog-view/src/api/profile.js
+  s_0b661184d73d5c::t_3f4c303a868e43 1-17,27-60,71-80
+  s_f07097515ae872::t_b8826a1e068157 18-26,61-70
+platform-blog/upstream/nblog/blog-view/src/api/tag.js
+  s_9d26a5af148dfd::t_a6fe3f86c30cbe 1,8-12,14-18
+  s_ca08fd9467fff8::t_7c0a9cbce25c16 2-7,13,19
+platform-blog/upstream/nblog/blog-view/src/assets/css/badge.css
+  s_9d26a5af148dfd::t_308e6a61014d46 1-73
+platform-blog/upstream/nblog/blog-view/src/assets/css/base.css
+  s_8fa3672d697172::t_b8b750e4782fdf 1-344
+platform-blog/upstream/nblog/blog-view/src/assets/css/icon/iconfont.css
+  s_9d26a5af148dfd::t_9a68ee079e58b5 1-25
+platform-blog/upstream/nblog/blog-view/src/assets/css/icon/iconfont.svg
+  s_9d26a5af148dfd::t_3489e291640b17 1-32
+platform-blog/upstream/nblog/blog-view/src/assets/css/typo.css
+  s_8fa3672d697172::t_96daa7ab1e7910 1-182,185-193,202-255,263-267,357-485
+  s_fa3a8f58894ebc::t_d8820ab07b84b1 322-333,349-356
+  s_5010dbf7aaf7e7::t_1c7e6ed893d101 183-184,194-201,256-262,268-321,334-348
+platform-blog/upstream/nblog/blog-view/src/auth/account-menu.js
+  s_8fa3672d697172::t_023235dfa7f202 1-3,5-11
+  s_6b0247d950059b::t_d97617d141f8d4 4
+platform-blog/upstream/nblog/blog-view/src/auth/session.js
+  s_0b661184d73d5c::t_4b59ed379a2abc 1-54,56-70
+  s_ca08fd9467fff8::t_4357dffc316341 55
+platform-blog/upstream/nblog/blog-view/src/common/reg.js
+  s_9d26a5af148dfd::t_9185c1f00f37b9 1-15
+platform-blog/upstream/nblog/blog-view/src/components/blog/BlogItem.vue
+  s_8fa3672d697172::t_3f35c775bf5aaf 1-2,4-8,20-21,41-46,48-56,58-66,72-79,302-303
+  s_2671908a264ffc::t_bb58c53d114684 47,57,67-71,108-111,113-132,135-196,202-249,297-301
+  s_5010dbf7aaf7e7::t_feda21d84fb644 3,9-19,22-40,80-107,112,133-134,197-201,250-296
+platform-blog/upstream/nblog/blog-view/src/components/blog/BlogList.vue
+  s_9d26a5af148dfd::t_b9a11df5366cda 1-36
+platform-blog/upstream/nblog/blog-view/src/components/blog/Pagination.vue
+  s_9d26a5af148dfd::t_fe8aa922fafb8f 1-66
+platform-blog/upstream/nblog/blog-view/src/components/comment/Comment.vue
+  s_8fa3672d697172::t_603a4bdbe9f584 1-4,6-13,15-19,21-28,30-36,38-53,55-75,77-111,114-123,139-166,169-171,177-202
+  s_2671908a264ffc::t_7802dc1bdfdfda 5,14,20,29,37,54,76,112-113,124-138,167-168,172-176
+platform-blog/upstream/nblog/blog-view/src/components/comment/CommentForm.vue
+  s_8fa3672d697172::t_030246cd9e5c53 1-66,68-114,117-151,160,161-307
+  s_6b0247d950059b::t_7d2627d9786eee 67,115-116,152-159
+platform-blog/upstream/nblog/blog-view/src/components/comment/CommentList.vue
+  s_9d26a5af148dfd::t_525cc9c6f190d8 1-10,12-23,26-41,43-51
+  s_26f08d32717725::t_d592f8807a0194 11,24-25,42,52
+platform-blog/upstream/nblog/blog-view/src/components/comment/Pagination.vue
+  s_9d26a5af148dfd::t_711d36340cd864 1-33
+platform-blog/upstream/nblog/blog-view/src/components/index/Footer.vue
+  s_2370c5151b731c::t_0ece13c1e59efb 1-123
+platform-blog/upstream/nblog/blog-view/src/components/index/Nav.vue
+  s_e3ca03627a19a6::t_76440c805aa657 1-21,22-24,27,29-30,34-35,56-103,107-110,114-183,194,206,211,213-215,217-218,220,223-226,228-281,290-305,313-382,384-390,392,400-402,404-409,438-439,442-446,449,451-454,458-465,469-491,495-497
+  s_3713f2d10409b3::t_71ef25d29b6b6f 25-26,28,31-33,36-55,104-106,111-113,184-190,192-205,207-210,212,216,219,221-222,227,282-289,306-312,383,391,393-399,403,410-419,422-441,447-448,450
+  s_ca08fd9467fff8::t_fad28a449fc854 455-457,466-468,492-494
+platform-blog/upstream/nblog/blog-view/src/components/profile/AvatarCropDialog.vue
+  s_2370c5151b731c::t_415fd09562dbf0 1-326
+platform-blog/upstream/nblog/blog-view/src/components/sidebar/Introduction.vue
+  s_0b661184d73d5c::t_b3daaba57b2e70 1-2,4-7,10-11,14-17,22-32,34-39,50-62,64-68,73-75,77-78,80-82,86-89,91-92,100-111,130-144,146-167,169-172,174-178,183-273,297-423
+  s_73ef5fa35ec490::t_a71373ca4bfda9 3,8-9,12-13,18-21,33,63,69-72,76,83-85,93-99,119-129,145
+  s_5010dbf7aaf7e7::t_5a6d8521ba2aac 40-49,79,112-118,274-296
+platform-blog/upstream/nblog/blog-view/src/components/sidebar/Tags.vue
+  s_2370c5151b731c::t_91bb0f444b1670 1-5,7-21,34-49
+  s_3713f2d10409b3::t_6d69d2d93f1364 6,22-33
+platform-blog/upstream/nblog/blog-view/src/components/sidebar/Tocbot.vue
+  s_2370c5151b731c::t_8f298bebf8b5eb 1-135
+platform-blog/upstream/nblog/blog-view/src/main.js
+  s_8fa3672d697172::t_e5953dff4822d9 1-81
+platform-blog/upstream/nblog/blog-view/src/plugins/aruMapper.json
+  s_9d26a5af148dfd::t_19dbfc2652939f 1-437
+platform-blog/upstream/nblog/blog-view/src/plugins/axios.js
+  s_9d26a5af148dfd::t_a605349130a8ed 1-36
+platform-blog/upstream/nblog/blog-view/src/plugins/paopaoMapper.json
+  s_9d26a5af148dfd::t_194632ee11ca65 1-167
+platform-blog/upstream/nblog/blog-view/src/plugins/tvMapper.json
+  s_9d26a5af148dfd::t_2185333dd498d4 1-252
+platform-blog/upstream/nblog/blog-view/src/router/index.js
+  s_2370c5151b731c::t_a3022db1fca4b1 1-2,5-28,31-33,41-64,70-73,75-78,80-82,86,88
+  s_1a367a9796447c::t_44d2d07be928cb 3,29-30,34-40,65-69,83-85
+platform-blog/upstream/nblog/blog-view/src/settings.js
+  s_e3ca03627a19a6::t_ba11b54f1d6a4a 1-3,5,7
+  s_d34323ce1dd83c::t_308637845a9faa 4,6
+platform-blog/upstream/nblog/blog-view/src/store/actions.js
+  s_8fa3672d697172::t_cd897f61dbe909 1-3,5-6,9-26,27-42,47-74,76-98,107-109,112-113
+  s_26f08d32717725::t_db64ef7ed1ed49 4,7-8,43-46,75,99-106,110-111
+platform-blog/upstream/nblog/blog-view/src/store/index.js
+  s_8fa3672d697172::t_4be1193683f310 1-4,5-8,10
+  s_d7a6e69b8557fc::t_d469b89e7024cd 9
+platform-blog/upstream/nblog/blog-view/src/store/mutations-types.js
+  s_9d26a5af148dfd::t_636fe0a38ad51a 1-5,7-11,12-13
+  s_26f08d32717725::t_dc157832345907 6,14
+platform-blog/upstream/nblog/blog-view/src/store/mutations.js
+  s_9d26a5af148dfd::t_799ecc5781a3be 1-10,12,13-36,40-67,68-76
+  s_26f08d32717725::t_529456f2261be6 11,37-39,77
+platform-blog/upstream/nblog/blog-view/src/store/state.js
+  s_9d26a5af148dfd::t_07d3ca73432336 1-11,13-29,30-38
+  s_26f08d32717725::t_0f2f9ed9a1e9fe 12,39
+platform-blog/upstream/nblog/blog-view/src/test/accountMenu.test.js
+  s_8fa3672d697172::t_3ba5f730664da7 1-6,8-10,12-13
+  s_6b0247d950059b::t_30a0457d25d05f 7,11
+platform-blog/upstream/nblog/blog-view/src/test/dateTimeFormatUtils.test.js
+  s_8fa3672d697172::t_777a404c0bad7a 1-9
+platform-blog/upstream/nblog/blog-view/src/test/homepageBanner.test.js
+  s_2370c5151b731c::t_017913690de38e 1-39
+platform-blog/upstream/nblog/blog-view/src/test/profileApi.test.js
+  s_0b661184d73d5c::t_b30d342c324aff 1-8,10,12-29,40-63,77
+  s_f07097515ae872::t_26c762991c6d43 9,11,30-39,64-76
+platform-blog/upstream/nblog/blog-view/src/test/session.test.js
+  s_0b661184d73d5c::t_58c21f8a5a1e70 1-37,39-41,42-46,47-67,69-75,77-82
+  s_b380cc3f57d00d::t_c1b42847f371e1 38
+  s_ca08fd9467fff8::t_a34f4d3e8e2687 68,76
+platform-blog/upstream/nblog/blog-view/src/util/dateTimeFormatUtils.js
+  s_8fa3672d697172::t_0c95d133d57f50 1-7,9-18
+platform-blog/upstream/nblog/blog-view/src/util/directive.js
+  s_8fa3672d697172::t_cddb5bdc58b18b 1-41
+platform-blog/upstream/nblog/blog-view/src/util/get-page-title.js
+  s_9d26a5af148dfd::t_02d4f21a043385 2-3,4,6,8
+  s_1c9477b19b60a3::t_b910dc94866c22 1,5,7
+platform-blog/upstream/nblog/blog-view/src/util/homepageBanner.js
+  s_2370c5151b731c::t_012681b9176420 1-26
+platform-blog/upstream/nblog/blog-view/src/views/Index.vue
+  s_8fa3672d697172::t_3bf39ba4cb5a79 1-16,18-22,24-28,30-38,39-54,56,57,60-63,65-72,75-89,91-97,101-106,111,117-122,124-125,127-136,139-144,147-151,155-158,163-174
+  s_b380cc3f57d00d::t_7177af65dcdd31 17,23,29,55,58,64,73-74,90,123,126
+  s_ca08fd9467fff8::t_d86a1319a5c502 59,98-100,107-110,112-116
+  s_5010dbf7aaf7e7::t_f7a08596ab70c9 137-138,145-146,152-154,159-162
+platform-blog/upstream/nblog/blog-view/src/views/about/About.vue
+  s_0b661184d73d5c::t_9ab197ef4eb557 1-5,7-35,37-77,91-95,103-108,113-115,119-129,133-173,175-196,216-270,280-300,302-303
+  s_f07097515ae872::t_23f5242ccb039a 6,36,78-90,96-102,109-112,116-118,130-132,174,197-215,271-279,301
+platform-blog/upstream/nblog/blog-view/src/views/blog/Blog.vue
+  s_8fa3672d697172::t_81ffa0e635f6e1 1-6,11-12,13-15,16-17,26-27,31,33-52,54-69,71-72,74-78,80,91-93,103-106,109-140,152,191-192,199-200,214-243,271
+  s_2671908a264ffc::t_138c145ef2370e 18-25,32,53,70,73,79,81-90,94-102,107-108,141-151,153-190,193-198,201-213,244-248
+  s_5010dbf7aaf7e7::t_a7fe0ce067f68c 7-10,28-30,249-270
+platform-blog/upstream/nblog/blog-view/src/views/category/Category.vue
+  s_9d26a5af148dfd::t_73f970a88320db 1-12,14-40,46-60,69-74
+  s_ca08fd9467fff8::t_47355c91bc319f 13,41-45,61-68,75
+platform-blog/upstream/nblog/blog-view/src/views/friends/Friends.vue
+  s_9d26a5af148dfd::t_d3f39e7f24d029 1-21,23-30,32,34-35,37-57,59-80,82-87,89-93,95-117
+  s_2671908a264ffc::t_6b4690f1dc94cf 22,33,58
+platform-blog/upstream/nblog/blog-view/src/views/home/Home.vue
+  s_9d26a5af148dfd::t_7df2aff441ba9c 1-10,12-40,46-61,70-75
+  s_ca08fd9467fff8::t_a4be9c5c91f2c9 11,41-45,62-69,76
+platform-blog/upstream/nblog/blog-view/src/views/moments/Moments.vue
+  s_8fa3672d697172::t_cc22ee5da33159 1-16,18-34,36-65,67-211
+  s_2671908a264ffc::t_b5353cec9f19c6 17,35,66
+platform-blog/upstream/nblog/blog-view/src/views/tag/Tag.vue
+  s_9d26a5af148dfd::t_2de900f8942445 1-12,14-40,46-60,69-74
+  s_ca08fd9467fff8::t_119bfd73f86e34 13,41-45,61-68,75
+platform-blog/upstream/nblog/blog-view/src/views/training/TrainingHost.vue
+  s_8fa3672d697172::t_b0cea99afc493f 1-17,19-31,33-56
+  s_d34323ce1dd83c::t_4767ee40623640 18,32
+platform-blog/upstream/nblog/blog-view/vite.config.js
+  s_8fa3672d697172::t_6b6932c914df51 1-56
+platform-training-data/AGENTS.md
+  s_9d26a5af148dfd::t_f648f4165a5021 3-10
+platform-training-data/README.md
+  s_9d26a5af148dfd::t_a48b4a951838b3 3,7-8,11
+  s_26f08d32717725::t_1b6813862e4f20 5-6,9-10,13
+platform-training-data/training-data-atcoder/README.md
+  s_9d26a5af148dfd::t_15a775ec38daf8 3,9-12,14-16,19,21-25,27,29,31-53
+platform-training-data/training-data-atcoder/src/main/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderSubmissionCollectionService.java
+  s_9d26a5af148dfd::t_4deaa5f0767b5a 5,22,42,75-76,79
+platform-training-data/training-data-atcoder/src/main/java/com/custacm/platform/trainingdata/atcoder/config/AtcoderTrainingDataConfig.java
+  s_9d26a5af148dfd::t_c98f9bd6e4b61a 22,110
+platform-training-data/training-data-atcoder/src/main/java/com/custacm/platform/trainingdata/atcoder/infra/JdbcAtcoderWarehouseRefreshIntervalRepository.java
+  s_9d26a5af148dfd::t_2372b4d48e0657 18-33
+platform-training-data/training-data-atcoder/src/test/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderSubmissionCollectionServiceTest.java
+  s_9d26a5af148dfd::t_de23fccc6ed814 58,82,107,130,258-259,275-277,284,295,301
+platform-training-data/training-data-atcoder/src/test/java/com/custacm/platform/trainingdata/atcoder/infra/JdbcAtcoderWarehouseRefreshIntervalRepositoryTest.java
+  s_9d26a5af148dfd::t_554dff8455c761 87-106,114-126,144,152
+platform-training-data/training-data-codeforces/README.md
+  s_9d26a5af148dfd::t_f9e275154ec321 3,9-12,15-17,20,22-25,27,29,31-41,43-50
+  s_a73d4480def814::t_6e445005d5edc9 14,42
+platform-training-data/training-data-codeforces/src/main/java/com/custacm/platform/trainingdata/codeforces/app/CodeforcesSubmissionCollectionService.java
+  s_9d26a5af148dfd::t_89da3e24fefab7 3,22,42,75-76,79,81
+platform-training-data/training-data-codeforces/src/main/java/com/custacm/platform/trainingdata/codeforces/config/CodeforcesTrainingDataConfig.java
+  s_9d26a5af148dfd::t_3ec39f6be44cf4 4,85
+platform-training-data/training-data-codeforces/src/main/java/com/custacm/platform/trainingdata/codeforces/infra/JdbcCodeforcesWarehouseRefreshIntervalRepository.java
+  s_9d26a5af148dfd::t_fdf74b902c099d 18-33
+platform-training-data/training-data-codeforces/src/test/java/com/custacm/platform/trainingdata/codeforces/app/CodeforcesSubmissionCollectionServiceTest.java
+  s_9d26a5af148dfd::t_53565bfe226e9d 87,99,111,123,181,197,450-451,455-456,459-462,471,476,495-496,513-515,521,523,530,536,540,542,549
+platform-training-data/training-data-codeforces/src/test/java/com/custacm/platform/trainingdata/codeforces/infra/CodeforcesWarehouseSqlTaskTest.java
+  s_9d26a5af148dfd::t_cb2ad8e52da199 210-241
+platform-training-data/training-data-common/README.md
+  s_9d26a5af148dfd::t_1c716d3f87bae1 9-15,21,24-25,28,30,32-34,36,38-47,52-59
+  s_26f08d32717725::t_eafff1cac706b4 3,16-18,23,26,35,37,48-51
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/account/OjHandleAccountService.java
+  s_9d26a5af148dfd::t_5ee0dd2d957706 17,26-33,37,40,47,53,55,65-68,71,91-93,96,99-101,105-107,110-112,115,120-121,124,135-137,217
+  s_26f08d32717725::t_9172d7af63bbd4 128-129,145-200
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/account/TrainingUserDirectory.java
+  s_9d26a5af148dfd::t_d23da3643402ac 1-3,6-14,16,18-19
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/purge/OjStudentDataPurgeService.java
+  s_9d26a5af148dfd::t_bd6024c1058759 4,22,28,37-40,45,51,54,57,64,68,75,83,106,108
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/query/OjAcceptedSummaryQueryService.java
+  s_9d26a5af148dfd::t_0562bfbd18f178 3,20,25,34,42,52,58,95
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/query/OjFirstAcceptedProblemQueryService.java
+  s_9d26a5af148dfd::t_0cda998c43ac01 3,20,24,31,41,53,61,77,93,124,128,161-162,164,166,169
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/query/OjSubmissionQueryService.java
+  s_9d26a5af148dfd::t_70a61664d27232 3,21,25,32,42,54,62,78,90,97,117,125,146,149,155,158,162-163,165,167,170,173,176
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/query/result/OjAcceptedSummaryReport.java
+  s_9d26a5af148dfd::t_9fa6a81a19c73e 6
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/query/result/OjHandleFirstAcceptedProblemReport.java
+  s_9d26a5af148dfd::t_d3766d00402612 8
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/query/result/OjHandleSubmissionReport.java
+  s_9d26a5af148dfd::t_12a3fe89f6be36 6
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/query/result/OjProblemFirstAcceptedHandleReport.java
+  s_9d26a5af148dfd::t_c3afe1edd3167d 17
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/query/result/OjSubmissionItem.java
+  s_9d26a5af148dfd::t_3911bf8b605e01 8
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/warehouse/OjWarehouseRefreshService.java
+  s_9d26a5af148dfd::t_b8791af82c8fa5 46-51
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/OjCollectionHandleResolver.java
+  s_9d26a5af148dfd::t_f14b56510d57b2 7
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/OjHandleAccountCollectionHandleResolver.java
+  s_9d26a5af148dfd::t_d33b916cf0445c 3,12,14,19,22
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/OjSubmissionCollectionService.java
+  s_9d26a5af148dfd::t_7ffca39b0211c5 71-72,75,78,80,84,86
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/dispatch/OjRecentSubmissionCollector.java
+  s_9d26a5af148dfd::t_5119ad68dce5c9 15-16
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/dispatch/OjSubmissionCollectionDispatcher.java
+  s_9d26a5af148dfd::t_30106eca44aa62 35,37,40
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/job/OjSubmissionCollectionJobItem.java
+  s_9d26a5af148dfd::t_66378b792e7fca 9,24-25,28,30,49,67,80,97-98,101,103
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/job/OjSubmissionCollectionJobService.java
+  s_9d26a5af148dfd::t_ddee5b4ebe4fea 85,90,108,112,221-223,225-226,230,250
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/config/CommonTrainingDataConfig.java
+  s_9d26a5af148dfd::t_b5d71a8cb279bd 4,103,112,120,169,180
+  s_e9751d796b4d99::t_3cb58e040dd187 9,125-137
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/domain/oj/model/OjHandleAccount.java
+  s_9d26a5af148dfd::t_315fe96cfe90e4 14,22,28,32
+  s_d34323ce1dd83c::t_9166af5b8eb616 40
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/domain/oj/model/OjStudentDataPurgeResult.java
+  s_9d26a5af148dfd::t_e99d49fb88ce13 9,21,34,43,57,74
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/domain/oj/repo/OjHandleAccountRepository.java
+  s_9d26a5af148dfd::t_d37ef5ef9a0004 14,20-22,30
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/domain/oj/repo/OjWarehouseRefreshIntervalRepository.java
+  s_9d26a5af148dfd::t_ab165d91a314be 8-9
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/infra/oj/repo/account/JdbcOjHandleAccountRepository.java
+  s_9d26a5af148dfd::t_a087740b858406 40,42,48,50,52,54,63,67,82,84,92-94,102,107,110-111,119,125,133,136,142,148,159
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/scheduler/OjScheduledSubmissionCollectionService.java
+  s_9d26a5af148dfd::t_3d843c0b5d1cf4 14,16
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/web/collector/request/OjSubmissionCollectionJobStartRequest.java
+  s_9d26a5af148dfd::t_7d866916e9664b 7,12-14,16
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/web/collector/request/OjSubmissionCollectionRequest.java
+  s_9d26a5af148dfd::t_6a2ca2a5df5623 8,12-13
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/web/collector/response/OjSubmissionCollectionJobItemResponse.java
+  s_9d26a5af148dfd::t_28c03ef7acf3a6 11,28
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/app/account/OjHandleAccountServiceTest.java
+  s_9d26a5af148dfd::t_3921744649525a 36,70,73,75,79,88,90,101,108,143,188,205,210,226-227,239,244-246,252,254,261,267,271,273,280
+  s_26f08d32717725::t_9b27ee3e9fcb6b 140,154,159-176
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/app/purge/OjStudentDataPurgeServiceTest.java
+  s_9d26a5af148dfd::t_9e2b0d5d7c224c 53,64,75,86,110,130,186,189
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/app/query/OjAcceptedSummaryQueryServiceTest.java
+  s_9d26a5af148dfd::t_13889607575759 30,49,54,61,73,89,98,105,113,120,129,142,161,166,173,183,230-231,235,240,257-258,270,275-277,288
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/app/query/OjWarehouseQueryServiceTest.java
+  s_9d26a5af148dfd::t_8dd6067a46a6ad 41,78,86,95,103-104,110,147,154,163,166,270,304,308,326,402,444,450,459,618,625,661,666,680-681,684,686,703-704,716,721-723,734
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/app/warehouse/OjWarehouseRefreshServiceTest.java
+  s_9d26a5af148dfd::t_02f1941f409628 64-96
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/collector/OjSubmissionCollectionServiceTest.java
+  s_9d26a5af148dfd::t_7c0abceeeb4a33 58,64,167-168
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/collector/dispatch/OjSubmissionCollectionDispatcherTest.java
+  s_9d26a5af148dfd::t_4e5f002ae9d8ea 27,83-84
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/collector/job/OjSubmissionCollectionJobServiceTest.java
+  s_9d26a5af148dfd::t_e64466e7a45c68 27-28,57,73,97,117-119,144,165,190
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/domain/oj/model/OjHandleAccountTest.java
+  s_9d26a5af148dfd::t_3b4a501b8d2862 16,25,83
+  s_d34323ce1dd83c::t_763647b440c9d2 50-58
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/infra/oj/repo/account/JdbcOjHandleAccountRepositoryTest.java
+  s_9d26a5af148dfd::t_15ff4b9c4ba3e8 63,78,87,101,110,118,135,161,165,180,218,232
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/support/TextsTest.java
+  s_9d26a5af148dfd::t_b098557dbd225a 16,18,20,22
+platform-training-data/training-data-common/src/test/resources/db/migration/V014__create_codeforces_handle_account.sql
+  s_9d26a5af148dfd::t_0765284eec15c0 2,6
+platform-training-data/training-data-common/src/test/resources/db/migration/V018__rename_oj_handle_account_and_store_handles_map.sql
+  s_9d26a5af148dfd::t_dc9d57b7f9f4bf 2,7,11,17
+pom.xml
+  s_9d26a5af148dfd::t_1c8f5b847e03f2 18,27
+scripts/AGENTS.md
+  s_9d26a5af148dfd::t_fc3c9d91f0cc61 3,7
+  s_7505e85c4f61e4::t_74160c20b3924e 4-6,8
+.github/pull_request_template.md
+  s_856e309f92ca35::t_48001129b72d18 16
+.github/workflows/maven-verify.yml
+  s_856e309f92ca35::t_bff53d3eb6c44f 31
+CONTRIBUTING.md
+  s_856e309f92ca35::t_69b15928a04421 48,51
+docs/agent/context-map.md
+  s_a73d4480def814::t_f8b60caf6dcf70 8-9,13,16
+  s_ca08fd9467fff8::t_720e40fffa63d9 5-6
+  s_ca08fd9467fff8::t_8ac13d11923c8e 7
+docs/architecture.md
+  s_26f08d32717725::t_c855287e2da748 34,38,40-46,53-54,57,63,67-68,74,78-79,81,87
+  s_ca08fd9467fff8::t_93f0ed61755047 36
+  s_ca08fd9467fff8::t_0e3d884de9c55a 98
+docs/authorization.md
+  s_26f08d32717725::t_4430f0926b6671 26,30-37,62,64-66,69
+  s_ca08fd9467fff8::t_1e6686d7bc7793 61,70
+frontend/src/components/ArticleAdminPanel.vue
+  s_3713f2d10409b3::t_4e51dd73324cfd 2-33,36-41,43-49,51-58
+frontend/src/components/CategoryAdminPanel.vue
+  s_3713f2d10409b3::t_a8ae8218f1f0c0 2-13,15-23
+frontend/src/styles/article-admin.css
+  s_3713f2d10409b3::t_6368575c8e6834 1-37
+frontend/src/styles/category-admin.css
+  s_3713f2d10409b3::t_3fff673a02f0db 1-25
+frontend/src/test/article-admin.test.ts
+  s_3713f2d10409b3::t_404ad143c148a5 1-42
+frontend/src/test/category-admin.test.ts
+  s_3713f2d10409b3::t_6ea2c0c240b912 1-51
+frontend/src/test/training-query-panel.test.ts
+  s_73ef5fa35ec490::t_5a6d2a36acf6d0 1-86,108
+  s_2bd17a9cb5d732::t_90d429b1249302 87-107
+platform-blog/AGENTS.md
+  s_b380cc3f57d00d::t_039710ddf4be51 4,6,9-12,14
+  s_ca08fd9467fff8::t_2132e8fc1cf557 8
+platform-blog/README.md
+  s_b380cc3f57d00d::t_cb5ed2821d7865 8,17,19-20,23,25-26,36,62-63,65-66,68
+  s_ca08fd9467fff8::t_b1db39ab04b4c8 35,37
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/constant/TaxonomyColorPalette.java
+  s_3713f2d10409b3::t_9821036c3ad2d5 1-12,14-19,22-23,26-32
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/PublicProfileController.java
+  s_e0255f54665c67::t_b13dee18e2324c 4-5,8,11,14-20,22-24
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/player/PlayerImageController.java
+  s_99514bbf7dd524::t_73bcbc98d03001 1,3-4,7-9,11-15,17-19,21-23,25-27,29-39,41-45
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/ImageAsset.java
+  s_99514bbf7dd524::t_7d7eaaa7e1c1b5 1,6-7,10-12,16-45,47
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/exception/ImageAssetException.java
+  s_99514bbf7dd524::t_7b5a0c5ae31075 1-29
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/ImageAssetMapper.java
+  s_99514bbf7dd524::t_0a47def75d1c00 1-71
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/OjHandleReplaceRequest.java
+  s_26f08d32717725::t_ab90722a01868a 1,3-4
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/ImageAssetResponse.java
+  s_99514bbf7dd524::t_7895fe51e8e27b 1-3,6,8-23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/PublicProfile.java
+  s_e0255f54665c67::t_032292d9fc3428 4-6,9,12-25
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/ImageAssetCleanupJob.java
+  s_99514bbf7dd524::t_745b69c3787a87 1-5,7,9-11,13-14,17-19,21
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/ImageAssetService.java
+  s_99514bbf7dd524::t_7ad5946474a177 1-373
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/ImageProcessingService.java
+  s_99514bbf7dd524::t_80a515d0705819 1-45,47-60,64-69,73-79,81-92,94-96,101-104,106-108,110-112,114,116-124,126-128,130-138,140
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/util/BlogContentLimits.java
+  s_1acdeb81a319cd::t_d2cbd832d50c22 1-3,6-8,10-15,18-27,29
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V028__replace_default_homepage_banner.sql
+  s_d34323ce1dd83c::t_4d0121bf393527 1-15
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V029__add_image_assets.sql
+  s_99514bbf7dd524::t_829c091f25f691 1-41
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V030__add_taxonomy_colors.sql
+  s_73ef5fa35ec490::t_0c1c09c7005305 1,3-6,8
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V031__randomize_tag_colors.sql
+  s_3713f2d10409b3::t_5b4083bd4e335a 1-17
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V032__remove_blog_password.sql
+  s_b380cc3f57d00d::t_5790ab41e53432 1-3
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/aspect/ExceptionLogAspectTest.java
+  s_094690ac49d7e8::t_87ba87805bc1a0 1,3-6,8-12,18-58
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/constant/TaxonomyColorPaletteTest.java
+  s_3713f2d10409b3::t_56d633e87edb6c 1,3-16,19-24,26-30
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/IntegratedControllerCoverageTest.java
+  s_856e309f92ca35::t_fb9da3bc5e8f8e 1,3,5-14,16-17,22-40,42-43,45-50,52-56,58-63,65-72,74-76,78,80-81
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/admin/BlogAdminControllerTest.java
+  s_6b0247d950059b::t_e83270f59f815e 1-66
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/model/vo/BlogInfoTest.java
+  s_2671908a264ffc::t_48f5549eeaa83d 1-4,8-22
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/ImageAssetServiceTest.java
+  s_99514bbf7dd524::t_64b3584e2e43e7 1,3-18,22-28,32-139
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/ImageProcessingServiceTest.java
+  s_99514bbf7dd524::t_b7b4b954acdcbe 1-67
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/impl/BlogSearchServiceTest.java
+  s_26f08d32717725::t_0aace556b76161 1-38,40-41,43-48,50-53,55-68
+  s_ca08fd9467fff8::t_42abc41d8036df 39,42,49,54
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/util/BlogContentLimitsTest.java
+  s_1acdeb81a319cd::t_10ce7c3ffe9f51 1-35
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/util/markdown/MarkdownUtilsTest.java
+  s_2671908a264ffc::t_ef4b2d4f4bbc51 1,3,5,7-16,18-20,23-26,28-32,56
+  s_5010dbf7aaf7e7::t_386ddb6dbb7c38 33-55
+platform-blog/upstream/nblog/blog-view/README.md
+  s_2671908a264ffc::t_a27fed6bc6bd1d 5,29,31-34,43,45-46,49-51,57,60-65,67-70,72-73,80,85-88
+  s_ca08fd9467fff8::t_6be272e179bdfb 35,47,83-84
+  s_5010dbf7aaf7e7::t_fdded439757a81 54-55,58-59,66,74
+platform-blog/upstream/nblog/blog-view/public/favicon.svg
+  s_1c9477b19b60a3::t_1b5e5309da92d9 1-2,4-6,9-12
+platform-blog/upstream/nblog/blog-view/src/api/player-blog.js
+  s_b380cc3f57d00d::t_a0675e0a857ccd 1-2,4-16,18-20,23-29,32-38,41-46,49-51,53-55,58-60,62-64,67-76,79-81,83-94
+platform-blog/upstream/nblog/blog-view/src/components/article/ArticleCoverUpload.vue
+  s_99514bbf7dd524::t_5cfe8538b1d5be 2-9,11-17,19-20,24-27,30-34,36-39,41-49,51-53,55-70,72-75,80-102
+platform-blog/upstream/nblog/blog-view/src/components/article/LiveMarkdownEditor.vue
+  s_fa3a8f58894ebc::t_9eee979e09b981 2-17,21-34,37-42,45-52,55-59,61-79,81-90,92-95,135-141,143-147,149-152,154-162,164-165,167-172,174-177,179-187,189,196-233
+  s_884edc729a8ea3::t_dc0e95e15ac5bc 80,91,99-134
+platform-blog/upstream/nblog/blog-view/src/components/article/ManagedImageViewer.vue
+  s_99514bbf7dd524::t_7a5bd4c1b3279d 2-8,10,12,16,18-19,21-29,31-41,46-53
+platform-blog/upstream/nblog/blog-view/src/components/index/Header.vue
+  s_d34323ce1dd83c::t_2d46da800861cb 58,92
+platform-blog/upstream/nblog/blog-view/src/components/profile/MyArticles.vue
+  s_6b0247d950059b::t_01f82f7e5a4398 2-34,36,38-40,44-47,50,53-54,57,59-75,77-88,90-96,100-124
+platform-blog/upstream/nblog/blog-view/src/components/sidebar/FeaturedBlog.vue
+  s_1c9477b19b60a3::t_48ab1a4ae8fa83 3,5-6,8,11,17,19-21,26-32
+platform-blog/upstream/nblog/blog-view/src/plugins/standardMathPreview.js
+  s_6b0247d950059b::t_1194ba1070b6ef 1-8,10-20,22-28,30-37,40-41,43-65,67-105,107
+platform-blog/upstream/nblog/blog-view/src/test/articleCoverUpload.test.js
+  s_99514bbf7dd524::t_864bfe4775f63d 1-4,6,8-9,12-15,18-25,27,29-32,35-41,43,45-48,50
+platform-blog/upstream/nblog/blog-view/src/test/articleForm.test.js
+  s_b380cc3f57d00d::t_e5c6d2fc4df3ef 1-13,16-20,23-25,28-30,33-36,38
+platform-blog/upstream/nblog/blog-view/src/test/articleImages.test.js
+  s_99514bbf7dd524::t_48aa4e832eafb7 1-5,7-12,14-18,20-22,24-27,29-34
+platform-blog/upstream/nblog/blog-view/src/test/commentApi.test.js
+  s_6b0247d950059b::t_9f0cae747b43ac 1-20
+platform-blog/upstream/nblog/blog-view/src/test/commentIdentity.test.js
+  s_3713f2d10409b3::t_f3600e48430f4e 1-5,7-16,18-21
+platform-blog/upstream/nblog/blog-view/src/test/getPageTitle.test.js
+  s_1c9477b19b60a3::t_1b1b3009c30e7e 1-3,5-8,10
+platform-blog/upstream/nblog/blog-view/src/test/liveMarkdownEditor.test.js
+  s_1acdeb81a319cd::t_efd9b2175f19a4 1-11,13-17,19-36,39-76,97-229
+  s_884edc729a8ea3::t_a0da0d06aca112 12,18,37-38,77-96
+platform-blog/upstream/nblog/blog-view/src/test/managedImageViewer.test.js
+  s_99514bbf7dd524::t_28712db444d866 1-4,6-10,12-18,20-21,23-24,26-27,29-30,32-35,37
+platform-blog/upstream/nblog/blog-view/src/test/markdownEditor.test.js
+  s_6b0247d950059b::t_6a4b19b089bce7 1-34
+platform-blog/upstream/nblog/blog-view/src/test/navTrainingMenu.test.js
+  s_3713f2d10409b3::t_fce7b752d1f993 1-18,20-36,38-41,43-119
+platform-blog/upstream/nblog/blog-view/src/test/playerBlogApi.test.js
+  s_99514bbf7dd524::t_72c2283f927127 1-2,4-5,7,9-10,12-18,20-30,32-44
+platform-blog/upstream/nblog/blog-view/src/test/sanitizeHtml.test.js
+  s_2671908a264ffc::t_65b68705584357 1-2,4-6,8-10,13-17,19
+platform-blog/upstream/nblog/blog-view/src/test/tagCloudColor.test.js
+  s_3713f2d10409b3::t_788be9db8363e3 1-15
+platform-blog/upstream/nblog/blog-view/src/util/articleForm.js
+  s_b380cc3f57d00d::t_4a2bad927d44bb 1-2,4-5,8-22,26-28,30-34
+platform-blog/upstream/nblog/blog-view/src/util/articleImages.js
+  s_99514bbf7dd524::t_741b7d9ac61622 1-46
+platform-blog/upstream/nblog/blog-view/src/util/markdownEditor.js
+  s_6b0247d950059b::t_792610f16edf90 1,3-7,9,11-25,27,30,33-41,43-65,67-68
+platform-blog/upstream/nblog/blog-view/src/util/sanitizeHtml.js
+  s_2671908a264ffc::t_12f431696d3bb1 1,3-7
+platform-blog/upstream/nblog/blog-view/src/views/article/ArticleEditor.vue
+  s_b380cc3f57d00d::t_b9e2b24ec35445 2-10,12-33,35-39,41-52,56-66,69-71,73-80,83,85-90,93-113,115-175,177-220,225-286
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/account/OjHandleAccountException.java
+  s_26f08d32717725::t_7af5f684a19c52 19-20
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/query/OjWarehouseQueryFacade.java
+  s_e9751d796b4d99::t_a1dadbef773e3b 1,4-8,18-23,32,42-48,50-57,60-68,72-81,84-90,94-96,104-112,116-125,128-134,138-146
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/app/query/OjWarehouseQueryFacadeTest.java
+  s_a73d4480def814::t_f4f42391413054 1,26,32,39,42-44,46-48,50-52,59,62-63,65-66,68-84,87,91-97,99-102,104-111,115,118-119,121-122,124-128,130-141,144,148-163,168-170,172-173,175-185,192-193,198,200-203
+scripts/deploy.sh
+  s_7505e85c4f61e4::t_666818cbb60513 5-30,32-76,90,94-96
+  s_6a7009b6880ded::t_b3db777527e7f7 31,77-89,91-93
+scripts/dev.sh
+  s_7505e85c4f61e4::t_549719512f4260 2,7-11,14,16,18-19,30-36,39-44,46-58,60-64,66,68-69,71-72,74-79,81-92,94-96,98,100-102,104-106,108-110,114-119,121-123,125-126
+platform-blog/upstream/nblog/blog-view/src/test/publicVisibilityApi.test.js
+  s_ca08fd9467fff8::t_f6551787523eb3 1-39
+frontend/docker-entrypoint.d/10-select-nginx-config.sh
+  s_6a7009b6880ded::t_1d7ff7021cadc1 1-9
+frontend/nginx-https.conf
+  s_6a7009b6880ded::t_5d5c1e0428089d 1-57
+frontend/src/test/multi-user-summary-sort.test.ts
+  s_f7a6b97c45c95e::t_c743f5ccf30b0a 1-31
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/BlogAuthorContractTest.java
+  s_5010dbf7aaf7e7::t_2ea16ae1284c22 29-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "626fc237f6a553bb9df44b753a94e7715ca8bc82",
+  "prompts": {},
+  "sessions": {
+    "s_094690ac49d7e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f55a2-fec5-7f80-9d09-6f619c04e315",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_0b661184d73d5c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f529c-4c2e-7543-b86e-ef4edc280356",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_1a367a9796447c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5521-c0fd-7b70-899e-b2388caad982",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_1acdeb81a319cd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f55a8-7908-7360-9040-6ad7c13cebc7",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_1c9477b19b60a3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f54c7-69f3-7641-b495-9504db78d022",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_2370c5151b731c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f525d-9b16-7570-aafc-a3a1d7315d4d",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_2671908a264ffc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f55bc-e2e2-7441-84df-70a2c79b476f",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_26f08d32717725": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f55b6-387e-7800-8d5b-b21397db3590",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_2bd17a9cb5d732": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f56b2-b001-74e1-91ef-e6d6ad8bd445",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_3713f2d10409b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5527-4611-73b3-a1ae-e4a6bdf1a9e7",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_5010dbf7aaf7e7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f56b6-1b74-7da1-8ac5-597dba45d6de",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_6a7009b6880ded": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f55d2-8615-7eb3-b1b2-96090b445b91",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_6b0247d950059b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f547b-46b2-7530-8d11-84099cc9541d",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_73ef5fa35ec490": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5531-b310-7541-aab7-9f72b42ae3c8",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_7505e85c4f61e4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f546c-e931-7361-a811-55f96564292b",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_856e309f92ca35": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f55ab-2fde-7ad1-b62d-ca35fb7d9a77",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_884edc729a8ea3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f56ad-ebf9-79c0-9ab2-dc1bd51eed20",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_8fa3672d697172": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f51fe-f5d0-7002-9c12-db52839ec481",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_99514bbf7dd524": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f54ce-a27c-71a3-a333-fe13877aa07d",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_9d26a5af148dfd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f51fa-8b4e-7413-bf13-a232b9f7668c",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_a73d4480def814": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5592-550b-7612-b66a-0b4e7951e77f",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_b380cc3f57d00d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f55ac-2137-7971-963e-f2065c586b8f",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_ca08fd9467fff8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f55fb-c82a-7c02-ad26-3c2ad38f837d",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_d34323ce1dd83c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5494-3f4d-7473-8ec8-9007e142ca2d",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_d7a6e69b8557fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f52b2-9003-7b22-93f7-9e4e3a75a7f4",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_e0255f54665c67": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f552e-f4a9-7242-a5ef-f470c3dba143",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_e3ca03627a19a6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5248-8d04-7300-9790-0944309ddd60",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_e9751d796b4d99": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5584-8dba-7e02-a0b2-a01cfebdeda2",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_f07097515ae872": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f55b4-6540-7290-b282-0293b3e55a36",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_f7a6b97c45c95e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f56b1-290f-7f63-9b93-07080b6ba03f",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_fa3a8f58894ebc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5582-1a61-7653-8431-73b0a818ccd7",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {
+    "s_1f674398be0754": {
+      "tool": "trae",
+      "conversation_id": "6a524b31cdba920aae32d6ff",
+      "session_id": "6a524b31cdba920aae32d6ff",
+      "status": "remote_only",
+      "message": "Remote transcript resolution is not implemented yet for TRAE prompts."
+    },
+    "s_1f674398be0754::t_fbae2243fcc2f7": {
+      "tool": "trae",
+      "conversation_id": "6a524b31cdba920aae32d6ff",
+      "session_id": "6a524b31cdba920aae32d6ff",
+      "status": "remote_only",
+      "message": "Remote transcript resolution is not implemented yet for TRAE prompts."
+    }
+  }
+}
