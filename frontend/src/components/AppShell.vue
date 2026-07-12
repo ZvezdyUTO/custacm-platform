@@ -1,5 +1,5 @@
 <template>
-  <div class="training-site" :class="{ 'is-embedded': embedded }">
+  <div class="training-site" :class="{ 'is-embedded': embedded, 'is-login-page': isLoginPage }">
     <header v-if="!embedded" class="blog-topbar">
       <div class="blog-topbar-inner">
         <a class="site-name" href="/home">{{ siteName }}</a>
@@ -69,6 +69,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { BarChart3, ChevronDown, Home, Info, KeyRound, Lightbulb, LogOut, MessageCircle, Save, Search, UserRound, Users } from '@lucide/vue';
+import { useRoute } from 'vue-router';
 import { requestData } from '../api/client';
 import type { CurrentUser } from '../types';
 
@@ -78,7 +79,9 @@ const props = defineProps<{
   changePassword(oldPassword: string, newPassword: string): Promise<void>;
 }>();
 const emit = defineEmits<{ signOut: [] }>();
+const route = useRoute();
 const embedded = window.self !== window.top;
+const isLoginPage = computed(() => route.meta.page === 'login' || route.name === 'login');
 const siteName = ref("Naccl's Blog");
 const categories = ref<string[]>([]);
 const categoryMenuOpen = ref(false);

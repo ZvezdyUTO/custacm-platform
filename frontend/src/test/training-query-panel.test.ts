@@ -105,4 +105,19 @@ describe('training query automatic filters', () => {
     ]);
     expect(wrapper.findAll('.auto-rating-count')).toHaveLength(5);
   });
+
+  it('gives numerous training columns their own horizontal scroll width', () => {
+    const { dashboard } = dashboardFixture();
+    dashboard.multiUserRows.value = [{
+      user: { username: '25000001', nickname: '队员甲', ojNames: [OJ_NAMES.CODEFORCES] }, status: 'ready', message: null,
+      summary: {
+        username: '25000001', authorHandle: 'player-a', totalAcceptedProblemCount: 20,
+        ratingCounts: Array.from({ length: 20 }, (_, index) => ({ problemRating: String(800 + index * 100), acceptedProblemCount: 1 })),
+      },
+    }];
+
+    const wrapper = mount(TrainingQueryPanel, { props: { dashboard, mode: 'multiple' } });
+    expect(wrapper.get('.auto-summary-table').attributes('style')).toContain('min-width: 1396px');
+    expect(wrapper.get('.auto-summary-player-cell').text()).toContain('25000001');
+  });
 });

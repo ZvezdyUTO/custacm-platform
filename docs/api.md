@@ -48,9 +48,9 @@ JWT 的 `sub` 是 `username`，角色只允许 `ROLE_admin` 和 `ROLE_player`。
 
 Vue Blog 将“个人资料”统一命名为“我的主页”，并在 `/about` 内分页消费 `GET /player/blogs`。`/write` 发布文章，`/write/{id}` 编辑本人文章；Markdown 文件仅在浏览器中读取，文章图片则通过 `/player/images` 单独上传。
 
-`GET /player/me`、资料修改、个人友链整体替换和头像更新都返回不含 email 的本人资料 DTO，字段为 `username`、`nickname`、`avatar`、`avatarOriginalUrl`、`signature`、`role` 和 `links`。`avatar` 是 96×96 缩略图。每条 link 包含 `id`、`label`、`url`、`sortOrder`；清空友链时提交 `{"links":[]}`。
+`GET /player/me`、资料修改、个人友链整体替换和头像更新都返回本人资料 DTO，字段为 `username`、`nickname`、`email`、`avatar`、`avatarOriginalUrl`、`signature`、`role` 和 `links`。`avatar` 是 96×96 缩略图。每条 link 包含 `id`、`label`、`url`、`sortOrder`；清空友链时提交 `{"links":[]}`。
 
-`GET /profiles/{username}` 是匿名只读的作者名片接口，返回 `username`、`nickname`、`avatar`、`signature` 和 `links`，不返回 role、email 或 OJ handle。文章详情左侧名片用文章的 `authorUsername` 调用该接口。
+`GET /profiles/{username}` 是匿名只读的作者名片接口，返回用户主动公开展示的 `username`、`nickname`、`email`、`avatar`、`signature` 和 `links`，不返回 role 或 OJ handle。文章详情左侧名片用文章的 `authorUsername` 调用该接口。
 
 `POST /player/images` 的 `purpose` 只能是 `ARTICLE_COVER` 或 `ARTICLE_CONTENT`。正文 JPEG/PNG 最大 15MB，生成最长边 2560 的高清版和最长边 960 的缩略图；首图必须由前端裁剪为 1920×1080 且最大 10MB。响应包含 `id`、`publicId`、`purpose`、`originalUrl`、`thumbnailUrl`、宽高和两个文件大小。文章写请求通过 `firstPictureAssetId` 绑定首图，后端从 Markdown 中解析本站 UUID 图片并绑定正文资产；资产不可跨文章复用。
 
@@ -145,6 +145,8 @@ GET /player/training-data/users
 ## 公开 Blog API
 
 文章、分类、标签、动态、友链、关于页、首页图片及评论列表等公开 GET 请求不要求登录。评论列表仅在评论仍关联现存账号时返回只读 `username`；游客评论或账号删除后的匿名评论不返回该身份。没有公开 OJ handle map、guest 训练查询、独立 handle 管理 API 或独立用户训练数据删除 API；删除用户时由用户服务在内部编排清理。
+
+`GET /site` 只返回 Blog 外壳初始化仍使用的数据：`siteInfo.reward`、`siteInfo.commentAdminFlag`、`introduction.avatar`、`introduction.name`、`categoryList`、`tagList` 和 `featuredBlogList`。它不再查询或返回未展示的 `newBlogList`，也不再返回旧 `badges`、社交链接、滚动文字和收藏配置。后台站点设置管理数据仍保留，不受该公开响应收窄影响。
 
 `GET /searchBlog?query={keyword}` 只对已发布文章标题做大小写不敏感的子串匹配，按更新时间倒序返回最多十条候选。游客只获得公开文章；登录用户显式携带 Bearer 时也获得内部文章。正文不参与搜索。空关键词、特殊通配字符或超过 20 个字符的关键词会返回参数错误。
 

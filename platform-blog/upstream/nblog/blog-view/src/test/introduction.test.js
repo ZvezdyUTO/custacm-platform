@@ -1,4 +1,5 @@
 // Author: huangbingrui.awa
+import {shallowMount} from '@vue/test-utils'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 const {getCurrentProfile, getPublicProfile, updateCurrentAvatar, readToken, readUser, writeUser} = vi.hoisted(() => ({
@@ -44,6 +45,21 @@ describe('Introduction avatar source', () => {
 		expect(avatarSrc.call({displayProfile: {avatar: '/api/image/assets/avatar/thumbnail.png'}}))
 			.toBe('/api/image/assets/avatar/thumbnail.png')
 		expect(avatarSrc.call({displayProfile: null})).toBe('/img/default-avatar.jpg')
+	})
+
+	it('shows email below the username on signed-in and public author cards', async () => {
+		readUser.mockReturnValue({username: 'alice', nickname: 'Alice', email: 'alice@example.com'})
+		readToken.mockReturnValue(null)
+		const wrapper = shallowMount(Introduction, {
+			global: {
+				mocks: {$route: {name: 'home'}, $router: {push: vi.fn()}},
+				stubs: {AvatarCropDialog: true, RouterLink: true},
+			},
+		})
+
+		expect(wrapper.get('.profile-email').text()).toBe('alice@example.com')
+		await wrapper.setProps({authorUsername: 'bob', authorSummary: {username: 'bob', email: 'bob@example.com'}})
+		expect(wrapper.get('.profile-email').text()).toBe('bob@example.com')
 	})
 
 	it('closes the crop dialog after the avatar request has finished saving', async () => {

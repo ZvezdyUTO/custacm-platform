@@ -3,7 +3,7 @@
 	<div class="ui segments m-box">
 		<div class="ui secondary segment"><i class="tags icon"></i>标签云</div>
 		<div class="ui segment sidebar-accent m-padding-small">
-			<router-link :to="`/tag/${tag.name}`" class="ui label m-text-500" :style="{backgroundColor: tagColor(tag), color: '#fff'}" v-for="tag in tagList" :key="tag.name">
+			<router-link :to="`/tag/${tag.name}`" class="ui label m-text-500" :style="{backgroundColor: tagColor(tag), color: '#fff'}" v-for="tag in displayedTagList" :key="tag.name">
 				{{ tag.name }}
 			</router-link>
 		</div>
@@ -17,6 +17,16 @@
 			tagList: {
 				type: Array,
 				required: true
+			},
+		},
+		computed: {
+			displayedTagList() {
+				const shuffled = [...this.tagList]
+				for (let index = shuffled.length - 1; index > 0; index -= 1) {
+					const target = Math.floor(Math.random() * (index + 1))
+					;[shuffled[index], shuffled[target]] = [shuffled[target], shuffled[index]]
+				}
+				return shuffled.slice(0, 30)
 			},
 		},
 		methods: {

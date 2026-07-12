@@ -2,7 +2,7 @@
  * @author huangbingrui.awa
  */
 import {describe, expect, it} from 'vitest'
-import {homepageBannerOpacity, homepageBannerPointerRatio} from '@/util/homepageBanner'
+import {homepageBannerHeight, homepageBannerOpacity, homepageBannerPointerRatio} from '@/util/homepageBanner'
 
 describe('homepage banner opacity', () => {
 	it('keeps the only image visible', () => {
@@ -35,5 +35,12 @@ describe('homepage banner opacity', () => {
 		expect(homepageBannerPointerRatio(350, 100, 1000)).toBe(0.25)
 		expect(homepageBannerPointerRatio(50, 100, 1000)).toBe(0)
 		expect(homepageBannerPointerRatio(1200, 100, 1000)).toBe(1)
+	})
+
+	it('keeps desktop banners full-height and makes mobile banners compact', () => {
+		expect(homepageBannerHeight(900, 1440)).toBe(900)
+		expect(homepageBannerHeight(844, 390)).toBe(388)
+		expect(homepageBannerHeight(500, 390)).toBe(280)
+		expect(homepageBannerHeight(1200, 390)).toBe(420)
 	})
 })

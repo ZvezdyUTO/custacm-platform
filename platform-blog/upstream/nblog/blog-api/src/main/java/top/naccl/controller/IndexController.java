@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.naccl.entity.Category;
 import top.naccl.entity.Tag;
-import top.naccl.model.vo.NewBlog;
 import top.naccl.model.vo.RandomBlog;
 import top.naccl.model.vo.Result;
 import top.naccl.service.BlogService;
@@ -36,7 +35,7 @@ public class IndexController {
 	TagService tagService;
 
 	/**
-	 * 获取站点配置信息、最新推荐博客、分类列表、标签云、精选文章
+	 * 获取页面仍在使用的站点配置、分类列表、标签云和精选文章
 	 *
 	 * @return
 	 */
@@ -44,11 +43,9 @@ public class IndexController {
 	public Result site(Authentication authentication) {
 		Map<String, Object> map = siteSettingService.getSiteInfo();
 		boolean includeInternal = authentication != null && !(authentication instanceof AnonymousAuthenticationToken);
-		List<NewBlog> newBlogList = blogService.getNewBlogListByIsPublished(includeInternal);
 		List<Category> categoryList = categoryService.getCategoryNameList();
 		List<Tag> tagList = tagService.getTagListNotId();
 		List<RandomBlog> featuredBlogList = blogService.getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(includeInternal);
-		map.put("newBlogList", newBlogList);
 		map.put("categoryList", categoryList);
 		map.put("tagList", tagList);
 		map.put("featuredBlogList", featuredBlogList);

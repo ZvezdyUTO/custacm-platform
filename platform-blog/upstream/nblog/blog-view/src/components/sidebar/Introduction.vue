@@ -17,6 +17,7 @@
 			<div class="content profile-identity" align="center">
 				<div class="header">{{ displayProfile.nickname || displayProfile.username }}</div>
 				<div class="profile-username">@{{ displayProfile.username }}</div>
+				<div v-if="displayProfile.email" class="profile-username profile-email">{{ displayProfile.email }}</div>
 				<p class="profile-signature" :class="{'is-empty': !displayProfile.signature}">
 					{{ displayProfile.signature || '还没有个性签名' }}
 				</p>
@@ -391,6 +392,10 @@
 		color: #89939f;
 		font-size: 13px;
 		letter-spacing: .06em;
+	}
+
+	.profile-email {
+		overflow-wrap: anywhere;
 	}
 
 	.guest-card .content {

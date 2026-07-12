@@ -9,7 +9,6 @@ import top.naccl.model.dto.BlogVisibility;
 import top.naccl.model.vo.BlogDetail;
 import top.naccl.model.vo.BlogInfo;
 import top.naccl.model.vo.CategoryBlogCount;
-import top.naccl.model.vo.NewBlog;
 import top.naccl.model.vo.RandomBlog;
 import top.naccl.model.vo.SearchBlog;
 
@@ -31,8 +30,6 @@ public interface BlogMapper {
 			@Param("includeInternal") boolean includeInternal);
 
 	List<Blog> getIdAndTitleList();
-
-	List<NewBlog> getNewBlogListByIsPublished(@Param("includeInternal") boolean includeInternal);
 
 	List<BlogInfo> getBlogInfoListByIsPublished(@Param("includeInternal") boolean includeInternal);
 

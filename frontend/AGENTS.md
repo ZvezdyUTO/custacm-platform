@@ -13,7 +13,7 @@
 - 前端不提供原始数据上传入口，也不重新实现后端账号、权限、采集或数仓规则。
 - 管理用户页对空头像统一展示 Blog 构建内置的 `/img/default-avatar.jpg`；`root` 只显示管理员身份，不显示现役/退役状态或 handle 编辑入口。
 - 多人查询先读取 `GET /player/training-data/users` 返回的可采集用户目录，再以最大并发数 6 查询各用户汇总。目录响应只消费 `username`、`nickname`、`ojNames`。
-- 正式验收范围是 1280–2560 px 桌面端，重点检查 1440×900 和 1920×1080；移动端不在当前交付范围。
+- 正式验收范围是 1280–2560 px 桌面端，重点检查 1440×900 和 1920×1080；训练业务页面移动端不在当前交付范围，但嵌入 Blog 的登录页必须在移动端保持可见、可操作。
 - 进入 `/training/**` 后必须继续使用 Blog 已挂载的同一个 `Nav.vue` 实例，只替换其下方内容并把“训练中心”显示为选中态；不得在训练应用中复制或显示第二条顶栏。
 
 ## 认证与请求规则
@@ -59,7 +59,7 @@
 | `src/utils/runLimited.ts` | 有序执行并限制最大并发数的纯工具 |
 | `src/utils/adminUsers.ts` | 创建用户文本导入与可编辑行转换 |
 | `src/utils/adminTraining.ts` | 固定携带 `refreshWarehouse: true` 的采集请求构造 |
-| `src/components/AppShell.vue` | 训练内容外壳；独立开发时提供调试顶栏，生产同源嵌入时必须隐藏该顶栏 |
+| `src/components/AppShell.vue` | 训练内容外壳；独立开发时提供调试顶栏，生产同源嵌入时必须隐藏该顶栏，并为移动端嵌入登录页解除桌面最小宽度限制 |
 | `src/components/LoginPanel.vue` | 登录表单与安全回跳 |
 | `src/components/TrainingQueryPanel.vue` | 多人、单人自动筛选查询页面，以及保留深色查询按钮的题目查询页面 |
 | `src/components/TrainingAdminPanel.vue` | “创建用户/管理用户/管理文章/管理分类/数据采集/首页图片”独立页面导航容器 |

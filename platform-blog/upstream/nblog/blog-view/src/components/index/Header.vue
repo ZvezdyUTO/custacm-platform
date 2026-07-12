@@ -32,7 +32,7 @@
 	import {mapState} from 'vuex'
 	import defaultSettings from '@/settings'
 	import {getHomepageBanners} from '@/api/index'
-	import {homepageBannerOpacity, homepageBannerPointerRatio} from '@/util/homepageBanner'
+	import {homepageBannerHeight, homepageBannerOpacity, homepageBannerPointerRatio} from '@/util/homepageBanner'
 
 	export default {
 		name: "Header",
@@ -114,7 +114,10 @@
 			},
 			//根据可视窗口高度，动态改变首图大小
 			setHeaderHeight() {
-				this.$refs.header.style.height = this.clientSize.clientHeight + 'px'
+				this.$refs.header.style.height = homepageBannerHeight(
+					this.clientSize.clientHeight,
+					this.clientSize.clientWidth
+				) + 'px'
 			},
 			//平滑滚动至正文部分
 			scrollToMain() {
@@ -176,6 +179,7 @@
 		gap: clamp(18px, 2.4vh, 30px);
 		justify-content: center;
 		width: min(94vw, 1460px);
+		opacity: .8;
 		transform: translate(-50%, -50%);
 		filter: drop-shadow(0 10px 22px rgb(3 25 48 / 30%));
 		animation: welcomeFade 1.2s ease-out both;
@@ -222,7 +226,7 @@
 
 	@keyframes welcomeFade {
 		from { opacity: 0; transform: translate(-50%, calc(-50% + 14px)); }
-		to { opacity: 1; transform: translate(-50%, -50%); }
+		to { opacity: .8; transform: translate(-50%, -50%); }
 	}
 
 	@keyframes brandFloat {

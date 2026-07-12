@@ -4,7 +4,6 @@ import top.naccl.entity.Blog;
 import top.naccl.model.dto.BlogVisibility;
 import top.naccl.model.vo.BlogDetail;
 import top.naccl.model.vo.BlogInfo;
-import top.naccl.model.vo.NewBlog;
 import top.naccl.model.vo.PageResult;
 import top.naccl.model.vo.RandomBlog;
 import top.naccl.model.vo.SearchBlog;
@@ -18,8 +17,6 @@ public interface BlogService {
 	List<SearchBlog> getSearchBlogListByQueryAndIsPublished(String query, boolean includeInternal);
 
 	List<Blog> getIdAndTitleList();
-
-	List<NewBlog> getNewBlogListByIsPublished(boolean includeInternal);
 
 	PageResult<BlogInfo> getBlogInfoListByIsPublished(Integer pageNum, boolean includeInternal);
 

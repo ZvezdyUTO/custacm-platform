@@ -622,13 +622,15 @@
 }
 
 .auto-summary-table-scroll {
+  position: relative;
   max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   border-top: 1px solid #edf0f4;
 }
 
 .auto-summary-table {
-  min-width: 100%;
+  width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -667,6 +669,7 @@
   width: 204px;
   padding-left: 14px;
   background: #fff;
+  box-shadow: 1px 0 0 #edf0f4;
 }
 
 .auto-summary-table .auto-summary-player-cell {

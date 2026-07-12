@@ -51,6 +51,7 @@ export function writeUser(user) {
 	window.localStorage.setItem(USER_KEY, JSON.stringify({
 		username: user.username,
 		nickname: user.nickname || user.username,
+		email: user.email || '',
 		avatar: user.avatar || '',
 		avatarOriginalUrl: user.avatarOriginalUrl || '',
 		signature: user.signature || '',

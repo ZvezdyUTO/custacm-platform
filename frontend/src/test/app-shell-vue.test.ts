@@ -5,6 +5,27 @@ import { describe, expect, it } from 'vitest';
 import AppShell from '../components/AppShell.vue';
 
 describe('Vue training app shell', () => {
+  it('marks the login route so the embedded mobile shell can drop its desktop minimum width', async () => {
+    const router = createRouter({
+      history: createMemoryHistory('/training-app/'),
+      routes: [
+        { path: '/login', name: 'login', meta: { page: 'login' }, component: { template: '<div />' } },
+      ],
+    });
+    await router.push('/login');
+    await router.isReady();
+
+    const wrapper = mount(AppShell, {
+      props: {
+        currentUser: null,
+        changePassword: async () => undefined,
+      },
+      global: { plugins: [router] },
+    });
+
+    expect(wrapper.get('.training-site').classes()).toContain('is-login-page');
+  });
+
   it('places every training route in the top navigation menu', async () => {
     const router = createRouter({
       history: createMemoryHistory('/training-app/'),

@@ -50,6 +50,7 @@ class PlayerProfileServiceTest {
 		player.setId(7L);
 		player.setUsername("player1");
 		player.setNickname("旧昵称");
+		player.setEmail("player1@example.com");
 		player.setSignature("");
 		player.setAvatar("/avatar.png");
 		player.setRole("ROLE_player");
@@ -65,6 +66,7 @@ class PlayerProfileServiceTest {
 		PlayerProfile profile = service.get("player1");
 
 		assertEquals("player1", profile.getUsername());
+		assertEquals("player1@example.com", profile.getEmail());
 		assertEquals("GitHub", profile.getLinks().getFirst().label());
 	}
 
@@ -78,6 +80,7 @@ class PlayerProfileServiceTest {
 		PublicProfile profile = service.getPublic("player1");
 
 		assertEquals("player1", profile.getUsername());
+		assertEquals("player1@example.com", profile.getEmail());
 		assertEquals("保持好奇", profile.getSignature());
 		assertEquals("主页", profile.getLinks().getFirst().label());
 	}

@@ -5,6 +5,7 @@
  */
 const TWO_IMAGE_BLEND_START = 0.44
 const TWO_IMAGE_BLEND_END = 0.56
+const MOBILE_MAX_WIDTH = 767
 
 export function homepageBannerOpacity(imageCount, pointerRatio, imageIndex) {
 	if (imageCount <= 1) return imageIndex === 0 ? 1 : 0
@@ -23,4 +24,9 @@ export function homepageBannerOpacity(imageCount, pointerRatio, imageIndex) {
 export function homepageBannerPointerRatio(clientX, left, width) {
 	if (!Number.isFinite(width) || width <= 0) return 0
 	return Math.min(1, Math.max(0, (clientX - left) / width))
+}
+
+export function homepageBannerHeight(clientHeight, clientWidth) {
+	if (clientWidth > MOBILE_MAX_WIDTH) return clientHeight
+	return Math.round(Math.min(420, Math.max(280, clientHeight * 0.46)))
 }

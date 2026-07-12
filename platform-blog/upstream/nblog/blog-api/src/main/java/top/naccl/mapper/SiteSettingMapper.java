@@ -16,6 +16,8 @@ import java.util.List;
 public interface SiteSettingMapper {
 	List<SiteSetting> getList();
 
+	List<SiteSetting> getPublicSiteInfoList();
+
 	List<SiteSetting> getFriendInfo();
 
 	String getWebTitleSuffix();

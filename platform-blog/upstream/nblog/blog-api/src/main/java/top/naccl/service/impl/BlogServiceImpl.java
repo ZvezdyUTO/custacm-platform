@@ -14,7 +14,6 @@ import top.naccl.model.dto.BlogView;
 import top.naccl.model.dto.BlogVisibility;
 import top.naccl.model.vo.BlogDetail;
 import top.naccl.model.vo.BlogInfo;
-import top.naccl.model.vo.NewBlog;
 import top.naccl.model.vo.PageResult;
 import top.naccl.model.vo.RandomBlog;
 import top.naccl.model.vo.SearchBlog;
@@ -47,8 +46,6 @@ public class BlogServiceImpl implements BlogService {
 	ImageAssetService imageAssetService;
 	//随机博客显示5条
 	private static final int randomBlogLimitNum = 5;
-	//最新推荐博客显示3条
-	private static final int newBlogPageSize = 3;
 	//每页显示5条博客简介
 	private static final int pageSize = 5;
 	//博客简介列表排序方式
@@ -86,23 +83,6 @@ public class BlogServiceImpl implements BlogService {
 	@Override
 	public List<Blog> getIdAndTitleList() {
 		return blogMapper.getIdAndTitleList();
-	}
-
-	@Override
-	public List<NewBlog> getNewBlogListByIsPublished(boolean includeInternal) {
-		if (includeInternal) {
-			PageHelper.startPage(1, newBlogPageSize);
-			return blogMapper.getNewBlogListByIsPublished(true);
-		}
-		String redisKey = RedisKeyConstants.NEW_BLOG_LIST;
-		List<NewBlog> newBlogListFromRedis = redisService.getListByValue(redisKey);
-		if (newBlogListFromRedis != null) {
-			return newBlogListFromRedis;
-		}
-		PageHelper.startPage(1, newBlogPageSize);
-		List<NewBlog> newBlogList = blogMapper.getNewBlogListByIsPublished(false);
-		redisService.saveListToValue(redisKey, newBlogList);
-		return newBlogList;
 	}
 
 	@Override
@@ -252,7 +232,6 @@ public class BlogServiceImpl implements BlogService {
 			throw new PersistenceException("操作失败");
 		}
 		redisService.deleteCacheByKey(RedisKeyConstants.HOME_BLOG_INFO_LIST);
-		redisService.deleteCacheByKey(RedisKeyConstants.NEW_BLOG_LIST);
 	}
 
 	@Transactional(rollbackFor = Exception.class)
@@ -365,10 +344,9 @@ public class BlogServiceImpl implements BlogService {
 	}
 
 	/**
-	 * 删除首页缓存、最新推荐缓存、博客浏览量缓存
+	 * 删除首页文章与博客浏览量缓存
 	 */
 	private void deleteBlogRedisCache() {
 		redisService.deleteCacheByKey(RedisKeyConstants.HOME_BLOG_INFO_LIST);
-		redisService.deleteCacheByKey(RedisKeyConstants.NEW_BLOG_LIST);
 	}
 }

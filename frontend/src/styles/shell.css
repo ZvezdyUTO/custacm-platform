@@ -468,6 +468,28 @@
   margin-top: 12px;
 }
 
+@media (max-width: 767px) {
+  .training-site.is-embedded.is-login-page {
+    min-width: 320px;
+  }
+
+  .training-site.is-embedded.is-login-page .training-main {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .training-site.is-embedded.is-login-page .login-page {
+    min-height: calc(100vh - 32px);
+    padding: 16px 0;
+  }
+
+  .training-site.is-embedded.is-login-page .login-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 26px 22px 24px;
+  }
+}
+
 .route-status {
   border: 1px solid var(--blog-line);
   border-left: 3px solid var(--blog-accent-strong);

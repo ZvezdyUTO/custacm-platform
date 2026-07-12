@@ -19,9 +19,6 @@
 					</el-dropdown-menu>
 				</template>
 			</el-dropdown>
-			<router-link to="/moments" class="item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='moments'}">
-				<i class="comment alternate outline icon"></i>动态
-			</router-link>
 			<el-dropdown class="nav-training-dropdown" trigger="click" :class="{'m-mobile-hide': mobileHide}" @command="trainingRoute">
 				<button type="button" class="el-dropdown-link item nav-training-trigger" :class="{'active':$route.name==='training'}">
 					<i class="chart bar icon"></i>训练中心<i class="caret down icon"></i>

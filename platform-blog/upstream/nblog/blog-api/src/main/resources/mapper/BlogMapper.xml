@@ -105,22 +105,6 @@
         select id, title from blog order by create_time desc
     </select>
 
-    <resultMap id="newBlog" type="top.naccl.model.vo.NewBlog">
-        <id property="id" column="id"/>
-        <result property="title" column="title"/>
-    </resultMap>
-
-    <!--查询最新公开博客-->
-    <select id="getNewBlogListByIsPublished" resultMap="newBlog">
-        select id, title
-        from blog
-        where is_published=true
-        <if test="includeInternal == false">
-          and is_internal=false
-        </if>
-        order by create_time desc
-    </select>
-
     <resultMap id="blogInfo" type="top.naccl.model.vo.BlogInfo">
         <id property="id" column="id"/>
         <result property="title" column="title"/>

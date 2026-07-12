@@ -41,7 +41,7 @@
         <span>{{ multiUserProgress.active ? `加载 ${multiUserProgress.completed}/${multiUserProgress.total}` : `${multiUserRows.length} 人` }}</span>
       </header>
       <div class="auto-summary-table-scroll">
-        <table class="auto-summary-table" aria-label="多人通过统计">
+        <table class="auto-summary-table" aria-label="多人通过统计" :style="{ minWidth: `${multiTableMinWidth}px` }">
           <thead><tr><th class="auto-summary-player-col">队员</th><th class="auto-summary-total-col">总计</th><th v-for="bucket in ratingBuckets" :key="bucket" :class="['auto-summary-rating-col', ratingToneClass(bucket)]">{{ ratingLabel(bucket) }}</th></tr></thead>
           <tbody>
             <tr v-for="row in displayRows" :key="row.row.user.username" :class="{ 'is-error': row.row.status === 'error' }">
@@ -121,6 +121,7 @@ let autoApplyTimer: number | undefined;
 let lastAppliedSignature = filterSignature();
 const multiAcceptedCount = computed(() => multiUserRows.value.reduce((sum, row) => sum + (row.summary?.totalAcceptedProblemCount || 0), 0));
 const ratingBuckets = computed(() => [...new Set(multiUserRows.value.flatMap((row) => row.summary?.ratingCounts.map((item) => item.problemRating) || []))].sort(compareRating));
+const multiTableMinWidth = computed(() => 276 + ratingBuckets.value.length * 56);
 const displayRows = computed(() => multiUserRows.value.map((row) => ({ row, counts: new Map(row.summary?.ratingCounts.map((item) => [item.problemRating, item.acceptedProblemCount]) || []) })));
 const maxRatingCount = computed(() => Math.max(1, ...(acceptedSummary.value?.ratingCounts.map((item) => item.acceptedProblemCount) || [])));
 watch(trainingQuery, (query) => Object.assign(draft, query), { deep: true });

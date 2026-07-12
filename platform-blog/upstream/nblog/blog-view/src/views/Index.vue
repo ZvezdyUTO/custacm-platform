@@ -2,10 +2,8 @@
 	<div class="site">
 		<!--顶部导航-->
 		<Nav :categoryList="categoryList"/>
-		<!--首页大图 只在首页且pc端时显示-->
-		<div class="m-mobile-hide">
-			<Header v-if="$route.name==='home'"/>
-		</div>
+		<!--首页大图：桌面整屏显示，移动端使用紧凑高度-->
+		<Header v-if="$route.name==='home'"/>
 		<router-view v-if="$route.name==='training'"/>
 
 		<div v-else class="main">

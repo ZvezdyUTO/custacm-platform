@@ -7,6 +7,13 @@
         select * from site_setting
     </select>
 
+    <!--只查询公开页面仍在消费的配置-->
+    <select id="getPublicSiteInfoList" resultType="top.naccl.entity.SiteSetting">
+        select name_en, value
+        from site_setting
+        where name_en in ('reward', 'commentAdminFlag', 'avatar', 'name')
+    </select>
+
     <!--查询友链页面信息-->
     <select id="getFriendInfo" resultType="top.naccl.entity.SiteSetting">
         select * from site_setting where type=4

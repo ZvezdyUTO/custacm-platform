@@ -8,6 +8,8 @@ package top.naccl.constant;
  */
 public class SiteSettingConstants {
 	public static final String COPYRIGHT = "copyright";
+	public static final String REWARD = "reward";
+	public static final String COMMENT_ADMIN_FLAG = "commentAdminFlag";
 	public static final String AVATAR = "avatar";
 	public static final String NAME = "name";
 	public static final String GITHUB = "github";

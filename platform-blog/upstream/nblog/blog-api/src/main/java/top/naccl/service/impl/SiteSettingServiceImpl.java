@@ -8,10 +8,6 @@ import top.naccl.constant.SiteSettingConstants;
 import top.naccl.entity.SiteSetting;
 import top.naccl.exception.PersistenceException;
 import top.naccl.mapper.SiteSettingMapper;
-import top.naccl.model.vo.Badge;
-import top.naccl.model.vo.Copyright;
-import top.naccl.model.vo.Favorite;
-import top.naccl.model.vo.Introduction;
 import top.naccl.service.RedisService;
 import top.naccl.service.SiteSettingService;
 import top.naccl.util.JacksonUtils;
@@ -21,8 +17,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @Description: 站点设置业务层实现
@@ -35,8 +29,6 @@ public class SiteSettingServiceImpl implements SiteSettingService {
 	SiteSettingMapper siteSettingMapper;
 	@Autowired
 	RedisService redisService;
-
-	private static final Pattern PATTERN = Pattern.compile("\"(.*?)\"");
 
 	@Override
 	public Map<String, List<SiteSetting>> getList() {
@@ -73,76 +65,26 @@ public class SiteSettingServiceImpl implements SiteSettingService {
 		if (siteInfoMapFromRedis != null) {
 			return siteInfoMapFromRedis;
 		}
-		List<SiteSetting> siteSettings = siteSettingMapper.getList();
+		List<SiteSetting> siteSettings = siteSettingMapper.getPublicSiteInfoList();
 		Map<String, Object> siteInfo = new HashMap<>(2);
-		List<Badge> badges = new ArrayList<>();
-		Introduction introduction = new Introduction();
-		List<Favorite> favorites = new ArrayList<>();
-		List<String> rollTexts = new ArrayList<>();
+		Map<String, String> introduction = new HashMap<>(2);
 		for (SiteSetting s : siteSettings) {
-			switch (s.getType()) {
-				case 1:
-					if (SiteSettingConstants.COPYRIGHT.equals(s.getNameEn())) {
-						Copyright copyright = JacksonUtils.readValue(s.getValue(), Copyright.class);
-						siteInfo.put(s.getNameEn(), copyright);
-					} else {
-						siteInfo.put(s.getNameEn(), s.getValue());
-					}
+			switch (s.getNameEn()) {
+				case SiteSettingConstants.REWARD:
+				case SiteSettingConstants.COMMENT_ADMIN_FLAG:
+					siteInfo.put(s.getNameEn(), s.getValue());
 					break;
-				case 2:
-					switch (s.getNameEn()) {
-						case SiteSettingConstants.AVATAR:
-							introduction.setAvatar(s.getValue());
-							break;
-						case SiteSettingConstants.NAME:
-							introduction.setName(s.getValue());
-							break;
-						case SiteSettingConstants.GITHUB:
-							introduction.setGithub(s.getValue());
-							break;
-						case SiteSettingConstants.TELEGRAM:
-							introduction.setTelegram(s.getValue());
-							break;
-						case SiteSettingConstants.QQ:
-							introduction.setQq(s.getValue());
-							break;
-						case SiteSettingConstants.BILIBILI:
-							introduction.setBilibili(s.getValue());
-							break;
-						case SiteSettingConstants.NETEASE:
-							introduction.setNetease(s.getValue());
-							break;
-						case SiteSettingConstants.EMAIL:
-							introduction.setEmail(s.getValue());
-							break;
-						case SiteSettingConstants.FAVORITE:
-							Favorite favorite = JacksonUtils.readValue(s.getValue(), Favorite.class);
-							favorites.add(favorite);
-							break;
-						case SiteSettingConstants.ROLL_TEXT:
-							Matcher m = PATTERN.matcher(s.getValue());
-							while (m.find()) {
-								rollTexts.add(m.group(1));
-							}
-							break;
-						default:
-							break;
-					}
-					break;
-				case 3:
-					Badge badge = JacksonUtils.readValue(s.getValue(), Badge.class);
-					badges.add(badge);
+				case SiteSettingConstants.AVATAR:
+				case SiteSettingConstants.NAME:
+					introduction.put(s.getNameEn(), s.getValue());
 					break;
 				default:
 					break;
 			}
 		}
-		introduction.setFavorites(favorites);
-		introduction.setRollText(rollTexts);
-		Map<String, Object> map = new HashMap<>(8);
+		Map<String, Object> map = new HashMap<>(2);
 		map.put("introduction", introduction);
 		map.put("siteInfo", siteInfo);
-		map.put("badges", badges);
 		redisService.saveMapToValue(redisKey, map);
 		return map;
 	}
