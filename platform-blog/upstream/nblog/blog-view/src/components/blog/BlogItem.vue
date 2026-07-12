@@ -1,39 +1,43 @@
 <template>
 	<div>
-		<div class="ui padded attached segment m-padded-tb-large m-margin-bottom-big m-box" v-for="item in blogList" :key="item.id">
+		<div class="ui padded attached segment m-padded-tb-large m-margin-bottom-big m-box blog-list-card" v-for="item in blogList" :key="item.id">
 			<div class="ui large red right corner label" v-if="item.top">
 				<i class="arrow alternate circle up icon"></i>
 			</div>
 			<div class="ui middle aligned mobile reversed stackable">
 				<div class="ui grid m-margin-lr">
-					<div class="row list-card-header">
-						<h2 class="ui header list-card-title m-scaleup">
-							<a href="javascript:;" :title="item.title" @click.prevent="toBlog(item)" class="m-black">{{ item.title }}</a>
-						</h2>
-						<div class="list-author-card">
-							<div class="list-author-identity">
-								<img class="list-author-avatar" :src="item.authorAvatar || '/img/default-avatar.jpg'" :alt="`${item.authorNickname || '文章作者'}的头像`" @error="useDefaultAvatar">
-								<div class="list-author-copy">
-									<strong>{{ item.authorNickname || '已注销用户' }}</strong>
-									<span v-if="item.authorUsername">@{{ item.authorUsername }}</span>
-								</div>
-							</div>
-							<div class="list-article-meta" aria-label="文章信息">
-								<span><i class="calendar outline icon"></i>{{ $filters.dateFormat(item.createTime, 'YYYY-MM-DD')}}</span>
-								<span><i class="eye outline icon"></i>{{ item.views }} 次浏览</span>
-								<span><i class="file alternate outline icon"></i>{{ item.words }} 字</span>
+					<div class="list-card-layout">
+						<div class="list-card-main">
+							<h2 class="ui header list-card-title m-scaleup">
+								<a href="javascript:;" :title="item.title" @click.prevent="toBlog(item)" class="m-black">{{ item.title }}</a>
+							</h2>
+							<router-link :to="`/category/${item.category.name}`" class="ui large ribbon label list-card-category" :style="taxonomyStyle(item.category.color)">
+								<i class="small folder open icon"></i><span class="m-text-500">{{ item.category.name }}</span>
+							</router-link>
+							<div class="typo line-numbers match-braces rainbow-braces list-card-description" v-lazy-container="{selector: 'img'}" v-viewer v-html="sanitizeHtml(item.description)"></div>
+							<div class="list-card-action">
+								<a href="javascript:;" @click.prevent="toBlog(item)" class="read-more-button">阅读全文</a>
 							</div>
 						</div>
-					</div>
-					<!--分类-->
-					<router-link :to="`/category/${item.category.name}`" class="ui large ribbon label" :style="taxonomyStyle(item.category.color)">
-						<i class="small folder open icon"></i><span class="m-text-500">{{ item.category.name }}</span>
-					</router-link>
-					<!--文章Markdown描述-->
-					<div class="typo m-padded-tb-small line-numbers match-braces rainbow-braces" v-lazy-container="{selector: 'img'}" v-viewer v-html="sanitizeHtml(item.description)"></div>
-					<!--阅读全文按钮-->
-					<div class="row m-padded-tb-small m-margin-top">
-						<a href="javascript:;" @click.prevent="toBlog(item)" class="read-more-button">阅读全文</a>
+						<aside class="list-card-aside" aria-label="文章作者与首图">
+							<div class="list-author-card">
+								<div class="list-author-identity">
+									<img class="list-author-avatar" :src="item.authorAvatar || '/img/default-avatar.jpg'" :alt="`${item.authorNickname || '文章作者'}的头像`" @error="useDefaultAvatar">
+									<div class="list-author-copy">
+										<strong>{{ item.authorNickname || '已注销用户' }}</strong>
+										<span v-if="item.authorUsername">@{{ item.authorUsername }}</span>
+									</div>
+								</div>
+								<div class="list-article-meta" aria-label="文章信息">
+									<span><i class="calendar outline icon"></i>{{ $filters.dateFormat(item.createTime, 'YYYY-MM-DD')}}</span>
+									<span><i class="eye outline icon"></i>{{ item.views }} 次浏览</span>
+									<span><i class="file alternate outline icon"></i>{{ item.words }} 字</span>
+								</div>
+								</div>
+							<figure v-if="item.firstPicture" class="list-card-cover">
+								<img :src="item.firstPicture" :alt="`${item.title} 首图`" loading="lazy" decoding="async">
+							</figure>
+						</aside>
 					</div>
 					<!--横线-->
 					<div class="ui section divider m-margin-lr-no"></div>
@@ -73,17 +77,39 @@
 </script>
 
 <style scoped>
-	.list-card-header {
-		display: flex !important;
-		align-items: center !important;
-		gap: 1.5rem;
-		padding: 0.5rem 0 1.5rem !important;
+	.blog-list-card {
+		container-type: inline-size;
+	}
+
+	.list-card-layout {
+		display: grid;
+		width: 100%;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		align-items: start;
+		gap: 1.75rem;
+		padding: 0.5rem 0 1.25rem;
+	}
+
+	.list-card-main,
+	.list-card-aside {
+		min-width: 0;
+	}
+
+	.list-card-main {
+		display: flex;
+		min-height: 100%;
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.list-card-aside {
+		display: grid;
+		gap: 0.75rem;
 	}
 
 	.list-card-title {
 		min-width: 0;
-		flex: 1;
-		margin: 0 !important;
+		margin: 0 0 1.25rem !important;
 		font-size: clamp(1.35rem, 1.5vw, 1.75rem) !important;
 		line-height: 1.25 !important;
 		letter-spacing: -0.015em;
@@ -104,9 +130,8 @@
 	.list-author-card {
 		display: flex;
 		align-items: center;
-		width: fit-content;
-		min-width: 430px;
-		flex: 0 0 auto;
+		width: 100%;
+		min-width: 0;
 		gap: 1rem;
 		padding: 0.7rem 0.85rem;
 		background: transparent;
@@ -169,6 +194,11 @@
 		font-size: 0.84rem;
 	}
 
+	.list-card-category {
+		align-self: flex-start;
+		margin-bottom: 1.25rem !important;
+	}
+
 	.list-article-meta span {
 		display: inline-flex;
 		align-items: center;
@@ -217,9 +247,53 @@
 		transform: translateY(-1px);
 	}
 
-	@media (max-width: 1360px) {
-		.list-card-header { align-items: flex-start !important; flex-direction: column; }
-		.list-author-card { width: 100%; min-width: 0; }
+	.list-card-description {
+		min-width: 0;
+		padding: 0.25rem 0 0.75rem !important;
+	}
+
+	.list-card-cover {
+		width: 100%;
+		aspect-ratio: 16 / 9;
+		margin: 0;
+		overflow: hidden;
+		background: #edf1f4;
+		border: 1px solid #d8e0e6;
+		border-radius: 6px;
+	}
+
+	.list-card-cover img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.list-card-action {
+		display: flex;
+		margin-top: auto;
+		justify-content: center;
+		padding: 0.75rem 0 0.2rem;
+	}
+
+	@container (max-width: 900px) {
+		.list-card-layout { gap: 1rem; }
+		.list-author-card { align-items: flex-start; flex-direction: column; gap: 0.65rem; }
+		.list-article-meta {
+			width: 100%;
+			flex-wrap: wrap;
+			gap: 0.45rem 0.7rem;
+			padding: 0.6rem 0 0;
+			border-top: 1px solid rgba(23, 50, 77, 0.25);
+			border-left: 0;
+			font-size: 0.78rem;
+		}
+	}
+
+	@container (max-width: 560px) {
+		.list-card-layout { grid-template-columns: minmax(0, 1fr); }
+		.list-card-aside { grid-row: 2; }
+		.list-card-cover { max-width: 100%; }
 	}
 
 	@media (prefers-reduced-motion: reduce) {

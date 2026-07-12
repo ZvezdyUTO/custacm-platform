@@ -23,7 +23,11 @@ Backend health: http://localhost:8090/health
 Gateway health: http://localhost:3000/api/health
 ```
 
-实际 host 端口分别取自 `FRONTEND_PORT` 和 `BACKEND_PORT`。Nginx 为 `/` 与 `/training/**` 提供 Vue Blog history fallback，使训练路由继续使用原 Blog 顶栏；内部 `/training-app/**` 提供独立训练运行时，并将 `/api/**` 去前缀后转发到 `blog-api:8090`。
+实际 host 端口分别取自 `FRONTEND_PORT`、`FRONTEND_HTTPS_PORT` 和 `BACKEND_PORT`。Nginx 为 `/` 与 `/training/**` 提供 Vue Blog history fallback，使训练路由继续使用原 Blog 顶栏；内部 `/training-app/**` 提供独立训练运行时，并将 `/api/**` 去前缀后转发到 `blog-api:8090`。
+
+## HTTPS（可选）
+
+准备 Cloudflare Origin CA 或公信 CA 的 PEM 证书后，将证书和私钥分别保存为 `TLS_CERT_DIR/origin.pem`、`TLS_CERT_DIR/origin.key`，设置 `TLS_ENABLED=true` 与服务器的 `FRONTEND_HTTPS_PORT=443`。前端容器仅以只读方式读取该目录，80 会重定向到 HTTPS。Cloudflare 场景在 DNS 记录启用代理后，将 SSL/TLS 模式设为 Full (strict)；不要把私钥保存到仓库或 `.env`。
 
 ## 构建与运行数据
 
@@ -42,9 +46,15 @@ set -a
 set +a
 
 curl -fsS "http://localhost:${BACKEND_PORT}/health"
-curl -fsS "http://localhost:${FRONTEND_PORT}/"
-curl -fsS "http://localhost:${FRONTEND_PORT}/training/multiple"
-curl -fsS "http://localhost:${FRONTEND_PORT}/api/health"
+if [ "${TLS_ENABLED:-false}" = "true" ]; then
+  curl -fkLsS "https://localhost:${FRONTEND_HTTPS_PORT}/"
+  curl -fkLsS "https://localhost:${FRONTEND_HTTPS_PORT}/training/multiple"
+  curl -fkLsS "https://localhost:${FRONTEND_HTTPS_PORT}/api/health"
+else
+  curl -fsS "http://localhost:${FRONTEND_PORT}/"
+  curl -fsS "http://localhost:${FRONTEND_PORT}/training/multiple"
+  curl -fsS "http://localhost:${FRONTEND_PORT}/api/health"
+fi
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 ```
 

@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @Description: Markdown转换
@@ -32,9 +34,14 @@ import java.util.Set;
  * @Date: 2020-04-29
  */
 public class MarkdownUtils {
+	private static final String MATH_BACKSLASH_PLACEHOLDER = "\uE000";
+	private static final Pattern MATH_RANGE = Pattern.compile(
+			"\\$\\$[\\s\\S]+?\\$\\$|(?<!\\\\)\\$(?!\\$)[^\\r\\n]+?(?<!\\\\)\\$(?!\\$)");
 	private static final Safelist HTML_SAFELIST = Safelist.relaxed()
 			.addTags("del", "s", "span", "input")
 			.addAttributes("a", "class", "target", "rel")
+			.addAttributes("pre", "class")
+			.addAttributes("code", "class")
 			.addAttributes("h1", "id").addAttributes("h2", "id").addAttributes("h3", "id")
 			.addAttributes("h4", "id").addAttributes("h5", "id").addAttributes("h6", "id")
 			.addAttributes("img", "data-src", "loading", "decoding")
@@ -127,8 +134,22 @@ public class MarkdownUtils {
 	 * 增加扩展
 	 */
 	public static String markdownToHtmlExtensions(String markdown) {
-		Node document = parser.parse(markdown);
-		return sanitize(renderer.render(document));
+		Node document = parser.parse(protectMathBackslashes(markdown));
+		return sanitize(renderer.render(document).replace(MATH_BACKSLASH_PLACEHOLDER, "\\"));
+	}
+
+	private static String protectMathBackslashes(String markdown) {
+		if (markdown == null || markdown.isEmpty()) {
+			return markdown;
+		}
+		Matcher matcher = MATH_RANGE.matcher(markdown);
+		StringBuffer protectedMarkdown = new StringBuffer(markdown.length());
+		while (matcher.find()) {
+			matcher.appendReplacement(protectedMarkdown, Matcher.quoteReplacement(
+					matcher.group().replace("\\", MATH_BACKSLASH_PLACEHOLDER)));
+		}
+		matcher.appendTail(protectedMarkdown);
+		return protectedMarkdown.toString();
 	}
 
 	private static String sanitize(String html) {

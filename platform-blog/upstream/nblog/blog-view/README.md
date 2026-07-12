@@ -51,18 +51,19 @@
 - `public/favicon.svg`：浏览器标签页使用的简约几何气球品牌图标。
 - `src/util/homepageBanner.js`：把鼠标位置映射为任意数量横幅的相邻图层透明度。
 - `src/assets/css/base.css`：提供 Blog 全局基础样式，以共享的 `#f4f6f8` 雾灰画布与训练、管理页面保持底色一致；前端不再加载播放器或歌词组件。
-- `src/components/sidebar/Introduction.vue`：普通页面显示当前登录用户的名片，文章详情页改为显示文章作者的公开头像、nickname、username、个性签名和有序友情链接；当前用户的大尺寸名片优先使用头像原图，小尺寸缩略图仅作为兼容回退，资料保持纯展示，在本人个人页仍可通过原有头像交互打开裁剪器。
+- `src/assets/css/typo.css`：提供文章 Markdown 的排版与高对比度代码主题；行内代码样式不影响列表中的块级代码，代码被选中时统一使用深蓝选区与白色文字；长代码、表格、公式和不可断行段落在自身区域显示可拖动的横向滚动条，不得撑破文章列。
+- `src/components/sidebar/Introduction.vue`：普通页面显示当前登录用户的名片，文章详情页改为显示文章作者的公开头像、nickname、username、个性签名和有序友情链接；友情链接自动读取目标站点根目录 favicon，加载失败时回退为通用网页图标；当前用户的大尺寸名片优先使用头像原图，小尺寸缩略图仅作为兼容回退，资料保持纯展示，在本人个人页仍可通过原有头像交互打开裁剪器。
 - `src/components/profile/AvatarCropDialog.vue`：允许拖动、缩放本地 PNG/JPEG，并导出 512×512 PNG 交给头像 API。
 - `src/views/about/About.vue`：“我的主页”，展示当前用户资料、OJ handle、友情链接与本人文章区，并在资料编辑面板内提供本人密码修改表单。
-- `src/views/blog/Blog.vue`：渲染公开文章详情、分类标签、正文和评论；详情页标题下方沿用作者、日期、浏览量、字数和估算阅读时长的横排摘要。
-- `src/components/blog/BlogItem.vue`：渲染首页、分类和标签页的文章摘要卡；标题位于左侧、最多展示三行并优先获得横向空间，右侧紧凑的透明底深色描边署名卡以黑体 nickname、灰色 username 展示头像和身份，并附带日期、浏览量和字数；“阅读全文”使用深色实心按钮。
+- `src/views/blog/Blog.vue`：渲染公开文章详情、分类标签、正文和评论；分类丝带位于正文网格上方，不参与内容列宽计算；详情页标题下方沿用作者、日期、浏览量、字数和估算阅读时长的横排摘要，并在有首图时以正文列为基准居中展示 16:9 图片。
+- `src/components/blog/BlogItem.vue`：渲染首页、分类和标签页的文章摘要卡；卡片稳定保持左右两栏，左侧展示标题、分类、简介和阅读全文按钮，右侧以同宽纵向排列作者信息与 16:9 首图，容器确实不足时才整体改单栏，避免作者栏随桌面窗口缩窄而横向拉满。
 - `src/components/profile/MyArticles.vue`：在“我的主页”内分页查询本人文章，已发布文章进入公开详情，草稿进入继续编辑，并支持删除。
 - `src/views/article/ArticleEditor.vue`：实时 Markdown 文章发布/编辑页，支持标题/简介计数与长度限制、正文长度校验、首图裁剪、正文图片上传、Markdown 文件读取、草稿/发布、评论开关与未保存离开提示；正文编辑器使用高对比度深色文本选区。
 - `src/components/article/ArticleCoverUpload.vue`：16:9 首图拖动裁剪并导出 1920×1080 JPEG。
 - `src/components/article/ManagedImageViewer.vue`：先展示正文缩略图，用户明确点击后才加载高清图。
 - `src/components/sidebar/Tags.vue`：显示标签云，并按标签名称稳定映射彩色标签样式。
 - `src/components/sidebar/FeaturedBlog.vue`：显示由管理员选中的最多五篇精选文章；列表使用服务端固定顺序，不在浏览器端随机刷新。
-- `src/components/article/LiveMarkdownEditor.vue`：封装 CodeMirror 6 与 live-markdown，提供工具栏、GFM 表格、高对比度代码语法高亮、公式/托管图片实时预览，以及正文图片选择、拖拽和粘贴上传。
+- `src/components/article/LiveMarkdownEditor.vue`：封装 CodeMirror 6 与 live-markdown，提供工具栏、GFM 表格、高对比度代码语法高亮、按浏览器真实文本命中定位的代码块光标、公式/托管图片实时预览，以及正文图片选择、拖拽和粘贴上传。
 - `src/plugins/standardMathPreview.js`、`src/util/markdownEditor.js`：弥合第三方编辑器公式方言差异，并提供标准数学公式识别和工具栏 Markdown 插入模板。
 - `src/api/player-blog.js`、`src/util/articleForm.js`、`src/util/articleImages.js`：本人文章/图片 API、请求组装、图片限制、托管图片 URL 转换与整图 Backspace 删除。
 - `src/api/profile.js`：匿名读取文章作者公开资料，读取本人完整资料/OJ handle，并只为本人 nickname、签名、友情链接、头像与密码更新请求显式附加共享 Bearer JWT。
@@ -70,7 +71,7 @@
 - `src/components/comment/CommentForm.vue`：提交时重新读取共享 JWT，保留既有未登录和失败提示。
 - `src/api/comment.js`：匿名读取公开评论；登录评论提交显式使用共享 Bearer JWT。
 - `src/store/actions.js`：编排评论状态；401 清理共享会话并携带当前 Blog 路由跳转登录，403 显示后端拒绝原因。
-- `src/views/Index.vue`：组合站点外壳；训练路由保留唯一 `Nav.vue` 并隐藏 Blog 侧栏；普通训练查询页沿用 Blog 页脚，管理员页面隐藏页脚。
+- `src/views/Index.vue`：组合站点外壳；Blog 内容容器以 1400px 为桌面上限并随实际视口收缩，浏览器侧栏改变可视宽度时不得产生裁切；训练路由保留唯一 `Nav.vue` 并隐藏 Blog 侧栏；普通训练查询页沿用 Blog 页脚，管理员页面隐藏页脚。
 - `src/views/training/TrainingHost.vue`：在 Blog 顶栏下同源嵌入训练运行时，并将内部训练路由同步到公开 `/training/**` URL。
 - `vite.config.js`：配置 Vue 编译、源码别名、4180 统一开发入口、训练应用/HMR 与 `/api` 代理，以及 Vitest 环境。
 - `src/test/session.test.js`：验证共享登录键、孤儿会话清理和稳定变更事件。

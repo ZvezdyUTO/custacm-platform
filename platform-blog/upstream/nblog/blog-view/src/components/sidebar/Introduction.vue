@@ -37,7 +37,16 @@
 			</div>
 			<nav v-if="profileLinks.length" class="profile-links" aria-label="个人友情链接">
 				<a v-for="link in profileLinks" :key="link.id || link.url" :href="link.url" target="_blank" rel="external nofollow noopener">
-					<i class="linkify icon" aria-hidden="true"></i>
+					<span class="profile-link-icon" aria-hidden="true">
+						<img
+							v-if="faviconUrl(link.url) && !faviconFailures[link.url]"
+							:src="faviconUrl(link.url)"
+							alt=""
+							loading="lazy"
+							@error="faviconFailures[link.url] = true"
+						>
+						<i v-else class="globe icon"></i>
+					</span>
 					<span>{{ link.label }}</span>
 					<i class="external alternate icon external-mark" aria-hidden="true"></i>
 				</a>
@@ -67,6 +76,7 @@
 				authorProfile: null,
 				saving: false,
 				errorMessage: '',
+				faviconFailures: {},
 			}
 		},
 		computed: {
@@ -99,6 +109,13 @@
 			window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshUser)
 		},
 		methods: {
+			faviconUrl(url) {
+				try {
+					return `${new URL(url, window.location.origin).origin}/favicon.ico`
+				} catch {
+					return ''
+				}
+			},
 			async loadAuthorProfile() {
 				const username = this.authorUsername
 				this.authorProfile = null
@@ -252,6 +269,29 @@
 	.profile-links a i {
 		margin: 0 !important;
 		color: #687785;
+	}
+
+	.profile-link-icon {
+		display: inline-flex;
+		width: 18px;
+		height: 18px;
+		align-items: center;
+		justify-content: center;
+		border-radius: 4px;
+		background: #e8edf2;
+		overflow: hidden;
+	}
+
+	.profile-link-icon img {
+		display: block;
+		width: 14px;
+		height: 14px;
+		object-fit: contain;
+	}
+
+	.profile-link-icon i {
+		width: auto !important;
+		font-size: 11px;
 	}
 
 	.profile-links .external-mark {

@@ -15,6 +15,6 @@
 - 单人查询默认保持“请选择队员”，用户主动选择后才加载个人训练数据。
 - 根 reactor 包含 `platform-common`、`platform-training-data` 和 Blog API。API 见 [../api.md](../api.md)，授权见 [../authorization.md](../authorization.md)。
 - Java MR 门禁只要求 `mvn clean test` 运行已有单测；历史代码不强制追补覆盖率，新增或实质修改的业务逻辑应同步增加针对性单测。详见 [quality-gates.md](quality-gates.md)。
-- 本地/单机 Compose 包含 `blog-db`、`blog-redis`、`blog-api`、`frontend` 四个服务；没有证据时不要声称已发布到服务器。
+- 本地/单机 Compose 包含 `blog-db`、`blog-redis`、`blog-api`、`frontend` 四个服务；前端默认 HTTP，设置 `TLS_ENABLED=true` 后从受限宿主机目录只读挂载证书并启用 HTTPS；没有证据时不要声称已发布到服务器。
 
 修改代码前先读最近的 `AGENTS.md`、[../logging.md](../logging.md) 和 [doc-sync.md](doc-sync.md)。涉及文件/模块职责变化时同步对应 README、[context-map.md](context-map.md) 和 `docs/doc-sync-map.tsv` 指定文档。

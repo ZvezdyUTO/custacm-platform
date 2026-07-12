@@ -28,7 +28,7 @@ check_url() {
 
   echo "Checking ${name}: ${url}"
   for _ in {1..30}; do
-    if curl -fsS "${url}" >/dev/null; then
+    if curl -fkLsS "${url}" >/dev/null; then
       return 0
     fi
     sleep 2
@@ -74,10 +74,23 @@ if [[ -z "${backend_port}" || -z "${frontend_port}" ]]; then
   exit 1
 fi
 
+tls_enabled="$(awk -F= '$1 == "TLS_ENABLED" {print tolower($2); exit}' "${ENV_FILE}")"
+frontend_scheme="http"
+if [[ "${tls_enabled}" == "true" ]]; then
+  frontend_scheme="https"
+  frontend_port="$(docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" port frontend 443 | sed -n '1p')"
+  frontend_port="${frontend_port##*:}"
+fi
+
+if [[ -z "${backend_port}" || -z "${frontend_port}" ]]; then
+  echo "Cannot resolve published backend or frontend port from Docker Compose." >&2
+  exit 1
+fi
+
 check_url "http://localhost:${backend_port}/health" "blog-api"
-check_url "http://localhost:${frontend_port}/" "Vue Blog"
-check_url "http://localhost:${frontend_port}/training/multiple" "Vue Training"
-check_url "http://localhost:${frontend_port}/api/health" "gateway API"
+check_url "${frontend_scheme}://localhost:${frontend_port}/" "Vue Blog"
+check_url "${frontend_scheme}://localhost:${frontend_port}/training/multiple" "Vue Training"
+check_url "${frontend_scheme}://localhost:${frontend_port}/api/health" "gateway API"
 
 docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" ps
 echo "Complete custacm-platform stack is ready."

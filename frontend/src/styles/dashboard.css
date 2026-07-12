@@ -736,6 +736,12 @@
   --rating-text: #1717bf;
 }
 
+.rating-tone-yellow {
+  --rating-bg: #fff7d6;
+  --rating-color: #d49b00;
+  --rating-text: #926400;
+}
+
 .rating-tone-violet {
   --rating-bg: #f8e7f8;
   --rating-color: #aa00aa;
@@ -825,6 +831,7 @@
 
 .auto-summary-total-cell,
 .auto-summary-rating-cell {
+  text-align: center !important;
   font-variant-numeric: tabular-nums;
 }
 

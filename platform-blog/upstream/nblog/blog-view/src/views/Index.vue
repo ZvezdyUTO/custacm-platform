@@ -134,20 +134,30 @@
 <style scoped>
 	.site {
 		display: flex;
+		width: 100%;
+		max-width: 100%;
 		min-height: 100vh; /* 没有元素时，也把页面撑开至100% */
 		flex-direction: column;
 		overflow-x: hidden;
 	}
 
 	.main {
+		width: 100%;
+		max-width: 100%;
 		margin-top: 40px;
 		flex: 1;
 	}
 
 	.main .ui.container {
-		width: 1400px !important;
+		box-sizing: border-box;
+		width: min(1400px, 100%) !important;
+		max-width: 100% !important;
 		margin-left: auto !important;
 		margin-right: auto !important;
+	}
+
+	.main .ui.grid > .column {
+		min-width: 0;
 	}
 
 	.ui.grid .three.column {

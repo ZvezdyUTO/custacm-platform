@@ -64,10 +64,14 @@ services:
     build:
       context: ..
       dockerfile: frontend/Dockerfile
+    environment:
+      TLS_ENABLED: ${TLS_ENABLED:-false}
     ports:
       - "${FRONTEND_PORT}:80"
+      - "${FRONTEND_HTTPS_PORT}:443"
     volumes:
       - ../uploads:/srv/custacm-uploads:ro
+      - ${TLS_CERT_DIR:-./secrets/tls}:/etc/nginx/tls:ro
     depends_on:
       blog-api:
         condition: service_healthy

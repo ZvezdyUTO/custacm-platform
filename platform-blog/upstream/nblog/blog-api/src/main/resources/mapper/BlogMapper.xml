@@ -124,6 +124,7 @@
     <resultMap id="blogInfo" type="top.naccl.model.vo.BlogInfo">
         <id property="id" column="id"/>
         <result property="title" column="title"/>
+        <result property="firstPicture" column="first_picture"/>
         <result property="description" column="description"/>
         <result property="createTime" column="create_time"/>
         <result property="views" column="views"/>
@@ -141,7 +142,7 @@
 
     <!--查询公开博客的简要信息-->
     <select id="getBlogInfoListByIsPublished" resultMap="blogInfo">
-        select b.id, b.title, b.description, b.is_top, b.create_time, b.views, b.words, b.read_time,
+		select b.id, b.title, b.first_picture, b.description, b.is_top, b.create_time, b.views, b.words, b.read_time,
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from blog as b left join category as c on b.category_id=c.id left join user as u on b.user_id=u.id
         where b.is_published=true
@@ -152,7 +153,7 @@
 
     <!--根据分类name查询公开博客List-->
     <select id="getBlogInfoListByCategoryNameAndIsPublished" resultMap="blogInfo">
-        select b.id, b.title, b.description, b.is_top, b.create_time, b.views, b.words, b.read_time,
+		select b.id, b.title, b.first_picture, b.description, b.is_top, b.create_time, b.views, b.words, b.read_time,
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from category as c left join blog as b on b.category_id=c.id left join user as u on b.user_id=u.id
         where c.category_name=#{categoryName} and b.is_published=true
@@ -163,7 +164,7 @@
 
     <!--根据标签name查询公开博客List-->
     <select id="getBlogInfoListByTagNameAndIsPublished" resultMap="blogInfo">
-        select b.id, b.title, b.description, b.is_top, b.create_time, b.views, b.words, b.read_time,
+		select b.id, b.title, b.first_picture, b.description, b.is_top, b.create_time, b.views, b.words, b.read_time,
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from tag as t left join blog_tag as bt on t.id=bt.tag_id left join blog as b on bt.blog_id=b.id
         left join category as c on b.category_id=c.id left join user as u on b.user_id=u.id
@@ -275,6 +276,7 @@
         <id property="id" column="id"/>
         <result property="authorUsername" column="author_username"/>
         <result property="title" column="title"/>
+        <result property="firstPicture" column="first_picture"/>
         <result property="content" column="content"/>
         <result property="internal" column="is_internal"/>
         <result property="appreciation" column="is_appreciation"/>
@@ -299,7 +301,7 @@
 
     <!--按id查询公开博客-->
     <select id="getBlogByIdAndIsPublished" resultMap="blogDetail">
-        select b.id, b.title, b.content, b.is_internal, b.is_appreciation, b.is_comment_enabled, b.is_top,
+		select b.id, b.title, b.first_picture, b.content, b.is_internal, b.is_appreciation, b.is_comment_enabled, b.is_top,
         b.create_time, b.update_time, b.views, b.words, b.read_time,
         c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar,
         t.tag_name as tag_name, t.color
@@ -310,7 +312,7 @@
 
     <!--按id查询仅登录用户可见的已发布博客-->
     <select id="getInternalBlogById" resultMap="blogDetail">
-        select b.id, b.title, b.content, b.is_internal, b.is_appreciation, b.is_comment_enabled, b.is_top,
+		select b.id, b.title, b.first_picture, b.content, b.is_internal, b.is_appreciation, b.is_comment_enabled, b.is_top,
         b.create_time, b.update_time, b.views, b.words, b.read_time,
         c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar,
         t.tag_name as tag_name, t.color

@@ -7,7 +7,7 @@
 | `blog-db` | MySQL 8.4 | 统一 NBlog 与训练数据 schema |
 | `blog-redis` | Redis 7 Alpine | Blog cache 与运行支持 |
 | `blog-api` | 仓库根 `Dockerfile` | 唯一 Spring Boot 后端，容器端口 8090 |
-| `frontend` | `frontend/Dockerfile` | 一个 Nginx 同时托管两套 Vue 3 应用，容器端口 80 |
+| `frontend` | `frontend/Dockerfile` | 一个 Nginx 同时托管两套 Vue 3 应用，容器端口 80，并可选启用容器端口 443 TLS |
 
 当前配置可用于本地或单台主机，只维护 Compose 部署，不保留未实现的 Kubernetes 占位目录；仓库没有记录任何已经完成的服务器发布。
 
@@ -68,6 +68,9 @@ Nginx 路由规则：
 | --- | --- |
 | `BACKEND_PORT` | host 映射到 Blog API 8090 的端口 |
 | `FRONTEND_PORT` | host 映射到 Nginx 80 的端口 |
+| `FRONTEND_HTTPS_PORT` | host 映射到 Nginx 443 的端口；本地默认使用 3443，服务器通常使用 443 |
+| `TLS_ENABLED` | `true` 时前端 Nginx 将 80 重定向到 HTTPS，并从 `TLS_CERT_DIR` 读取 `origin.pem`、`origin.key` |
+| `TLS_CERT_DIR` | 宿主机证书目录；仅以只读方式挂载到容器，私钥不得提交到仓库 |
 | `BLOG_DB_NAME` | 统一数据库名 |
 | `BLOG_DB_USERNAME`、`BLOG_DB_PASSWORD` | 应用数据库账号与密码 |
 | `BLOG_DB_ROOT_PASSWORD` | MySQL root 密码 |
@@ -95,9 +98,15 @@ set -a
 set +a
 
 curl -fsS "http://localhost:${BACKEND_PORT}/health"
-curl -fsS "http://localhost:${FRONTEND_PORT}/"
-curl -fsS "http://localhost:${FRONTEND_PORT}/training/multiple"
-curl -fsS "http://localhost:${FRONTEND_PORT}/api/health"
+if [ "${TLS_ENABLED:-false}" = "true" ]; then
+  curl -fkLsS "https://localhost:${FRONTEND_HTTPS_PORT}/"
+  curl -fkLsS "https://localhost:${FRONTEND_HTTPS_PORT}/training/multiple"
+  curl -fkLsS "https://localhost:${FRONTEND_HTTPS_PORT}/api/health"
+else
+  curl -fsS "http://localhost:${FRONTEND_PORT}/"
+  curl -fsS "http://localhost:${FRONTEND_PORT}/training/multiple"
+  curl -fsS "http://localhost:${FRONTEND_PORT}/api/health"
+fi
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 ```
 
@@ -107,6 +116,7 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 
 - MySQL 与 Redis 数据存放在显式命名卷中，容器重建不会自动删除。
 - 应用日志 bind mount 到仓库 `logs/`。`uploads/` 以读写方式挂载给 Blog API、以只读方式挂载给 Nginx；Nginx 直接服务 `/api/image/**` 并缓存 UUID 图片，其他 API 仍代理 Blog API。
+- HTTPS 是可选模式：准备好 Cloudflare Origin CA 或公信 CA 的 PEM 证书后，将 `TLS_ENABLED=true`、`FRONTEND_HTTPS_PORT=443`，并把 `origin.pem`、`origin.key` 放入 `TLS_CERT_DIR`。启用后只通过 HTTPS 访问站点；`deploy.sh` 会改用 HTTPS 入口验证，`-k` 仅用于本机验证 Origin CA（浏览器不应使用该方式）。
 - 新卷与旧部署卷相互独立；没有单独批准前不要删除旧卷。
 - 普通更新禁止使用 `down --volumes`。
 

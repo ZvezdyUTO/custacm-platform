@@ -77,7 +77,7 @@
 				]}),
 				parent: this.$refs.editorHost,
 			})
-			this.view.contentDOM.addEventListener('mousedown', this.onMouseDown)
+			this.view.contentDOM.addEventListener('mousedown', this.onMouseDown, true)
 			this.view.contentDOM.addEventListener('paste', this.onPaste)
 			this.view.contentDOM.addEventListener('dragover', this.onDragOver)
 			this.view.contentDOM.addEventListener('drop', this.onDrop)
@@ -88,7 +88,7 @@
 			this.destroyed = true
 			document.removeEventListener('mouseup', this.onMouseUp)
 			if (this.view) {
-				this.view.contentDOM.removeEventListener('mousedown', this.onMouseDown)
+				this.view.contentDOM.removeEventListener('mousedown', this.onMouseDown, true)
 				this.view.contentDOM.removeEventListener('paste', this.onPaste)
 				this.view.contentDOM.removeEventListener('dragover', this.onDragOver)
 				this.view.contentDOM.removeEventListener('drop', this.onDrop)
@@ -96,7 +96,42 @@
 			}
 		},
 		methods: {
-			onMouseDown() { this.view?.dispatch({effects: setMouseSelecting.of(true)}) },
+			onMouseDown(event) {
+				if (this.focusCodeBlockAtPointer(event)) return
+				this.view?.dispatch({effects: setMouseSelecting.of(true)})
+			},
+			focusCodeBlockAtPointer(event) {
+				const target = event.target instanceof Element ? event.target : null
+				const line = target?.closest('.cm-codeblock-line')
+				const widget = line?.closest('.cm-codeblock-widget')
+				if (!line || !widget || target.closest('.cm-codeblock-copy')) return false
+
+				const lineIndex = Number.parseInt(line.dataset.lineIndex || '', 10)
+				let position
+				if (lineIndex === -1) position = Number.parseInt(widget.dataset.from || '', 10)
+				else if (lineIndex === -2) position = Number.parseInt(widget.dataset.to || '', 10)
+				else {
+					let lineStarts
+					try { lineStarts = JSON.parse(widget.dataset.lineStarts || '[]') } catch { return false }
+					if (!Number.isInteger(lineIndex) || !Number.isInteger(lineStarts[lineIndex])) return false
+					const caret = document.caretPositionFromPoint?.(event.clientX, event.clientY)
+					const fallbackRange = caret ? null : document.caretRangeFromPoint?.(event.clientX, event.clientY)
+					const offsetNode = caret?.offsetNode || fallbackRange?.startContainer
+					const offset = caret?.offset ?? fallbackRange?.startOffset
+					if (!offsetNode || !line.contains(offsetNode) || !Number.isInteger(offset)) return false
+					const range = document.createRange()
+					range.selectNodeContents(line)
+					try { range.setEnd(offsetNode, offset) } catch { return false }
+					position = lineStarts[lineIndex] + range.toString().length
+				}
+				if (!Number.isInteger(position)) return false
+
+				event.preventDefault()
+				event.stopImmediatePropagation()
+				this.view.dispatch({selection: {anchor: position}, scrollIntoView: true})
+				this.view.focus()
+				return true
+			},
 			onMouseUp() { requestAnimationFrame(() => this.view?.dispatch({effects: setMouseSelecting.of(false)})) },
 			onDragOver(event) { if ([...(event.dataTransfer?.items || [])].some(item => item.kind === 'file')) event.preventDefault() },
 			onDrop(event) {

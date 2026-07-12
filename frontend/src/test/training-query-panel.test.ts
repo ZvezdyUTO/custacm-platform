@@ -84,4 +84,25 @@ describe('training query automatic filters', () => {
     await wrapper.get('.query-form').trigger('submit');
     expect(applyTrainingQuery).toHaveBeenCalledOnce();
   });
+
+  it('uses five vivid AtCoder rating tones in the multi-user table', () => {
+    const { dashboard } = dashboardFixture();
+    dashboard.selectedOjName.value = OJ_NAMES.ATCODER;
+    dashboard.multiUserRows.value = [{
+      user: { username: 'player-a', nickname: '队员甲', ojNames: [OJ_NAMES.ATCODER] }, status: 'ready', message: null,
+      summary: { username: 'player-a', authorHandle: 'atcoder', totalAcceptedProblemCount: 5, ratingCounts: [
+        { problemRating: '0', acceptedProblemCount: 1 }, { problemRating: '400', acceptedProblemCount: 1 },
+        { problemRating: '800', acceptedProblemCount: 1 }, { problemRating: '1200', acceptedProblemCount: 1 },
+        { problemRating: '1600', acceptedProblemCount: 1 },
+      ] },
+    }];
+
+    const wrapper = mount(TrainingQueryPanel, { props: { dashboard, mode: 'multiple' } });
+    expect(wrapper.findAll('.auto-summary-rating-col').map((item) => item.classes())).toEqual([
+      expect.arrayContaining(['rating-tone-gray']), expect.arrayContaining(['rating-tone-green']),
+      expect.arrayContaining(['rating-tone-blue']), expect.arrayContaining(['rating-tone-yellow']),
+      expect.arrayContaining(['rating-tone-red']),
+    ]);
+    expect(wrapper.findAll('.auto-rating-count')).toHaveLength(5);
+  });
 });

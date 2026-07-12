@@ -28,6 +28,7 @@ public class BlogInfo {
 	private String authorAvatar;
 	private Long id;
 	private String title;//文章标题
+	private String firstPicture;//文章首图
 	private String description;//描述
 	private Date createTime;//创建时间
 	private Integer views;//浏览次数

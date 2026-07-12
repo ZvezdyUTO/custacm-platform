@@ -75,6 +75,17 @@ export interface MultiUserLoadProgress {
   failed: number;
 }
 
+export function compareMultiUserSummaryRows(left: MultiUserSummaryRow, right: MultiUserSummaryRow) {
+  if (left.summary === null || right.summary === null) {
+    if (left.summary === null && right.summary === null) {
+      return left.user.username.localeCompare(right.user.username);
+    }
+    return left.summary === null ? 1 : -1;
+  }
+  const countDifference = right.summary.totalAcceptedProblemCount - left.summary.totalAcceptedProblemCount;
+  return countDifference || left.user.username.localeCompare(right.user.username);
+}
+
 type DashboardStatus = 'signed-out' | 'loading' | 'ready' | 'error';
 
 function dateUtcPlus8(date: Date) {
@@ -187,7 +198,7 @@ export function usePlatformDashboard(options: {
     });
     if (sequence !== requestSequence) return;
     const rows = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
-    multiUserRows.value = rows.sort((left, right) => left.user.username.localeCompare(right.user.username));
+    multiUserRows.value = rows.sort(compareMultiUserSummaryRows);
     multiUserProgress.value = {
       completed: rows.length,
       total: users.length,
@@ -309,7 +320,7 @@ export function usePlatformDashboard(options: {
       const summary = await getAcceptedSummary(activeToken(), username, trainingQuery.value, selectedOjName.value);
       const row: MultiUserSummaryRow = { user, status: 'ready', summary, message: null };
       multiUserRows.value = [...multiUserRows.value.filter((item) => item.user.username !== username), row]
-        .sort((left, right) => left.user.username.localeCompare(right.user.username));
+        .sort(compareMultiUserSummaryRows);
     } catch (error) {
       handleError(error);
     }

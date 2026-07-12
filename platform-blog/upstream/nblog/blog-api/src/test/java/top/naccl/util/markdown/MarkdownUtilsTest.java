@@ -30,4 +30,27 @@ class MarkdownUtilsTest {
 				.contains("class=\"ui celled table\"")
 				.contains("data-src=\"/api/image/assets/id/thumbnail.jpg\"");
 	}
+
+	@Test
+	void keepsFencedCodeLanguageForClientSideHighlighting() {
+		String html = MarkdownUtils.markdownToHtmlExtensions(
+				"```java\npublic static void main(String[] args) {}\n```");
+
+		assertThat(html)
+				.contains("<pre><code class=\"language-java\">")
+				.contains("public static void main(String[] args) {}")
+				.contains("</code></pre>");
+	}
+
+	@Test
+	void preservesLatexLineBreaksForClientSideRendering() {
+		String markdown = "能让 $\\begin{cases}1.横向边\\\\2.返祖边\\end{cases}$。"
+				+ "\n\n$$\n\\begin{cases}A\\\\B\\end{cases}\n$$";
+
+		String html = MarkdownUtils.markdownToHtmlExtensions(markdown);
+
+		assertThat(html)
+				.contains("\\begin{cases}1.横向边\\\\2.返祖边\\end{cases}")
+				.contains("\\begin{cases}A\\\\B\\end{cases}");
+	}
 }

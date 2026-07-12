@@ -26,4 +26,12 @@ class BlogAuthorContractTest {
 		assertTrue(mapper.contains("<result property=\"authorUsername\" column=\"author_username\"/>"));
 		assertTrue(mapper.contains("u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname"));
 	}
+
+	@Test
+	void publicBlogResponsesIncludeArticleCover() throws IOException {
+		String mapper = new String(getClass().getResourceAsStream("/mapper/BlogMapper.xml").readAllBytes(), StandardCharsets.UTF_8);
+
+		assertTrue(mapper.contains("<result property=\"firstPicture\" column=\"first_picture\"/>"));
+		assertTrue(mapper.contains("b.title, b.first_picture"));
+	}
 }

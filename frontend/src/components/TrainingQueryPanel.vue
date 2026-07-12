@@ -42,12 +42,12 @@
       </header>
       <div class="auto-summary-table-scroll">
         <table class="auto-summary-table" aria-label="多人通过统计">
-          <thead><tr><th>队员</th><th>总计</th><th v-for="bucket in ratingBuckets" :key="bucket" :class="ratingToneClass(bucket)">{{ ratingLabel(bucket) }}</th></tr></thead>
+          <thead><tr><th class="auto-summary-player-col">队员</th><th class="auto-summary-total-col">总计</th><th v-for="bucket in ratingBuckets" :key="bucket" :class="['auto-summary-rating-col', ratingToneClass(bucket)]">{{ ratingLabel(bucket) }}</th></tr></thead>
           <tbody>
             <tr v-for="row in displayRows" :key="row.row.user.username" :class="{ 'is-error': row.row.status === 'error' }">
-              <th><span class="auto-summary-player"><strong>{{ row.row.user.nickname || row.row.user.username }}</strong><small>{{ row.row.user.username }} · {{ row.row.summary?.authorHandle || '查询失败' }}</small></span></th>
-              <td><template v-if="row.row.status === 'error'"><span class="multi-summary-error"><strong>查询失败</strong><button type="button" @click="retry(row.row.user.username)">重试</button></span></template><strong v-else>{{ row.row.summary?.totalAcceptedProblemCount || 0 }}</strong></td>
-              <td v-for="bucket in ratingBuckets" :key="bucket" :class="ratingToneClass(bucket)">{{ row.counts.get(bucket) ?? '-' }}</td>
+              <th class="auto-summary-player-cell"><span class="auto-summary-player"><strong>{{ row.row.user.nickname || row.row.user.username }}</strong><small>{{ row.row.user.username }} · {{ row.row.summary?.authorHandle || '查询失败' }}</small></span></th>
+              <td class="auto-summary-total-cell"><template v-if="row.row.status === 'error'"><span class="multi-summary-error"><strong>查询失败</strong><button class="multi-summary-retry" type="button" @click="retry(row.row.user.username)">重试</button></span></template><strong v-else>{{ row.row.summary?.totalAcceptedProblemCount || 0 }}</strong></td>
+              <td v-for="bucket in ratingBuckets" :key="bucket" :class="['auto-summary-rating-cell', ratingToneClass(bucket)]"><span v-if="row.counts.has(bucket)" class="auto-rating-count">{{ row.counts.get(bucket) }}</span><span v-else class="auto-rating-empty">-</span></td>
             </tr>
             <tr v-if="multiUserRows.length === 0"><td class="submission-empty" :colspan="2 + ratingBuckets.length">{{ multiUserProgress.active ? '正在加载队员通过统计…' : '暂无队员通过统计。' }}</td></tr>
           </tbody>
@@ -151,8 +151,14 @@ async function retry(username: string) { await dashboard.retryMultiUserSummary(u
 function ratingStart(value: string) { return Number(value.match(/^\d+/)?.[0] ?? Number.NaN); }
 function compareRating(a: string, b: string) { return (Number.isFinite(ratingStart(a)) ? ratingStart(a) : Infinity) - (Number.isFinite(ratingStart(b)) ? ratingStart(b) : Infinity); }
 function ratingLabel(value: string) { return value === 'UNRATED' ? 'UNR' : value; }
-function ratingToneClass(value: string) { const rating = ratingStart(value); return !Number.isFinite(rating) || rating < 1200 ? 'rating-tone-gray' : rating < 1400 ? 'rating-tone-green' : rating < 1600 ? 'rating-tone-cyan' : rating < 1900 ? 'rating-tone-blue' : rating < 2100 ? 'rating-tone-violet' : rating < 2400 ? 'rating-tone-orange' : 'rating-tone-red'; }
-function ratingColor(value: string) { const rating = ratingStart(value); return !Number.isFinite(rating) || rating < 1200 ? '#808080' : rating < 1400 ? '#008000' : rating < 1600 ? '#03a89e' : rating < 1900 ? '#0000ff' : rating < 2100 ? '#aa00aa' : rating < 2400 ? '#ff8c00' : '#ff0000'; }
+function ratingTone(value: string) {
+  const rating = ratingStart(value);
+  if (!Number.isFinite(rating)) return 'gray';
+  if (selectedOjName.value === OJ_NAMES.ATCODER) return rating < 400 ? 'gray' : rating < 800 ? 'green' : rating < 1200 ? 'blue' : rating < 1600 ? 'yellow' : 'red';
+  return rating < 1200 ? 'gray' : rating < 1400 ? 'green' : rating < 1600 ? 'cyan' : rating < 1900 ? 'blue' : rating < 2100 ? 'violet' : rating < 2400 ? 'orange' : 'red';
+}
+function ratingToneClass(value: string) { return `rating-tone-${ratingTone(value)}`; }
+function ratingColor(value: string) { return ({ gray: '#808080', green: '#008000', cyan: '#03a89e', blue: '#0000ff', yellow: '#d49b00', violet: '#aa00aa', orange: '#ff8c00', red: '#ff0000' } as const)[ratingTone(value)]; }
 function ratingWidth(value: number) { return `${Math.max(6, value / maxRatingCount.value * 100)}%`; }
 function verdict(item: SubmissionItem) { return item.accepted || item.verdict === 'OK' ? 'Accept' : item.verdict || 'UNKNOWN'; }
 </script>

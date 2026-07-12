@@ -4,6 +4,10 @@
 			<div class="ui large red right corner label" v-if="blog.top">
 				<i class="arrow alternate circle up icon"></i>
 			</div>
+			<!--分类丝带放在正文网格之外，避免参与网格宽度计算并挤偏首图-->
+			<router-link :to="`/category/${blog.category.name}`" class="ui large ribbon label article-category-ribbon" :style="taxonomyStyle(blog.category.color)" v-if="blog.category">
+				<i class="small folder open icon"></i><span class="m-text-500">{{ blog.category.name }}</span>
+			</router-link>
 			<div class="ui middle aligned mobile reversed stackable">
 				<div class="ui grid m-margin-lr">
 					<div class="row m-padded-tb-small">
@@ -21,10 +25,9 @@
 							<router-link v-if="isAuthor" :to="`/write/${blog.id}`" class="item article-edit-link"><i class="edit outline icon"></i><span>编辑文章</span></router-link>
 						</div>
 					</div>
-					<!--分类-->
-					<router-link :to="`/category/${blog.category.name}`" class="ui large ribbon label" :style="taxonomyStyle(blog.category.color)" v-if="blog.category">
-						<i class="small folder open icon"></i><span class="m-text-500">{{ blog.category.name }}</span>
-					</router-link>
+					<figure v-if="blog.firstPicture" class="article-cover">
+						<img :src="blog.firstPicture" :alt="`${blog.title} 首图`" decoding="async">
+					</figure>
 					<!--文章Markdown正文-->
 					<div class="typo js-toc-content m-padded-tb-small match-braces rainbow-braces" v-lazy-container="{selector: 'img'}" v-viewer :class="{'m-big-fontsize':bigFontSize}" @click.capture="openManagedImage" v-html="sanitizeHtml(blog.content)"></div>
 					<!--赞赏-->
@@ -242,5 +245,27 @@
 	.article-edit-link {
 		color: #17324d !important;
 		font-weight: 700;
+	}
+
+	.article-category-ribbon {
+		display: table !important;
+		margin: 0 0 .75rem !important;
+	}
+
+	.article-cover {
+		width: min(100%, 660px);
+		aspect-ratio: 16 / 9;
+		margin: 1.25rem auto 1.75rem;
+		overflow: hidden;
+		background: #edf1f4;
+		border: 1px solid #d8e0e6;
+		border-radius: 6px;
+	}
+
+	.article-cover img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 </style>

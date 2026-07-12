@@ -10,14 +10,16 @@ RUN pnpm build
 FROM node:20.19-alpine AS blog-build
 
 WORKDIR /workspace/blog-view
-COPY platform-blog/upstream/nblog/blog-view/package.json \
-     platform-blog/upstream/nblog/blog-view/package-lock.json ./
-RUN npm ci
+COPY platform-blog/upstream/nblog/blog-view/package.json ./
+RUN npm install
 COPY platform-blog/upstream/nblog/blog-view/ ./
 RUN npm run build
 
 FROM nginx:1.27-alpine
 
-COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/nginx.conf /etc/nginx/custacm/nginx-http.conf
+COPY frontend/nginx-https.conf /etc/nginx/custacm/nginx-https.conf
+COPY frontend/docker-entrypoint.d/10-select-nginx-config.sh /docker-entrypoint.d/10-select-nginx-config.sh
+RUN chmod +x /docker-entrypoint.d/10-select-nginx-config.sh
 COPY --from=blog-build /workspace/blog-view/dist /usr/share/nginx/html/blog
 COPY --from=training-build /workspace/frontend/dist /usr/share/nginx/html/training-app

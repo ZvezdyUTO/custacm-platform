@@ -9,11 +9,13 @@ afterEach(() => vi.restoreAllMocks())
 let originalClientRects
 let originalBoundingRect
 let originalStorageDescriptor
+let originalCaretPositionDescriptor
 
 beforeAll(() => {
 	originalClientRects = Range.prototype.getClientRects
 	originalBoundingRect = Range.prototype.getBoundingClientRect
 	originalStorageDescriptor = Object.getOwnPropertyDescriptor(window, 'localStorage')
+	originalCaretPositionDescriptor = Object.getOwnPropertyDescriptor(document, 'caretPositionFromPoint')
 	Range.prototype.getClientRects = () => []
 	Range.prototype.getBoundingClientRect = () => ({left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0})
 	const values = new Map()
@@ -32,6 +34,8 @@ afterAll(() => {
 	Range.prototype.getClientRects = originalClientRects
 	Range.prototype.getBoundingClientRect = originalBoundingRect
 	if (originalStorageDescriptor) Object.defineProperty(window, 'localStorage', originalStorageDescriptor)
+	if (originalCaretPositionDescriptor) Object.defineProperty(document, 'caretPositionFromPoint', originalCaretPositionDescriptor)
+	else delete document.caretPositionFromPoint
 })
 
 describe('LiveMarkdownEditor', () => {
@@ -67,6 +71,26 @@ describe('LiveMarkdownEditor', () => {
 
 		expect(wrapper.find('.cm-selectionLayer').exists()).toBe(false)
 		expect(wrapper.find('.cm-codeblock-widget .hljs-keyword').exists()).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('maps a highlighted code-block click to the exact source character', async () => {
+		const source = '```cpp\nint main() { return 0; }\n```\n\n正文'
+		const wrapper = mount(LiveMarkdownEditor, {props: {modelValue: source}})
+		await flushPromises()
+		wrapper.vm.view.dispatch({selection: {anchor: source.length}})
+		await new Promise(resolve => requestAnimationFrame(resolve))
+
+		const line = wrapper.get('.cm-codeblock-line[data-line-index="0"]')
+		const walker = document.createTreeWalker(line.element, NodeFilter.SHOW_TEXT)
+		const textNode = walker.nextNode()
+		expect(textNode).toBeTruthy()
+		const caretPositionFromPoint = vi.fn(() => ({offsetNode: textNode, offset: 3}))
+		Object.defineProperty(document, 'caretPositionFromPoint', {configurable: true, value: caretPositionFromPoint})
+		await line.trigger('mousedown', {clientX: 100, clientY: 100})
+
+		expect(caretPositionFromPoint).toHaveBeenCalledWith(100, 100)
+		expect(wrapper.vm.view.state.selection.main.head).toBe(source.indexOf('int main') + 3)
 		wrapper.unmount()
 	})
 

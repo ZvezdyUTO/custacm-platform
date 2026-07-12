@@ -66,11 +66,19 @@ set -a
 set +a
 
 curl -fsS "http://localhost:${BACKEND_PORT}/health"
-curl -fsS "http://localhost:${FRONTEND_PORT}/"
-curl -fsS "http://localhost:${FRONTEND_PORT}/training/multiple"
-curl -fsS "http://localhost:${FRONTEND_PORT}/api/health"
+if [ "${TLS_ENABLED:-false}" = "true" ]; then
+  curl -fkLsS "https://localhost:${FRONTEND_HTTPS_PORT}/"
+  curl -fkLsS "https://localhost:${FRONTEND_HTTPS_PORT}/training/multiple"
+  curl -fkLsS "https://localhost:${FRONTEND_HTTPS_PORT}/api/health"
+else
+  curl -fsS "http://localhost:${FRONTEND_PORT}/"
+  curl -fsS "http://localhost:${FRONTEND_PORT}/training/multiple"
+  curl -fsS "http://localhost:${FRONTEND_PORT}/api/health"
+fi
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 ```
+
+启用 HTTPS 时，还要检查证书目录中存在 `origin.pem` 和 `origin.key`，且 `TLS_ENABLED=true`、`FRONTEND_HTTPS_PORT` 已设置为预期端口；私钥不得输出到终端或提交到 Git。
 
 同时检查登录、player/admin protected routes、Flyway 日志、`logs/combined.log` 与 `logs/error.log`。前端变更要检查两套 Vue 3 应用的 history fallback、跨前端会话显示和浏览器 console。
 
