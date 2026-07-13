@@ -165,7 +165,7 @@ public class AdminUserService {
             }
             account = handleAccountService.create(normalizedUsername, handles, needCollect);
         }
-        return response(user, account.handles(), account.needCollect(), null, false);
+        return response(user, account, null, false);
     }
 
     @Transactional
@@ -185,12 +185,12 @@ public class AdminUserService {
         OjHandleAccount existing = handleAccountService.getByUsername(normalizedUsername);
         String oldHandle = handleAccountService.getHandle(existing, request.ojName());
         if (oldHandle.equals(normalizedNewHandle)) {
-            return response(user, existing.handles(), existing.needCollect(), null, false);
+            return response(user, existing, null, false);
         }
         purgeService.purgeStudentData(normalizedUsername, request.ojName());
         OjHandleAccount replaced = handleAccountService.replaceHandleAfterPurge(
                 normalizedUsername, request.ojName(), normalizedNewHandle);
-        return response(user, replaced.handles(), replaced.needCollect(), null, false);
+        return response(user, replaced, null, false);
     }
 
     @Transactional
@@ -230,8 +230,9 @@ public class AdminUserService {
 
     private AdminUserMutationResponse responseWithCurrentHandles(User user, String password, boolean relogin) {
         OjHandleAccount account = findHandleAccount(user.getUsername());
-        return response(user, account == null ? Map.of() : account.handles(),
-                account == null ? null : account.needCollect(), password, relogin);
+        return account == null
+                ? response(user, Map.of(), null, password, relogin)
+                : response(user, account, password, relogin);
     }
 
     private OjHandleAccount findHandleAccount(String username) {
@@ -248,6 +249,30 @@ public class AdminUserService {
     private static AdminUserMutationResponse response(
             User source, Map<String, String> handles, Boolean needCollect, String generatedPassword, boolean relogin
     ) {
+        return response(source, handles, needCollect, Map.of(), generatedPassword, relogin);
+    }
+
+    private static AdminUserMutationResponse response(
+            User source, OjHandleAccount account, String generatedPassword, boolean relogin
+    ) {
+        Map<String, AdminUserMutationResponse.CollectionState> collectionStates = account.collectionStates().entrySet()
+                .stream()
+                .collect(java.util.stream.Collectors.toUnmodifiableMap(
+                        Map.Entry::getKey,
+                        entry -> new AdminUserMutationResponse.CollectionState(
+                                entry.getValue().lastCollectedAt())
+                ));
+        return response(source, account.handles(), account.needCollect(), collectionStates, generatedPassword, relogin);
+    }
+
+    private static AdminUserMutationResponse response(
+            User source,
+            Map<String, String> handles,
+            Boolean needCollect,
+            Map<String, AdminUserMutationResponse.CollectionState> collectionStates,
+            String generatedPassword,
+            boolean relogin
+    ) {
         User safe = new User();
         safe.setId(source.getId());
         safe.setUsername(source.getUsername());
@@ -257,7 +282,8 @@ public class AdminUserService {
         safe.setCreateTime(source.getCreateTime());
         safe.setUpdateTime(source.getUpdateTime());
         safe.setRole(source.getRole());
-        return new AdminUserMutationResponse(safe, Map.copyOf(handles), needCollect, generatedPassword, relogin);
+        return new AdminUserMutationResponse(
+                safe, Map.copyOf(handles), needCollect, Map.copyOf(collectionStates), generatedPassword, relogin);
     }
 
     private static String normalizeUsername(String username) {

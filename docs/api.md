@@ -64,8 +64,8 @@ Vue Blog 将“个人资料”统一命名为“我的主页”，并在 `/about
 | --- | --- | --- |
 | POST | `/admin/users` | 创建一个用户，可同时提供 `handles` 和 `needCollect` |
 | POST | `/admin/users:batch-create` | 在一个事务中创建 JSON 用户数组 |
-| GET | `/admin/users` | 列出用户及 OJ handle 管理信息 |
-| GET | `/admin/users/{username}` | 查询一个用户 |
+| GET | `/admin/users` | 列出用户、OJ handle 及各 OJ 最近成功采集窗口结束时间 |
+| GET | `/admin/users/{username}` | 查询一个用户及其 OJ 采集状态 |
 | PATCH | `/admin/users/{username}` | 修改 `newUsername`、nickname、email、role 或 password；不接受头像 URL |
 | DELETE | `/admin/users/{username}` | 清理训练数据、保留作者内容并删除用户；立即回收该用户未被保留文章引用的托管图片 |
 | PUT | `/admin/users/{username}/oj-handles` | 首次绑定 OJ handle 或更新 `needCollect`；已有 handle 不允许通过该接口覆盖，允许 `handles={}` 单独保存现役/退役状态 |
@@ -73,11 +73,13 @@ Vue Blog 将“个人资料”统一命名为“我的主页”，并在 `/about
 
 `username` 会 trim，长度为 1–128，可包含 Unicode 字母、数字、`.`、`_` 和 `-`。最后一个管理员不能被删除或降级。创建时省略 password 会一次性返回生成密码；PATCH 传空 password 会一次性返回重置密码。改名响应包含 `reloginRequired=true`。
 
+管理员用户响应中的 `collectionStates` 按 OJ 名称只返回 `lastCollectedAt`，表示该用户在该 OJ 最近一次成功采集所覆盖窗口的结束时间；从未成功采集时为 `null`。手动采集请求的 `lookbackHours` 表示从该时间向前倒退的重叠小时数，采集上界为本次任务开始时间；`lastCollectedAt=null` 时忽略倒退小时数并抓取全部历史。批量请求按用户、按 OJ 分别计算窗口，失败用户不推进游标，成功但窗口内没有提交的用户仍推进游标。
+
 ## 训练用户目录
 
 分类管理 DTO 包含可自定义十六进制 `color`。标签管理界面只允许新增和删除；新增标签由服务端从连续 HSB 数值空间生成深色随机十六进制颜色并持久化，前台标签云始终以白字展示。
 
-`GET /player/training-data/users` 要求 `ROLE_player` 或 `ROLE_admin`。它只列出 `needCollect=true` 且至少绑定一个 OJ 账号的用户，按 `username` 排序。
+`GET /player/training-data/users` 要求 `ROLE_player` 或 `ROLE_admin`。它默认只列出 `needCollect=true` 且至少绑定一个 OJ 账号的用户；可选查询参数 `includeRetired=true` 会取消 `needCollect` 过滤并保留已退役用户。结果按 `username` 排序。
 
 系统保留账号 `root` 不允许通过管理员 API 删除、改名、降为 player 或更新 OJ handle/采集状态。
 
@@ -88,6 +90,7 @@ Vue Blog 将“个人资料”统一命名为“我的主页”，并在 `/about
 ```text
 GET /api/player/training-data/users
 GET /player/training-data/users
+GET /api/player/training-data/users?includeRetired=true
 ```
 
 响应 `data` 中每项字段严格为：
@@ -148,7 +151,9 @@ GET /player/training-data/users
 
 `GET /site` 只返回 Blog 外壳初始化仍使用的数据：`siteInfo.reward`、`siteInfo.commentAdminFlag`、`introduction.avatar`、`introduction.name`、`categoryList`、`tagList` 和 `featuredBlogList`。它不再查询或返回未展示的 `newBlogList`，也不再返回旧 `badges`、社交链接、滚动文字和收藏配置。后台站点设置管理数据仍保留，不受该公开响应收窄影响。
 
-`GET /searchBlog?query={keyword}` 只对已发布文章标题做大小写不敏感的子串匹配，按更新时间倒序返回最多十条候选。游客只获得公开文章；登录用户显式携带 Bearer 时也获得内部文章。正文不参与搜索。空关键词、特殊通配字符或超过 20 个字符的关键词会返回参数错误。
+`GET /searchBlog?query={keyword}` 只对已发布文章标题做大小写不敏感的子串匹配，按更新时间倒序返回最多十条包含 `id`、`title` 和文章 `description` 的候选。游客只获得公开文章；登录用户显式携带 Bearer 时也获得内部文章。正文不参与搜索。空关键词、特殊通配字符或超过 20 个字符的关键词会返回参数错误。
+
+文章列表和详情不返回或维护阅读数；读取文章不会产生计数写入，旧 `blog.views` 列及其 Redis 定时同步任务由迁移移除。文章字数和估算阅读时长仍保留。
 
 文章可见性由 `published` 与 `internal` 共同表达：`published=false` 是仅作者和管理员管理的草稿；`published=true, internal=false` 是公开文章；`published=true, internal=true` 是内部文章。游客的列表、分类、标签、搜索和精选接口排除内部文章；已登录用户在同一聚合接口中会看到内部文章，但正文仍通过 `GET /player/internal-blog?id={id}` 阅读，并通过 `GET /player/comments` 读取评论；评论提交统一要求登录。密码文章及文章密码 token 已移除。
 

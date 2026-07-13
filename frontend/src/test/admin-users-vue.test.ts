@@ -1,5 +1,5 @@
 // Author: huangbingrui.awa
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
 import AdminUserManagementPanel from '../components/AdminUserManagementPanel.vue';
@@ -10,7 +10,7 @@ import { parseBatchUserInput, parseCreateUserRows } from '../utils/adminUsers';
 
 const jianglyUser: AdminUserMutationResponse = {
   user: { id: 99, username: 'ui-test-jiangly', nickname: '临时测试', email: '', avatar: '/api/image/jiangly.png', role: 'ROLE_player', createTime: '2026-07-12T00:00:00', updateTime: '2026-07-12T00:00:00' },
-  handles: { CODEFORCES: 'jiangly', ATCODER: 'jiangly' }, needCollect: true, generatedPassword: null, reloginRequired: false,
+  handles: { CODEFORCES: 'jiangly', ATCODER: 'jiangly' }, needCollect: true, collectionStates: {}, generatedPassword: null, reloginRequired: false,
 };
 
 describe('Vue admin user import', () => {
@@ -70,7 +70,9 @@ describe('Vue admin user import', () => {
       handles: { CODEFORCES: 'jiangly', ATCODER: 'jiangly' }, needCollect: false,
     });
     expect(wrapper.get('.admin-notice').text()).toContain('用户修改已保存');
+    expect(wrapper.find('.admin-user-edit-form').exists()).toBe(false);
 
+    await wrapper.get('.reference-edit-button').trigger('click');
     await wrapper.get('.danger-button').trigger('click');
     expect(wrapper.get('[role="alertdialog"]').text()).toContain('ui-test-jiangly · 临时测试');
     expect(wrapper.get('[role="alertdialog"]').text()).toContain('训练数据会被清理');
@@ -93,7 +95,7 @@ describe('Vue admin user import', () => {
     await wrapper.get('.admin-user-edit-form').trigger('submit');
 
     expect(updateOjHandles).toHaveBeenCalledWith('ui-test-jiangly', { handles: {}, needCollect: false });
-    expect(wrapper.get('.collect-toggle-field').text()).toContain('现役队员继续自动收集数据');
+    expect(wrapper.find('.admin-user-edit-form').exists()).toBe(false);
   });
 
   it('requires a danger confirmation before replacing an OJ handle', async () => {
@@ -115,10 +117,26 @@ describe('Vue admin user import', () => {
     expect(wrapper.get('[role="alertdialog"]').text()).toContain('全部 ODS 与数仓训练记录');
 
     await wrapper.get('.confirm-user-delete-button').trigger('click');
+    await flushPromises();
     expect(updateOjHandles).toHaveBeenCalledWith('ui-test-jiangly', {
       handles: { ATCODER: 'jiangly' }, needCollect: true,
     });
     expect(replaceOjHandle).toHaveBeenCalledWith('ui-test-jiangly', 'CODEFORCES', 'Benq');
+    expect(wrapper.find('.admin-user-edit-form').exists()).toBe(false);
+  });
+
+  it('keeps the edit form expanded when saving fails', async () => {
+    const patchUser = vi.fn().mockRejectedValue(new Error('保存失败'));
+    const dashboard = { adminUsers: ref([jianglyUser]), patchUser } as unknown as ReturnType<typeof usePlatformDashboard>;
+    const wrapper = mount(AdminUserManagementPanel, { props: { dashboard, currentUsername: 'administrator' } });
+
+    await wrapper.get('.reference-edit-button').trigger('click');
+    await wrapper.get('input[aria-label="编辑 nickname"]').setValue('无法保存的修改');
+    await wrapper.get('.admin-user-edit-form').trigger('submit');
+
+    expect(wrapper.get('.form-error').text()).toContain('保存失败');
+    expect(wrapper.find('.admin-user-edit-form').exists()).toBe(true);
+    expect((wrapper.get('input[aria-label="编辑 nickname"]').element as HTMLInputElement).value).toBe('无法保存的修改');
   });
 
   it('keeps avatar, account details and OJ handles together in the wide profile cell', () => {
@@ -135,6 +153,21 @@ describe('Vue admin user import', () => {
     expect(wrapper.findAll('thead th')).toHaveLength(4);
     expect(wrapper.findAll('.reference-handle-list span')).toHaveLength(2);
     expect(profile.find('.reference-handle-list').exists()).toBe(true);
+  });
+
+  it('filters the loaded user list by a username substring', async () => {
+    const secondUser = {
+      ...jianglyUser,
+      user: { ...jianglyUser.user, id: 100, username: 'player-alice', nickname: 'Alice' },
+    };
+    const dashboard = { adminUsers: ref([jianglyUser, secondUser]) } as unknown as ReturnType<typeof usePlatformDashboard>;
+    const wrapper = mount(AdminUserManagementPanel, { props: { dashboard, currentUsername: 'administrator' } });
+
+    await wrapper.get('input[aria-label="查询 username"]').setValue('JIANG');
+
+    expect(wrapper.findAll('.reference-user-table tbody > tr:not(.admin-user-edit-row)')).toHaveLength(1);
+    expect(wrapper.get('.reference-user-name').text()).toContain('ui-test-jiangly');
+    expect(wrapper.get('.reference-count').text()).toContain('1个账号');
   });
 
   it('renders root as a protected administrator without player status or handles', async () => {

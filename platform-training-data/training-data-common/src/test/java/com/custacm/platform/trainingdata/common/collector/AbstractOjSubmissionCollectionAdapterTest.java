@@ -36,7 +36,6 @@ class AbstractOjSubmissionCollectionAdapterTest {
         assertThat(outcome.result().status()).isEqualTo(OjSubmissionCollectionHandleStatus.SUCCESS);
         assertThat(outcome.result().fetchedSubmissionCount()).isEqualTo(3);
         assertThat(outcome.result().matchedSubmissionCount()).isEqualTo(2);
-        assertThat(outcome.historyStartReached()).isTrue();
         assertThat(outcome.submissions()).hasSize(2);
     }
 
@@ -147,7 +146,6 @@ class AbstractOjSubmissionCollectionAdapterTest {
             progress.addFetchedSubmissionCount(3);
             progress.addMatchedSubmission(submission(1));
             progress.addMatchedSubmissions(List.of(submission(2)));
-            progress.setHistoryStartReached(true);
         }
 
         @Override

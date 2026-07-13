@@ -10,7 +10,7 @@
       <label v-if="mode === 'single'" class="query-field wide"><span class="query-field-label">队员</span>
         <select v-model="selectedUsername" aria-label="队员" :disabled="trainingUsers.length === 0 || isRefreshing" @change="chooseUser">
           <option disabled :value="null">{{ trainingUsers.length ? '请选择队员' : '等待训练数据' }}</option>
-          <option v-for="item in trainingUsers" :key="item.username" :value="item.username">{{ item.nickname || item.username }}</option>
+          <option v-for="item in sortedSingleTrainingUsers" :key="item.username" :value="item.username">{{ trainingUserOptionLabel(item) }}</option>
         </select>
       </label>
       <label v-else-if="mode === 'problem'" class="query-field wide"><span class="query-field-label">题目编号</span>
@@ -24,12 +24,13 @@
       <template v-if="mode !== 'problem'">
         <label class="query-field compact"><span class="query-field-label">最低 rating</span><input v-model="draft.minProblemRating" min="0" placeholder="不限" type="number" /></label>
         <label class="query-field compact"><span class="query-field-label">最高 rating</span><input v-model="draft.maxProblemRating" min="0" placeholder="不限" type="number" /></label>
+        <label class="query-retired-toggle"><input v-model="includeRetiredUsers" type="checkbox" :disabled="isRefreshing" @change="changeRetiredVisibility"><span>{{ mode === 'multiple' ? '显示退役队员' : '选择退役队员' }}</span></label>
       </template>
       <button v-if="mode === 'problem'" class="primary-button query-problem-apply-button" :disabled="isRefreshing || Boolean(queryError)" type="submit">查询</button>
-      <span v-else class="query-auto-refresh-hint" aria-live="polite">{{ isRefreshing ? '正在刷新…' : '筛选后自动刷新' }}</span>
     </component>
     <div class="query-meta-row">
-      <span>更新于 {{ updatedAt }}</span>
+      <span class="query-filter-hint"><template v-if="mode === 'problem'">日期的任一边界留空时，不限制对应方向的范围。</template><template v-else><span class="query-auto-refresh-hint" aria-live="polite">{{ isRefreshing ? '正在刷新…' : '筛选后自动刷新' }}</span> · 日期或 Rating 的任一边界留空时，不限制对应方向的范围。</template></span>
+      <span class="query-updated-at">更新于 {{ updatedAt }}</span>
       <button class="query-refresh-button" :disabled="isRefreshing" aria-label="刷新训练数据" type="button" @click="refresh">
         <RefreshCw :class="{ spin: isRefreshing }" :size="14" />
       </button>
@@ -97,12 +98,12 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { RefreshCw } from '@lucide/vue';
 import PaginationBar from './PaginationBar.vue';
 import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
-import { OJ_LABELS, OJ_NAMES, type SubmissionItem, type TrainingQueryMode, type TrainingQueryRange } from '../types';
+import { OJ_LABELS, OJ_NAMES, type SubmissionItem, type TrainingQueryMode, type TrainingQueryRange, type TrainingUser } from '../types';
 
 // Author: huangbingrui.awa
 const props = defineProps<{ dashboard: ReturnType<typeof usePlatformDashboard>; mode: TrainingQueryMode }>();
 const dashboard = props.dashboard;
-const { status, trainingUsers, selectedTrainingUser, selectedUsername, selectedOjName, trainingQuery,
+const { status, trainingUsers, includeRetiredUsers, selectedTrainingUser, selectedUsername, selectedOjName, trainingQuery,
   multiUserRows, multiUserProgress, acceptedSummary, submissions, firstAccepted, problemKey,
   problemSubmissions, problemFirstAccepted, submissionPage, submissionLimit, firstAcceptedPage,
   firstAcceptedLimit, problemSubmissionPage, problemSubmissionLimit, problemFirstAcceptedPage,
@@ -123,6 +124,9 @@ const multiAcceptedCount = computed(() => multiUserRows.value.reduce((sum, row) 
 const ratingBuckets = computed(() => [...new Set(multiUserRows.value.flatMap((row) => row.summary?.ratingCounts.map((item) => item.problemRating) || []))].sort(compareRating));
 const multiTableMinWidth = computed(() => 276 + ratingBuckets.value.length * 56);
 const displayRows = computed(() => multiUserRows.value.map((row) => ({ row, counts: new Map(row.summary?.ratingCounts.map((item) => [item.problemRating, item.acceptedProblemCount]) || []) })));
+const sortedSingleTrainingUsers = computed(() => [...trainingUsers.value].sort((left, right) => (
+  trainingUserOptionLabel(right).localeCompare(trainingUserOptionLabel(left), 'zh-CN', { numeric: true })
+)));
 const maxRatingCount = computed(() => Math.max(1, ...(acceptedSummary.value?.ratingCounts.map((item) => item.acceptedProblemCount) || [])));
 watch(trainingQuery, (query) => Object.assign(draft, query), { deep: true });
 watch(draft, scheduleAutoApply, { deep: true });
@@ -148,7 +152,9 @@ async function apply(signature = filterSignature(), force = false) {
 async function refresh() { await dashboard.refreshDashboard(props.mode); }
 async function changeOj() { if (props.mode !== 'problem') await dashboard.chooseOjName(selectedOjName.value); }
 async function chooseUser() { if (selectedUsername.value) await dashboard.chooseUsername(selectedUsername.value); }
+async function changeRetiredVisibility() { await dashboard.setIncludeRetiredUsers(includeRetiredUsers.value); }
 async function retry(username: string) { await dashboard.retryMultiUserSummary(username); }
+function trainingUserOptionLabel(user: TrainingUser) { return `${user.username} · ${user.nickname || '未设置姓名'}`; }
 function ratingStart(value: string) { return Number(value.match(/^\d+/)?.[0] ?? Number.NaN); }
 function compareRating(a: string, b: string) { return (Number.isFinite(ratingStart(a)) ? ratingStart(a) : Infinity) - (Number.isFinite(ratingStart(b)) ? ratingStart(b) : Infinity); }
 function ratingLabel(value: string) { return value === 'UNRATED' ? 'UNR' : value; }

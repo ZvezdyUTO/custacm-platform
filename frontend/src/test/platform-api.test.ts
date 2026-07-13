@@ -204,12 +204,23 @@ describe('focused Blog training API', () => {
     const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: [] });
     const controller = new AbortController();
 
-    await listTrainingUsers('token', controller.signal);
+    await listTrainingUsers('token', false, controller.signal);
 
     const { init, url } = requestAt(fetchMock);
     expect(url.pathname).toBe('/api/player/training-data/users');
+    expect(url.searchParams.get('includeRetired')).toBeNull();
     expect(init.signal).toBe(controller.signal);
     expectBearer(init);
+  });
+
+  it('requests retired users only when the training view enables them', async () => {
+    const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: [] });
+
+    await listTrainingUsers('token', true);
+
+    const { url } = requestAt(fetchMock);
+    expect(url.pathname).toBe('/api/player/training-data/users');
+    expect(url.searchParams.get('includeRetired')).toBe('true');
   });
 
   it('passes username, OJ, date and rating filters to accepted-summary', async () => {

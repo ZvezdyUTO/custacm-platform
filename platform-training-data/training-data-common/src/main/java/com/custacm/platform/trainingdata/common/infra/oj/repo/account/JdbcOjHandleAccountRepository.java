@@ -4,6 +4,7 @@ import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleAccount;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleCollectionState;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjHandleAccountRepository;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -203,7 +204,6 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
             rawStates.forEach((ojName, state) -> {
                 if (state != null) {
                     states.put(ojName, new OjHandleCollectionState(
-                            state.historyStartReached(),
                             instantOrNull(state.lastCollectedAt())
                     ));
                 }
@@ -220,7 +220,6 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
             collectionStates.forEach((ojName, state) -> rawStates.put(
                     ojName,
                     new CollectionStateJson(
-                            state.historyStartReached(),
                             state.lastCollectedAt() == null ? null : state.lastCollectedAt().toString()
                     )
             ));
@@ -241,9 +240,7 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
         return Timestamp.from(instant);
     }
 
-    private record CollectionStateJson(
-            boolean historyStartReached,
-            String lastCollectedAt
-    ) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record CollectionStateJson(String lastCollectedAt) {
     }
 }

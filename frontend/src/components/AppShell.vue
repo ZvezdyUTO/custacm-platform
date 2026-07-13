@@ -18,7 +18,7 @@
           <a href="/friends"><Users :size="17" aria-hidden="true" />友人帐</a>
           <a href="/about"><Info :size="17" aria-hidden="true" />关于我</a>
           <div class="top-nav-menu top-training-menu" @mouseenter="trainingMenuOpen = true" @mouseleave="trainingMenuOpen = false">
-            <button class="top-nav-trigger top-training-trigger is-active" type="button" :aria-expanded="trainingMenuOpen" @click="trainingMenuOpen = !trainingMenuOpen">
+            <button class="top-nav-trigger top-training-trigger" :class="{ 'is-active': isTrainingQueryPage }" type="button" :aria-expanded="trainingMenuOpen" @click="trainingMenuOpen = !trainingMenuOpen">
               <BarChart3 :size="17" aria-hidden="true" />训练中心<ChevronDown :size="13" aria-hidden="true" />
             </button>
             <div v-show="trainingMenuOpen" class="top-nav-dropdown top-training-dropdown">
@@ -82,6 +82,7 @@ const emit = defineEmits<{ signOut: [] }>();
 const route = useRoute();
 const embedded = window.self !== window.top;
 const isLoginPage = computed(() => route.meta.page === 'login' || route.name === 'login');
+const isTrainingQueryPage = computed(() => ['multiple', 'single', 'problem'].includes(String(route.meta.page || route.name || '')));
 const siteName = ref("Naccl's Blog");
 const categories = ref<string[]>([]);
 const categoryMenuOpen = ref(false);

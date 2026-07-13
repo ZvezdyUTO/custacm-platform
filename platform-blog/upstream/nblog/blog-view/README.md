@@ -45,7 +45,7 @@
 - `src/plugins/axios.js`：创建同源 Blog API 客户端并维护评论访客标识。
 - `src/auth/session.js`：成对校验并读取共享用户摘要或裸 JWT；清理时发送稳定的同页 `custacm:session-change` 事件，同时移除旧 `memberToken/memberUser`，但保留评论 identification。
 - `src/auth/account-menu.js`：按当前角色生成账号菜单；统一使用“我的主页”，管理员额外显示“管理员界面”。
-- `src/components/index/Nav.vue`：使用 `public/img/custacm-wordmark.png` 渲染固定的藏青色 CUSTACM 字标、Blog/训练导航，顶栏不展示“动态”入口；“训练中心”标题只通过点击展开或收起下拉菜单，悬停不展开且标题本身不跳转；登录用户可见顶栏“发布文章”入口；右侧搜索框仅在按 Enter 后查询文章标题，最多展示十条结果，游客只获得公开文章，登录用户也可获得内部文章；账号名称栏为较长用户名保留桌面展示空间。
+- `src/components/index/Nav.vue`：使用 `public/img/custacm-wordmark.png` 渲染固定的藏青色 CUSTACM 字标、Blog/训练导航，顶栏不展示“动态”入口；“训练中心”标题只通过点击展开或收起下拉菜单，悬停不展开且标题本身不跳转，并且只在多人、单人和题目查询页显示选中态，管理员页面不激活任何顶部菜单；登录用户可见顶栏“发布文章”入口；右侧搜索框仅在按 Enter 后查询文章标题，最多展示十条标题与文章简介，游客只获得公开文章，登录用户也可获得内部文章；账号名称栏为较长用户名保留桌面展示空间。
 - `src/components/index/Footer.vue`：渲染平台欢迎语，以及带官网图标的圆角项目仓库、Codeforces、AtCoder、洛谷、牛客竞赛和 QOJ 固定链接。
 - `src/components/index/Header.vue`：从公开首页图片接口读取一至两张有序横幅，桌面按视口整屏显示，移动端继续加载并收缩为视口高度的 46%（限制在 280–420px）；保留鼠标左右移动时的相邻图片渐变切换；首屏通过 Google Fonts 加载 Bowlby One SC，以 80% 不透明度的冷调象牙白填充和黑色描边在画面上方呈现双行 `WELCOME TO CUSTACM`，并保留原逐字浮动、品牌浮动和整组淡入动画；接口失败时使用 `src/settings.js` 指向的构建内置默认图。
 - `public/img/homepage-banner-default.png`：构建时随 Blog 静态产物发布的唯一默认首页图，同时供 Flyway 初始化数据和接口失败回退使用。
@@ -56,7 +56,7 @@
 - `src/components/sidebar/Introduction.vue`：普通页面显示当前登录用户的名片，文章详情页改为显示文章作者的公开头像、nickname、username、email、个性签名和有序友情链接；email 位于 username 下方并复用相同字号和颜色，空 email 不展示；友情链接自动读取目标站点根目录 favicon，加载失败时回退为通用网页图标；当前用户的大尺寸名片优先使用头像原图，小尺寸缩略图仅作为兼容回退，资料保持纯展示，在本人个人页仍可通过原有头像交互打开裁剪器。
 - `src/components/profile/AvatarCropDialog.vue`：允许拖动、缩放本地 PNG/JPEG，并导出 512×512 PNG 交给头像 API。
 - `src/views/about/About.vue`：“我的主页”，展示当前用户资料、OJ handle、友情链接与本人文章区，并在资料编辑面板内提供本人密码修改表单。
-- `src/views/blog/Blog.vue`：渲染公开文章详情、分类标签、正文和评论；分类丝带位于正文网格上方，不参与内容列宽计算；详情页标题下方沿用作者、日期、浏览量、字数和估算阅读时长的横排摘要，并在有首图时以正文列为基准居中展示 16:9 图片。
+- `src/views/blog/Blog.vue`：渲染公开文章详情、分类标签、正文和评论；分类丝带位于正文网格上方，不参与内容列宽计算；详情页标题下方展示作者、日期、字数和估算阅读时长，不展示阅读数，并在有首图时以正文列为基准居中展示 16:9 图片。
 - `src/components/blog/BlogItem.vue`：渲染首页、分类和标签页的文章摘要卡；卡片稳定保持左右两栏，左侧展示标题、分类、简介和阅读全文按钮，右侧以同宽纵向排列作者信息与 16:9 首图，容器确实不足时才整体改单栏，避免作者栏随桌面窗口缩窄而横向拉满。
 - `src/components/profile/MyArticles.vue`：在“我的主页”内分页查询本人文章，已发布文章进入公开详情，草稿进入继续编辑，并支持删除。
 - `src/views/article/ArticleEditor.vue`：实时 Markdown 文章发布/编辑页，支持标题/简介计数与长度限制、正文长度校验、首图裁剪、正文图片上传、Markdown 文件读取、草稿/发布、评论开关与未保存离开提示；正文编辑器使用高对比度深色文本选区。
@@ -85,6 +85,7 @@
 - `src/test/introduction.test.js`：验证当前用户名片优先使用头像原图，并在原图缺失时回退缩略图或默认头像。
 - `src/test/playerBlogApi.test.js`、`src/test/articleForm.test.js`：验证本人文章路径/Bearer header、请求组装、Markdown 导入与作者匹配。
 - `src/test/markdownEditor.test.js`、`src/test/liveMarkdownEditor.test.js`：验证标准公式识别、Markdown 插入模板、CodeMirror 挂载、KaTeX 实时预览和正文双向同步。
+- `src/test/markdownContentStyle.test.js`：验证文章正文有序/无序列表保留数字与圆点，并防止列表项滚动容器再次裁剪 marker。
 - `src/test/commentApi.test.js`：验证登录评论只调用 `/player/comment` 并显式附加 Bearer JWT。
 - `src/test/commentIdentity.test.js`：验证账号评论展示 username，游客评论不展示空身份行。
 - `package.json`：声明固定版本依赖及 Vite/Vitest 脚本。

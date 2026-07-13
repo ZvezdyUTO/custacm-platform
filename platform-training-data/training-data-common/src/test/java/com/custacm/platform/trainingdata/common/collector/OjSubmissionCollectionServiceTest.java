@@ -28,6 +28,9 @@ class OjSubmissionCollectionServiceTest {
     void collectsConfiguredHandlesAggregatesResultsAndWritesMatchedSubmissions() throws Exception {
         FakeHandleResolver resolver = new FakeHandleResolver();
         resolver.handlesByOj.put("CODEFORCES", List.of(" alice ", "broken", "alice", "bob"));
+        resolver.lastCollectedAtByHandle.put("alice", NOW.minus(Duration.ofHours(2)));
+        resolver.lastCollectedAtByHandle.put("broken", NOW.minus(Duration.ofHours(3)));
+        resolver.lastCollectedAtByHandle.put("bob", NOW.minus(Duration.ofHours(4)));
         FakeAdapter adapter = new FakeAdapter();
         adapter.failedHandles.add("broken");
         OjSubmissionCollectionService service = service(resolver, adapter);
@@ -39,7 +42,7 @@ class OjSubmissionCollectionServiceTest {
 
         assertThat(result.status()).isEqualTo(OjSubmissionCollectionStatus.PARTIAL_SUCCESS);
         assertThat(result.ojName()).isEqualTo("CODEFORCES");
-        assertThat(result.windowStartInclusive()).isEqualTo(NOW.minus(Duration.ofHours(24)));
+        assertThat(result.windowStartInclusive()).isEqualTo(NOW.minus(Duration.ofHours(28)));
         assertThat(result.windowEndExclusive()).isEqualTo(NOW);
         assertThat(result.requestedHandleCount()).isEqualTo(3);
         assertThat(result.succeededHandleCount()).isEqualTo(2);
@@ -48,9 +51,14 @@ class OjSubmissionCollectionServiceTest {
         assertThat(result.matchedSubmissionCount()).isEqualTo(2);
         assertThat(result.batchId()).isEqualTo("batch-codeforces");
         assertThat(adapter.writtenHandles).containsExactly("alice", "bob");
+        assertThat(adapter.collectedWindows).containsExactly(
+                new CollectedWindow("alice", NOW.minus(Duration.ofHours(26)), NOW),
+                new CollectedWindow("broken", NOW.minus(Duration.ofHours(27)), NOW),
+                new CollectedWindow("bob", NOW.minus(Duration.ofHours(28)), NOW)
+        );
         assertThat(resolver.markedCollections).containsExactly(
-                new MarkedCollection("CODEFORCES", "alice", false, NOW),
-                new MarkedCollection("CODEFORCES", "bob", false, NOW)
+                new MarkedCollection("CODEFORCES", "alice", NOW),
+                new MarkedCollection("CODEFORCES", "bob", NOW)
         );
     }
 
@@ -68,8 +76,10 @@ class OjSubmissionCollectionServiceTest {
 
         assertThat(result.status()).isEqualTo(OjSubmissionCollectionStatus.SUCCESS);
         assertThat(result.ojName()).isEqualTo("CODEFORCES");
+        assertThat(result.windowStartInclusive()).isEqualTo(Instant.EPOCH);
         assertThat(result.handles()).extracting("handle").containsExactly("tourist");
         assertThat(adapter.collectedHandles).containsExactly("tourist");
+        assertThat(adapter.collectedWindows).containsExactly(new CollectedWindow("tourist", Instant.EPOCH, NOW));
     }
 
     @Test
@@ -110,6 +120,7 @@ class OjSubmissionCollectionServiceTest {
     private final class FakeAdapter implements OjSubmissionCollectionAdapter {
         private final List<String> failedHandles = new ArrayList<>();
         private final List<String> collectedHandles = new ArrayList<>();
+        private final List<CollectedWindow> collectedWindows = new ArrayList<>();
         private final List<String> writtenHandles = new ArrayList<>();
 
         @Override
@@ -131,6 +142,7 @@ class OjSubmissionCollectionServiceTest {
                 OjCollectionRequestExecutor requestExecutor
         ) {
             collectedHandles.add(handle);
+            collectedWindows.add(new CollectedWindow(handle, windowStartInclusive, windowEndExclusive));
             requestExecutor.execute(() -> objectMapper.createObjectNode());
             if (failedHandles.contains(handle)) {
                 return new OjHandleCollectionOutcome(
@@ -159,6 +171,7 @@ class OjSubmissionCollectionServiceTest {
     private static final class FakeHandleResolver implements OjCollectionHandleResolver {
         private final Map<String, List<String>> handlesByOj = new LinkedHashMap<>();
         private final Map<String, String> handlesByIdentity = new LinkedHashMap<>();
+        private final Map<String, Instant> lastCollectedAtByHandle = new LinkedHashMap<>();
         private final List<MarkedCollection> markedCollections = new ArrayList<>();
         private Runnable beforeList = () -> {
         };
@@ -175,20 +188,26 @@ class OjSubmissionCollectionServiceTest {
         }
 
         @Override
+        public Instant getLastCollectedAt(String ojName, String handle) {
+            return lastCollectedAtByHandle.get(handle);
+        }
+
+        @Override
         public void markHandleCollected(
                 String ojName,
                 String handle,
-                boolean historyStartReached,
                 Instant collectedAt
         ) {
-            markedCollections.add(new MarkedCollection(ojName, handle, historyStartReached, collectedAt));
+            markedCollections.add(new MarkedCollection(ojName, handle, collectedAt));
         }
+    }
+
+    private record CollectedWindow(String handle, Instant startInclusive, Instant endExclusive) {
     }
 
     private record MarkedCollection(
             String ojName,
             String handle,
-            boolean historyStartReached,
             Instant collectedAt
     ) {
     }

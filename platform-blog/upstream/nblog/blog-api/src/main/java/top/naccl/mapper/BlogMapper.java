@@ -4,7 +4,6 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 import top.naccl.entity.Blog;
-import top.naccl.model.dto.BlogView;
 import top.naccl.model.dto.BlogVisibility;
 import top.naccl.model.vo.BlogDetail;
 import top.naccl.model.vo.BlogInfo;
@@ -42,8 +41,6 @@ public interface BlogMapper {
 	List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(@Param("limitNum") Integer limitNum,
 			@Param("includeInternal") boolean includeInternal);
 
-	List<BlogView> getBlogViewsList();
-
 	int deleteBlogById(Long id);
 
 	int deleteBlogTagByBlogId(Long blogId);
@@ -57,8 +54,6 @@ public interface BlogMapper {
 	int updateBlogVisibilityById(Long blogId, BlogVisibility bv);
 
 	int updateBlogTopById(Long blogId, Boolean top);
-
-	int updateViews(Long blogId, Integer views);
 
 	Blog getBlogById(Long id);
 

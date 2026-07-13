@@ -17,7 +17,6 @@
 						<div class="ui horizontal link list m-center">
 							<div class="item m-common-black" v-if="blog.authorNickname"><i class="small user icon"></i><span>{{ blog.authorNickname }}</span></div>
 							<div class="item m-datetime"><i class="small calendar icon"></i><span>{{ $filters.dateFormat(blog.createTime, 'YYYY-MM-DD') }}</span></div>
-							<div class="item m-views"><i class="small eye icon"></i><span>{{ blog.views }}</span></div>
 							<div class="item m-common-black"><i class="small pencil alternate icon"></i><span>字数≈{{ blog.words }}字</span></div>
 							<div class="item m-common-black"><i class="small clock icon"></i><span>阅读时长≈{{ blog.readTime }}分</span></div>
 							<a class="item m-common-black" aria-label="切换字体大小" @click.prevent="bigFontSize=!bigFontSize"><div data-inverted="" data-tooltip="点击切换字体大小" data-position="top center"><i class="font icon"></i></div></a>

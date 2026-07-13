@@ -16,5 +16,5 @@ public interface TrainingUserDirectory {
     String getHandle(OjHandleAccount account, String ojName);
 
     Optional<OjHandleAccount> markCollectedByHandle(
-            String ojName, String handle, boolean historyStartReached, Instant collectedAt);
+            String ojName, String handle, Instant collectedAt);
 }

@@ -17,7 +17,6 @@
         <result property="top" column="is_top"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
-        <result property="views" column="views"/>
         <result property="words" column="words"/>
         <result property="readTime" column="read_time"/>
         <association property="user" javaType="top.naccl.entity.User">
@@ -78,13 +77,13 @@
     <resultMap id="searchBlog" type="top.naccl.model.vo.SearchBlog">
         <id property="id" column="id"/>
         <result property="title" column="title"/>
-        <result property="content" column="content"/>
+        <result property="description" column="description"/>
     </resultMap>
 
     <!--按关键字根据标题搜索公开博客文章-->
     <select id="getSearchBlogListByQueryAndIsPublished" resultMap="searchBlog">
         <bind name="queryPattern" value="'%' + query + '%'"/>
-        select id, title, content
+        select id, title, description
         from blog
         where is_published=true
         <if test="includeInternal == false">
@@ -111,7 +110,6 @@
         <result property="firstPicture" column="first_picture"/>
         <result property="description" column="description"/>
         <result property="createTime" column="create_time"/>
-        <result property="views" column="views"/>
         <result property="words" column="words"/>
         <result property="readTime" column="read_time"/>
         <result property="top" column="is_top"/>
@@ -126,7 +124,7 @@
 
     <!--查询公开博客的简要信息-->
     <select id="getBlogInfoListByIsPublished" resultMap="blogInfo">
-		select b.id, b.title, b.first_picture, b.description, b.is_top, b.create_time, b.views, b.words, b.read_time,
+		select b.id, b.title, b.first_picture, b.description, b.is_top, b.create_time, b.words, b.read_time,
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from blog as b left join category as c on b.category_id=c.id left join user as u on b.user_id=u.id
         where b.is_published=true
@@ -137,7 +135,7 @@
 
     <!--根据分类name查询公开博客List-->
     <select id="getBlogInfoListByCategoryNameAndIsPublished" resultMap="blogInfo">
-		select b.id, b.title, b.first_picture, b.description, b.is_top, b.create_time, b.views, b.words, b.read_time,
+		select b.id, b.title, b.first_picture, b.description, b.is_top, b.create_time, b.words, b.read_time,
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from category as c left join blog as b on b.category_id=c.id left join user as u on b.user_id=u.id
         where c.category_name=#{categoryName} and b.is_published=true
@@ -148,7 +146,7 @@
 
     <!--根据标签name查询公开博客List-->
     <select id="getBlogInfoListByTagNameAndIsPublished" resultMap="blogInfo">
-		select b.id, b.title, b.first_picture, b.description, b.is_top, b.create_time, b.views, b.words, b.read_time,
+		select b.id, b.title, b.first_picture, b.description, b.is_top, b.create_time, b.words, b.read_time,
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from tag as t left join blog_tag as bt on t.id=bt.tag_id left join blog as b on bt.blog_id=b.id
         left join category as c on b.category_id=c.id left join user as u on b.user_id=u.id
@@ -176,11 +174,6 @@
         order by is_top desc, update_time desc, id desc limit #{limitNum}
     </select>
 
-    <!--查询所有文章的浏览量-->
-    <select id="getBlogViewsList" resultType="top.naccl.model.dto.BlogView">
-        select id, views from blog
-    </select>
-
     <!--按id删除博客-->
     <delete id="deleteBlogById">
         delete from blog where id=#{id}
@@ -199,9 +192,9 @@
     <!--添加博客-->
     <insert id="saveBlog" parameterType="top.naccl.model.dto.Blog" useGeneratedKeys="true" keyProperty="id">
         insert into blog (title, first_picture, first_picture_asset_id, content, description, is_published, is_internal, is_recommend, is_appreciation, is_comment_enabled,
-        is_top, create_time, update_time, views, words, read_time, category_id, user_id)
+        is_top, create_time, update_time, words, read_time, category_id, user_id)
         values (#{title}, #{firstPicture}, #{firstPictureAssetId}, #{content}, #{description}, #{published}, #{internal}, #{recommend}, #{appreciation}, #{commentEnabled},
-        #{top}, #{createTime}, #{updateTime}, #{views}, #{words}, #{readTime}, #{category.id}, #{user.id})
+        #{top}, #{createTime}, #{updateTime}, #{words}, #{readTime}, #{category.id}, #{user.id})
     </insert>
 
     <!--更新博客推荐状态-->
@@ -221,15 +214,10 @@
         where id=#{blogId}
     </update>
 
-    <!--更新博客阅读次数-->
-    <update id="updateViews">
-        update blog set views=#{views} where id=#{blogId}
-    </update>
-
     <!--按id查询博客-->
     <select id="getBlogById" resultMap="blog">
         select b.id, b.title, b.first_picture, b.first_picture_asset_id, b.content, b.description, b.is_recommend, b.is_published, b.is_internal, b.is_appreciation,
-        b.is_comment_enabled, b.is_top, b.create_time, b.update_time, b.views, b.words, b.read_time,
+        b.is_comment_enabled, b.is_top, b.create_time, b.update_time, b.words, b.read_time,
         c.id as category_id, c.category_name, c.color as category_color,
         bt.tag_id as tag_id, t.tag_name as tag_name, t.color
         from (((blog as b left join category as c on b.category_id=c.id) left join blog_tag as bt on b.id=bt.blog_id) left join tag as t on bt.tag_id=t.id)
@@ -239,7 +227,7 @@
     <!--按id和作者查询博客-->
     <select id="getBlogByIdAndUserId" resultMap="blog">
         select b.id, b.title, b.first_picture, b.first_picture_asset_id, b.content, b.description, b.is_recommend, b.is_published, b.is_internal, b.is_appreciation,
-        b.is_comment_enabled, b.is_top, b.create_time, b.update_time, b.views, b.words, b.read_time,
+        b.is_comment_enabled, b.is_top, b.create_time, b.update_time, b.words, b.read_time,
         b.user_id, u.username, u.nickname, u.avatar, u.email, u.role,
         c.id as category_id, c.category_name, c.color as category_color,
         bt.tag_id as tag_id, t.tag_name as tag_name, t.color
@@ -268,7 +256,6 @@
         <result property="top" column="is_top"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
-        <result property="views" column="views"/>
         <result property="words" column="words"/>
         <result property="readTime" column="read_time"/>
         <result property="authorNickname" column="author_nickname"/>
@@ -286,7 +273,7 @@
     <!--按id查询公开博客-->
     <select id="getBlogByIdAndIsPublished" resultMap="blogDetail">
 		select b.id, b.title, b.first_picture, b.content, b.is_internal, b.is_appreciation, b.is_comment_enabled, b.is_top,
-        b.create_time, b.update_time, b.views, b.words, b.read_time,
+        b.create_time, b.update_time, b.words, b.read_time,
         c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar,
         t.tag_name as tag_name, t.color
         from blog as b left join user as u on b.user_id=u.id left join category as c on b.category_id=c.id
@@ -297,7 +284,7 @@
     <!--按id查询仅登录用户可见的已发布博客-->
     <select id="getInternalBlogById" resultMap="blogDetail">
 		select b.id, b.title, b.first_picture, b.content, b.is_internal, b.is_appreciation, b.is_comment_enabled, b.is_top,
-        b.create_time, b.update_time, b.views, b.words, b.read_time,
+        b.create_time, b.update_time, b.words, b.read_time,
         c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar,
         t.tag_name as tag_name, t.color
         from blog as b left join user as u on b.user_id=u.id left join category as c on b.category_id=c.id
@@ -309,7 +296,7 @@
     <update id="updateBlog">
         update blog set title=#{title}, first_picture=#{firstPicture}, first_picture_asset_id=#{firstPictureAssetId}, content=#{content}, description=#{description},
         is_recommend=#{recommend}, is_published=#{published}, is_internal=#{internal}, is_appreciation=#{appreciation}, is_comment_enabled=#{commentEnabled},
-        is_top=#{top}, create_time=#{createTime}, update_time=#{updateTime}, views=#{views},
+        is_top=#{top}, create_time=#{createTime}, update_time=#{updateTime},
         words=#{words}, read_time=#{readTime}, category_id=#{category.id}
         where id=#{id}
     </update>

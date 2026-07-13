@@ -42,10 +42,6 @@ public interface BlogService {
 
 	void updateBlogTopById(Long blogId, Boolean top);
 
-	void updateViewsToRedis(Long blogId);
-
-	void updateViews(Long blogId, Integer views);
-
 	Blog getBlogById(Long id);
 
 	String getTitleByBlogId(Long id);

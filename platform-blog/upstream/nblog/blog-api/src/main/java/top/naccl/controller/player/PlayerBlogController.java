@@ -52,9 +52,7 @@ public class PlayerBlogController {
 
 	@GetMapping("/internal-blog")
 	public Result internalBlog(@RequestParam Long id) {
-		var blog = blogService.getInternalBlogById(id);
-		blogService.updateViewsToRedis(id);
-		return Result.ok("获取成功", blog);
+		return Result.ok("获取成功", blogService.getInternalBlogById(id));
 	}
 
 	@GetMapping("/categoryAndTag")

@@ -7,12 +7,12 @@
 - 训练中心路由只有 `/training/login`、`/training/multiple`、`/training/single`、`/training/problem`、`/training/admin/create-users`、`/training/admin/users`、`/training/admin/articles`、`/training/admin/categories`、`/training/admin/training` 和 `/training/admin/appearance`；`/training` 在生产环境重定向到 `/training/multiple`，旧 `/training/admin?section=...` 只作兼容解析。
 - 多人、单人和题目查询都要求登录。业务身份字段是 `username`，角色只能是 `ROLE_admin` 或 `ROLE_player`。
 - 多人和单人查询没有独立查询按钮；OJ、队员、日期和 rating 等筛选参数变更后自动刷新，文本/数字输入使用短防抖，无效范围不得发起请求。题目查询保留深色显式查询按钮，题号和日期修改后由用户统一提交。
-- 单人查询加载用户目录后不得自动选择第一名队员，必须保持空选择直到用户主动选择。
+- 单人查询加载用户目录后不得自动选择第一名队员，必须保持空选择直到用户主动选择；下拉项以 `username · nickname` 展示并按该文本降序排列。
 - 管理区分为“创建用户”“管理用户”“管理文章”“分类与标签”“数据采集”“首页图片”六个独立页面。分类可自定义名称和颜色；标签只新增或删除，颜色由服务端随机生成深色并持久化。管理文章与管理用户的永久删除均必须经过严肃二次确认；数据采集确认后才能执行。
 - 管理员工作区使用勃艮第主题：酒红用于导航与主操作，陶土色用于当前页标记，暖雾灰用于工作区背景；成功、警告、危险等业务状态不得改成主题色。
 - 前端不提供原始数据上传入口，也不重新实现后端账号、权限、采集或数仓规则。
-- 管理用户页对空头像统一展示 Blog 构建内置的 `/img/default-avatar.jpg`；`root` 只显示管理员身份，不显示现役/退役状态或 handle 编辑入口。
-- 多人查询先读取 `GET /player/training-data/users` 返回的可采集用户目录，再以最大并发数 6 查询各用户汇总。目录响应只消费 `username`、`nickname`、`ojNames`。
+- 管理用户页对空头像统一展示 Blog 构建内置的 `/img/default-avatar.jpg`，支持在已加载账号中按 username 子串查询；`root` 只显示管理员身份，不显示现役/退役状态或 handle 编辑入口。
+- 多人查询先读取 `GET /player/training-data/users` 返回的可采集用户目录，再以最大并发数 6 查询各用户汇总。多人和单人页勾选退役队员后以 `includeRetired=true` 重读目录；目录响应只消费 `username`、`nickname`、`ojNames`。
 - 正式验收范围是 1280–2560 px 桌面端，重点检查 1440×900 和 1920×1080；训练业务页面移动端不在当前交付范围，但嵌入 Blog 的登录页必须在移动端保持可见、可操作。
 - 进入 `/training/**` 后必须继续使用 Blog 已挂载的同一个 `Nav.vue` 实例，只替换其下方内容并把“训练中心”显示为选中态；不得在训练应用中复制或显示第二条顶栏。
 
@@ -59,17 +59,17 @@
 | `src/utils/runLimited.ts` | 有序执行并限制最大并发数的纯工具 |
 | `src/utils/adminUsers.ts` | 创建用户文本导入与可编辑行转换 |
 | `src/utils/adminTraining.ts` | 固定携带 `refreshWarehouse: true` 的采集请求构造 |
-| `src/components/AppShell.vue` | 训练内容外壳；独立开发时提供调试顶栏，生产同源嵌入时必须隐藏该顶栏，并为移动端嵌入登录页解除桌面最小宽度限制 |
+| `src/components/AppShell.vue` | 训练内容外壳；独立开发时提供调试顶栏，管理员页不激活“训练中心”；生产同源嵌入时必须隐藏该顶栏，并为移动端嵌入登录页解除桌面最小宽度限制 |
 | `src/components/LoginPanel.vue` | 登录表单与安全回跳 |
-| `src/components/TrainingQueryPanel.vue` | 多人、单人自动筛选查询页面，以及保留深色查询按钮的题目查询页面 |
+| `src/components/TrainingQueryPanel.vue` | 多人、单人自动筛选、退役队员目录开关、空筛选边界提示和 username 优先队员选择，以及保留深色查询按钮的题目查询页面 |
 | `src/components/TrainingAdminPanel.vue` | “创建用户/管理用户/管理文章/管理分类/数据采集/首页图片”独立页面导航容器 |
 | `src/components/ArticleAdminPanel.vue` | 管理员文章筛选、分页、精选状态开关与带危险确认的永久删除 |
 | `src/components/CategoryAdminPanel.vue` | 文章分类分页、新增、改名和删除界面 |
 | `src/components/HomepageBannerAdminPanel.vue` | 首页图片多选队列、1920×1080 裁剪、排序与删除界面 |
 | `src/styles/homepage-banner-admin.css` | 首页图片管理卡片和裁剪弹窗样式 |
 | `src/components/CreateUsersPanel.vue` | 文本导入、创建信息行和批量创建操作 |
-| `src/components/AdminUserManagementPanel.vue` | 只读展示头像，并以宽幅个人信息列集中账号、邮箱与 OJ handle；编辑区管理角色、密码和采集状态，但不接受头像 URL，头像只走本人图片上传接口 |
-| `src/components/TrainingDataOpsPanel.vue` | 全部/单人采集、任务详情和固定数仓刷新 |
+| `src/components/AdminUserManagementPanel.vue` | 按 username 子串查询用户，只读展示头像，并以宽幅个人信息列集中账号、邮箱与 OJ handle；编辑区管理角色、密码和采集状态，保存成功后自动收起、失败时保留，但不接受头像 URL，头像只走本人图片上传接口 |
+| `src/components/TrainingDataOpsPanel.vue` | 全部/单人采集、任务详情和固定数仓刷新；队员行按当前 OJ 展示增量采集游标与最近成功窗口结束时间 |
 | `src/styles/theme.css` | 与 Blog 一致的颜色、字体和视觉变量 |
 | `src/styles/*.css` | 基础、外壳、内容、表格、侧栏及桌面宽度样式 |
 | `src/test/session.test.ts` | 共享会话读写、非法数据与孤儿键清理测试 |

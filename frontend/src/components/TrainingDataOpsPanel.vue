@@ -2,10 +2,10 @@
   <section class="training-data-collection-panel admin-reference-page" aria-label="训练数据采集">
     <header class="reference-page-header collection-reference-header">
       <span class="reference-page-icon"><Database :size="22" /></span>
-      <div><h2>训练数据采集</h2><p>按 OJ 列出现役队员中已绑定 handle 的成员，每次采集完成后都会自动刷新数仓。</p></div>
+      <div><h2>训练数据采集</h2><p>首次采集抓取全部历史数据；之后从上次成功窗口结束时间向前倒退指定小时数，并采集至当前时间。</p></div>
       <div class="collection-reference-controls">
         <label>OJ<select v-model="collectionOj"><option :value="OJ_NAMES.CODEFORCES">Codeforces</option><option :value="OJ_NAMES.ATCODER">AtCoder</option></select></label>
-        <label>统一回看小时数<input v-model="globalLookback" min="1" type="number" placeholder="不限" /></label>
+        <label>统一倒退小时数<input v-model="globalLookback" min="1" type="number" /></label>
         <button class="primary-button collect-all-button" :disabled="allBusy || !collectableUsers.length" type="button" @click="collectAll"><RefreshCw :class="{ spin: allBusy }" :size="18" />{{ allBusy ? '正在采集' : '全部采集' }}</button>
       </div>
     </header>
@@ -13,8 +13,8 @@
 
     <div class="collection-member-list">
       <article v-for="item in collectableUsers" :key="item.user.username" class="collection-member-row">
-        <div class="collection-member-identity"><strong><span>{{ item.user.username }}</span><template v-if="item.user.nickname"><i aria-hidden="true">·</i><span>{{ item.user.nickname }}</span></template></strong><span>{{ OJ_LABELS[collectionOj] }}：{{ item.handles[collectionOj] }}</span></div>
-        <label>回看小时数<input v-model="lookbackByUsername[item.user.username]" min="1" type="number" placeholder="不限" /></label>
+        <div class="collection-member-identity"><strong><span>{{ item.user.username }}</span><template v-if="item.user.nickname"><i aria-hidden="true">·</i><span>{{ item.user.nickname }}</span></template></strong><span>{{ OJ_LABELS[collectionOj] }}：{{ item.handles[collectionOj] }}</span><div class="collection-member-state"><b :class="{ 'is-ready': item.collectionStates?.[collectionOj]?.lastCollectedAt }">{{ collectionProgressLabel(item.collectionStates?.[collectionOj]) }}</b><small>最近成功窗口结束：{{ collectionTimeLabel(item.collectionStates?.[collectionOj]?.lastCollectedAt) }}</small></div></div>
+        <label>倒退小时数<input v-model="lookbackByUsername[item.user.username]" min="1" type="number" placeholder="沿用统一值" /></label>
         <button class="primary-button" :disabled="busyUsers.has(item.user.username)" type="button" @click="collectOne(item.user.username)"><RefreshCw :class="{ spin: busyUsers.has(item.user.username) }" :size="18" />{{ busyUsers.has(item.user.username) ? '正在采集' : '执行采集' }}</button>
       </article>
       <p v-if="!collectableUsers.length" class="batch-target-empty">当前 OJ 暂无可采集的现役队员。</p>
@@ -30,7 +30,7 @@
     <div v-if="pendingCollection" class="collection-confirm-backdrop" role="presentation" @click.self="pendingCollection = null">
       <section class="collection-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="collection-confirm-title" aria-describedby="collection-confirm-description">
         <span class="collection-confirm-icon"><TriangleAlert :size="26" /></span>
-        <div><h3 id="collection-confirm-title">确认执行数据采集？</h3><p id="collection-confirm-description">即将采集 <strong>{{ pendingCollection.targetLabel }}</strong> 的 {{ OJ_LABELS[pendingCollection.ojName] }} 提交，回看范围为 <strong>{{ lookbackLabel(pendingCollection.lookbackHours) }}</strong>。采集完成后会自动刷新数仓，请确认目标与范围无误。</p></div>
+        <div><h3 id="collection-confirm-title">确认执行数据采集？</h3><p id="collection-confirm-description">即将采集 <strong>{{ pendingCollection.targetLabel }}</strong> 的 {{ OJ_LABELS[pendingCollection.ojName] }} 提交。已成功采集过的账号会从上次窗口结束时间<strong>向前倒退 {{ pendingCollection.lookbackHours }} 小时</strong>后采集至当前时间；尚无成功记录的账号会采集全部历史数据。采集完成后会自动刷新数仓。</p></div>
         <div class="collection-confirm-actions"><button type="button" :disabled="confirmBusy" @click="pendingCollection = null">取消</button><button class="confirm-collection-button" type="button" :disabled="confirmBusy" @click="confirmCollection"><RefreshCw :class="{ spin: confirmBusy }" :size="16" />{{ confirmBusy ? '正在启动' : '确认执行采集' }}</button></div>
       </section>
     </div>
@@ -41,7 +41,7 @@
 import { computed, ref } from 'vue';
 import { ChevronDown, Database, RefreshCw, TriangleAlert } from '@lucide/vue';
 import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
-import { OJ_LABELS, OJ_NAMES, UNLIMITED_LOOKBACK_HOURS, type CollectionJob, type OjName } from '../types';
+import { OJ_LABELS, OJ_NAMES, type CollectionJob, type OjName } from '../types';
 import { collectionRequest } from '../utils/adminTraining';
 
 // Author: huangbingrui.awa
@@ -50,12 +50,13 @@ interface PendingCollection { usernames: string[]; targetLabel: string; lookback
 const collectionOj = ref<OjName>(OJ_NAMES.CODEFORCES); const globalLookback = ref<string | number>('1440'); const lookbackByUsername = ref<Record<string, string | number>>({}); const collectError = ref(''); const allBusy = ref(false); const busyUsers = ref(new Set<string>()); const expandedJobs = ref(new Set<string>()); const pendingCollection = ref<PendingCollection | null>(null); const confirmBusy = ref(false);
 const collectableUsers = computed(() => props.dashboard.adminUsers.value.filter((item) => item.needCollect === true && Boolean(item.handles[collectionOj.value])));
 const jobs = computed(() => props.dashboard.collectionJobs.value);
-function parseLookback(value: string | number) { const normalized = String(value).trim(); if (!normalized) return UNLIMITED_LOOKBACK_HOURS; const hours = Math.floor(Number(normalized)); if (!Number.isFinite(hours) || hours <= 0) throw new Error('回看小时数必须是大于 0 的整数。'); return hours; }
+function parseLookback(value: string | number) { const normalized = String(value).trim(); const hours = Math.floor(Number(normalized)); if (!normalized || !Number.isFinite(hours) || hours <= 0) throw new Error('倒退小时数必须是大于 0 的整数。'); return hours; }
 async function runCollection(usernames: string[], lookbackHours: number, ojName: OjName) { await props.dashboard.batchCollectSubmissions(collectionRequest(usernames, lookbackHours, ojName)); }
-function collectAll() { const usernames = collectableUsers.value.map((item) => item.user.username); if (!usernames.length) return; let lookback; try { lookback = parseLookback(globalLookback.value); } catch (error) { collectError.value = error instanceof Error ? error.message : '回看小时数无效。'; return; } pendingCollection.value = { usernames, targetLabel: `全部 ${usernames.length} 名队员`, lookbackHours: lookback, ojName: collectionOj.value, all: true }; }
-function collectOne(username: string) { let lookback; try { lookback = parseLookback(lookbackByUsername.value[username] || ''); } catch (error) { collectError.value = error instanceof Error ? error.message : '回看小时数无效。'; return; } const user = collectableUsers.value.find((item) => item.user.username === username); pendingCollection.value = { usernames: [username], targetLabel: user?.user.nickname ? `${username} · ${user.user.nickname}` : username, lookbackHours: lookback, ojName: collectionOj.value, all: false }; }
+function collectAll() { const usernames = collectableUsers.value.map((item) => item.user.username); if (!usernames.length) return; let lookback; try { lookback = parseLookback(globalLookback.value); } catch (error) { collectError.value = error instanceof Error ? error.message : '倒退小时数无效。'; return; } pendingCollection.value = { usernames, targetLabel: `全部 ${usernames.length} 名队员`, lookbackHours: lookback, ojName: collectionOj.value, all: true }; }
+function collectOne(username: string) { let lookback; try { lookback = parseLookback(lookbackByUsername.value[username] || globalLookback.value); } catch (error) { collectError.value = error instanceof Error ? error.message : '倒退小时数无效。'; return; } const user = collectableUsers.value.find((item) => item.user.username === username); pendingCollection.value = { usernames: [username], targetLabel: user?.user.nickname ? `${username} · ${user.user.nickname}` : username, lookbackHours: lookback, ojName: collectionOj.value, all: false }; }
 async function confirmCollection() { const request = pendingCollection.value; if (!request) return; confirmBusy.value = true; collectError.value = ''; if (request.all) allBusy.value = true; else { const next = new Set(busyUsers.value); next.add(request.usernames[0]!); busyUsers.value = next; } try { await runCollection(request.usernames, request.lookbackHours, request.ojName); pendingCollection.value = null; } catch (error) { collectError.value = error instanceof Error ? error.message : '采集失败。'; } finally { confirmBusy.value = false; allBusy.value = false; const done = new Set(busyUsers.value); request.usernames.forEach((username) => done.delete(username)); busyUsers.value = done; } }
-function lookbackLabel(hours: number) { return hours === UNLIMITED_LOOKBACK_HOURS ? '不限时间' : `最近 ${hours} 小时`; }
 function toggleJob(id: string) { const next = new Set(expandedJobs.value); if (next.has(id)) next.delete(id); else next.add(id); expandedJobs.value = next; }
 function shortJobId(id: string) { return id.length > 18 ? `${id.slice(0, 18)}...` : id; } function formatTime(value: string) { return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'short', hour12: false }).format(new Date(value)); } function statusClass(status: string) { return status.toLowerCase().replaceAll('_', '-'); } function jobStatus(status: CollectionJob['status']) { return status === 'PENDING' ? '等待中' : status === 'RUNNING' ? '正在执行' : status === 'SUCCESS' ? '执行成功' : status === 'PARTIAL_SUCCESS' ? '部分成功' : '执行失败'; }
+function collectionProgressLabel(state?: { lastCollectedAt: string | null }) { return state?.lastCollectedAt ? '已建立增量采集游标' : '首次采集将抓取全部历史'; }
+function collectionTimeLabel(value?: string | null) { return value ? formatTime(value) : '尚无记录'; }
 </script>

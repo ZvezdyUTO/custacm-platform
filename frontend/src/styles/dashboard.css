@@ -177,10 +177,19 @@
   min-height: 24px;
   align-items: center;
   justify-content: flex-end;
-  gap: 5px;
+  gap: 8px;
   margin-top: -10px;
   color: #8994a1;
   font-size: 11px;
+}
+
+.query-filter-hint {
+  margin-right: 6px;
+  line-height: 1.4;
+}
+
+.query-updated-at {
+  white-space: nowrap;
 }
 
 .query-refresh-button {
@@ -202,14 +211,25 @@
 }
 
 .query-auto-refresh-hint {
-  display: flex;
-  align-self: end;
+  color: #7b8794;
+}
+
+.query-retired-toggle {
+  display: inline-flex;
   min-height: 38px;
   align-items: center;
-  justify-content: flex-end;
-  color: #7b8794;
-  font-size: 11px;
+  align-self: end;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
   white-space: nowrap;
+}
+
+.query-retired-toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--navy);
 }
 
 .primary-button.query-problem-apply-button {
@@ -1386,6 +1406,37 @@
   gap: 7px;
 }
 
+.admin-user-search {
+  display: grid;
+  width: min(420px, 100%);
+  gap: 7px;
+  color: var(--admin-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-user-search-control {
+  display: flex;
+  height: 42px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--admin-border);
+  background: #fff;
+  color: var(--admin-text-muted);
+  padding: 0 12px;
+}
+
+.admin-user-search-control input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--admin-text);
+  font: inherit;
+  font-weight: 500;
+}
+
 .reference-count strong {
   color: #111827;
   font-size: 24px;
@@ -1586,6 +1637,33 @@
   color: #667085;
   font-size: 13px;
   font-weight: 650;
+}
+
+.collection-member-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 10px;
+}
+
+.collection-member-state b {
+  border-radius: 999px;
+  background: #fff1f0;
+  color: #9f302f;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.collection-member-state b.is-ready {
+  background: #eaf8ef;
+  color: #08783e;
+}
+
+.collection-member-state small {
+  color: #7b8794;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .collection-confirm-backdrop {

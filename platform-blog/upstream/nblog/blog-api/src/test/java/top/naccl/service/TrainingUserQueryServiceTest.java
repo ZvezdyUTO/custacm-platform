@@ -33,10 +33,29 @@ class TrainingUserQueryServiceTest {
                 new OjHandleAccount("player-b", Map.of("CODEFORCES", "retired-handle"), false, now, now)
         ));
 
-        var result = new TrainingUserQueryService(userMapper, handleAccountService).listCollectableUsers();
+        var result = new TrainingUserQueryService(userMapper, handleAccountService).listUsers(false);
 
         assertEquals(List.of(new TrainingUserSummary(
                 "player-a", "队员 A", List.of("CODEFORCES", "ATCODER"))), result);
+    }
+
+    @Test
+    void includesRetiredBoundUsersWhenRequested() {
+        User active = user("player-a", "队员 A");
+        User retired = user("player-b", "队员 B");
+        when(userMapper.findAll()).thenReturn(List.of(retired, active));
+        Instant now = Instant.parse("2026-07-11T00:00:00Z");
+        when(handleAccountService.listAll()).thenReturn(List.of(
+                new OjHandleAccount("player-a", Map.of("CODEFORCES", "active-handle"), true, now, now),
+                new OjHandleAccount("player-b", Map.of("CODEFORCES", "retired-handle"), false, now, now)
+        ));
+
+        var result = new TrainingUserQueryService(userMapper, handleAccountService).listUsers(true);
+
+        assertEquals(List.of(
+                new TrainingUserSummary("player-a", "队员 A", List.of("CODEFORCES")),
+                new TrainingUserSummary("player-b", "队员 B", List.of("CODEFORCES"))
+        ), result);
     }
 
     private static User user(String username, String nickname) {

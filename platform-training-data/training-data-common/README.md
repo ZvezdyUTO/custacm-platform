@@ -37,7 +37,7 @@ src/test/                         对应单元和 JDBC 测试
 | `app/query/OjWarehouseQueryFacade.java` | 统一校验查询参数、分页和日期并返回 application report，不依赖 Spring MVC。 |
 | `app/purge/OjStudentDataPurgeService.java` | 按学生和 OJ 删除 ODS/warehouse 数据。 |
 | `app/warehouse/OjWarehouseRefreshService.java` | 按显式 batch 严格运行 OJ SQL task manifest，或为人工刷新选择最新有效 ODS batch 后复用严格流程。 |
-| `collector/OjSubmissionCollectionService.java` | 计算窗口、解析 handle、互斥执行并聚合采集结果。 |
+| `collector/OjSubmissionCollectionService.java` | 按用户和 OJ 读取最近成功窗口结束时间；首次执行使用历史起点，后续从该时间向前倒退配置时长；同时负责互斥执行和结果聚合。 |
 | `collector/OjCollectionRequestExecutor.java` | 统一请求间隔和重试。 |
 | `collector/dispatch/` | 根据规范化 `ojName` 选择 collector。 |
 | `collector/job/` | 进程内批量采集状态与 warehouse refresh dispatch。 |
@@ -55,5 +55,7 @@ src/test/                         对应单元和 JDBC 测试
 
 - `username` 是唯一训练业务身份；OJ 名由 `OjNames` 规范化。
 - 采集窗口使用 `[startInclusive, endExclusive)`。
+- 每个用户、每个 OJ 独立保存 `lastCollectedAt`；只有成功采集才将其推进到本次固定的 `endExclusive`，窗口内没有提交也视为成功。
+- `lastCollectedAt` 为空时采集全部历史；否则起点为 `lastCollectedAt - lookback`。不保存“历史是否完整”的独立标记。
 - job 状态只存在当前 JVM，重启不恢复。
 - OJ-specific source、payload、ODS、清洗 SQL 和 manifest 留在 OJ 模块。

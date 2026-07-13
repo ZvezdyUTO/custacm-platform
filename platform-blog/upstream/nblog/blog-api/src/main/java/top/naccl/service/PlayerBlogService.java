@@ -60,7 +60,6 @@ public class PlayerBlogService {
 		blog.setUser(user);
 		blog.setCreateTime(now);
 		blog.setUpdateTime(now);
-		blog.setViews(0);
 		blog.setReadTime(normalizeReadTime(blog));
 		blog.setPublished(Boolean.TRUE.equals(blog.getPublished()));
 		blog.setInternal(blog.getPublished() && Boolean.TRUE.equals(blog.getInternal()));
@@ -90,7 +89,6 @@ public class PlayerBlogService {
 		blog.setUser(user);
 		blog.setCreateTime(stored.getCreateTime());
 		blog.setUpdateTime(new Date());
-		blog.setViews(stored.getViews());
 		blog.setReadTime(normalizeReadTime(blog));
 		blog.setPublished(Boolean.TRUE.equals(blog.getPublished()));
 		blog.setInternal(blog.getPublished() && Boolean.TRUE.equals(blog.getInternal()));

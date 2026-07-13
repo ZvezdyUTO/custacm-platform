@@ -11,6 +11,7 @@ function dashboardFixture() {
   return {
     dashboard: {
       status: ref('ready'), trainingUsers: ref([]), selectedTrainingUser: computed(() => null),
+      includeRetiredUsers: ref(false),
       selectedUsername: ref(null), selectedOjName: ref(OJ_NAMES.CODEFORCES),
       trainingQuery: ref({ acceptedFromDateUtcPlus8: '2026-07-01', acceptedToDateUtcPlus8: '2026-07-12', minProblemRating: '', maxProblemRating: '' }),
       multiUserRows: ref([]), multiUserProgress: ref({ completed: 0, total: 0, active: false, failed: 0 }),
@@ -18,7 +19,7 @@ function dashboardFixture() {
       problemSubmissions: ref(null), problemFirstAccepted: ref(null), submissionPage: ref(1), submissionLimit: ref(15),
       firstAcceptedPage: ref(1), firstAcceptedLimit: ref(15), problemSubmissionPage: ref(1), problemSubmissionLimit: ref(15),
       problemFirstAcceptedPage: ref(1), problemFirstAcceptedLimit: ref(15), applyTrainingQuery,
-      refreshDashboard: vi.fn(), chooseUsername: vi.fn(), chooseOjName: vi.fn(), retryMultiUserSummary: vi.fn(),
+      refreshDashboard: vi.fn(), chooseUsername: vi.fn(), setIncludeRetiredUsers: vi.fn(), chooseOjName: vi.fn(), retryMultiUserSummary: vi.fn(),
       changeSubmissionPage: vi.fn(), changeFirstAcceptedPage: vi.fn(), changeProblemSubmissionPage: vi.fn(), changeProblemFirstAcceptedPage: vi.fn(),
     } as unknown as ReturnType<typeof usePlatformDashboard>,
     applyTrainingQuery,
@@ -39,6 +40,36 @@ describe('training query automatic filters', () => {
     expect(dashboard.chooseUsername).not.toHaveBeenCalled();
   });
 
+  it('shows username-first single-user options in descending student-number order', () => {
+    const { dashboard } = dashboardFixture();
+    dashboard.trainingUsers.value = [
+      { username: '25000002', nickname: '队员乙', ojNames: [OJ_NAMES.CODEFORCES] },
+      { username: '25000010', nickname: '队员甲', ojNames: [OJ_NAMES.CODEFORCES] },
+    ];
+    const wrapper = mount(TrainingQueryPanel, { props: { dashboard, mode: 'single' } });
+
+    expect(wrapper.findAll('select[aria-label="队员"] option').slice(1).map((option) => option.text())).toEqual([
+      '25000010 · 队员甲',
+      '25000002 · 队员乙',
+    ]);
+  });
+
+  it('reloads the directory with retired users from multiple and single views', async () => {
+    const multiple = dashboardFixture().dashboard;
+    const multipleWrapper = mount(TrainingQueryPanel, { props: { dashboard: multiple, mode: 'multiple' } });
+    const multipleToggle = multipleWrapper.get('label.query-retired-toggle');
+    expect(multipleToggle.text()).toBe('显示退役队员');
+    await multipleToggle.get('input').setValue(true);
+    expect(multiple.setIncludeRetiredUsers).toHaveBeenCalledWith(true);
+
+    const single = dashboardFixture().dashboard;
+    const singleWrapper = mount(TrainingQueryPanel, { props: { dashboard: single, mode: 'single' } });
+    const singleToggle = singleWrapper.get('label.query-retired-toggle');
+    expect(singleToggle.text()).toBe('选择退役队员');
+    await singleToggle.get('input').setValue(true);
+    expect(single.setIncludeRetiredUsers).toHaveBeenCalledWith(true);
+  });
+
   it('removes the query button and applies a valid filter after a short debounce', async () => {
     vi.useFakeTimers();
     const { dashboard, applyTrainingQuery } = dashboardFixture();
@@ -46,6 +77,7 @@ describe('training query automatic filters', () => {
 
     expect(wrapper.find('button[type="submit"]').exists()).toBe(false);
     expect(wrapper.get('.query-auto-refresh-hint').text()).toBe('筛选后自动刷新');
+    expect(wrapper.get('.query-filter-hint').text()).toBe('筛选后自动刷新 · 日期或 Rating 的任一边界留空时，不限制对应方向的范围。');
     await wrapper.findAll('input[type="number"]')[0]!.setValue('1200');
     await vi.advanceTimersByTimeAsync(249);
     expect(applyTrainingQuery).not.toHaveBeenCalled();
@@ -80,6 +112,7 @@ describe('training query automatic filters', () => {
     await vi.advanceTimersByTimeAsync(300);
     expect(applyTrainingQuery).not.toHaveBeenCalled();
     expect(wrapper.get('.query-problem-apply-button').text()).toBe('查询');
+    expect(wrapper.get('.query-filter-hint').text()).toBe('日期的任一边界留空时，不限制对应方向的范围。');
 
     await wrapper.get('.query-form').trigger('submit');
     expect(applyTrainingQuery).toHaveBeenCalledOnce();

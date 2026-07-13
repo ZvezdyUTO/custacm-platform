@@ -73,6 +73,28 @@ class AtcoderSubmissionCollectionServiceTest {
     }
 
     @Test
+    void firstSuccessfulCollectionCrawlsFullAtcoderHistoryAndCreatesCursor() throws Exception {
+        FakeSourceClient sourceClient = new FakeSourceClient();
+        sourceClient.addPage("tourist", page(submission(1, "tourist", "2020-01-01T00:00:00Z")));
+        RecordingSubmissionWriter writer = new RecordingSubmissionWriter();
+        FakeHandleAccountRepository repository = new FakeHandleAccountRepository(null);
+        AtcoderSubmissionCollectionService service = service(
+                sourceClient,
+                writer,
+                Clock.fixed(FETCHED_AT, ZoneId.of("Asia/Shanghai")),
+                2,
+                repository
+        );
+
+        var result = service.collectRecentWindowForUsername("112487张三", LOOKBACK);
+
+        assertThat(result.windowStartInclusive()).isEqualTo(Instant.EPOCH);
+        assertThat(sourceClient.calls).containsExactly(new SourceCall("tourist", 0L));
+        assertThat(repository.findByUsername("112487张三").orElseThrow()
+                .collectionStates().get(OjNames.ATCODER).lastCollectedAt()).isEqualTo(FETCHED_AT);
+    }
+
+    @Test
     void doesNotWriteWhenNoAtcoderSubmissionsMatchWindow() throws Exception {
         FakeSourceClient sourceClient = new FakeSourceClient();
         sourceClient.addPage("tourist", page(submission(1, "tourist", "2026-07-05T04:00:00Z")));
@@ -101,7 +123,8 @@ class AtcoderSubmissionCollectionServiceTest {
                 sourceClient,
                 writer,
                 Clock.fixed(windowEnd, ZoneId.of("Asia/Shanghai")),
-                10
+                10,
+                new FakeHandleAccountRepository(windowEnd)
         );
 
         var result = service.collectRecentWindowForUsername(
@@ -149,6 +172,16 @@ class AtcoderSubmissionCollectionServiceTest {
             Clock clock,
             int pageSize
     ) {
+        return service(sourceClient, writer, clock, pageSize, new FakeHandleAccountRepository());
+    }
+
+    private AtcoderSubmissionCollectionService service(
+            FakeSourceClient sourceClient,
+            RecordingSubmissionWriter writer,
+            Clock clock,
+            int pageSize,
+            FakeHandleAccountRepository repository
+    ) {
         JacksonAtcoderPayloadParser parser = new JacksonAtcoderPayloadParser(objectMapper);
         AtcoderOdsIngestService ingestService = new AtcoderOdsIngestService(
                 parser,
@@ -161,7 +194,7 @@ class AtcoderSubmissionCollectionServiceTest {
                 clock
         );
         OjHandleAccountService handleAccountService = new OjHandleAccountService(
-                new FakeHandleAccountRepository(),
+                repository,
                 clock
         );
         return new AtcoderSubmissionCollectionService(
@@ -249,20 +282,37 @@ class AtcoderSubmissionCollectionServiceTest {
     }
 
     private static final class FakeHandleAccountRepository implements OjHandleAccountRepository {
+        private OjHandleAccount account;
+
+        private FakeHandleAccountRepository() {
+            this(FETCHED_AT);
+        }
+
+        private FakeHandleAccountRepository(Instant lastCollectedAt) {
+            account = new OjHandleAccount(
+                    "112487张三",
+                    Map.of(OjNames.ATCODER, "tourist"),
+                    true,
+                    Map.of(OjNames.ATCODER, new OjHandleCollectionState(lastCollectedAt)),
+                    FETCHED_AT,
+                    FETCHED_AT
+            );
+        }
+
         @Override
         public List<OjHandleAccount> findAll() {
-            return List.of(account());
+            return List.of(account);
         }
 
         @Override
         public Optional<OjHandleAccount> findByUsername(String username) {
-            return "112487张三".equals(username) ? Optional.of(account()) : Optional.empty();
+            return "112487张三".equals(username) ? Optional.of(account) : Optional.empty();
         }
 
         @Override
         public Optional<OjHandleAccount> findByHandle(String ojName, String handle) {
             return OjNames.ATCODER.equals(OjNames.normalize(ojName)) && "tourist".equals(handle)
-                    ? Optional.of(account())
+                    ? Optional.of(account)
                     : Optional.empty();
         }
 
@@ -280,7 +330,7 @@ class AtcoderSubmissionCollectionServiceTest {
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {
-            return new OjHandleAccount(
+            account = new OjHandleAccount(
                     newUsername,
                     handles,
                     needCollect,
@@ -288,6 +338,7 @@ class AtcoderSubmissionCollectionServiceTest {
                     FETCHED_AT,
                     updatedAt
             );
+            return account;
         }
 
         @Override
@@ -296,25 +347,15 @@ class AtcoderSubmissionCollectionServiceTest {
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {
-            OjHandleAccount existing = account();
-            return new OjHandleAccount(
-                    existing.username(),
-                    existing.handles(),
-                    existing.needCollect(),
+            account = new OjHandleAccount(
+                    account.username(),
+                    account.handles(),
+                    account.needCollect(),
                     collectionStates,
-                    existing.createdAt(),
+                    account.createdAt(),
                     updatedAt
             );
-        }
-
-        private OjHandleAccount account() {
-            return new OjHandleAccount(
-                    "112487张三",
-                    Map.of(OjNames.ATCODER, "tourist"),
-                    true,
-                    FETCHED_AT,
-                    FETCHED_AT
-            );
+            return account;
         }
     }
 }

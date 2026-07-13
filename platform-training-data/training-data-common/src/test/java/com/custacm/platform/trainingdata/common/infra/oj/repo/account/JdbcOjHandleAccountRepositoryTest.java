@@ -67,7 +67,7 @@ class JdbcOjHandleAccountRepositoryTest {
                 false,
                 Map.of(
                         OjNames.CODEFORCES,
-                        new OjHandleCollectionState(true, Instant.parse("2026-07-04T00:00:00Z"))
+                        new OjHandleCollectionState(Instant.parse("2026-07-04T00:00:00Z"))
                 ),
                 CREATED_AT,
                 CREATED_AT
@@ -79,10 +79,9 @@ class JdbcOjHandleAccountRepositoryTest {
         assertThat(listed.handles()).containsEntry(OjNames.CODEFORCES, "tourist");
         assertThat(listed.handles()).containsEntry(OjNames.ATCODER, "tourist_atcoder");
         assertThat(listed.needCollect()).isFalse();
-        assertThat(listed.collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isTrue();
         assertThat(listed.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
                 .isEqualTo(Instant.parse("2026-07-04T00:00:00Z"));
-        assertThat(listed.collectionStates().get(OjNames.ATCODER).historyStartReached()).isFalse();
+        assertThat(listed.collectionStates().get(OjNames.ATCODER).lastCollectedAt()).isNull();
 
         OjHandleAccount changed = repository.updateUsernameAndNeedCollect(
                 "112487张三",
@@ -91,9 +90,9 @@ class JdbcOjHandleAccountRepositoryTest {
                 true,
                 Map.of(
                         OjNames.CODEFORCES,
-                        new OjHandleCollectionState(true, Instant.parse("2026-07-04T00:00:00Z")),
+                        new OjHandleCollectionState(Instant.parse("2026-07-04T00:00:00Z")),
                         OjNames.ATCODER,
-                        new OjHandleCollectionState(false, UPDATED_AT)
+                        new OjHandleCollectionState(UPDATED_AT)
                 ),
                 UPDATED_AT
         );
@@ -102,7 +101,8 @@ class JdbcOjHandleAccountRepositoryTest {
         assertThat(changed.handles()).containsEntry(OjNames.CODEFORCES, "tourist");
         assertThat(changed.handles()).containsEntry(OjNames.ATCODER, "tourist_atcoder");
         assertThat(changed.needCollect()).isTrue();
-        assertThat(changed.collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isTrue();
+        assertThat(changed.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
+                .isEqualTo(Instant.parse("2026-07-04T00:00:00Z"));
         assertThat(changed.collectionStates().get(OjNames.ATCODER).lastCollectedAt()).isEqualTo(UPDATED_AT);
         assertThat(changed.createdAt()).isEqualTo(CREATED_AT);
         assertThat(changed.updatedAt()).isEqualTo(UPDATED_AT);
@@ -208,9 +208,9 @@ class JdbcOjHandleAccountRepositoryTest {
                 "112487张三",
                 Map.of(
                         OjNames.CODEFORCES,
-                        new OjHandleCollectionState(true, Instant.parse("2026-07-04T00:00:00Z")),
+                        new OjHandleCollectionState(Instant.parse("2026-07-04T00:00:00Z")),
                         OjNames.ATCODER,
-                        new OjHandleCollectionState(false, UPDATED_AT)
+                        new OjHandleCollectionState(UPDATED_AT)
                 ),
                 UPDATED_AT
         );
@@ -220,7 +220,8 @@ class JdbcOjHandleAccountRepositoryTest {
                 .containsEntry(OjNames.CODEFORCES, "tourist")
                 .containsEntry(OjNames.ATCODER, "tourist_atcoder");
         assertThat(changed.needCollect()).isFalse();
-        assertThat(changed.collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isTrue();
+        assertThat(changed.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
+                .isEqualTo(Instant.parse("2026-07-04T00:00:00Z"));
         assertThat(changed.collectionStates().get(OjNames.ATCODER).lastCollectedAt()).isEqualTo(UPDATED_AT);
         assertThat(changed.createdAt()).isEqualTo(CREATED_AT);
         assertThat(changed.updatedAt()).isEqualTo(UPDATED_AT);
@@ -234,10 +235,26 @@ class JdbcOjHandleAccountRepositoryTest {
                 """);
 
         assertThat(repository.findAll().get(0).needCollect()).isTrue();
-        assertThat(repository.findAll().get(0).collectionStates().get(OjNames.CODEFORCES).historyStartReached())
-                .isFalse();
         assertThat(repository.findAll().get(0).collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
                 .isNull();
+    }
+
+    @Test
+    void readsLegacyCollectionStateJsonWhileIgnoringRemovedHistoryFlag() {
+        jdbcTemplate.update("""
+                insert into oj_handle_account (
+                    username, handles_json, collection_states_json, created_at, updated_at
+                ) values (
+                    '112487张三',
+                    '{"CODEFORCES":"tourist"}',
+                    '{"CODEFORCES":{"historyStartReached":true,"lastCollectedAt":"2026-07-04T00:00:00Z"}}',
+                    current_timestamp,
+                    current_timestamp
+                )
+                """);
+
+        assertThat(repository.findAll().getFirst().collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
+                .isEqualTo(Instant.parse("2026-07-04T00:00:00Z"));
     }
 
     @Test

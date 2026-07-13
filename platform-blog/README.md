@@ -24,8 +24,9 @@ Blog API 负责：
 - 本人文章首图/正文图片上传、高清图与缩略图生成、文章绑定及删除/替换后的即时文件回收。
 - 本人 nickname、个性签名与最多八条有序个人友情链接的读取和修改。
 - 管理员用户/OJ handle 生命周期、固定 `root` 系统管理员保护和保留内容的用户删除；空头像由前端统一回退到构建内置默认头像。
-- `top.naccl` 内的 `/player/training-data/**` 与 `/admin/training-data/**` HTTP adapter；查询侧注入训练模块的无 MVC facade。
+- `top.naccl` 内的 `/player/training-data/**` 与 `/admin/training-data/**` HTTP adapter；用户目录默认排除已退役账号并支持显式 `includeRetired=true`，查询侧注入训练模块的无 MVC facade。
 - Blog 与训练 schema 的统一 Flyway 执行。
+- Blog API 启动时默认注册 Codeforces 与 AtCoder 提交采集规则：未成功采集过的用户先抓取全部历史；之后每天从各自上次成功窗口结束时间向前倒退 120 小时，其余时段每 30 分钟倒退 1 小时并采集至当前时间；两种 OJ 错开 15 分钟触发。
 
 训练模块继续实现 Codeforces/AtCoder 采集、ODS/DWD/DWM/DWS、查询、调度、刷新与清理；它们不拥有登录、JWT、账号管理 HTTP 或独立运行入口。
 
@@ -36,6 +37,7 @@ Blog API 负责：
 - 公开 Blog 请求不全局携带 JWT。登录用户的文章列表、分类、标签、搜索和精选读取，以及评论提交，均由对应 Vue adapter 显式发送 `Authorization: Bearer <token>`；因此内部文章仅对登录用户出现在这些聚合结果中。
 - Vue Blog 顶栏向登录用户提供“发布文章”；“我的主页”内嵌本人文章列表，文章详情只对作者显示编辑入口。
 - 文章不再支持独立密码；内部文章只对登录用户出现在聚合列表中，正文只允许登录用户通过 `/player/**` 读取。
+- 顶栏搜索按文章标题匹配并展示文章简介；文章列表和详情不展示或维护阅读数，后端不执行详情计数或 Redis 定时同步。
 
 ## 目录结构
 

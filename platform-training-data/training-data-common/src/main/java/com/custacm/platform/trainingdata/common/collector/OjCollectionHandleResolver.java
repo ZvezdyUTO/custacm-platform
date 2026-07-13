@@ -8,10 +8,13 @@ public interface OjCollectionHandleResolver {
 
     List<String> listHandlesForCollection(String ojName);
 
+    default Instant getLastCollectedAt(String ojName, String handle) {
+        return null;
+    }
+
     default void markHandleCollected(
             String ojName,
             String handle,
-            boolean historyStartReached,
             Instant collectedAt
     ) {
     }

@@ -98,7 +98,7 @@ public class OjSubmissionCollectionService {
         Instant windowEndExclusive = clock.instant();
         return collectWindow(
                 ojName,
-                windowEndExclusive.minus(normalizedLookback),
+                normalizedLookback,
                 windowEndExclusive,
                 handleSupplier
         );
@@ -106,11 +106,12 @@ public class OjSubmissionCollectionService {
 
     private OjSubmissionCollectionResult collectWindow(
             String ojName,
-            Instant windowStartInclusive,
+            Duration lookback,
             Instant windowEndExclusive,
             CollectionHandleSupplier handleSupplier
     ) throws JsonProcessingException {
-        requireWindow(windowStartInclusive, windowEndExclusive);
+        Instant fallbackWindowStartInclusive = overlapWindowStart(windowEndExclusive, lookback);
+        requireWindow(fallbackWindowStartInclusive, windowEndExclusive);
         if (!running.compareAndSet(false, true)) {
             log.warn(
                     "OJ submission collection skipped, errorCode={}, ojName={}",
@@ -119,13 +120,19 @@ public class OjSubmissionCollectionService {
             );
             return OjSubmissionCollectionResult.skipped(
                     ojName,
-                    windowStartInclusive,
+                    fallbackWindowStartInclusive,
                     windowEndExclusive,
                     adapter.displayName(ojName) + " submission collection is already running"
             );
         }
         try {
-            return doCollectWindow(ojName, windowStartInclusive, windowEndExclusive, handleSupplier);
+            return doCollectWindow(
+                    ojName,
+                    lookback,
+                    fallbackWindowStartInclusive,
+                    windowEndExclusive,
+                    handleSupplier
+            );
         } finally {
             running.set(false);
         }
@@ -133,7 +140,8 @@ public class OjSubmissionCollectionService {
 
     private OjSubmissionCollectionResult doCollectWindow(
             String ojName,
-            Instant windowStartInclusive,
+            Duration lookback,
+            Instant fallbackWindowStartInclusive,
             Instant windowEndExclusive,
             CollectionHandleSupplier handleSupplier
     ) throws JsonProcessingException {
@@ -141,7 +149,7 @@ public class OjSubmissionCollectionService {
         if (handles.isEmpty()) {
             return OjSubmissionCollectionResult.withoutWrite(
                     ojName,
-                    windowStartInclusive,
+                    fallbackWindowStartInclusive,
                     windowEndExclusive,
                     0,
                     List.of(),
@@ -152,12 +160,21 @@ public class OjSubmissionCollectionService {
         List<OjHandleCollectionOutcome> matchedOutcomes = new ArrayList<>();
         List<OjSubmissionCollectionHandleResult> handleResults = new ArrayList<>();
         List<OjHandleCollectionOutcome> successfulOutcomes = new ArrayList<>();
+        Instant earliestWindowStartInclusive = null;
         OjCollectionRequestExecutor requestExecutor = new OjCollectionRequestExecutor(
                 maxRequestAttempts,
                 requestInterval,
                 sleepStrategy
         );
         for (String handle : handles) {
+            Instant windowStartInclusive = collectionWindowStart(
+                    handleResolver.getLastCollectedAt(ojName, handle),
+                    lookback,
+                    windowEndExclusive
+            );
+            if (earliestWindowStartInclusive == null || windowStartInclusive.isBefore(earliestWindowStartInclusive)) {
+                earliestWindowStartInclusive = windowStartInclusive;
+            }
             OjHandleCollectionOutcome outcome = adapter.collectHandle(
                     ojName,
                     handle,
@@ -175,11 +192,14 @@ public class OjSubmissionCollectionService {
         }
 
         int requestedHandleCount = handles.size();
+        Instant resultWindowStartInclusive = earliestWindowStartInclusive == null
+                ? fallbackWindowStartInclusive
+                : earliestWindowStartInclusive;
         if (matchedOutcomes.isEmpty()) {
             markSuccessfulHandleCollections(ojName, successfulOutcomes, windowEndExclusive);
             return OjSubmissionCollectionResult.withoutWrite(
                     ojName,
-                    windowStartInclusive,
+                    resultWindowStartInclusive,
                     windowEndExclusive,
                     requestedHandleCount,
                     handleResults,
@@ -191,7 +211,7 @@ public class OjSubmissionCollectionService {
         markSuccessfulHandleCollections(ojName, successfulOutcomes, windowEndExclusive);
         return OjSubmissionCollectionResult.written(
                 ojName,
-                windowStartInclusive,
+                resultWindowStartInclusive,
                 windowEndExclusive,
                 requestedHandleCount,
                 handleResults,
@@ -208,10 +228,31 @@ public class OjSubmissionCollectionService {
             handleResolver.markHandleCollected(
                     ojName,
                     outcome.result().handle(),
-                    outcome.historyStartReached(),
                     collectedAt
             );
         }
+    }
+
+    private static Instant collectionWindowStart(
+            Instant lastCollectedAt,
+            Duration lookback,
+            Instant windowEndExclusive
+    ) {
+        if (lastCollectedAt == null) {
+            return Instant.EPOCH;
+        }
+        Instant effectiveLastCollectedAt = lastCollectedAt.isAfter(windowEndExclusive)
+                ? windowEndExclusive
+                : lastCollectedAt;
+        return overlapWindowStart(effectiveLastCollectedAt, lookback);
+    }
+
+    private static Instant overlapWindowStart(Instant referenceTime, Duration lookback) {
+        if (!referenceTime.isAfter(Instant.EPOCH)) {
+            return Instant.EPOCH;
+        }
+        Instant candidate = referenceTime.minus(lookback);
+        return candidate.isBefore(Instant.EPOCH) ? Instant.EPOCH : candidate;
     }
 
     private static List<String> normalizeHandles(List<String> handles) {

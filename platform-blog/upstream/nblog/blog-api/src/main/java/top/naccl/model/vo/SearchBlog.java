@@ -17,5 +17,5 @@ import lombok.ToString;
 public class SearchBlog {
 	private Long id;
 	private String title;
-	private String content;
+	private String description;
 }

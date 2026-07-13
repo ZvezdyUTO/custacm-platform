@@ -130,6 +130,7 @@ export function usePlatformDashboard(options: {
   const errorMessage = ref<string | null>(null);
   const adminUsers = ref<AdminUserMutationResponse[]>([]);
   const trainingUsers = ref<TrainingUser[]>([]);
+  const includeRetiredUsers = ref(false);
   const selectedUsername = ref<Username | null>(null);
   const selectedOjName = ref<OjName>(OJ_NAMES.CODEFORCES);
   const trainingQuery = ref<TrainingQueryRange>(recentWeek());
@@ -253,7 +254,7 @@ export function usePlatformDashboard(options: {
     errorMessage.value = null;
     try {
       const token = activeToken();
-      const users = await listTrainingUsers(token);
+      const users = await listTrainingUsers(token, includeRetiredUsers.value);
       if (sequence !== requestSequence) return;
       trainingUsers.value = users;
       if (selectedUsername.value && !users.some((item) => item.username === selectedUsername.value)) {
@@ -294,6 +295,11 @@ export function usePlatformDashboard(options: {
   async function chooseUsername(username: Username) {
     selectedUsername.value = username;
     if (options.mode.value === 'single') await loadWithStatus(loadSingleDetails);
+  }
+
+  async function setIncludeRetiredUsers(includeRetired: boolean) {
+    includeRetiredUsers.value = includeRetired;
+    await refreshDashboard(options.mode.value);
   }
 
   async function chooseOjName(ojName: OjName) {
@@ -389,9 +395,16 @@ export function usePlatformDashboard(options: {
   async function batchCollectSubmissions(request: CollectionJobStartRequest) {
     const started = await startCollectionJob(activeToken(), request);
     upsertJob(started);
-    return started.status === 'PENDING' || started.status === 'RUNNING'
+    const completed = started.status === 'PENDING' || started.status === 'RUNNING'
       ? waitForJob(started.jobId)
       : started;
+    const result = await completed;
+    try {
+      adminUsers.value = (await listAdminUsers(activeToken())).map(withoutGeneratedPassword);
+    } catch (error) {
+      handleError(error);
+    }
+    return result;
   }
 
   async function refreshTrainingWarehouse(ojName: OjName, request: WarehouseRefreshRequest): Promise<WarehouseRefreshResult> {
@@ -488,14 +501,14 @@ export function usePlatformDashboard(options: {
   });
 
   return {
-    status, errorMessage, adminUsers, trainingUsers, selectedTrainingUser,
+    status, errorMessage, adminUsers, trainingUsers, includeRetiredUsers, selectedTrainingUser,
     selectedUsername, selectedOjName, trainingQuery, multiUserRows, multiUserProgress,
     acceptedSummary, submissions, firstAccepted, problemKey, problemSubmissions,
     problemFirstAccepted, submissionPage, submissionLimit, firstAcceptedPage,
     firstAcceptedLimit, problemSubmissionPage, problemSubmissionLimit,
     problemFirstAcceptedPage, problemFirstAcceptedLimit, collectionJob, collectionJobs,
     homepageBanners, adminArticles, adminCategories, adminTags,
-    refreshDashboard, applyTrainingQuery, chooseUsername, chooseOjName,
+    refreshDashboard, applyTrainingQuery, chooseUsername, setIncludeRetiredUsers, chooseOjName,
     retryMultiUserSummary, changeSubmissionPage, changeFirstAcceptedPage,
     changeProblemSubmissionPage, changeProblemFirstAcceptedPage,
     batchCreateUsers, patchUser, updateOjHandles, replaceOjHandle, deleteUser,

@@ -55,14 +55,14 @@ class IntegratedControllerCoverageTest {
 		TrainingUserQueryService users = mock(TrainingUserQueryService.class);
 		TrainingDataQueryController controller = new TrainingDataQueryController(facade, users);
 
-		controller.users();
+		controller.users(true);
 		controller.acceptedSummary("ATCODER", "alice", "from", "to", 800, 1600);
 		controller.submissionsByUser("ATCODER", "alice", "from", "to", 800, 1600, 2, 20);
 		controller.submissionsByProblem("ATCODER", "abc100_a", "from", "to", 3, 30);
 		controller.firstAcceptedByUser("ATCODER", "alice", "from", "to", 800, 1600, 4, 40);
 		controller.firstAcceptedByProblem("ATCODER", "abc100_a", "from", "to", 5, 50);
 
-		verify(users).listCollectableUsers();
+		verify(users).listUsers(true);
 		verify(facade).summarizeAcceptedProblems("ATCODER", "alice", "from", "to", 800, 1600);
 		verify(facade).listStudentSubmissions("ATCODER", "alice", "from", "to", 800, 1600, 2, 20);
 		verify(facade).listProblemSubmissions("ATCODER", "abc100_a", "from", "to", 3, 30);

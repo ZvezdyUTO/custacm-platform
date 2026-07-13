@@ -6,16 +6,8 @@ import java.util.List;
 
 public record OjHandleCollectionOutcome(
         OjSubmissionCollectionHandleResult result,
-        List<JsonNode> submissions,
-        boolean historyStartReached
+        List<JsonNode> submissions
 ) {
-    public OjHandleCollectionOutcome(
-            OjSubmissionCollectionHandleResult result,
-            List<JsonNode> submissions
-    ) {
-        this(result, submissions, false);
-    }
-
     public OjHandleCollectionOutcome {
         submissions = submissions == null ? List.of() : List.copyOf(submissions);
     }

@@ -2,10 +2,10 @@
 
 | Path | Current responsibility |
 | --- | --- |
-| `platform-blog/upstream/nblog/blog-api/` | 唯一 Spring Boot 后端；Blog、最小 `/site` 外壳初始化响应、文章/头像托管图片高清与缩略图及零垃圾回收、首页图片、认证、用户资料/个人友链、用户/OJ handle、按登录态筛选内部文章聚合结果、`top.naccl` 训练 HTTP adapter 与统一 Flyway runtime |
-| `platform-blog/upstream/nblog/blog-view/` | Vue 3 + Vite 公开 Blog；生产路径 `/`，“我的主页”集中资料与本人文章，文章详情左侧显示当前文章作者公开名片，登录用户在列表/分类/标签/搜索/精选中可见内部文章，文章编辑支持 Markdown 导入、首图裁剪、正文图片选择/拖拽/粘贴，阅读页按需加载高清图 |
-| `frontend/` | Vue 3 训练运行时；公开路径 `/training/**` 由 Blog 外壳承载，内部产物路径 `/training-app/**`；查询页与使用勃艮第专属主题的创建用户、管理用户、管理文章、管理分类、数据采集、首页图片六个管理员页面；同时拥有可选 TLS 的双前端 Nginx/Docker 构建 |
-| `platform-training-data/training-data-common/` | OJ-neutral 用户目录 contract、无 MVC query facade、共享 handle 迁移、job、调度、warehouse 与 purge logic |
+| `platform-blog/upstream/nblog/blog-api/` | 唯一 Spring Boot 后端；Blog、最小 `/site` 外壳初始化响应、文章/头像托管图片高清与缩略图及零垃圾回收、首页图片、认证、用户资料/个人友链、用户/OJ handle、按登录态筛选内部文章聚合结果、返回简介的标题搜索、无阅读数的文章读模型、`top.naccl` 训练 HTTP adapter 与统一 Flyway runtime |
+| `platform-blog/upstream/nblog/blog-view/` | Vue 3 + Vite 公开 Blog；生产路径 `/`，“我的主页”集中资料与本人文章，文章详情左侧显示当前文章作者公开名片，搜索建议展示文章简介，文章列表和详情不显示阅读数，登录用户在列表/分类/标签/搜索/精选中可见内部文章，文章编辑支持 Markdown 导入、首图裁剪、正文图片选择/拖拽/粘贴，阅读页按需加载高清图 |
+| `frontend/` | Vue 3 训练运行时；公开路径 `/training/**` 由 Blog 外壳承载，内部产物路径 `/training-app/**`；查询页支持显式包含老队员与 username 队员选择，勃艮第管理用户页支持 username 子串查询；另含创建用户、管理文章、管理分类、数据采集、首页图片页面及可选 TLS 的双前端 Nginx/Docker 构建 |
+| `platform-training-data/training-data-common/` | OJ-neutral 用户目录 contract、按用户/OJ 的首次全历史与后续成功窗口倒退游标、无 MVC query facade、共享 handle 迁移、job、调度、warehouse 与 purge logic |
 | `platform-training-data/training-data-codeforces/` | Codeforces source、ODS、OJ 专属迁移、warehouse SQL 与 adapter |
 | `platform-training-data/training-data-atcoder/` | AtCoder source、metadata、ODS、warehouse SQL 与 adapter |
 | `platform-common/common-core/` | 公共 SQL task 等后端基础能力 |

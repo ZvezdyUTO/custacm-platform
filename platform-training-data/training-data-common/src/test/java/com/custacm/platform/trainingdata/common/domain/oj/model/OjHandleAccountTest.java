@@ -26,7 +26,6 @@ class OjHandleAccountTest {
         assertThat(account.handles()).containsExactlyEntriesOf(Map.of(OjNames.CODEFORCES, "tourist"));
         assertThat(account.needCollect()).isTrue();
         assertThat(account.collectionStates()).containsKey(OjNames.CODEFORCES);
-        assertThat(account.collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isFalse();
         assertThat(account.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt()).isNull();
         assertThat(account.createdAt()).isEqualTo(NOW);
         assertThat(account.updatedAt()).isEqualTo(NOW);
@@ -64,7 +63,7 @@ class OjHandleAccountTest {
                 true,
                 Map.of(
                         "codeforces",
-                        new OjHandleCollectionState(true, Instant.parse("2026-07-04T00:00:00Z"))
+                        new OjHandleCollectionState(Instant.parse("2026-07-04T00:00:00Z"))
                 ),
                 NOW,
                 NOW
@@ -72,8 +71,9 @@ class OjHandleAccountTest {
 
         assertThat(account.handles()).containsEntry(OjNames.CODEFORCES, "tourist");
         assertThat(account.handles()).containsEntry(OjNames.ATCODER, "tourist_atcoder");
-        assertThat(account.collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isTrue();
-        assertThat(account.collectionStates().get(OjNames.ATCODER).historyStartReached()).isFalse();
+        assertThat(account.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
+                .isEqualTo(Instant.parse("2026-07-04T00:00:00Z"));
+        assertThat(account.collectionStates().get(OjNames.ATCODER).lastCollectedAt()).isNull();
     }
 
     @Test

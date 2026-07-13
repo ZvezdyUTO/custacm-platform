@@ -54,8 +54,7 @@ public abstract class AbstractOjSubmissionCollectionAdapter implements OjSubmiss
                             progress.fetchedSubmissionCount(),
                             progress.matchedSubmissionCount()
                     ),
-                    progress.matchedSubmissions(),
-                    progress.historyStartReached()
+                    progress.matchedSubmissions()
             );
         } catch (RuntimeException ex) {
             String errorCode = errorCode(ex);
@@ -113,7 +112,6 @@ public abstract class AbstractOjSubmissionCollectionAdapter implements OjSubmiss
     protected static final class HandleCollectionProgress {
         private final List<JsonNode> matchedSubmissions = new ArrayList<>();
         private int fetchedSubmissionCount;
-        private boolean historyStartReached;
 
         public void addFetchedSubmissionCount(int count) {
             if (count < 0) {
@@ -131,10 +129,6 @@ public abstract class AbstractOjSubmissionCollectionAdapter implements OjSubmiss
                     .forEach(this::addMatchedSubmission);
         }
 
-        public void setHistoryStartReached(boolean value) {
-            historyStartReached = value;
-        }
-
         private int fetchedSubmissionCount() {
             return fetchedSubmissionCount;
         }
@@ -147,8 +141,5 @@ public abstract class AbstractOjSubmissionCollectionAdapter implements OjSubmiss
             return List.copyOf(matchedSubmissions);
         }
 
-        private boolean historyStartReached() {
-            return historyStartReached;
-        }
     }
 }

@@ -30,7 +30,6 @@
 								</div>
 								<div class="list-article-meta" aria-label="文章信息">
 									<span><i class="calendar outline icon"></i>{{ $filters.dateFormat(item.createTime, 'YYYY-MM-DD')}}</span>
-									<span><i class="eye outline icon"></i>{{ item.views }} 次浏览</span>
 									<span><i class="file alternate outline icon"></i>{{ item.words }} 字</span>
 								</div>
 								</div>

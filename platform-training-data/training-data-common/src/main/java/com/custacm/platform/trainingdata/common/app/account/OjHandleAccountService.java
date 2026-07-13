@@ -201,7 +201,6 @@ public class OjHandleAccountService implements TrainingUserDirectory {
     public Optional<OjHandleAccount> markCollectedByHandle(
             String ojName,
             String handle,
-            boolean historyStartReached,
             Instant collectedAt
     ) {
         String normalizedOjName = requireOjName(ojName);
@@ -215,7 +214,7 @@ public class OjHandleAccountService implements TrainingUserDirectory {
         return repository.findByHandle(normalizedOjName, normalizedHandle)
                 .map(account -> repository.updateCollectionStates(
                         account.username(),
-                        markCollected(account.collectionStates(), normalizedOjName, historyStartReached, collectedAt),
+                        markCollected(account.collectionStates(), normalizedOjName, collectedAt),
                         clock.instant()
                 ));
     }
@@ -223,14 +222,13 @@ public class OjHandleAccountService implements TrainingUserDirectory {
     private static Map<String, OjHandleCollectionState> markCollected(
             Map<String, OjHandleCollectionState> collectionStates,
             String ojName,
-            boolean historyStartReached,
             Instant collectedAt
     ) {
         Map<String, OjHandleCollectionState> updated = new LinkedHashMap<>(collectionStates);
         updated.put(
                 ojName,
                 updated.getOrDefault(ojName, OjHandleCollectionState.empty())
-                        .markCollected(historyStartReached, collectedAt)
+                        .markCollected(collectedAt)
         );
         return updated;
     }

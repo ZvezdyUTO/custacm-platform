@@ -80,9 +80,6 @@ final class CodeforcesSubmissionCollectionAdapter extends AbstractOjSubmissionCo
             );
             progress.addMatchedSubmissions(filteredPage.matchedSubmissions());
             boolean reachedSourceEnd = responsePage.size() < pageSize;
-            if (reachedSourceEnd) {
-                progress.setHistoryStartReached(true);
-            }
             if (reachedSourceEnd || filteredPage.allSubmissionsAreOlderThanWindow()) {
                 break;
             }

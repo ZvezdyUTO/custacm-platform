@@ -113,24 +113,22 @@ class OjHandleAccountServiceTest {
     }
 
     @Test
-    void marksCollectionStateByOjHandleAndKeepsReachedHistoryStart() {
+    void marksLatestSuccessfulCollectionWindowEndByOjHandle() {
         service.create("112487张三", Map.of(OjNames.CODEFORCES, "tourist"));
 
         OjHandleAccount first = service.markCollectedByHandle(
                 OjNames.CODEFORCES,
                 "tourist",
-                true,
                 Instant.parse("2026-07-04T00:00:00Z")
         ).orElseThrow();
         OjHandleAccount second = service.markCollectedByHandle(
                 OjNames.CODEFORCES,
                 "tourist",
-                false,
                 Instant.parse("2026-07-05T00:00:00Z")
         ).orElseThrow();
 
-        assertThat(first.collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isTrue();
-        assertThat(second.collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isTrue();
+        assertThat(first.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
+                .isEqualTo(Instant.parse("2026-07-04T00:00:00Z"));
         assertThat(second.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
                 .isEqualTo(Instant.parse("2026-07-05T00:00:00Z"));
         assertThat(second.updatedAt()).isEqualTo(NOW);
@@ -145,7 +143,7 @@ class OjHandleAccountServiceTest {
                 created.needCollect(),
                 Map.of(
                         OjNames.CODEFORCES,
-                        new OjHandleCollectionState(true, Instant.parse("2026-07-04T00:00:00Z"))
+                        new OjHandleCollectionState(Instant.parse("2026-07-04T00:00:00Z"))
                 ),
                 created.createdAt(),
                 created.updatedAt()
@@ -168,7 +166,7 @@ class OjHandleAccountServiceTest {
         repository.accountsByIdentity.put("112487张三", new OjHandleAccount(
                 created.username(), created.handles(), created.needCollect(),
                 Map.of(OjNames.CODEFORCES,
-                        new OjHandleCollectionState(true, Instant.parse("2026-07-04T00:00:00Z"))),
+                        new OjHandleCollectionState(Instant.parse("2026-07-04T00:00:00Z"))),
                 created.createdAt(), created.updatedAt()
         ));
 
@@ -176,7 +174,6 @@ class OjHandleAccountServiceTest {
                 "112487张三", OjNames.CODEFORCES, "Benq");
 
         assertThat(changed.handles().get(OjNames.CODEFORCES)).isEqualTo("Benq");
-        assertThat(changed.collectionStates().get(OjNames.CODEFORCES).historyStartReached()).isFalse();
         assertThat(changed.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt()).isNull();
     }
 

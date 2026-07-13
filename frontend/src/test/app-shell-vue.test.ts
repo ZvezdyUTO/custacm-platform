@@ -55,4 +55,27 @@ describe('Vue training app shell', () => {
     ]);
     expect(wrapper.get('.blog-nav-search input').attributes('placeholder')).toBe('Search...');
   });
+
+  it('keeps the training navigation inactive on administrator pages', async () => {
+    const router = createRouter({
+      history: createMemoryHistory('/training-app/'),
+      routes: [
+        { path: '/multiple', name: 'multiple', meta: { page: 'multiple' }, component: { template: '<div />' } },
+        { path: '/admin/users', name: 'admin-users', meta: { page: 'admin' }, component: { template: '<div />' } },
+      ],
+    });
+    await router.push('/admin/users');
+    await router.isReady();
+    const wrapper = mount(AppShell, {
+      props: {
+        currentUser: { username: 'admin', nickname: '管理员', avatar: '', email: '', role: 'ROLE_admin' },
+        changePassword: async () => undefined,
+      },
+      global: { plugins: [router] },
+    });
+
+    expect(wrapper.get('.top-training-trigger').classes()).not.toContain('is-active');
+    await router.push('/multiple');
+    expect(wrapper.get('.top-training-trigger').classes()).toContain('is-active');
+  });
 });

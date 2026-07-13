@@ -21,11 +21,11 @@ public class TrainingUserQueryService {
         this.handleAccountService = handleAccountService;
     }
 
-    public java.util.List<TrainingUserSummary> listCollectableUsers() {
+    public java.util.List<TrainingUserSummary> listUsers(boolean includeRetired) {
         Map<String, User> users = userMapper.findAll().stream()
                 .collect(Collectors.toMap(User::getUsername, Function.identity()));
         return handleAccountService.listAll().stream()
-                .filter(account -> account.needCollect() && users.containsKey(account.username()))
+                .filter(account -> (includeRetired || account.needCollect()) && users.containsKey(account.username()))
                 .map(account -> new TrainingUserSummary(
                         account.username(),
                         users.get(account.username()).getNickname(),

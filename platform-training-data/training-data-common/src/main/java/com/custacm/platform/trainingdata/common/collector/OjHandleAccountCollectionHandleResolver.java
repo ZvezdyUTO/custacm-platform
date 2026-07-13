@@ -2,6 +2,7 @@ package com.custacm.platform.trainingdata.common.collector;
 
 import com.custacm.platform.trainingdata.common.app.account.TrainingUserDirectory;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleAccount;
+import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleCollectionState;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
 
 import java.time.Instant;
@@ -35,12 +36,20 @@ public final class OjHandleAccountCollectionHandleResolver implements OjCollecti
     }
 
     @Override
+    public Instant getLastCollectedAt(String ojName, String handle) {
+        String normalizedOjName = OjNames.normalize(ojName);
+        return handleAccountService.getByHandle(normalizedOjName, handle)
+                .collectionStates()
+                .getOrDefault(normalizedOjName, OjHandleCollectionState.empty())
+                .lastCollectedAt();
+    }
+
+    @Override
     public void markHandleCollected(
             String ojName,
             String handle,
-            boolean historyStartReached,
             Instant collectedAt
     ) {
-        handleAccountService.markCollectedByHandle(ojName, handle, historyStartReached, collectedAt);
+        handleAccountService.markCollectedByHandle(ojName, handle, collectedAt);
     }
 }

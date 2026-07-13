@@ -108,7 +108,6 @@ class PlayerBlogServiceTest {
 		stored.setTop(true);
 		stored.setRecommend(true);
 		stored.setAppreciation(true);
-		stored.setViews(88);
 		when(blogMapper.getBlogByIdAndUserId(10L, 7L)).thenReturn(stored);
 		top.naccl.model.dto.Blog input = validBlog();
 		input.setId(10L);
@@ -118,7 +117,6 @@ class PlayerBlogServiceTest {
 		assertEquals(true, input.getTop());
 		assertEquals(true, input.getRecommend());
 		assertEquals(true, input.getAppreciation());
-		assertEquals(88, input.getViews());
 		verify(blogService).updateBlog(input);
 	}
 

@@ -51,7 +51,6 @@ public class BlogController {
 	@GetMapping("/blog")
 	public Result getBlog(@RequestParam Long id) {
 		BlogDetail blog = blogService.getBlogByIdAndIsPublished(id);
-		blogService.updateViewsToRedis(id);
 		return Result.ok("获取成功", blog);
 	}
 

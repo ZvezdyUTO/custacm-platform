@@ -89,7 +89,7 @@
 }
 
 /* 去掉列表前的标识, li 会继承，大部分网站通常用列表来很多内容，所以应该当去 */
-.typo ul, ol {
+.typo ul, .typo ol {
     list-style: none;
 }
 
@@ -267,7 +267,6 @@
 
 /* 长代码、表格、公式或无法断行的原始 Markdown 内容只在自身区域横向滚动，不能撑破文章列。 */
 .typo p,
-.typo li,
 .typo table,
 .typo .katex-display,
 .typo .MathJax_Display {
@@ -282,7 +281,6 @@
 
 .typo pre::-webkit-scrollbar,
 .typo p::-webkit-scrollbar,
-.typo li::-webkit-scrollbar,
 .typo table::-webkit-scrollbar,
 .typo .katex-display::-webkit-scrollbar,
 .typo .MathJax_Display::-webkit-scrollbar {
@@ -291,7 +289,6 @@
 
 .typo pre::-webkit-scrollbar-track,
 .typo p::-webkit-scrollbar-track,
-.typo li::-webkit-scrollbar-track,
 .typo table::-webkit-scrollbar-track,
 .typo .katex-display::-webkit-scrollbar-track,
 .typo .MathJax_Display::-webkit-scrollbar-track {
@@ -301,7 +298,6 @@
 
 .typo pre::-webkit-scrollbar-thumb,
 .typo p::-webkit-scrollbar-thumb,
-.typo li::-webkit-scrollbar-thumb,
 .typo table::-webkit-scrollbar-thumb,
 .typo .katex-display::-webkit-scrollbar-thumb,
 .typo .MathJax_Display::-webkit-scrollbar-thumb {
@@ -312,7 +308,6 @@
 
 .typo pre::-webkit-scrollbar-thumb:hover,
 .typo p::-webkit-scrollbar-thumb:hover,
-.typo li::-webkit-scrollbar-thumb:hover,
 .typo table::-webkit-scrollbar-thumb:hover,
 .typo .katex-display::-webkit-scrollbar-thumb:hover,
 .typo .MathJax_Display::-webkit-scrollbar-thumb:hover {

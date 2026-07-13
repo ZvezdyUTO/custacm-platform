@@ -251,9 +251,6 @@ public class BlogAdminController {
 		if (blog.getReadTime() == null || blog.getReadTime() < 0) {
 			blog.setReadTime((int) Math.round(blog.getWords() / 200.0));//粗略计算阅读时长
 		}
-		if (blog.getViews() == null || blog.getViews() < 0) {
-			blog.setViews(0);
-		}
 		blog.setPublished(Boolean.TRUE.equals(blog.getPublished()));
 		blog.setInternal(blog.getPublished() && Boolean.TRUE.equals(blog.getInternal()));
 		if ("save".equals(type)) {

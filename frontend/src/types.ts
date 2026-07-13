@@ -1,8 +1,6 @@
 export type Username = string;
 export type AccountRole = 'ROLE_admin' | 'ROLE_player';
 
-export const UNLIMITED_LOOKBACK_HOURS = 1_000_000_000;
-
 export const OJ_NAMES = {
   CODEFORCES: 'CODEFORCES',
   ATCODER: 'ATCODER',
@@ -33,6 +31,9 @@ export interface AdminUserMutationResponse {
   user: CurrentUser & { id: number; createTime: string; updateTime: string };
   handles: Partial<Record<OjName, string>>;
   needCollect: boolean | null;
+  collectionStates: Partial<Record<OjName, {
+    lastCollectedAt: string | null;
+  }>>;
   generatedPassword: string | null;
   reloginRequired: boolean;
 }

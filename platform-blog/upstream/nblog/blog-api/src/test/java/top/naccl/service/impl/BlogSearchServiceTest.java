@@ -33,16 +33,16 @@ class BlogSearchServiceTest {
 	}
 
 	@Test
-	void buildsSafeLeadingContentSnippetsForTitleMatches() {
-		SearchBlog titleMatch = searchBlog(2L, "Needle 标题", "正文开头");
-		SearchBlog emptyContent = searchBlog(3L, "Needle 空正文", null);
+	void returnsArticleDescriptionsForTitleMatches() {
+		SearchBlog titleMatch = searchBlog(2L, "Needle 标题", "用于搜索建议的文章简介");
+		SearchBlog emptyDescription = searchBlog(3L, "Needle 空简介", null);
 		when(blogMapper.getSearchBlogListByQueryAndIsPublished("needle", false))
-				.thenReturn(List.of(titleMatch, emptyContent));
+				.thenReturn(List.of(titleMatch, emptyDescription));
 
 		List<SearchBlog> results = service.getSearchBlogListByQueryAndIsPublished("needle", false);
 
-		assertEquals("正文开头", results.get(0).getContent());
-		assertEquals("", results.get(1).getContent());
+		assertEquals("用于搜索建议的文章简介", results.get(0).getDescription());
+		assertEquals(null, results.get(1).getDescription());
 	}
 
 	@Test
@@ -53,16 +53,17 @@ class BlogSearchServiceTest {
 		assertTrue(mapper.contains("is_internal=false"));
 		assertTrue(mapper.contains("<if test=\"includeInternal == false\">"));
 		assertTrue(mapper.contains("and title like #{queryPattern}"));
+		assertTrue(mapper.contains("select id, title, description"));
 		assertTrue(!mapper.contains("title like #{queryPattern} or content like #{queryPattern}"));
 		assertTrue(mapper.contains("order by update_time desc, id desc"));
 		assertTrue(mapper.contains("limit 10"));
 	}
 
-	private SearchBlog searchBlog(Long id, String title, String content) {
+	private SearchBlog searchBlog(Long id, String title, String description) {
 		SearchBlog searchBlog = new SearchBlog();
 		searchBlog.setId(id);
 		searchBlog.setTitle(title);
-		searchBlog.setContent(content);
+		searchBlog.setDescription(description);
 		return searchBlog;
 	}
 }

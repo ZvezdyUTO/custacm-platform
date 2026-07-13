@@ -4,6 +4,7 @@ import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountServi
 import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountException;
 import com.custacm.platform.trainingdata.common.app.purge.OjStudentDataPurgeService;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleAccount;
+import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleCollectionState;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -143,6 +144,28 @@ class AdminUserServiceTest {
 
         assertEquals(false, response.needCollect());
         assertTrue(response.handles().isEmpty());
+    }
+
+    @Test
+    void exposesPerOjCollectionProgressToAdministrators() {
+        AdminUserService service = service();
+        User player = user("player", "ROLE_player");
+        Instant createdAt = Instant.parse("2026-07-01T00:00:00Z");
+        Instant collectedAt = Instant.parse("2026-07-12T08:30:00Z");
+        OjHandleAccount account = new OjHandleAccount(
+                "player",
+                Map.of("CODEFORCES", "tourist"),
+                true,
+                Map.of("CODEFORCES", new OjHandleCollectionState(collectedAt)),
+                createdAt,
+                collectedAt
+        );
+        when(userMapper.findByUsername("player")).thenReturn(player);
+        when(handleAccountService.getByUsername("player")).thenReturn(account);
+
+        var response = service.get("player");
+
+        assertEquals(collectedAt, response.collectionStates().get("CODEFORCES").lastCollectedAt());
     }
 
     @Test

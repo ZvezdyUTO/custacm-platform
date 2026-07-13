@@ -20,7 +20,7 @@
 				</template>
 			</el-dropdown>
 			<el-dropdown class="nav-training-dropdown" trigger="click" :class="{'m-mobile-hide': mobileHide}" @command="trainingRoute">
-				<button type="button" class="el-dropdown-link item nav-training-trigger" :class="{'active':$route.name==='training'}">
+				<button type="button" class="el-dropdown-link item nav-training-trigger" :class="{'active':trainingNavigationActive}">
 					<i class="chart bar icon"></i>训练中心<i class="caret down icon"></i>
 				</button>
 				<template #dropdown>
@@ -45,7 +45,7 @@
 					<button v-for="item in queryResult" :key="item.id || item.title" type="button"
 					        :disabled="!item.id" @mousedown.prevent="handleSelect(item)">
 						<span class="title">{{ item.title }}</span>
-						<span v-if="item.content" class="content">{{ item.content }}</span>
+						<span v-if="item.description" class="description">{{ item.description }}</span>
 					</button>
 				</div>
 			</div>
@@ -105,6 +105,10 @@
 		},
 		computed: {
 			...mapState(['clientSize']),
+			trainingNavigationActive() {
+				return this.$route.name === 'training'
+					&& /^\/training\/(?:multiple|single|problem)\/?$/.test(this.$route.path)
+			},
 			loginTarget() {
 				return {path: '/training/login', query: {returnTo: this.$route.fullPath || '/home'}}
 			},
@@ -441,7 +445,7 @@
 		color: rgba(0, 0, 0, 0.87);
 	}
 
-	.m-search-panel .content {
+	.m-search-panel .description {
 		display: block;
 		text-overflow: ellipsis;
 		overflow: hidden;

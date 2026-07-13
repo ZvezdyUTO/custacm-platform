@@ -59,7 +59,6 @@ final class AtcoderSubmissionCollectionAdapter extends AbstractOjSubmissionColle
             HandleCollectionProgress progress
     ) {
         long fromSecond = Math.max(0L, OjEpochSeconds.ceilingEpochSecond(windowStartInclusive));
-        progress.setHistoryStartReached(fromSecond == 0L);
         long endEpochSecondExclusive = OjEpochSeconds.ceilingEpochSecond(windowEndExclusive);
         while (true) {
             long currentFromSecond = fromSecond;

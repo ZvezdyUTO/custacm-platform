@@ -39,6 +39,15 @@ class UnifiedSchemaMigrationTest {
 		assertTrue(migration.contains("ON DELETE CASCADE"));
 	}
 
+	@Test
+	void removesArticleViewCountingAndItsScheduledSyncJob() throws IOException {
+		String migration = resource("/db/migration/V033__remove_blog_views.sql");
+
+		assertTrue(migration.contains("ALTER TABLE blog DROP COLUMN views"));
+		assertTrue(migration.contains("bean_name = 'redisSyncScheduleTask'"));
+		assertTrue(migration.contains("method_name = 'syncBlogViewsToDatabase'"));
+	}
+
     private static String resource(String path) throws IOException {
         try (InputStream input = UnifiedSchemaMigrationTest.class.getResourceAsStream(path)) {
             if (input == null) {
