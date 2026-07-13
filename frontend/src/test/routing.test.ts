@@ -18,7 +18,6 @@ describe('safe training return paths', () => {
   });
 
 	it('keeps the supported Blog writing return paths', () => {
-		expect(safeReturnPath('/about')).toBe('/about');
 		expect(safeReturnPath('/write')).toBe('/write');
 		expect(safeReturnPath('/write/42')).toBe('/write/42');
 		expect(safeReturnPath('/blog/42#comment-7')).toBe('/blog/42#comment-7');
@@ -26,8 +25,7 @@ describe('safe training return paths', () => {
 
 	it('keeps public Blog locations', () => {
 		expect(safeReturnPath('/home')).toBe('/home');
-		expect(safeReturnPath('/moments?tab=latest')).toBe('/moments?tab=latest');
-		expect(safeReturnPath('/friends#team')).toBe('/friends#team');
+		expect(safeReturnPath('/profile?tab=articles')).toBe('/profile?tab=articles');
 		expect(safeReturnPath('/category/题解')).toBe('/category/%E9%A2%98%E8%A7%A3');
 		expect(safeReturnPath('/tag/dp')).toBe('/tag/dp');
 	});
@@ -42,6 +40,9 @@ describe('safe training return paths', () => {
     '/training/login',
     '/training/%2e%2e/%2e%2e//evil.example',
     '/training/problem/../login',
+		'/about',
+		'/friends',
+		'/moments',
 		'/write/not-an-id',
   ])('rejects an unsupported or non-canonical path: %s', (value) => {
     expect(safeReturnPath(value)).toBe('/training/multiple');

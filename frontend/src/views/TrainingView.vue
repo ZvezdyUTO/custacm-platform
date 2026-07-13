@@ -52,12 +52,12 @@ const page = computed<TrainingPage>(() => (route.meta.page as TrainingPage | und
 const mode = computed<TrainingQueryMode>(() => page.value === 'single' || page.value === 'problem' ? page.value : 'multiple');
 const adminSection = computed<AdminSection>(() => (route.meta.adminSection as AdminSection | undefined) ?? 'users');
 const currentUser = computed(() => auth.status.value === 'anonymous' ? null : auth.user.value);
-const adminTrainingActive = computed(() => page.value === 'admin' && adminSection.value === 'training');
+const activeAdminSection = computed<AdminSection | null>(() => page.value === 'admin' ? adminSection.value : null);
 const dashboard = usePlatformDashboard({
   token: auth.token,
   user: auth.user,
   mode,
-  adminTrainingActive,
+  adminSection: activeAdminSection,
   onUnauthorized: auth.signOut,
 });
 

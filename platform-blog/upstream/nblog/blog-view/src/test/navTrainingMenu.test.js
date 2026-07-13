@@ -10,6 +10,9 @@ vi.mock('@/api/blog', () => ({
 
 beforeEach(() => {
 	getSearchBlogList.mockReset()
+	document.documentElement.classList.remove('dark')
+	delete document.documentElement.dataset.theme
+	document.documentElement.style.removeProperty('color-scheme')
 	Object.defineProperty(window, 'localStorage', {
 		configurable: true,
 		value: {
@@ -75,6 +78,32 @@ describe('training navigation dropdown', () => {
 	})
 })
 
+describe('theme navigation control', () => {
+	it('shows the current mode and next action, then switches without routing', async () => {
+		const {wrapper, push} = mountNav()
+		const toggle = wrapper.get('.nav-theme-toggle')
+
+		expect(toggle.element.tagName).toBe('BUTTON')
+		expect(toggle.attributes('type')).toBe('button')
+		expect(toggle.attributes('role')).toBe('switch')
+		expect(toggle.attributes('aria-checked')).toBe('false')
+		expect(toggle.attributes('aria-label')).toBe('当前日间模式，切换到深夜模式')
+		expect(toggle.get('.nav-theme-thumb i').classes()).toContain('sun')
+		expect(toggle.text()).toContain('日间模式')
+
+		await toggle.trigger('click')
+
+		expect(window.localStorage.setItem).toHaveBeenCalledWith('custacm.theme', 'dark')
+		expect(document.documentElement.dataset.theme).toBe('dark')
+		expect(document.documentElement.classList.contains('dark')).toBe(true)
+		expect(toggle.attributes('aria-checked')).toBe('true')
+		expect(toggle.attributes('aria-label')).toBe('当前深夜模式，切换到日间模式')
+		expect(toggle.get('.nav-theme-thumb i').classes()).toContain('moon')
+		expect(push).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+})
+
 describe('public article search', () => {
 	it('uses the short placeholder without a clear button and never requests while typing', () => {
 		const {wrapper} = mountNav()
@@ -124,5 +153,15 @@ describe('login return path', () => {
 			path: '/training/login',
 			query: {returnTo: '/training/multiple?oj=CODEFORCES'},
 		})
+	})
+})
+
+describe('account navigation', () => {
+	it('opens the retained profile page without using the retired About route', () => {
+		const {wrapper, push} = mountNav()
+
+		wrapper.vm.accountCommand('profile')
+
+		expect(push).toHaveBeenCalledWith('/profile')
 	})
 })

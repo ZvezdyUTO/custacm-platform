@@ -34,4 +34,25 @@ class BlogAuthorContractTest {
 		assertTrue(mapper.contains("<result property=\"firstPicture\" column=\"first_picture\"/>"));
 		assertTrue(mapper.contains("b.title, b.first_picture"));
 	}
+
+	@Test
+	void normalReadAndWriteQueriesExcludeRecycleBinArticles() throws IOException {
+		String mapper = new String(getClass().getResourceAsStream("/mapper/BlogMapper.xml").readAllBytes(), StandardCharsets.UTF_8);
+
+		assertTrue(mapper.contains("where b.user_id=#{userId} and b.deleted_at is null"));
+		assertTrue(mapper.contains("where b.is_published=true and b.deleted_at is null"));
+		assertTrue(mapper.contains("where b.id=#{id} and b.is_published=true and b.deleted_at is null"));
+		assertTrue(mapper.contains("where id=#{id} and deleted_at is null"));
+		assertTrue(mapper.contains("select is_comment_enabled from blog where id=#{blogId} and deleted_at is null"));
+	}
+
+	@Test
+	void recycleBinRestoreAndCleanupQueriesEnforceTheSevenDayBoundary() throws IOException {
+		String mapper = new String(getClass().getResourceAsStream("/mapper/BlogMapper.xml").readAllBytes(), StandardCharsets.UTF_8);
+
+		assertTrue(mapper.contains("b.deleted_at is not null and b.deleted_at &gt; #{cutoff}"));
+		assertTrue(mapper.contains("user_id=#{userId} and deleted_at is not null and deleted_at &gt; #{cutoff}"));
+		assertTrue(mapper.contains("deleted_at is not null and deleted_at &lt;= #{cutoff}"));
+		assertTrue(mapper.contains("order by deleted_at, id for update"));
+	}
 }

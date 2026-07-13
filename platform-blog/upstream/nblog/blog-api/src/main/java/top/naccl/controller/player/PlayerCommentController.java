@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.naccl.model.dto.Comment;
+import top.naccl.model.dto.PlayerCommentCreateRequest;
 import top.naccl.model.vo.Result;
 import top.naccl.model.vo.PageComment;
 import top.naccl.model.vo.PageResult;
@@ -56,7 +56,7 @@ public class PlayerCommentController {
 	}
 
 	@PostMapping("/comment")
-	public Result comment(Authentication authentication, @RequestBody Comment comment, HttpServletRequest request) {
+	public Result comment(Authentication authentication, @RequestBody PlayerCommentCreateRequest comment, HttpServletRequest request) {
 		boolean admin = authentication.getAuthorities().stream()
 				.anyMatch(authority -> "ROLE_admin".equals(authority.getAuthority()));
 		playerCommentService.create(authentication.getName(), admin, comment, IpAddressUtils.getIpAddress(request));

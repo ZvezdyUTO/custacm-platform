@@ -15,10 +15,10 @@ public record AtcoderProblemListCollectorProperties(
 
     public AtcoderProblemListCollectorProperties {
         if (enabled == null) {
-            enabled = true;
+            enabled = false;
         }
         if (bootstrapOnStartup == null) {
-            bootstrapOnStartup = true;
+            bootstrapOnStartup = false;
         }
         if (bootstrapOnlyWhenEmpty == null) {
             bootstrapOnlyWhenEmpty = true;

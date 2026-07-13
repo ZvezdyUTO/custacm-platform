@@ -2,19 +2,14 @@ package top.naccl.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import top.naccl.constant.RedisKeyConstants;
 import top.naccl.constant.SiteSettingConstants;
 import top.naccl.entity.SiteSetting;
-import top.naccl.exception.PersistenceException;
 import top.naccl.mapper.SiteSettingMapper;
 import top.naccl.service.RedisService;
 import top.naccl.service.SiteSettingService;
-import top.naccl.util.JacksonUtils;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,34 +24,6 @@ public class SiteSettingServiceImpl implements SiteSettingService {
 	SiteSettingMapper siteSettingMapper;
 	@Autowired
 	RedisService redisService;
-
-	@Override
-	public Map<String, List<SiteSetting>> getList() {
-		List<SiteSetting> siteSettings = siteSettingMapper.getList();
-		List<SiteSetting> type1 = new ArrayList<>();
-		List<SiteSetting> type2 = new ArrayList<>();
-		List<SiteSetting> type3 = new ArrayList<>();
-		for (SiteSetting s : siteSettings) {
-			switch (s.getType()) {
-				case 1:
-					type1.add(s);
-					break;
-				case 2:
-					type2.add(s);
-					break;
-				case 3:
-					type3.add(s);
-					break;
-				default:
-					break;
-			}
-		}
-		Map<String, List<SiteSetting>> map = new HashMap<>(8);
-		map.put("type1", type1);
-		map.put("type2", type2);
-		map.put("type3", type3);
-		return map;
-	}
 
 	@Override
 	public Map<String, Object> getSiteInfo() {
@@ -89,53 +56,4 @@ public class SiteSettingServiceImpl implements SiteSettingService {
 		return map;
 	}
 
-	@Override
-	public String getWebTitleSuffix() {
-		return siteSettingMapper.getWebTitleSuffix();
-	}
-
-	@Transactional(rollbackFor = Exception.class)
-	@Override
-	public void updateSiteSetting(List<LinkedHashMap> siteSettings, List<Integer> deleteIds) {
-		for (Integer id : deleteIds) {
-			//删除
-			deleteOneSiteSettingById(id);
-		}
-		for (LinkedHashMap s : siteSettings) {
-			SiteSetting siteSetting = JacksonUtils.convertValue(s, SiteSetting.class);
-			if (siteSetting.getId() != null) {
-				//修改
-				updateOneSiteSetting(siteSetting);
-			} else {
-				//添加
-				saveOneSiteSetting(siteSetting);
-			}
-		}
-		deleteSiteInfoRedisCache();
-	}
-
-	public void saveOneSiteSetting(SiteSetting siteSetting) {
-		if (siteSettingMapper.saveSiteSetting(siteSetting) != 1) {
-			throw new PersistenceException("配置添加失败");
-		}
-	}
-
-	public void updateOneSiteSetting(SiteSetting siteSetting) {
-		if (siteSettingMapper.updateSiteSetting(siteSetting) != 1) {
-			throw new PersistenceException("配置修改失败");
-		}
-	}
-
-	public void deleteOneSiteSettingById(Integer id) {
-		if (siteSettingMapper.deleteSiteSettingById(id) != 1) {
-			throw new PersistenceException("配置删除失败");
-		}
-	}
-
-	/**
-	 * 删除站点信息缓存
-	 */
-	private void deleteSiteInfoRedisCache() {
-		redisService.deleteCacheByKey(RedisKeyConstants.SITE_INFO_MAP);
-	}
 }

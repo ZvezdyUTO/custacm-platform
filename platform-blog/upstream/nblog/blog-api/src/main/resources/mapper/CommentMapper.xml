@@ -4,55 +4,30 @@
 
     <resultMap id="comment" type="top.naccl.entity.Comment">
         <id property="id" column="id"/>
-		<result property="username" column="username"/>
-        <result property="nickname" column="nickname"/>
-        <result property="email" column="email"/>
-        <result property="content" column="content"/>
-        <result property="avatar" column="avatar"/>
-        <result property="createTime" column="create_time"/>
-        <result property="ip" column="ip"/>
-        <result property="published" column="is_published"/>
-        <result property="adminComment" column="is_admin_comment"/>
         <result property="page" column="page"/>
-        <result property="notice" column="is_notice"/>
-        <result property="parentCommentId" column="parent_comment_id"/>
-        <result property="userId" column="user_id"/>
-        <result property="website" column="website"/>
-        <result property="qq" column="qq"/>
         <association property="blog" javaType="top.naccl.model.vo.BlogIdAndTitle">
             <id property="id" column="blog_id"/>
-            <result property="title" column="title"/>
         </association>
     </resultMap>
 
-    <!--按页面和父评论id查询评论List-->
-    <select id="getListByPageAndParentCommentId" resultMap="comment">
-        select c.id, coalesce(u.nickname,c.nickname) as nickname, c.email, c.content,
-        coalesce(u.avatar,c.avatar) as avatar, c.create_time, c.ip, c.is_published, c.is_admin_comment, c.page,
-        c.is_notice, c.parent_comment_id, c.website, c.blog_id, c.user_id, c.qq, b.title
-        from comment as c left join blog as b on c.blog_id=b.id left join user as u on c.user_id=u.id
-        <where>
-            <if test="page!=null">
-                c.page=#{page}
-            </if>
-            <if test="page==0 and blogId!=null">
-                and c.blog_id=#{blogId}
-            </if>
-            and c.parent_comment_id=#{parentCommentId}
-        </where>
-    </select>
-
-    <!--按父评论id查询评论List-->
-    <select id="getListByParentCommentId" resultMap="comment">
-        select c.id, coalesce(u.nickname,c.nickname) as nickname, c.email, c.content,
-               coalesce(u.avatar,c.avatar) as avatar, c.create_time, c.ip, c.is_published, c.is_admin_comment, c.page,
-               c.is_notice, c.parent_comment_id, c.website, c.qq, c.blog_id, c.user_id, b.title
-        from comment as c left join blog as b on c.blog_id=b.id left join user as u on c.user_id=u.id
-        where c.parent_comment_id=#{parentCommentId}
-    </select>
+	<resultMap id="articleBackupComment" type="top.naccl.model.vo.ArticleBackupComment">
+		<id property="id" column="id"/>
+		<result property="blogId" column="blog_id"/>
+		<result property="userId" column="user_id"/>
+		<result property="username" column="username"/>
+		<result property="nickname" column="nickname"/>
+		<result property="content" column="content"/>
+		<result property="avatar" column="avatar"/>
+		<result property="createTime" column="create_time"/>
+		<result property="website" column="website"/>
+		<result property="published" column="is_published"/>
+		<result property="adminComment" column="is_admin_comment"/>
+		<result property="parentCommentId" column="parent_comment_id"/>
+	</resultMap>
 
     <resultMap id="pageComment" type="top.naccl.model.vo.PageComment">
         <id property="id" column="id"/>
+		<result property="username" column="username"/>
         <result property="nickname" column="nickname"/>
         <result property="content" column="content"/>
         <result property="avatar" column="avatar"/>
@@ -81,40 +56,45 @@
         order by c1.create_time desc
     </select>
 
-    <!--按id查询评论-->
-    <select id="getCommentById" resultMap="comment">
-        select c.id, coalesce(u.nickname,c.nickname) as nickname, c.email, c.content,
-               coalesce(u.avatar,c.avatar) as avatar, c.create_time, c.ip, c.is_published, c.is_admin_comment, c.page,
-               c.is_notice, c.parent_comment_id, c.website, c.qq, c.blog_id, c.user_id, b.title
-        from comment as c left join blog as b on c.blog_id=b.id left join user as u on c.user_id=u.id
-        where c.id=#{id}
+    <!--一次查询文章下的全部公开回复，由业务层为当前分页的根评论组树-->
+    <select id="getPublishedReplyList" resultMap="pageComment">
+        select c1.id, u1.username, coalesce(u1.nickname,c1.nickname) as nickname, c1.content,
+        coalesce(u1.avatar,c1.avatar) as avatar, c1.create_time, c1.is_admin_comment, c1.website,
+        c1.parent_comment_id as parent_comment_id, coalesce(u2.nickname,c2.nickname) as parent_comment_nickname
+        from comment as c1
+        left join user as u1 on c1.user_id=u1.id
+        left join comment as c2 on c1.parent_comment_id=c2.id
+        left join user as u2 on c2.user_id=u2.id
+        where c1.page=#{page}
+        <if test="page==0 and blogId!=null">
+            and c1.blog_id=#{blogId}
+        </if>
+        and c1.parent_comment_id&lt;&gt;-1
+        and c1.is_published=true
     </select>
 
-    <!--更新评论公开状态-->
-    <update id="updateCommentPublishedById">
-        update comment set is_published=#{published} where id=#{commentId}
-    </update>
+	<!--文章完整备份只导出展示与关系字段，不导出评论 IP、邮箱和通知字段。-->
+	<select id="getArticleBackupComments" resultMap="articleBackupComment">
+		select c.id, c.blog_id, c.user_id, u.username, coalesce(u.nickname, c.nickname) as nickname,
+		c.content, coalesce(u.avatar, c.avatar) as avatar, c.create_time, c.website,
+		c.is_published, c.is_admin_comment, c.parent_comment_id
+		from comment as c left join user as u on c.user_id=u.id
+		where c.page=0 and c.blog_id in
+		<foreach collection="list" item="blogId" open="(" separator="," close=")">
+			#{blogId}
+		</foreach>
+		order by c.blog_id, c.id
+	</select>
 
-    <!--更新评论接收邮件提醒状态-->
-    <update id="updateCommentNoticeById">
-        update comment set is_notice=#{notice} where id=#{commentId}
-    </update>
-
-    <!--按id删除评论-->
-    <delete id="deleteCommentById">
-        delete from comment where id=#{commentId}
-    </delete>
+    <!--按id查询评论-->
+    <select id="getCommentById" resultMap="comment">
+        select id, page, blog_id from comment where id=#{id}
+    </select>
 
     <!--按博客id删除博客下所有评论-->
     <delete id="deleteCommentsByBlogId">
         delete from comment where blog_id=#{blogId}
     </delete>
-
-    <!--更新评论-->
-    <update id="updateComment">
-        update comment set nickname=#{nickname}, avatar=#{avatar}, email=#{email}, ip=#{ip}, content=#{content}, website=#{website}
-        where id=#{id}
-    </update>
 
     <!--按页面查询评论数量-->
     <select id="countByPageAndIsPublished" resultType="java.lang.Integer">
@@ -126,11 +106,6 @@
         <if test="page==0 and blogId!=0">
             and blog_id=#{blogId}
         </if>
-    </select>
-
-    <!--查询所有评论数量-->
-    <select id="countComment" resultType="java.lang.Integer">
-        select count(*) from comment
     </select>
 
     <!--保存评论-->

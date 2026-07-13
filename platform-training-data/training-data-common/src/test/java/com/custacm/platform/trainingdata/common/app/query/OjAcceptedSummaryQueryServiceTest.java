@@ -20,6 +20,7 @@ import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,13 +38,13 @@ class OjAcceptedSummaryQueryServiceTest {
                 null,
                 null
         );
-        OjAcceptedSummaryRepository repository = actualQuery -> {
+        OjAcceptedSummaryRepository repository = singleQueryRepository(actualQuery -> {
             assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
             return List.of(
                     row("tourist", "2026-07-01", Map.of("800", 2, "1200", 1)),
                     row("tourist", "2026-07-02", Map.of("800", 3, "UNRATED", 4))
             );
-        };
+        });
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
                 handleAccountService(account(username, "tourist", true)),
@@ -79,10 +80,10 @@ class OjAcceptedSummaryQueryServiceTest {
                 null,
                 null
         );
-        OjAcceptedSummaryRepository repository = actualQuery -> {
+        OjAcceptedSummaryRepository repository = singleQueryRepository(actualQuery -> {
             assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
             return List.of(row("tourist_atcoder", "2026-07-01", Map.of("800", 2)));
-        };
+        });
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
                 handleAccountService(account(
@@ -111,9 +112,9 @@ class OjAcceptedSummaryQueryServiceTest {
     @Test
     void foldsUnknownDifficultyKeysIntoUnratedWhenRatingBoundsAreBlank() {
         String username = "112487张三";
-        OjAcceptedSummaryRepository repository = actualQuery -> List.of(
+        OjAcceptedSummaryRepository repository = singleQueryRepository(actualQuery -> List.of(
                 row("tourist_atcoder", "2026-07-01", Map.of("2800-", 1, "UNRATED", 2))
-        );
+        ));
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
                 handleAccountService(account(
@@ -149,13 +150,13 @@ class OjAcceptedSummaryQueryServiceTest {
                 1200,
                 1600
         );
-        OjAcceptedSummaryRepository repository = actualQuery -> {
+        OjAcceptedSummaryRepository repository = singleQueryRepository(actualQuery -> {
             assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
             return List.of(
                     row("tourist", "2026-07-01", Map.of("800", 2, "1200", 1)),
                     row("tourist", "2026-07-02", Map.of("1600", 3, "UNRATED", 4))
             );
-        };
+        });
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
                 handleAccountService(account(username, "tourist", true)),
@@ -181,9 +182,9 @@ class OjAcceptedSummaryQueryServiceTest {
 
     @Test
     void rejectsUnboundUsername() {
-        OjAcceptedSummaryRepository repository = query -> {
+        OjAcceptedSummaryRepository repository = singleQueryRepository(query -> {
             throw new UnsupportedOperationException("not used");
-        };
+        });
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
                 handleAccountService(),
@@ -197,6 +198,48 @@ class OjAcceptedSummaryQueryServiceTest {
                         ));
     }
 
+    @Test
+    void summarizesAllActiveUsersWithOneRepositoryBatch() {
+        OjAcceptedSummaryRepository repository = new OjAcceptedSummaryRepository() {
+            @Override
+            public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+                    OjAcceptedSummaryCriteria query
+            ) {
+                throw new AssertionError("batch query must not fan out into single-handle reads");
+            }
+
+            @Override
+            public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+                    List<OjAcceptedSummaryCriteria> queries
+            ) {
+                assertThat(queries).extracting(OjAcceptedSummaryCriteria::authorHandle)
+                        .containsExactly("tourist", "Benq");
+                return List.of(
+                        row("tourist", "2026-07-01", Map.of("800", 2)),
+                        row("Benq", "2026-07-01", Map.of("1200", 3))
+                );
+            }
+        };
+        OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
+                repository,
+                handleAccountService(
+                        account("alice", "tourist", true),
+                        account("bob", "Benq", true),
+                        account("retired", "old", false),
+                        account("atcoder-only", Map.of(OjNames.ATCODER, "tourist_atcoder"), true)
+                ),
+                OjDifficultyBucketPolicies.defaults()
+        );
+
+        List<OjAcceptedSummaryReport> reports = service.summarizeStudentsAcceptedProblems(
+                OjNames.CODEFORCES, false, null, null, null, null);
+
+        assertThat(reports).extracting(OjAcceptedSummaryReport::username)
+                .containsExactly("alice", "bob");
+        assertThat(reports).extracting(OjAcceptedSummaryReport::totalAcceptedProblemCount)
+                .containsExactly(2, 3);
+    }
+
     private static OjDailyRatingAcceptedSummary row(
             String authorHandle,
             String acceptedDateUtcPlus8,
@@ -207,6 +250,26 @@ class OjAcceptedSummaryQueryServiceTest {
                 LocalDate.parse(acceptedDateUtcPlus8),
                 acceptedProblemCountsByRating
         );
+    }
+
+    private static OjAcceptedSummaryRepository singleQueryRepository(
+            Function<OjAcceptedSummaryCriteria, List<OjDailyRatingAcceptedSummary>> query
+    ) {
+        return new OjAcceptedSummaryRepository() {
+            @Override
+            public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+                    OjAcceptedSummaryCriteria criteria
+            ) {
+                return query.apply(criteria);
+            }
+
+            @Override
+            public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+                    List<OjAcceptedSummaryCriteria> criteria
+            ) {
+                throw new AssertionError("single-query test must not use the batch contract");
+            }
+        };
     }
 
     private static OjAcceptedSummaryReport.OjRatingAcceptedCount rating(
@@ -272,9 +335,8 @@ class OjAcceptedSummaryQueryServiceTest {
         }
 
         @Override
-        public OjHandleAccount updateUsernameAndNeedCollect(
-                String oldUsername,
-                String newUsername,
+        public OjHandleAccount replace(
+                String username,
                 Map<String, String> handles,
                 boolean needCollect,
                 Map<String, OjHandleCollectionState> collectionStates,
@@ -284,9 +346,10 @@ class OjAcceptedSummaryQueryServiceTest {
         }
 
         @Override
-        public OjHandleAccount updateCollectionStates(
-                String username,
-                Map<String, OjHandleCollectionState> collectionStates,
+        public boolean updateLastCollectedAtByHandle(
+                String ojName,
+                String handle,
+                Instant lastCollectedAt,
                 Instant updatedAt
         ) {
             throw new UnsupportedOperationException("not used");

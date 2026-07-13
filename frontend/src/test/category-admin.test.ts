@@ -7,10 +7,9 @@ import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
 
 describe('category admin panel', () => {
   it('loads, creates, renames and deletes categories', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
     const dashboard = {
-      adminCategories: ref({ list: [{ id: 3, name: '题解', color: '#8B1E3F' }], pageNum: 1, pageSize: 10, pages: 1, total: 1 }),
-      adminTags: ref({ list: [{ id: 8, name: 'DP', color: '#245A73' }], pageNum: 1, pageSize: 10, pages: 1, total: 1 }),
+      adminCategories: ref({ list: [{ id: 3, name: '题解', color: '#8B1E3F' }], pageNum: 1, pageSize: 15, pages: 2, total: 16 }),
+      adminTags: ref({ list: [{ id: 8, name: 'DP', color: '#245A73' }], pageNum: 1, pageSize: 15, pages: 2, total: 16 }),
       loadAdminCategories: vi.fn().mockResolvedValue(undefined),
       loadAdminTags: vi.fn().mockResolvedValue(undefined),
       createCategory: vi.fn().mockResolvedValue(undefined),
@@ -20,7 +19,8 @@ describe('category admin panel', () => {
       deleteTag: vi.fn().mockResolvedValue(undefined),
     } as unknown as ReturnType<typeof usePlatformDashboard>;
     const wrapper = mount(CategoryAdminPanel, { props: { dashboard } });
-    await vi.waitFor(() => expect(dashboard.loadAdminCategories).toHaveBeenCalledWith(1, 10));
+    await vi.waitFor(() => expect(dashboard.loadAdminCategories).toHaveBeenCalledWith(1, 15));
+    expect(dashboard.loadAdminTags).toHaveBeenCalledWith(1, 15);
     await flushPromises();
 
     await wrapper.get('.category-create-form input').setValue('算法');
@@ -34,6 +34,9 @@ describe('category admin panel', () => {
     expect(dashboard.updateCategory).toHaveBeenCalledWith(3, '赛事题解', '#8B1E3F');
 
     await wrapper.get('.danger-button').trigger('click');
+    expect(wrapper.get('[role="alertdialog"]').text()).toContain('删除这个分类');
+    expect(dashboard.deleteCategory).not.toHaveBeenCalled();
+    await wrapper.get('.admin-confirm-primary').trigger('click');
     await flushPromises();
     expect(dashboard.deleteCategory).toHaveBeenCalledWith(3);
 
@@ -45,7 +48,17 @@ describe('category admin panel', () => {
     expect(dashboard.createTag).toHaveBeenCalledWith('图论');
 
     await wrapper.get('.tag-grid .danger-button').trigger('click');
+    expect(wrapper.get('[role="alertdialog"]').text()).toContain('删除这个标签');
+    expect(dashboard.deleteTag).not.toHaveBeenCalled();
+    await wrapper.get('.admin-confirm-primary').trigger('click');
     await flushPromises();
     expect(dashboard.deleteTag).toHaveBeenCalledWith(8);
+
+    await wrapper.get('.category-pagination .submission-page-actions button:last-child').trigger('click');
+    await flushPromises();
+    expect(dashboard.loadAdminCategories).toHaveBeenCalledWith(2, 15);
+    await wrapper.get('.tag-pagination .submission-page-actions button:last-child').trigger('click');
+    await flushPromises();
+    expect(dashboard.loadAdminTags).toHaveBeenCalledWith(2, 15);
   });
 });

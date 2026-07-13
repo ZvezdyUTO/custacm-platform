@@ -31,8 +31,8 @@ class AtcoderCollectorPropertiesTest {
         AtcoderProblemListCollectorProperties properties =
                 new AtcoderProblemListCollectorProperties(null, null, null, null, null);
 
-        assertThat(properties.enabled()).isTrue();
-        assertThat(properties.bootstrapOnStartup()).isTrue();
+        assertThat(properties.enabled()).isFalse();
+        assertThat(properties.bootstrapOnStartup()).isFalse();
         assertThat(properties.bootstrapOnlyWhenEmpty()).isTrue();
         assertThat(properties.cron()).isEqualTo("0 30 3 1/3 * ?");
         assertThat(properties.zone()).isEqualTo("Asia/Shanghai");

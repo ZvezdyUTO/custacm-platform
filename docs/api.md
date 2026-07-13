@@ -15,38 +15,48 @@ Blog API 是项目唯一后端。默认本地直连地址为 `http://localhost:8
 
 客户端不能只用 HTTP 2xx 判断成功。Vue 3 训练中心的 `requestData` 同时要求 HTTP status 成功且 `Result.code == 200`；其它客户端也应同时检查 transport status 与 envelope code。
 
-部分 NBlog 兼容路径仍保留旧响应语义。例如 `/player/me/nickname` 的 PATCH 参数校验可能返回 HTTP 200，同时 envelope 为 `code=400`、`errorCode=null`；`/admin/login` 的旧 filter 错误响应也不保证 `errorCode`。新的 `/player/me/profile` 与 `/player/me/profile-links` 校验失败时通过统一异常处理返回 HTTP 400 和 `errorCode=BAD_REQUEST`。稳定 `errorCode` 只适用于显式统一的鉴权与新错误处理分支，其余响应必须允许 `errorCode=null`，不能据此推断 HTTP status。
+`/player/me/profile`、`/player/me/profile-links` 和新的管理接口校验失败时通过统一异常处理返回 HTTP 4xx 与稳定 `errorCode`。部分保留的历史 Blog 读取响应仍允许 `errorCode=null`，客户端不能据此推断 HTTP status。
 
 ## 登录与当前用户
 
 | Method | 后端路径 | Access | Description |
 | --- | --- | --- | --- |
-| POST | `/login` | Guest | 使用 `username`/password 登录，返回 user 与 bearer token |
-| POST | `/admin/login` | Guest | 兼容入口，与 `/login` 使用同一账号体系 |
+| POST | `/login` | Guest | 使用 `username`/password 登录，返回 user 与 bearer token；失败后按 username 冷却五秒 |
 | GET | `/profiles/{username}` | Guest | 返回文章作者公开名片：username、nickname、avatar、signature、links |
 | GET | `/player/me` | Player/Admin | 返回数据库中的当前用户摘要 |
 | PATCH | `/player/me/profile` | Player/Admin | 修改本人 nickname 和/或个性签名，返回完整资料；nickname 1–30 字符，签名最多 160 字符 |
 | PUT | `/player/me/profile-links` | Player/Admin | 整体替换本人个人友情链接，按数组顺序保存，最多 8 条且仅允许 HTTP(S) 绝对地址 |
 | GET | `/player/me/oj-handles` | Player/Admin | 仅返回当前用户绑定的 Codeforces/AtCoder handle map；未绑定时返回空对象 |
-| PATCH | `/player/me/nickname` | Player/Admin | 修改本人昵称的兼容接口 |
 | POST | `/player/me/avatar` | Player/Admin | 上传前端裁剪后的 512×512 PNG 头像，multipart 字段为 `file`，最大 2MB |
 | POST | `/player/images` | Player/Admin | 上传文章首图或正文图，multipart 字段为 `file`、`purpose` |
 | DELETE | `/player/images/{id}` | Player/Admin | 幂等删除当前用户尚未绑定文章的临时图片 |
 | PATCH | `/player/me/password` | Player/Admin | 使用旧密码修改本人密码 |
 | POST | `/player/comment` | Player/Admin | 登录用户提交 Blog 评论 |
 | GET | `/player/blogs` | Player/Admin | 分页查询当前用户的文章 |
+| GET | `/player/blogs/recycle-bin` | Player/Admin | 分页查询当前用户仍在七天保留期内的回收站文章 |
 | GET | `/player/blog` | Player/Admin | 读取当前用户的指定文章 |
 | POST | `/player/blog` | Player/Admin | 以当前用户为作者新建文章 |
 | PUT | `/player/blog` | Player/Admin | 修改当前用户的指定文章 |
-| DELETE | `/player/blog` | Player/Admin | 删除当前用户的指定文章 |
-| POST | `/admin/blog` | Admin | 新建文章，作者由当前认证管理员决定 |
+| DELETE | `/player/blog` | Player/Admin | 将当前用户的指定文章移入固定保留七天的回收站 |
+| PUT | `/player/blog/restore?id={id}` | Player/Admin | 在七天保留期内恢复当前用户的指定文章 |
+| GET | `/player/blog/download?id={id}` | Player/Admin | 下载已发布文章的 Markdown 与托管图片 ZIP；Player 跨文章 30 秒一次，Admin 不限频 |
 | GET | `/admin/blogs` | Admin | 按标题、分类分页查询全部文章，供管理文章页使用 |
+| GET | `/admin/blogs/recycle-bin` | Admin | 按标题、分类分页查询仍在七天保留期内的全部回收站文章 |
+| GET | `/admin/blogs/backup` | Admin | 下载全部文章状态、评论、作者资料和托管图片的去敏 ZIP 备份 |
+| DELETE | `/admin/blog?id={id}` | Admin | 将任意正常文章移入固定保留七天的回收站 |
+| PUT | `/admin/blog/restore?id={id}` | Admin | 在七天保留期内恢复任意回收站文章 |
 | PUT | `/admin/blog/recommend?id={id}&recommend={boolean}` | Admin | 设置或取消首页侧栏精选文章 |
 | GET | `/health` | Guest | 进程健康检查 |
 
 JWT 的 `sub` 是 `username`，角色只允许 `ROLE_admin` 和 `ROLE_player`。
 
-Vue Blog 将“个人资料”统一命名为“我的主页”，并在 `/about` 内分页消费 `GET /player/blogs`。`/write` 发布文章，`/write/{id}` 编辑本人文章；Markdown 文件仅在浏览器中读取，文章图片则通过 `/player/images` 单独上传。
+Vue Blog 在 `/profile` 展示“我的主页”并分页消费 `GET /player/blogs`；旧 `/about` 页面和 API 已删除。`/write` 发布文章，`/write/{id}` 编辑本人文章；Markdown 文件仅在浏览器中读取，文章图片则通过 `/player/images` 单独上传。
+
+`POST /login` 在 BCrypt 校验前按规范化 username 获取一个 Redis 五秒原子占位。正确凭据释放占位并签发 JWT；用户名或密码错误保留占位，首次返回 HTTP 401、`errorCode=AUTH_BAD_CREDENTIALS` 与 `Retry-After: 5`，五秒内重复请求返回 HTTP 429、`errorCode=AUTH_LOGIN_COOLDOWN` 和剩余 `Retry-After`。Redis 无法判定或释放窗口时返回 HTTP 503 与 `AUTH_LOGIN_COOLDOWN_UNAVAILABLE`。两种凭据错误使用相同响应，不暴露用户名是否存在。
+
+`GET /player/blog/download?id={id}` 返回 `application/zip` attachment，不使用 Blog `Result` envelope。ZIP 直接包含 `article.md`、文章元数据和已绑定的本地托管首图/正文图，不附带额外 README；`article.md` 依次包含标题、简介和原始正文，Markdown 中对应 URL 改为包内相对路径。图片使用 `cover-original.jpg`、`content-1-original.jpg` 等扁平语义化文件名，外站图片 URL 原样保留且服务端不会抓取。它允许登录用户下载公开或内部的已发布文章，不允许下载草稿。普通用户按 JWT 当前 username 在全部文章下载间共享一个 30 秒固定窗口，切换文章不能绕过；重复请求返回 HTTP 429、`errorCode=ARTICLE_DOWNLOAD_RATE_LIMITED` 和 `Retry-After` 剩余秒数。管理员不检查该窗口。普通用户无法访问 Redis 限流状态时返回 HTTP 503 和 `ARTICLE_DOWNLOAD_RATE_LIMIT_UNAVAILABLE`。
+
+`GET /admin/blogs/backup` 返回固定短 ASCII 文件名的 `application/zip` attachment。范围覆盖数据库中仍存在的已发布、内部、草稿和七天回收站文章；每篇文章目录包含带标题/简介的 Markdown、状态/分类/标签元数据、评论父子关系及扁平命名的托管图片，根目录汇总文章作者资料与按作者目录扁平保存的托管头像，不附带额外 README。备份不导出密码哈希、token、评论 IP/邮箱/通知字段，也不抓取外站图片；缺失的本地托管文件记录在 `manifest.json`。
 
 `GET /player/me`、资料修改、个人友链整体替换和头像更新都返回本人资料 DTO，字段为 `username`、`nickname`、`email`、`avatar`、`avatarOriginalUrl`、`signature`、`role` 和 `links`。`avatar` 是 96×96 缩略图。每条 link 包含 `id`、`label`、`url`、`sortOrder`；清空友链时提交 `{"links":[]}`。
 
@@ -54,7 +64,7 @@ Vue Blog 将“个人资料”统一命名为“我的主页”，并在 `/about
 
 `POST /player/images` 的 `purpose` 只能是 `ARTICLE_COVER` 或 `ARTICLE_CONTENT`。正文 JPEG/PNG 最大 15MB，生成最长边 2560 的高清版和最长边 960 的缩略图；首图必须由前端裁剪为 1920×1080 且最大 10MB。响应包含 `id`、`publicId`、`purpose`、`originalUrl`、`thumbnailUrl`、宽高和两个文件大小。文章写请求通过 `firstPictureAssetId` 绑定首图，后端从 Markdown 中解析本站 UUID 图片并绑定正文资产；资产不可跨文章复用。
 
-删除文章、从正文移除托管图、更换首图或头像后，失效文件在事务提交后立即删除。删除失败的资产进入 `DELETING` 重试；超过 24 小时未绑定的 `TEMP` 资产和孤儿目录由每日任务清理。历史外链和旧 `/api/image/**` URL 继续兼容。
+文章删除只写入 `deleted_at` 并立即从列表、详情、评论、搜索、精选和下载查询中隐藏；正文、评论、标签与托管图片在固定七天保留期内不变。本人或管理员可在到期前恢复，满七天后定时任务才在同一事务中物理删除关联数据并于提交后回收图片。主动从正文移除托管图、更换首图或头像仍在保存事务提交后立即回收；删除失败的资产进入 `DELETING` 重试，超过 24 小时未绑定的 `TEMP` 资产和孤儿目录由每日任务清理。
 
 ## 用户管理
 
@@ -62,16 +72,14 @@ Vue Blog 将“个人资料”统一命名为“我的主页”，并在 `/about
 
 | Method | 路径 | Description |
 | --- | --- | --- |
-| POST | `/admin/users` | 创建一个用户，可同时提供 `handles` 和 `needCollect` |
 | POST | `/admin/users:batch-create` | 在一个事务中创建 JSON 用户数组 |
 | GET | `/admin/users` | 列出用户、OJ handle 及各 OJ 最近成功采集窗口结束时间 |
-| GET | `/admin/users/{username}` | 查询一个用户及其 OJ 采集状态 |
-| PATCH | `/admin/users/{username}` | 修改 `newUsername`、nickname、email、role 或 password；不接受头像 URL |
+| PUT | `/admin/users/{username}` | 原子更新 `newUsername`、nickname、email、role、password、完整 `handles` 与 `needCollect`；不接受头像 URL |
 | DELETE | `/admin/users/{username}` | 清理训练数据、保留作者内容并删除用户；立即回收该用户未被保留文章引用的托管图片 |
-| PUT | `/admin/users/{username}/oj-handles` | 首次绑定 OJ handle 或更新 `needCollect`；已有 handle 不允许通过该接口覆盖，允许 `handles={}` 单独保存现役/退役状态 |
-| POST | `/admin/users/{username}/oj-handles:replace` | 高危更换单个 OJ handle；先按旧 handle 永久清理该用户该 OJ 的 ODS、DWD、DWM、DWS 数据与旧采集状态，再绑定 `newHandle` |
 
-`username` 会 trim，长度为 1–128，可包含 Unicode 字母、数字、`.`、`_` 和 `-`。最后一个管理员不能被删除或降级。创建时省略 password 会一次性返回生成密码；PATCH 传空 password 会一次性返回重置密码。改名响应包含 `reloginRequired=true`。
+`username` 会 trim，长度为 1–128，可包含 Unicode 字母、数字、`.`、`_` 和 `-`。最后一个管理员不能被删除或降级。创建时省略 password 会一次性返回生成密码；PUT 传空 password 会一次性返回重置密码。改名或改密响应包含 `reloginRequired=true`。非 `root` 更新必须同时提交完整 `handles` 与 `needCollect`，避免分接口写入造成账号与训练身份不一致。
+
+当 PUT 改变或移除已有 handle 时，服务会先按旧绑定永久清理对应 OJ 的 ODS、DWD、DWM、DWS 数据和采集游标，再精确替换完整绑定集合；账号字段、清理和换绑处于同一事务，失败时整体回滚。handle 比较保持大小写精确。
 
 管理员用户响应中的 `collectionStates` 按 OJ 名称只返回 `lastCollectedAt`，表示该用户在该 OJ 最近一次成功采集所覆盖窗口的结束时间；从未成功采集时为 `null`。手动采集请求的 `lookbackHours` 表示从该时间向前倒退的重叠小时数，采集上界为本次任务开始时间；`lastCollectedAt=null` 时忽略倒退小时数并抓取全部历史。批量请求按用户、按 OJ 分别计算窗口，失败用户不推进游标，成功但窗口内没有提交的用户仍推进游标。
 
@@ -82,8 +90,6 @@ Vue Blog 将“个人资料”统一命名为“我的主页”，并在 `/about
 `GET /player/training-data/users` 要求 `ROLE_player` 或 `ROLE_admin`。它默认只列出 `needCollect=true` 且至少绑定一个 OJ 账号的用户；可选查询参数 `includeRetired=true` 会取消 `needCollect` 过滤并保留已退役用户。结果按 `username` 排序。
 
 系统保留账号 `root` 不允许通过管理员 API 删除、改名、降为 player 或更新 OJ handle/采集状态。
-
-更换请求体为 `{ "ojName": "CODEFORCES|ATCODER", "newHandle": "..." }`。若旧 handle 未绑定、目标 handle 已归属其他用户或参数无效，请求失败；清理与换绑位于同一事务中，失败时整体回滚。管理前端必须在调用前展示不可恢复的数据清理警告并取得明确确认。
 
 浏览器路径与直连路径：
 
@@ -111,25 +117,23 @@ GET /api/player/training-data/users?includeRetired=true
 
 - `GET /player/training-data/users`
 - `GET /player/training-data/accepted-summary`
+- `GET /player/training-data/accepted-summaries`
 - `GET /player/training-data/submissions/by-user`
 - `GET /player/training-data/submissions/by-problem`
 - `GET /player/training-data/first-accepted/by-user`
 - `GET /player/training-data/first-accepted/by-problem`
 
-用户维度接口使用 `username`；适用的接口使用 `ojName`。日期、难度、题目和分页参数由无 Spring MVC 依赖的训练查询 facade 统一校验，HTTP 参数绑定与 `Result` 包装只存在于 `top.naccl` Controller。
+用户维度接口使用 `username`；适用的接口使用 `ojName`。`accepted-summaries` 以当前用户目录为范围一次返回该 OJ 的全部成员汇总，供多人页避免 N+1 请求，并支持 `includeRetired`。日期、难度、题目和分页参数由无 Spring MVC 依赖的训练查询 facade 统一校验，HTTP 参数绑定与 `Result` 包装只存在于 `top.naccl` Controller。
 
 ## Admin 训练操作
 
 以下接口均要求 `ROLE_admin`：
 
-- `POST /admin/training-data/submissions:collect`
 - `POST /admin/training-data/submission-collection-jobs`
 - `GET /admin/training-data/submission-collection-jobs`
 - `GET /admin/training-data/submission-collection-jobs/{jobId}`
-- `POST /admin/training-data/ods/codeforces/submissions:batch-upsert`
-- `POST /admin/training-data/{ojName}/warehouse:refresh`
 
-原始 Codeforces batch-upsert 是后端 API，不在当前 Vue 3 管理页面中暴露。训练中心管理区提供“创建用户”“管理用户”“管理文章”“数据采集”“首页图片”五个独立页面；管理文章页控制公开侧栏精选状态，数据采集页调用采集任务接口，并始终请求在采集完成后刷新数仓。
+训练中心管理区提供“创建用户”“管理用户”“管理文章”“分类与标签”“数据采集”“首页图片”六个独立页面；管理文章页控制公开侧栏精选状态，可切换当前文章/回收站、恢复文章并下载全量去敏 ZIP 备份；数据采集页调用采集任务接口，并始终请求在采集完成后刷新数仓。未被前端使用的同步采集、原始 ODS 写入和独立 warehouse 刷新 HTTP 入口已删除，应用服务仍由采集任务内部复用。
 
 ## 首页图片
 
@@ -147,9 +151,9 @@ GET /api/player/training-data/users?includeRetired=true
 
 ## 公开 Blog API
 
-文章、分类、标签、动态、友链、关于页、首页图片及评论列表等公开 GET 请求不要求登录。评论列表仅在评论仍关联现存账号时返回只读 `username`；游客评论或账号删除后的匿名评论不返回该身份。没有公开 OJ handle map、guest 训练查询、独立 handle 管理 API 或独立用户训练数据删除 API；删除用户时由用户服务在内部编排清理。
+文章、分类、标签、首页图片、作者资料及评论列表等公开 GET 请求不要求登录。About、全站友链和动态页面及其 API 已删除。评论列表仅在评论仍关联现存账号时返回只读 `username`；历史游客评论或账号删除后的匿名评论不返回该身份。新评论中的表情以标准 Unicode 原样存储，Google Noto Emoji 只由 Blog 展示层通过同源 SVG sprite 渲染；历史短码继续只读兼容。没有公开 OJ handle map、guest 训练查询、独立 handle 管理 API 或独立用户训练数据删除 API；删除用户时由用户服务在内部编排清理。
 
-`GET /site` 只返回 Blog 外壳初始化仍使用的数据：`siteInfo.reward`、`siteInfo.commentAdminFlag`、`introduction.avatar`、`introduction.name`、`categoryList`、`tagList` 和 `featuredBlogList`。它不再查询或返回未展示的 `newBlogList`，也不再返回旧 `badges`、社交链接、滚动文字和收藏配置。后台站点设置管理数据仍保留，不受该公开响应收窄影响。
+`GET /site` 只返回 Blog 外壳初始化仍使用的数据：`siteInfo.reward`、`siteInfo.commentAdminFlag`、`introduction.avatar`、`introduction.name`、`categoryList`、`tagList` 和 `featuredBlogList`。它不再查询或返回未展示的 `newBlogList`，也不再返回旧 `badges`、社交链接、滚动文字和收藏配置。未被当前管理前端使用的站点设置管理 API 已删除。
 
 `GET /searchBlog?query={keyword}` 只对已发布文章标题做大小写不敏感的子串匹配，按更新时间倒序返回最多十条包含 `id`、`title` 和文章 `description` 的候选。游客只获得公开文章；登录用户显式携带 Bearer 时也获得内部文章。正文不参与搜索。空关键词、特殊通配字符或超过 20 个字符的关键词会返回参数错误。
 

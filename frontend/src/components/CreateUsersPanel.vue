@@ -7,7 +7,7 @@
 
     <section v-if="passwords.length" class="one-time-password-result" aria-label="一次性密码结果" role="status"><header><div><strong>一次性密码</strong><span>请立即复制并安全交付；关闭后无法再次查看。</span></div><button class="icon-button" type="button" @click="passwords = []"><X :size="16" /></button></header><ul><li v-for="item in passwords" :key="item.username"><strong>{{ item.username }}</strong><code>{{ item.password }}</code></li></ul></section>
 
-    <form class="create-user-rows" @submit.prevent="executeCreate">
+    <form class="create-user-rows" @submit.prevent="prepareCreate">
       <div v-for="(row, index) in rows" :key="index" class="create-user-row">
         <label>学号姓名<input v-model="row.username" required /></label>
         <label>nickname<input v-model="row.nickname" /></label>
@@ -19,6 +19,20 @@
       </div>
       <div class="create-user-actions"><button class="primary-button" :disabled="busy" type="submit"><UserPlus :size="17" />{{ busy ? '正在创建' : '执行创建' }}</button><button class="secondary-button" type="button" @click="addRow"><Plus :size="17" />增加一名队员</button><span>{{ rows.length }} 行待提交</span></div>
     </form>
+
+    <AdminConfirmDialog
+      :open="pendingRequests.length > 0"
+      dialog-id="create-users-confirm"
+      title="确认创建这些用户？"
+      :description="`即将创建 ${pendingRequests.length} 个账号。创建后账号会立即生效；自动生成的初始密码只会在本次操作完成后显示一次。`"
+      confirm-label="确认创建"
+      busy-label="正在创建…"
+      :busy="busy"
+      icon="users"
+      tone="info"
+      @cancel="pendingRequests = []"
+      @confirm="executeCreate"
+    />
   </section>
 </template>
 
@@ -27,13 +41,15 @@ import { ref } from 'vue';
 import { FileInput, Plus, Trash2, UserPlus, X } from '@lucide/vue';
 import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
 import { createRequestOf, emptyUserForm, parseCreateUserRows, type UserFormState } from '../utils/adminUsers';
+import AdminConfirmDialog from './AdminConfirmDialog.vue';
 
 // Author: huangbingrui.awa
 const props = defineProps<{ dashboard: ReturnType<typeof usePlatformDashboard> }>();
-const importText = ref(''); const rows = ref<UserFormState[]>([emptyUserForm()]); const errorMessage = ref(''); const notice = ref(''); const busy = ref(false); const passwords = ref<Array<{ username: string; password: string }>>([]);
+const importText = ref(''); const rows = ref<UserFormState[]>([emptyUserForm()]); const errorMessage = ref(''); const notice = ref(''); const busy = ref(false); const passwords = ref<Array<{ username: string; password: string }>>([]); const pendingRequests = ref<Array<ReturnType<typeof createRequestOf>>>([]);
 const importPlaceholder = '每行：username,nickname,role,password,Codeforces,AtCoder\n230511213,,player,黄炳睿,Utonut-Zvezdy,Zvezdy';
 function fillRows() { errorMessage.value = ''; try { rows.value = parseCreateUserRows(importText.value); notice.value = `已填入 ${rows.value.length} 行，请确认后执行创建。`; } catch (error) { errorMessage.value = error instanceof Error ? error.message : '文本导入失败。'; } }
 function addRow() { rows.value.push(emptyUserForm()); }
 function removeRow(index: number) { rows.value.splice(index, 1); if (!rows.value.length) addRow(); }
-async function executeCreate() { errorMessage.value = ''; notice.value = ''; let requests; try { requests = rows.value.map((row, index) => { try { return createRequestOf(row); } catch (error) { const message = error instanceof Error ? error.message : '创建信息不完整。'; throw new Error(`第 ${index + 1} 行：${message}`); } }); } catch (error) { errorMessage.value = error instanceof Error ? error.message : '创建信息不完整。'; return; } if (!window.confirm(`确认创建 ${requests.length} 个用户？`)) return; busy.value = true; try { const results = await props.dashboard.batchCreateUsers(requests); passwords.value = results.flatMap((result) => result.generatedPassword ? [{ username: result.user.username, password: result.generatedPassword }] : []); notice.value = `已创建 ${results.length} 个用户，用户管理页面已同步刷新。`; rows.value = [emptyUserForm()]; importText.value = ''; } catch (error) { errorMessage.value = error instanceof Error ? error.message : '创建失败。'; } finally { busy.value = false; } }
+function prepareCreate() { errorMessage.value = ''; notice.value = ''; pendingRequests.value = []; try { pendingRequests.value = rows.value.map((row, index) => { try { return createRequestOf(row); } catch (error) { const message = error instanceof Error ? error.message : '创建信息不完整。'; throw new Error(`第 ${index + 1} 行：${message}`); } }); } catch (error) { errorMessage.value = error instanceof Error ? error.message : '创建信息不完整。'; } }
+async function executeCreate() { const requests = [...pendingRequests.value]; if (!requests.length) return; pendingRequests.value = []; busy.value = true; try { const results = await props.dashboard.batchCreateUsers(requests); passwords.value = results.flatMap((result) => result.generatedPassword ? [{ username: result.user.username, password: result.generatedPassword }] : []); notice.value = `已创建 ${results.length} 个用户，用户管理页面已同步刷新。`; rows.value = [emptyUserForm()]; importText.value = ''; } catch (error) { errorMessage.value = error instanceof Error ? error.message : '创建失败。'; } finally { busy.value = false; } }
 </script>

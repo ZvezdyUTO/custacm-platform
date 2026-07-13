@@ -1,109 +1,130 @@
 # blog-view
 
-## 模块职责
+`blog-view` 是门户中负责公开 Blog 的 Vue 3 + Vite 构建。它提供首页、文章、分类、标签、个人主页、写作和评论，并持有 `/training/**` 外层路由以保持同一个 Blog 顶栏持续挂载。
 
-`blog-view` 是 NBlog 的 Vue 3 站点外壳，负责首页、文章、分类、标签、动态、友链、“我的主页”和登录用户的文章/评论界面，并持有 `/training/**` 外层路由以保证同一个 Blog 顶栏持续挂载。训练业务页面仍由同域的独立 Vue 3 运行时负责，本模块只用同源 frame 承载其内容。
+用户只访问一个站点、一个 Nginx `frontend` 服务。源码中另一份 `frontend/` Vue 构建只负责训练业务，作为同源 `/training-app/**` 运行时嵌入本模块；两份 Vue Router 不合并，也不会显示两条顶栏。
 
-浏览器 API 统一从 `/api/` 发起，由站点网关转发到 Blog API。公开 Blog 请求不得通过 Axios 全局拦截器携带训练 JWT。
+Blog 顶栏也是生产环境唯一主题入口。两份构建共享 `custacm.theme=light|dark`；没有显式值时跟随系统偏好，首屏在样式加载前应用主题，并通过同源存储事件和受校验的 frame 消息保持 Blog 与 Training 一致。
+
+About、Friends、Moments 页面和 API 已删除，旧 URL 不保留页面。个人资料、OJ handle、友情链接、密码和本人文章统一收敛到 `/profile`。
+
+## 页面范围
+
+```text
+/
+/home
+/blog/:id
+/write/:id?
+/category/:name
+/tag/:name
+/profile
+/training/**
+```
+
+`/login` 转交 `/training/login`。训练路径只允许登录、多人、单人、题目和当前六个管理员页面；无效训练子路径回退到多人统计。
 
 ## 目录结构
 
-- `public/`：无需打包转换的公开静态资源。
-- `src/api/`：公开 Blog 与评论接口适配。
-- `src/auth/`：与训练中心共享的本地会话摘要读取和清理逻辑。
-- `src/components/`：Blog 导航、页脚、文章、评论、个人头像裁剪和侧栏组件。
-- `src/plugins/`：Axios 实例及评论访客 `identification` 兼容逻辑。
-- `src/router/`：Vue Blog 路由；`/login` 转交训练中心，`/training/**` 保留 Blog 外壳。
-- `src/store/`：Vuex 页面状态。
-- `src/views/`：公开 Blog 页面。
-- `src/test/`：共享会话与 Vue 3 迁移后的基础行为回归测试。
-- `dist/`：生产构建产物，不作为源代码手工编辑。
+```text
+public/          默认横幅、头像、favicon 与本地 Noto Emoji sprite 等静态资源
+src/api/         Blog、评论、分类、标签、资料和本人文章 adapter
+src/auth/        与训练构建共享的浏览器会话
+src/components/  导航、文章、评论、个人资料和侧栏组件
+src/plugins/     Axios、编辑器和表情资源
+src/router/      Blog 与训练外壳路由
+src/store/       Blog/评论页面状态
+src/utils/       训练 frame 路径白名单等纯函数
+src/views/       首页、文章、分类、标签、个人主页、写作和训练宿主
+src/test/        API、会话、路由和关键交互回归测试
+```
 
 ## 依赖与边界
 
-- 使用 Vue 3、Vite、Vue Router 4、Vuex 4、Axios、Element Plus 和 Semantic UI CSS。
-- 组件暂时保留 Options API，避免把框架升级和业务重写耦合在同一变更中。
-- 公开训练中心路径为 `/training/**`，由 Blog Router 承载并在原 `Nav.vue` 下嵌入内部 `/training-app/**`；两套 Router 不合并。
-- 共享登录摘要只使用 `custacm.accessToken` 和 `custacm.user`。`custacm.user` 仅用于展示，不作为授权依据。
-- Axios 默认 `baseURL` 为 `/api/`，保留匿名评论的 `identification` 头，不得全局附加 `Authorization`。
-- 首页 `/site` 初始化响应只消费 `siteInfo.reward`、`siteInfo.commentAdminFlag`、`introduction.avatar`、`introduction.name`、分类、标签和精选文章；不得恢复旧徽章、收藏或最新文章侧栏字段。
-- 所有 `v-html` 内容必须先经过 `src/util/sanitizeHtml.js` 的 DOMPurify 清洗，作为服务端白名单之外的前端纵深防御。
-- 登录后的评论提交通过 `src/auth/session.js` 校验共享会话，再为该请求显式发送 `Authorization: Bearer <token>`。
-- 顶栏登录入口将当前完整 Blog 路径作为 `returnTo`，登录成功后回到进入登录页之前的位置。
-- 本人文章列表、发布、编辑和删除只调用 `/player/blog**`；前端显式携带 Bearer JWT，后端仍以 `blog.user_id` 做最终所有权校验。
-- 首页文章标题最多展示三行；发布与编辑共用标题 100 字、简介 255 字、正文 200000 字的输入约束，后端仍执行同样的最终校验。
-- 本人文章图片只调用 `/player/images`：首图在浏览器裁剪为 1920×1080，正文 JPEG/PNG 最大 15MB；正文插入标准图片 Markdown 并在实时编辑区直接显示缩略图，阅读预览仅在点击“加载原图”后请求高清图。尚未保存的正文图片从编辑器移除后立即回收，已绑定图片在文章保存成功后回收。
-- 文章不再支持独立密码；内部文章通过共享登录 JWT 调用 `/player/internal-blog` 和 `/player/comments` 读取正文及评论；文章列表、分类、标签、搜索和精选读取在存在会话时显式发送 Bearer，因此仅登录用户会在这些聚合结果中看到内部文章。
-- 受保护请求的 JWT 和权限校验由训练中心及 Blog API 负责。
-- 不在本模块中引入训练中心组件、后端业务代码或部署配置。
+- 使用 Vue 3、Vite、Vue Router 4、Vuex 4、Axios、Element Plus 和 Semantic UI CSS；组件继续允许 Options API。
+- 日间模式的文章代码块和 Markdown 实时预览使用浅灰白底、深墨文字及蓝紫绿语法色；深夜主题恢复高对比度代码色，并使用暖炭黑/深咖黑表面、暖灰白文字和低饱和琥珀/铜橙交互色。状态语义色及分类/标签业务色保持原义。文章图片、头像、横幅和背景图仅以 260ms 过渡到 `brightness(.84) saturate(.95)`，不得反色；减少动态效果偏好下立即切换。
+- Axios 默认 `baseURL` 为 `/api/`。公开请求不得全局附加 `Authorization`，也不再保存或发送游客评论 `identification`；需要登录的 adapter 显式携带 Bearer token。
+- 共享登录键只有 `custacm.accessToken` 和 `custacm.user`。用户摘要只用于展示，权限始终由 Blog API 校验。
+- 评论只有登录账号可以提交；请求体只包含 `content`、`blogId` 和 `parentCommentId`。公开文章评论匿名读取，内部文章评论显式 Bearer 读取。
+- 评论表情选择器按常用、笑脸、情绪、爱心展示本地 Google Noto Emoji SVG；选择后只把标准 Unicode 写入评论，读取时再映射为同源 Noto 图形。历史 tv/阿鲁/泡泡短码保留展示兼容，不再作为新评论入口。
+- 本人文章列表、回收站、发布、编辑、删除和恢复只调用 `/player/blog**`；后端按当前认证用户最终校验所有权。删除只移入固定七天回收站，期间关联内容保持不变。
+- 文章列表、分类、标签、搜索和精选读取在存在会话时显式发送 Bearer，因此登录用户可看到内部文章；游客只看到公开文章。
+- 文章详情只为登录用户显示文章包下载动作；ZIP 的 `article.md` 包含标题、简介和原始正文，本地托管首图/正文图使用扁平语义化文件名，请求显式携带 Bearer，普通用户跨文章重复下载时展示服务端 `Retry-After`，管理员不受 30 秒限制。
+- 所有 `v-html` 内容先经过 `src/util/sanitizeHtml.js` 清洗。
+- 头像、文章首图和正文图片只使用 Blog API 的本地托管资产接口，不引入旧 GitHub/又拍云上传。
+- 不在本模块复制 Training 组件、服务端授权逻辑或后端业务代码。
 
-## 文件职责
+## 关键行为
 
-- `src/main.js`：使用 `createApp` 注册 Vue 插件、全局样式和应用入口。
-- `src/router/index.js`：声明公开 Blog 路由、训练外壳路由，并把旧 `/login` 替换跳转到 `/training/login`。
-- `src/util/get-page-title.js`：统一生成带 `custacm-platpform` 品牌后缀的浏览器页面标题。
-- `src/plugins/axios.js`：创建同源 Blog API 客户端并维护评论访客标识。
-- `src/auth/session.js`：成对校验并读取共享用户摘要或裸 JWT；清理时发送稳定的同页 `custacm:session-change` 事件，同时移除旧 `memberToken/memberUser`，但保留评论 identification。
-- `src/auth/account-menu.js`：按当前角色生成账号菜单；统一使用“我的主页”，管理员额外显示“管理员界面”。
-- `src/components/index/Nav.vue`：使用 `public/img/custacm-wordmark.png` 渲染固定的藏青色 CUSTACM 字标、Blog/训练导航，顶栏不展示“动态”入口；“训练中心”标题只通过点击展开或收起下拉菜单，悬停不展开且标题本身不跳转，并且只在多人、单人和题目查询页显示选中态，管理员页面不激活任何顶部菜单；登录用户可见顶栏“发布文章”入口；右侧搜索框仅在按 Enter 后查询文章标题，最多展示十条标题与文章简介，游客只获得公开文章，登录用户也可获得内部文章；账号名称栏为较长用户名保留桌面展示空间。
-- `src/components/index/Footer.vue`：渲染平台欢迎语，以及带官网图标的圆角项目仓库、Codeforces、AtCoder、洛谷、牛客竞赛和 QOJ 固定链接。
-- `src/components/index/Header.vue`：从公开首页图片接口读取一至两张有序横幅，桌面按视口整屏显示，移动端继续加载并收缩为视口高度的 46%（限制在 280–420px）；保留鼠标左右移动时的相邻图片渐变切换；首屏通过 Google Fonts 加载 Bowlby One SC，以 80% 不透明度的冷调象牙白填充和黑色描边在画面上方呈现双行 `WELCOME TO CUSTACM`，并保留原逐字浮动、品牌浮动和整组淡入动画；接口失败时使用 `src/settings.js` 指向的构建内置默认图。
-- `public/img/homepage-banner-default.png`：构建时随 Blog 静态产物发布的唯一默认首页图，同时供 Flyway 初始化数据和接口失败回退使用。
-- `public/favicon.svg`：浏览器标签页使用的简约几何气球品牌图标。
-- `src/util/homepageBanner.js`：把鼠标位置映射为任意数量横幅的相邻图层透明度。
-- `src/assets/css/base.css`：提供 Blog 全局基础样式，以共享的 `#f4f6f8` 雾灰画布与训练、管理页面保持底色一致；前端不再加载播放器或歌词组件。
-- `src/assets/css/typo.css`：提供文章 Markdown 的排版与高对比度代码主题；行内代码样式不影响列表中的块级代码，代码被选中时统一使用深蓝选区与白色文字；长代码、表格、公式和不可断行段落在自身区域显示可拖动的横向滚动条，不得撑破文章列。
-- `src/components/sidebar/Introduction.vue`：普通页面显示当前登录用户的名片，文章详情页改为显示文章作者的公开头像、nickname、username、email、个性签名和有序友情链接；email 位于 username 下方并复用相同字号和颜色，空 email 不展示；友情链接自动读取目标站点根目录 favicon，加载失败时回退为通用网页图标；当前用户的大尺寸名片优先使用头像原图，小尺寸缩略图仅作为兼容回退，资料保持纯展示，在本人个人页仍可通过原有头像交互打开裁剪器。
-- `src/components/profile/AvatarCropDialog.vue`：允许拖动、缩放本地 PNG/JPEG，并导出 512×512 PNG 交给头像 API。
-- `src/views/about/About.vue`：“我的主页”，展示当前用户资料、OJ handle、友情链接与本人文章区，并在资料编辑面板内提供本人密码修改表单。
-- `src/views/blog/Blog.vue`：渲染公开文章详情、分类标签、正文和评论；分类丝带位于正文网格上方，不参与内容列宽计算；详情页标题下方展示作者、日期、字数和估算阅读时长，不展示阅读数，并在有首图时以正文列为基准居中展示 16:9 图片。
-- `src/components/blog/BlogItem.vue`：渲染首页、分类和标签页的文章摘要卡；卡片稳定保持左右两栏，左侧展示标题、分类、简介和阅读全文按钮，右侧以同宽纵向排列作者信息与 16:9 首图，容器确实不足时才整体改单栏，避免作者栏随桌面窗口缩窄而横向拉满。
-- `src/components/profile/MyArticles.vue`：在“我的主页”内分页查询本人文章，已发布文章进入公开详情，草稿进入继续编辑，并支持删除。
-- `src/views/article/ArticleEditor.vue`：实时 Markdown 文章发布/编辑页，支持标题/简介计数与长度限制、正文长度校验、首图裁剪、正文图片上传、Markdown 文件读取、草稿/发布、评论开关与未保存离开提示；正文编辑器使用高对比度深色文本选区。
-- `src/components/article/ArticleCoverUpload.vue`：16:9 首图拖动裁剪并导出 1920×1080 JPEG。
-- `src/components/article/ManagedImageViewer.vue`：先展示正文缩略图，用户明确点击后才加载高清图。
-- `src/components/sidebar/Tags.vue`：从全部标签中随机抽取最多 30 个显示为标签云，并按标签名称稳定映射彩色标签样式。
-- `src/components/sidebar/FeaturedBlog.vue`：显示由管理员选中的最多五篇精选文章；列表使用服务端固定顺序，不在浏览器端随机刷新。
-- `src/components/article/LiveMarkdownEditor.vue`：封装 CodeMirror 6 与 live-markdown，提供工具栏、GFM 表格、高对比度代码语法高亮、按浏览器真实文本命中定位的代码块光标、公式/托管图片实时预览，以及正文图片选择、拖拽和粘贴上传。
-- `src/plugins/standardMathPreview.js`、`src/util/markdownEditor.js`：弥合第三方编辑器公式方言差异，并提供标准数学公式识别和工具栏 Markdown 插入模板。
-- `src/api/player-blog.js`、`src/util/articleForm.js`、`src/util/articleImages.js`：本人文章/图片 API、请求组装、图片限制、托管图片 URL 转换与整图 Backspace 删除。
-- `src/api/profile.js`：匿名读取文章作者公开资料，读取本人完整资料/OJ handle，并只为本人 nickname、签名、友情链接、头像与密码更新请求显式附加共享 Bearer JWT。
-- `src/components/comment/Comment.vue`：以放大头像展示评论；账号仍存在时在昵称下显示弱化 username，游客或已注销账号不留空行；同时响应登录状态并监听 session-change/storage 事件。
-- `src/components/comment/CommentForm.vue`：提交时重新读取共享 JWT，保留既有未登录和失败提示。
-- `src/api/comment.js`：匿名读取公开评论；登录评论提交显式使用共享 Bearer JWT。
-- `src/store/actions.js`：编排评论状态；401 清理共享会话并携带当前 Blog 路由跳转登录，403 显示后端拒绝原因。
-- `src/views/Index.vue`：组合站点外壳；Blog 内容容器以 1400px 为桌面上限并随实际视口收缩，浏览器侧栏改变可视宽度时不得产生裁切；训练路由保留唯一 `Nav.vue` 并隐藏 Blog 侧栏；普通训练查询页沿用 Blog 页脚，管理员页面隐藏页脚。
-- `src/views/training/TrainingHost.vue`：在 Blog 顶栏下同源嵌入训练运行时，并将内部训练路由同步到公开 `/training/**` URL。
-- `vite.config.js`：配置 Vue 编译、源码别名、4180 统一开发入口、训练应用/HMR 与 `/api` 代理，以及 Vitest 环境。
-- `src/test/session.test.js`：验证共享登录键、孤儿会话清理和稳定变更事件。
-- `src/test/accountMenu.test.js`：验证普通队员和管理员的账号菜单权限差异。
-- `src/test/dateTimeFormatUtils.test.js`：验证移除 Vue 2 filter 后的日期格式契约。
-- `src/test/getPageTitle.test.js`：验证浏览器标题的页面名称与平台品牌组合规则。
-- `src/test/homepageBanner.test.js`：验证单图、首尾定位与相邻图片交叉淡入淡出。
-- `src/test/profileApi.test.js`：验证本人资料和友情链接请求使用正确路径、方法与显式 Bearer header。
-- `src/test/publicVisibilityApi.test.js`：验证文章列表、分类、标签、搜索和精选读取仅在存在会话时显式附加 Bearer。
-- `src/test/introduction.test.js`：验证当前用户名片优先使用头像原图，并在原图缺失时回退缩略图或默认头像。
-- `src/test/playerBlogApi.test.js`、`src/test/articleForm.test.js`：验证本人文章路径/Bearer header、请求组装、Markdown 导入与作者匹配。
-- `src/test/markdownEditor.test.js`、`src/test/liveMarkdownEditor.test.js`：验证标准公式识别、Markdown 插入模板、CodeMirror 挂载、KaTeX 实时预览和正文双向同步。
-- `src/test/markdownContentStyle.test.js`：验证文章正文有序/无序列表保留数字与圆点，并防止列表项滚动容器再次裁剪 marker。
-- `src/test/commentApi.test.js`：验证登录评论只调用 `/player/comment` 并显式附加 Bearer JWT。
-- `src/test/commentIdentity.test.js`：验证账号评论展示 username，游客评论不展示空身份行。
-- `package.json`：声明固定版本依赖及 Vite/Vitest 脚本。
-- `package-lock.json`：锁定 npm 依赖解析结果。
+- `/profile` 直接读取本人资料和 OJ handle。OJ handle 请求失败显示错误与重试按钮，不得把失败伪装成“未绑定”。
+- 个人主页同页编辑 nickname、签名、最多八条 HTTP(S) 友情链接和密码，并展示本人文章。
+- 登录评论表单提交期间禁用重复提交；401 清理共享会话并携带当前页面回到登录页。
+- 首页文章、分类文章和标签文章均使用服务端分页；文章标签由后端批量装配。
+- `/site` 只消费 Blog 首页需要的站点信息、分类、标签和精选文章，不依赖已删除页面字段。
+- 首页横幅接口失败时回退到构建内置 `public/img/homepage-banner-default.png`；空头像回退到 `public/img/default-avatar.jpg`。
+- 文章包打包期间按钮不可重复点击；401 清理共享会话并带当前文章路径跳转登录，429 显示剩余冷却秒数，503 显示下载服务暂不可用。
+- “我的文章”使用克制的当前文章/回收站切换；回收站显示删除时间与剩余保留期，只提供恢复操作，不提供提前永久删除。
+- 主题切换持久化明确的日间或深夜选择；无选择时响应系统主题变化。存储或系统主题 API 不可用时仍须安全启动并允许当前页面切换，减少动态效果偏好下关闭主题过渡。
+- 桌面三栏中的作者/本人头像框与右侧目录、精选文章、标签云在滚动到固定顶栏下方后整列吸附；侧栏高于可视区时只在自身区域滚动，并在主内容结束、接近页脚时停止。文章页目录排在右栏首位；移动端继续隐藏两侧栏。
 
-## 本地开发
+## 文件与路径职责
+
+| 文件/路径 | 职责 |
+| --- | --- |
+| `src/main.js` | 注册 Vue、Router、Vuex 和全局样式 |
+| `src/theme.js` | 共享主题解析、根节点应用、持久化、系统偏好和跨文档事件 |
+| `src/router/index.js` | Blog 页面、训练外壳和 `/login` 转交；不包含 About/Friends/Moments |
+| `src/utils/trainingRoute.js` | 训练 frame 路径白名单和内部 `/training-app/**` 地址构造 |
+| `src/views/Index.vue` | Blog 门户三栏与桌面吸附侧栏；训练路由保留唯一 `Nav.vue` 并隐藏 Blog 侧栏 |
+| `src/views/training/TrainingHost.vue` | 同源嵌入训练运行时并同步公开 `/training/**` URL |
+| `src/assets/css/typo.css` | 文章 Markdown 排版、日间浅色 Prism 语法主题与横向滚动行为 |
+| `src/assets/css/night.css` | 最后加载的 Semantic UI、Element Plus、业务页面暖黑橙覆盖及图片渐暗过渡 |
+| `src/views/home/Home.vue` | 首页文章分页 |
+| `src/views/blog/Blog.vue` | 文章详情、分类/标签、正文、登录用户文章图片归档下载和评论 |
+| `src/views/category/Category.vue`、`src/views/tag/Tag.vue` | 分类和标签文章分页 |
+| `src/views/profile/Profile.vue` | 个人主页、OJ handle 错误重试、资料/密码/友情链接编辑和本人文章 |
+| `src/components/profile/MyArticles.vue` | 本人当前文章/回收站分页、继续编辑、移入回收站和恢复 |
+| `src/views/article/ArticleEditor.vue` | Markdown 发布/编辑、首图裁剪、正文图片上传和未保存离开保护 |
+| `src/components/article/LiveMarkdownEditor.vue` | CodeMirror 6 编辑、日间浅色代码高亮、公式与托管图片实时预览 |
+| `src/components/article/ArticleCoverUpload.vue` | 1920×1080 首图裁剪 |
+| `src/components/article/ManagedImageViewer.vue` | 默认展示缩略图，明确操作后加载高清图 |
+| `src/components/index/Nav.vue` | Blog/训练导航、标题搜索、发布入口和账号菜单 |
+| `src/components/index/Header.vue` | 首页横幅展示和默认图回退 |
+| `src/components/sidebar/Introduction.vue` | 当前用户或文章作者公开名片 |
+| `src/components/blog/BlogItem.vue` | 首页、分类和标签页的文章卡片，展示作者身份、发布时间、字数与首图；作者 name 优先占用身份条空间 |
+| `src/components/sidebar/Tags.vue`、`FeaturedBlog.vue` | 标签云与管理员选择的精选文章 |
+| `src/components/sidebar/Tocbot.vue` | 文章目录生成、标题激活与平滑锚点滚动；定位由 `Index.vue` 的统一吸附容器负责 |
+| `src/components/comment/CommentForm.vue` | 登录评论输入、表情与提交状态 |
+| `src/plugins/notoEmoji.js`、`src/util/commentContent.js` | Noto emoji 分类/同源 sprite URL、Unicode 渲染、HTML 转义与历史短码兼容 |
+| `public/emoji/noto/` | Noto Emoji smileys sprite、来源说明及 Apache-2.0/MIT 许可文件 |
+| `src/components/comment/CommentList.vue` | 根评论及批量装配回复的渲染 |
+| `src/api/comment.js` | 公开/内部评论读取与显式 Bearer 评论提交 |
+| `src/api/profile.js` | 公开作者资料及本人资料、handle、密码、头像和友情链接请求 |
+| `src/api/player-blog.js` | 本人文章、七天回收站恢复和托管图片 API |
+| `src/api/blog.js`、`src/util/articleDownload.js` | 公开文章读取、显式 Bearer ZIP 下载、有限长度文件名清理和浏览器保存 |
+| `src/auth/session.js` | 成对校验、读取、写入和清理共享会话 |
+| `src/plugins/axios.js` | `/api/` Axios client、进度条和统一响应解包；不得附加游客身份或全局 JWT |
+| `public/img/homepage-banner-default.png` | 唯一默认首页横幅 |
+| `public/img/default-avatar.jpg` | 空头像的统一前端回退 |
+| `vite.config.js` | 4180 开发入口、训练/HMR 代理、`/api` 代理和 Vitest 配置 |
+| `src/test/trainingRoute.test.js` | 训练 frame 路由白名单回归测试 |
+| `src/test/theme.test.js`、`trainingThemeBridge.test.js` | 主题容错、切换持久化和同源 frame 同步测试 |
+| `src/test/nightThemeStyle.test.js` | Blog 主题关键表面及代码块日间/深夜语法配色契约测试 |
+| `src/test/sidebarStickyStyle.test.js` | 左右侧栏吸附、文章目录优先级及 Tocbot 单一定位职责测试 |
+| `src/test/commentApi.test.js`、`commentFormState.test.js` | 登录评论请求体、Bearer 和防重复提交测试 |
+| `src/test/notoEmoji.test.js`、`commentFormEmoji.test.js` | 本地 sprite 覆盖、Unicode 安全渲染、选择器可访问性与光标插入测试 |
+| `src/test/profileApi.test.js` | 本人资料、handle 和友情链接 API 测试 |
+| `src/test/publicVisibilityApi.test.js` | 聚合读取仅在有会话时显式附加 Bearer 的测试 |
+| `src/test/articleDownloadApi.test.js`、`articleDownload.test.js` | 下载请求、文件名、浏览器保存和 `Retry-After` 测试 |
+| `src/test/articleRecycleBinUi.test.js`、`playerBlogApi.test.js` | 本人回收站文案、删除/恢复交互和受保护路径测试 |
+| `package.json`、`package-lock.json` | 固定依赖、脚本和可复现 npm 安装 |
+
+## 本地开发与验证
 
 ```bash
 npm ci
 npm run serve
-```
-
-统一本地入口为 `http://localhost:4180/`。开发服务器将 `/api/**` 代理到 `http://localhost:8090`，并将 `/training-app/**` 与训练应用的 HMR 通道代理到 `http://localhost:5173`。先在 `frontend` 启动训练 Vite，再启动本模块，即可在 `/training/**` 下同时热更新两套 Vue 应用。
-
-## 测试与生产构建
-
-```bash
-npm ci
 npm test
 npm run build
 ```
+
+统一开发入口是 `http://localhost:4180/`。开发服务器将 `/api/**` 代理到 `http://localhost:8090`，并将 `/training-app/**` 与训练 HMR 代理到 `http://localhost:5173`。

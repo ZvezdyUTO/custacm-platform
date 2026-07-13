@@ -718,9 +718,8 @@ class OjWarehouseQueryServiceTest {
         }
 
         @Override
-        public OjHandleAccount updateUsernameAndNeedCollect(
-                String oldUsername,
-                String newUsername,
+        public OjHandleAccount replace(
+                String username,
                 Map<String, String> handles,
                 boolean needCollect,
                 Map<String, OjHandleCollectionState> collectionStates,
@@ -730,9 +729,10 @@ class OjWarehouseQueryServiceTest {
         }
 
         @Override
-        public OjHandleAccount updateCollectionStates(
-                String username,
-                Map<String, OjHandleCollectionState> collectionStates,
+        public boolean updateLastCollectedAtByHandle(
+                String ojName,
+                String handle,
+                Instant lastCollectedAt,
                 Instant updatedAt
         ) {
             throw new UnsupportedOperationException("not used");

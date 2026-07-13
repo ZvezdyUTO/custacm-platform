@@ -1,12 +1,14 @@
 package top.naccl.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import top.naccl.entity.User;
+import top.naccl.exception.LoginBadCredentialsException;
 import top.naccl.model.dto.LoginInfo;
 import top.naccl.model.vo.Result;
+import top.naccl.service.LoginAttemptLimiter;
 import top.naccl.service.UserService;
 import top.naccl.util.JwtUtils;
 
@@ -20,8 +22,13 @@ import java.util.Map;
  */
 @RestController
 public class LoginController {
-	@Autowired
-	UserService userService;
+	private final UserService userService;
+	private final LoginAttemptLimiter loginAttemptLimiter;
+
+	public LoginController(UserService userService, LoginAttemptLimiter loginAttemptLimiter) {
+		this.userService = userService;
+		this.loginAttemptLimiter = loginAttemptLimiter;
+	}
 
 	/**
 	 * 登录成功后，签发当前用户 Token。
@@ -31,7 +38,15 @@ public class LoginController {
 	 */
 	@PostMapping("/login")
 	public Result login(@RequestBody LoginInfo loginInfo) {
-		User user = userService.findUserByUsernameAndPassword(loginInfo.getUsername(), loginInfo.getPassword());
+		String username = loginInfo.getUsername();
+		loginAttemptLimiter.acquire(username);
+		User user;
+		try {
+			user = userService.findUserByUsernameAndPassword(username, loginInfo.getPassword());
+		} catch (UsernameNotFoundException e) {
+			throw new LoginBadCredentialsException((int) LoginAttemptLimiter.COOLDOWN.toSeconds());
+		}
+		loginAttemptLimiter.release(username);
 		user.setPassword(null);
 		String jwt = JwtUtils.generateToken(user.getUsername(), user.getAuthorities());
 		Map<String, Object> map = new HashMap<>(4);

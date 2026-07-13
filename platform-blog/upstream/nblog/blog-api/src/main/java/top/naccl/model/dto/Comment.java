@@ -27,7 +27,7 @@ public class Comment {
 	private String ip;//评论者ip地址
 	private Boolean published;//公开或回收站
 	private Boolean adminComment;//博主回复
-	private Integer page;//0普通文章，1关于我页面
+	private Integer page;//文章评论固定为0，由服务端写入
 	private Boolean notice;//接收邮件提醒
 	private Long parentCommentId;//父评论id
 	private Long blogId;//所属的文章id

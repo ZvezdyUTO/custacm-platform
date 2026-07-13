@@ -48,22 +48,14 @@ export interface AdminUserCreateRequest {
   needCollect?: boolean | null;
 }
 
-export interface AdminUserPatchRequest {
-  newUsername?: Username | null;
-  nickname?: string | null;
-  email?: string | null;
-  role?: AccountRole | null;
+export interface AdminUserUpdateRequest {
+  newUsername: Username;
+  nickname: string;
+  email: string;
+  role: AccountRole;
   password?: string | null;
-}
-
-export interface OjHandlesUpdateRequest {
   handles?: Partial<Record<OjName, string>> | null;
   needCollect?: boolean | null;
-}
-
-export interface OjHandleReplaceRequest {
-  ojName: OjName;
-  newHandle: string;
 }
 
 export interface CollectionJobStartRequest {
@@ -112,11 +104,6 @@ export interface CollectionJob {
   items: CollectionJobItem[];
 }
 
-export interface WarehouseRefreshRequest {
-  batchId: string | null;
-  startFromTaskId: string | null;
-}
-
 export type WarehouseRefreshStatus = 'SUCCESS' | 'FAILED';
 export type WarehouseRefreshTaskStatus = 'SUCCESS' | 'FAILED' | 'SKIPPED';
 
@@ -157,10 +144,12 @@ export interface AdminArticle {
   firstPicture: string;
   createTime: string;
   updateTime: string;
+	deletedAt?: string;
   published: boolean;
   recommend: boolean;
   top: boolean;
   category: { id: number; name: string } | null;
+	user?: { username: string; nickname?: string | null } | null;
 }
 
 export interface AdminArticlePage {

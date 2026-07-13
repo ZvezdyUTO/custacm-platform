@@ -10,14 +10,12 @@ import top.naccl.entity.Blog;
 import top.naccl.exception.NotFoundException;
 import top.naccl.exception.PersistenceException;
 import top.naccl.mapper.BlogMapper;
-import top.naccl.model.dto.BlogVisibility;
 import top.naccl.model.vo.BlogDetail;
 import top.naccl.model.vo.BlogInfo;
 import top.naccl.model.vo.PageResult;
 import top.naccl.model.vo.RandomBlog;
 import top.naccl.model.vo.SearchBlog;
 import top.naccl.service.BlogService;
-import top.naccl.service.ImageAssetService;
 import top.naccl.service.RedisService;
 import top.naccl.service.TagService;
 import top.naccl.util.markdown.MarkdownUtils;
@@ -37,8 +35,6 @@ public class BlogServiceImpl implements BlogService {
 	TagService tagService;
 	@Autowired
 	RedisService redisService;
-	@Autowired
-	ImageAssetService imageAssetService;
 	//随机博客显示5条
 	private static final int randomBlogLimitNum = 5;
 	//每页显示5条博客简介
@@ -54,11 +50,6 @@ public class BlogServiceImpl implements BlogService {
 	@Override
 	public List<SearchBlog> getSearchBlogListByQueryAndIsPublished(String query, boolean includeInternal) {
 		return blogMapper.getSearchBlogListByQueryAndIsPublished(query, includeInternal);
-	}
-
-	@Override
-	public List<Blog> getIdAndTitleList() {
-		return blogMapper.getIdAndTitleList();
 	}
 
 	@Override
@@ -102,9 +93,12 @@ public class BlogServiceImpl implements BlogService {
 	}
 
 	private List<BlogInfo> processBlogInfos(List<BlogInfo> blogInfos) {
+		var tagsByBlogId = tagService.getTagListsByBlogIds(
+				blogInfos.stream().map(BlogInfo::getId).toList()
+		);
 		for (BlogInfo blogInfo : blogInfos) {
 			blogInfo.setDescription(MarkdownUtils.markdownToHtmlExtensions(blogInfo.getDescription()));
-			blogInfo.setTags(tagService.getTagListByBlogId(blogInfo.getId()));
+			blogInfo.setTags(tagsByBlogId.getOrDefault(blogInfo.getId(), List.of()));
 		}
 		return blogInfos;
 	}
@@ -112,16 +106,6 @@ public class BlogServiceImpl implements BlogService {
 	@Override
 	public List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(boolean includeInternal) {
 		return blogMapper.getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(randomBlogLimitNum, includeInternal);
-	}
-
-	@Transactional(rollbackFor = Exception.class)
-	@Override
-	public void deleteBlogById(Long id) {
-		imageAssetService.prepareBlogDeletion(id);
-		if (blogMapper.deleteBlogById(id) != 1) {
-			throw new NotFoundException("该博客不存在");
-		}
-		deleteBlogRedisCache();
 	}
 
 	@Transactional(rollbackFor = Exception.class)
@@ -156,40 +140,6 @@ public class BlogServiceImpl implements BlogService {
 		}
 	}
 
-	@Transactional(rollbackFor = Exception.class)
-	@Override
-	public void updateBlogVisibilityById(Long blogId, BlogVisibility blogVisibility) {
-		blogVisibility.setInternal(Boolean.TRUE.equals(blogVisibility.getPublished())
-				&& Boolean.TRUE.equals(blogVisibility.getInternal()));
-		if (blogMapper.updateBlogVisibilityById(blogId, blogVisibility) != 1) {
-			throw new PersistenceException("操作失败");
-		}
-		redisService.deleteCacheByKey(RedisKeyConstants.HOME_BLOG_INFO_LIST);
-	}
-
-	@Transactional(rollbackFor = Exception.class)
-	@Override
-	public void updateBlogTopById(Long blogId, Boolean top) {
-		if (blogMapper.updateBlogTopById(blogId, top) != 1) {
-			throw new PersistenceException("操作失败");
-		}
-		redisService.deleteCacheByKey(RedisKeyConstants.HOME_BLOG_INFO_LIST);
-	}
-
-	@Override
-	public Blog getBlogById(Long id) {
-		Blog blog = blogMapper.getBlogById(id);
-		if (blog == null) {
-			throw new NotFoundException("博客不存在");
-		}
-		return blog;
-	}
-
-	@Override
-	public String getTitleByBlogId(Long id) {
-		return blogMapper.getTitleByBlogId(id);
-	}
-
 	@Override
 	public BlogDetail getBlogByIdAndIsPublished(Long id) {
 		BlogDetail blog = blogMapper.getBlogByIdAndIsPublished(id);
@@ -216,11 +166,6 @@ public class BlogServiceImpl implements BlogService {
 			throw new PersistenceException("更新博客失败");
 		}
 		deleteBlogRedisCache();
-	}
-
-	@Override
-	public int countBlogByIsPublished() {
-		return blogMapper.countBlogByIsPublished();
 	}
 
 	@Override

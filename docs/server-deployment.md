@@ -13,6 +13,8 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml config
 ./scripts/deploy.sh
 ```
 
+OJ 自动采集、AtCoder 题目定时采集和启动补采默认全部关闭。只有确认外部 API 配额与服务器负载后，才在实际 `.env` 中逐项启用 `BLOG_CODEFORCES_*_COLLECTION_ENABLED`、`BLOG_ATCODER_*_COLLECTION_ENABLED`、`BLOG_ATCODER_PROBLEM_LIST_SCHEDULE_ENABLED` 或 `BLOG_ATCODER_PROBLEM_LIST_BOOTSTRAP_ENABLED`。自动提交采集的 `BLOG_DAILY_COLLECTION_LOOKBACK` 默认 `100h`，`BLOG_INTRADAY_COLLECTION_LOOKBACK` 默认 `0h`；旧 `.env` 未声明时，Compose 仍会注入这两个新默认。`BLOG_CACHE_TTL` 默认 `10m`。
+
 默认地址：
 
 ```text
@@ -35,6 +37,7 @@ Gateway health: http://localhost:3000/api/health
 - 前端镜像在 Node 20.19 stage 内分别构建 Vue 3 Training/pnpm 与 Vue 3 Blog/npm 产物，再由 Nginx 1.27 Alpine 提供静态文件。
 - 应用日志 bind mount 到 `logs/combined.log`、`logs/error.log`。上传目录对 Blog API 为读写挂载、对前端 Nginx 为只读挂载；托管图片由 Nginx 从 `/api/image/**` 直接返回。
 - MySQL 与 Redis 使用 `BLOG_DB_VOLUME_NAME`、`BLOG_REDIS_VOLUME_NAME` 命名卷，容器重建后继续保留。
+- 从旧 JSON OJ 账号升级前，必须执行 [deploy/UPDATE.md](../deploy/UPDATE.md) 的 V034 JSON/重复 handle 预检；V034 成功后生产代码只读写关系化表，旧表暂留一个迁移窗口。
 
 ## 验证
 

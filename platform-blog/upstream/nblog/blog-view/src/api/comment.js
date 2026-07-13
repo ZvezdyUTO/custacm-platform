@@ -27,7 +27,9 @@ export function submitComment(token, form) {
 			Authorization: `Bearer ${token}`,
 		},
 		data: {
-			...form
+			content: form.content,
+			blogId: form.blogId,
+			parentCommentId: form.parentCommentId,
 		}
 	})
 }

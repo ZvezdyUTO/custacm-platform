@@ -39,6 +39,8 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml config
 
 Flyway 会在空数据库上执行版本化迁移。配置 `BLOG_BOOTSTRAP_ADMIN_PASSWORD` 后，应用会幂等创建固定用户名 `root` 的首个管理员；`root` 是不可删除、不可改名、不可降权且不可绑定 OJ handle 的系统账号。
 
+升级已有数据库时，V034 会把旧 `oj_handle_account` JSON 拆成关系化的 `training_member` 与 `oj_handle_binding`；生产代码此后只读写新表，旧表保留一个迁移窗口。迁移会先在临时表校验 JSON 与大小写精确的 handle 唯一性，历史脏数据会阻止启动而不会静默丢弃，升级前检查和恢复步骤见 [UPDATE.md](UPDATE.md)。V035 会删除已退役页面、Quartz、访问统计和历史应用日志的独占表。
+
 ## 访问地址
 
 普通模式使用 `.env.example` 默认端口时：
@@ -79,8 +81,17 @@ Nginx 路由规则：
 | `BLOG_TOKEN_SECRET` | 至少 64 字符的 HS512 secret |
 | `BLOG_TOKEN_TTL_MILLIS` | 登录 token TTL（毫秒） |
 | `BLOG_BOOTSTRAP_ADMIN_PASSWORD` | 固定 `root` 系统管理员的初始密码 |
+| `BLOG_CACHE_TTL` | Blog Redis 缓存 TTL，默认 `10m`；Redis 故障时读取降级到数据库 |
+| `BLOG_DAILY_COLLECTION_LOOKBACK` | 自动采集每日任务从各用户/OJ 上次成功游标向前回看的时长，默认 `100h` |
+| `BLOG_INTRADAY_COLLECTION_LOOKBACK` | 自动采集日内半小时任务的回看时长，默认 `0h`，即从上次成功游标直接续爬 |
+| `BLOG_CODEFORCES_DAILY_COLLECTION_ENABLED`、`BLOG_CODEFORCES_INTRADAY_COLLECTION_ENABLED` | 是否启用 Codeforces 两组自动采集计划，默认 `false` |
+| `BLOG_ATCODER_DAILY_COLLECTION_ENABLED`、`BLOG_ATCODER_INTRADAY_COLLECTION_ENABLED` | 是否启用 AtCoder 两组自动采集计划，默认 `false` |
+| `BLOG_ATCODER_PROBLEM_LIST_SCHEDULE_ENABLED` | 是否启用 AtCoder 题目元数据定时采集，默认 `false` |
+| `BLOG_ATCODER_PROBLEM_LIST_BOOTSTRAP_ENABLED` | 是否在启动时补采 AtCoder 题目元数据，默认 `false` |
 
 `deploy/.env` 不得提交。不要把 placeholder secret 用到共享环境。
+
+自动采集全部默认关闭。只有确认外部 API 配额、服务器带宽和数据库负载后才应逐项改为 `true`；启用后的每日任务默认回看 100 小时，日内任务默认零回看，首次没有游标时仍采集全部历史。手动“数据采集”页面不受这些定时开关或自动任务回看值影响。
 
 ## 构建方式
 

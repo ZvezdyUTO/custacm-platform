@@ -5,20 +5,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.Authentication;
-import top.naccl.entity.Category;
-import top.naccl.entity.User;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import top.naccl.service.ArticleArchiveService;
 import top.naccl.service.BlogService;
+import top.naccl.service.ArticleRecycleBinService;
 import top.naccl.service.CategoryService;
-import top.naccl.service.CommentService;
-import top.naccl.service.TagService;
-import top.naccl.service.UserService;
 
-import java.util.Collections;
+import java.io.ByteArrayOutputStream;
 
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * @author huangbingrui.awa
@@ -27,40 +26,40 @@ import static org.mockito.Mockito.when;
 class BlogAdminControllerTest {
 	@Mock private BlogService blogService;
 	@Mock private CategoryService categoryService;
-	@Mock private TagService tagService;
-	@Mock private CommentService commentService;
-	@Mock private UserService userService;
-	@Mock private Authentication authentication;
+	@Mock private ArticleRecycleBinService recycleBinService;
+	@Mock private ArticleArchiveService articleArchiveService;
 	@InjectMocks private BlogAdminController controller;
 
 	@Test
-	void createBindsCurrentAdministratorAsAuthor() {
-		User administrator = new User();
-		administrator.setId(42L);
-		administrator.setUsername("admin-two");
-		Category category = new Category();
-		category.setId(3L);
-		when(authentication.getName()).thenReturn("admin-two");
-		when(userService.findUserByUsername("admin-two")).thenReturn(administrator);
-		when(categoryService.getCategoryById(3L)).thenReturn(category);
-		top.naccl.model.dto.Blog blog = validBlog();
+	void updatesRecommendationThroughTheRetainedAdminEndpoint() {
+		controller.updateRecommend(42L, true);
 
-		controller.saveBlog(authentication, blog);
-
-		assertSame(administrator, blog.getUser());
-		verify(userService).findUserByUsername("admin-two");
-		verify(blogService).saveBlog(blog);
+		verify(blogService).updateBlogRecommendById(42L, true);
 	}
 
-	private top.naccl.model.dto.Blog validBlog() {
-		top.naccl.model.dto.Blog blog = new top.naccl.model.dto.Blog();
-		blog.setTitle("管理员文章");
-		blog.setFirstPicture("/cover.png");
-		blog.setContent("content");
-		blog.setDescription("description");
-		blog.setWords(10);
-		blog.setCate(3);
-		blog.setTagList(Collections.emptyList());
-		return blog;
+	@Test
+	void movesDeletedArticleToTheSevenDayRecycleBin() {
+		controller.delete(42L);
+
+		verify(recycleBinService).moveToRecycleBin(42L);
+	}
+
+	@Test
+	void restoresArticleThroughTheRecycleBinService() {
+		controller.restore(42L);
+
+		verify(recycleBinService).restore(42L);
+	}
+
+	@Test
+	void streamsACompleteArticleBackupWithAShortAsciiFilename() throws Exception {
+		ResponseEntity<StreamingResponseBody> response = controller.backup();
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		response.getBody().writeTo(output);
+
+		assertTrue(response.getHeaders().getContentType().isCompatibleWith(MediaType.parseMediaType("application/zip")));
+		assertTrue(response.getHeaders().getContentDisposition().getFilename()
+				.matches("custacm-article-backup-\\d{8}-\\d{6}\\.zip"));
+		verify(articleArchiveService).writeAllArticlesBackup(output);
 	}
 }

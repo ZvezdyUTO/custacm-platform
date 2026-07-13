@@ -58,6 +58,21 @@ class JdbcOjAcceptedSummaryRepositoryTest {
     }
 
     @Test
+    void findsMultipleHandlesInOneBatchQuery() {
+        List<OjDailyRatingAcceptedSummary> summaries = repository.findDailyRatingAcceptedSummaries(List.of(
+                OjAcceptedSummaryCriteria.allForHandle("tourist"),
+                OjAcceptedSummaryCriteria.allForHandle("other")
+        ));
+
+        assertThat(summaries).containsExactly(
+                summary("other", "2026-07-01", Map.of("800", 5)),
+                summary("tourist", "2026-07-01", Map.of("800", 2, "1200", 1)),
+                summary("tourist", "2026-07-02", Map.of("UNRATED", 3)),
+                summary("tourist", "2026-07-03", Map.of("1600", 1))
+        );
+    }
+
+    @Test
     void appliesDateAndRatedProblemFilters() {
         OjAcceptedSummaryCriteria query = new OjAcceptedSummaryCriteria(
                 "tourist",

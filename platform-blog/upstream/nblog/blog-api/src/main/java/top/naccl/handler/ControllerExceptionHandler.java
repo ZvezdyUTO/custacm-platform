@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -14,6 +15,11 @@ import top.naccl.exception.BadRequestException;
 import top.naccl.exception.PersistenceException;
 import top.naccl.exception.ForbiddenException;
 import top.naccl.exception.ImageAssetException;
+import top.naccl.exception.ArticleDownloadRateLimitException;
+import top.naccl.exception.ArticleDownloadRateLimitUnavailableException;
+import top.naccl.exception.LoginBadCredentialsException;
+import top.naccl.exception.LoginCooldownException;
+import top.naccl.exception.LoginCooldownUnavailableException;
 import top.naccl.model.vo.Result;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -72,6 +78,34 @@ public class ControllerExceptionHandler {
 				.body(Result.error(401, "AUTH_BAD_CREDENTIALS", "用户名或密码错误！"));
 	}
 
+	@ExceptionHandler(LoginBadCredentialsException.class)
+	public ResponseEntity<Result> loginBadCredentialsExceptionHandler(
+			HttpServletRequest request, LoginBadCredentialsException e) {
+		logger.warn("errorCode=AUTH_BAD_CREDENTIALS requestUrl={} retryAfterSeconds={}",
+				request.getRequestURL(), e.retryAfterSeconds());
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+				.header(HttpHeaders.RETRY_AFTER, Integer.toString(e.retryAfterSeconds()))
+				.body(Result.error(401, "AUTH_BAD_CREDENTIALS", e.getMessage()));
+	}
+
+	@ExceptionHandler(LoginCooldownException.class)
+	public ResponseEntity<Result> loginCooldownExceptionHandler(
+			HttpServletRequest request, LoginCooldownException e) {
+		logger.warn("errorCode=AUTH_LOGIN_COOLDOWN requestUrl={} retryAfterSeconds={}",
+				request.getRequestURL(), e.retryAfterSeconds());
+		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.header(HttpHeaders.RETRY_AFTER, Integer.toString(e.retryAfterSeconds()))
+				.body(Result.error(429, "AUTH_LOGIN_COOLDOWN", e.getMessage()));
+	}
+
+	@ExceptionHandler(LoginCooldownUnavailableException.class)
+	public ResponseEntity<Result> loginCooldownUnavailableExceptionHandler(
+			HttpServletRequest request, LoginCooldownUnavailableException e) {
+		logger.error("errorCode=AUTH_LOGIN_COOLDOWN_UNAVAILABLE requestUrl={}", request.getRequestURL(), e);
+		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+				.body(Result.error(503, "AUTH_LOGIN_COOLDOWN_UNAVAILABLE", e.getMessage()));
+	}
+
 	@ExceptionHandler(BadRequestException.class)
 	public ResponseEntity<Result> badRequestExceptionHandler(HttpServletRequest request, BadRequestException e) {
 		logger.warn("errorCode=BAD_REQUEST requestUrl={} message={}", request.getRequestURL(), e.getMessage());
@@ -89,6 +123,24 @@ public class ControllerExceptionHandler {
 		logger.warn("errorCode=AUTH_FORBIDDEN requestUrl={} message={}", request.getRequestURL(), e.getMessage());
 		return ResponseEntity.status(HttpStatus.FORBIDDEN)
 				.body(Result.error(403, "AUTH_FORBIDDEN", e.getMessage()));
+	}
+
+	@ExceptionHandler(ArticleDownloadRateLimitException.class)
+	public ResponseEntity<Result> articleDownloadRateLimitExceptionHandler(
+			HttpServletRequest request, ArticleDownloadRateLimitException e) {
+		logger.warn("errorCode=ARTICLE_DOWNLOAD_RATE_LIMITED requestUrl={} retryAfterSeconds={}",
+				request.getRequestURL(), e.retryAfterSeconds());
+		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.header(HttpHeaders.RETRY_AFTER, Integer.toString(e.retryAfterSeconds()))
+				.body(Result.error(429, "ARTICLE_DOWNLOAD_RATE_LIMITED", e.getMessage()));
+	}
+
+	@ExceptionHandler(ArticleDownloadRateLimitUnavailableException.class)
+	public ResponseEntity<Result> articleDownloadRateLimitUnavailableExceptionHandler(
+			HttpServletRequest request, ArticleDownloadRateLimitUnavailableException e) {
+		logger.error("errorCode=ARTICLE_DOWNLOAD_RATE_LIMIT_UNAVAILABLE requestUrl={}", request.getRequestURL(), e);
+		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+				.body(Result.error(503, "ARTICLE_DOWNLOAD_RATE_LIMIT_UNAVAILABLE", e.getMessage()));
 	}
 
 	@ExceptionHandler(OjHandleAccountException.class)

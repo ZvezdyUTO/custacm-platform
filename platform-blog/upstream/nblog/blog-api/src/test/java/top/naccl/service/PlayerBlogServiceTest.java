@@ -35,6 +35,7 @@ class PlayerBlogServiceTest {
 	@Mock private BlogService blogService;
 	@Mock private CommentService commentService;
 	@Mock private ImageAssetService imageAssetService;
+	@Mock private ArticleRecycleBinService recycleBinService;
 	@InjectMocks private PlayerBlogService playerBlogService;
 
 	private User player;
@@ -146,6 +147,15 @@ class PlayerBlogServiceTest {
 		InOrder order = inOrder(userMapper, blogMapper);
 		order.verify(userMapper).findByUsername("player1");
 		order.verify(blogMapper).getListByTitleAndCategoryIdAndUserId("", null, 7L);
+	}
+
+	@Test
+	void deleteAndRestoreStayScopedToTheAuthenticatedOwner() {
+		playerBlogService.delete("player1", 10L);
+		playerBlogService.restore("player1", 10L);
+
+		verify(recycleBinService).moveOwnedToRecycleBin("player1", 10L);
+		verify(recycleBinService).restoreOwned("player1", 10L);
 	}
 
 	private top.naccl.model.dto.Blog validBlog() {

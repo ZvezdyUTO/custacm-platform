@@ -14,9 +14,7 @@ import top.naccl.exception.BadRequestException;
 import top.naccl.exception.ForbiddenException;
 import top.naccl.mapper.UserMapper;
 import top.naccl.model.dto.AdminUserCreateRequest;
-import top.naccl.model.dto.AdminUserPatchRequest;
-import top.naccl.model.dto.OjHandlesUpdateRequest;
-import top.naccl.model.dto.OjHandleReplaceRequest;
+import top.naccl.model.dto.AdminUserUpdateRequest;
 import top.naccl.service.impl.AdminUserService;
 import top.naccl.util.HashUtils;
 
@@ -55,7 +53,7 @@ class AdminUserServiceTest {
         assertEquals("", response.user().getAvatar());
         assertTrue(response.generatedPassword() != null && response.generatedPassword().length() >= 16);
         verify(userMapper).insert(argThat(user -> HashUtils.matchBC(response.generatedPassword(), user.getPassword())));
-        verify(handleAccountService).create("张三-01", Map.of("codeforces", "tourist"), false);
+        verify(handleAccountService).create("张三-01", Map.of("CODEFORCES", "tourist"), false);
     }
 
     @Test
@@ -74,8 +72,8 @@ class AdminUserServiceTest {
         when(userMapper.findByUsername("admin")).thenReturn(admin);
         when(userMapper.lockAdminIds()).thenReturn(List.of(1L));
 
-        assertThrows(ForbiddenException.class, () -> service.patch("admin", new AdminUserPatchRequest(
-                null, null, null, "ROLE_player", null)));
+        assertThrows(ForbiddenException.class, () -> service.update("admin", new AdminUserUpdateRequest(
+                "admin", null, null, "ROLE_player", null, Map.of(), true)));
         assertThrows(ForbiddenException.class, () -> service.delete("admin"));
     }
 
@@ -85,12 +83,12 @@ class AdminUserServiceTest {
         User root = user("root", "ROLE_admin");
         when(userMapper.findByUsername("root")).thenReturn(root);
 
-        assertThrows(ForbiddenException.class, () -> service.patch("root", new AdminUserPatchRequest(
-                "renamed-root", null, null, null, null)));
-        assertThrows(ForbiddenException.class, () -> service.patch("root", new AdminUserPatchRequest(
-                null, null, null, "ROLE_player", null)));
-        assertThrows(ForbiddenException.class, () -> service.updateHandles(
-                "root", new OjHandlesUpdateRequest(Map.of("CODEFORCES", "root"), true)));
+        assertThrows(ForbiddenException.class, () -> service.update("root", new AdminUserUpdateRequest(
+                "renamed-root", null, null, null, null, null, null)));
+        assertThrows(ForbiddenException.class, () -> service.update("root", new AdminUserUpdateRequest(
+                "root", null, null, "ROLE_player", null, null, null)));
+        assertThrows(ForbiddenException.class, () -> service.update("root", new AdminUserUpdateRequest(
+                "root", null, null, "ROLE_admin", null, Map.of("CODEFORCES", "root"), true)));
         assertThrows(ForbiddenException.class, () -> service.delete("root"));
     }
 
@@ -103,8 +101,8 @@ class AdminUserServiceTest {
         when(userMapper.updateAdminFields(argThat(user -> "new-name".equals(user.getUsername())),
                 org.mockito.ArgumentMatchers.eq("old-name"))).thenReturn(1);
 
-        var response = service.patch("old-name", new AdminUserPatchRequest(
-                "new-name", null, null, null, null));
+        var response = service.update("old-name", new AdminUserUpdateRequest(
+                "new-name", null, null, null, null, Map.of(), true));
 
         assertTrue(response.reloginRequired());
         verify(userMapper).updateAdminFields(player, "old-name");
@@ -118,8 +116,8 @@ class AdminUserServiceTest {
 		when(userMapper.updateAdminFields(org.mockito.ArgumentMatchers.any(),
 				org.mockito.ArgumentMatchers.eq("player"))).thenReturn(1);
 
-		var response = service.patch("player", new AdminUserPatchRequest(
-				null, null, null, null, ""));
+        var response = service.update("player", new AdminUserUpdateRequest(
+                "player", null, null, null, "", Map.of(), true));
 
 		assertTrue(response.generatedPassword() != null && response.generatedPassword().length() >= 16);
 		verify(userMapper).updateAdminFields(argThat(user ->
@@ -128,19 +126,19 @@ class AdminUserServiceTest {
 	}
 
     @Test
-    void persistsNeedCollectForUserWithoutOjHandles() {
+    void persistsNeedCollectForUserWithoutOjHandlesInAtomicUpdate() {
         AdminUserService service = service();
         User player = user("player", "ROLE_player");
         Instant now = Instant.parse("2026-07-12T00:00:00Z");
+        OjHandleAccount active = new OjHandleAccount("player", Map.of(), true, now, now);
         OjHandleAccount retired = new OjHandleAccount("player", Map.of(), false, now, now);
         when(userMapper.findByUsername("player")).thenReturn(player);
-        when(handleAccountService.changeUsername("player", "player", false, Map.of()))
-                .thenThrow(new OjHandleAccountException(
-                        OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_NOT_FOUND,
-                        "not found"));
-        when(handleAccountService.create("player", Map.of(), false)).thenReturn(retired);
+        when(userMapper.updateAdminFields(player, "player")).thenReturn(1);
+        when(handleAccountService.getByUsername("player")).thenReturn(active);
+        when(handleAccountService.replaceHandlesAfterPurge("player", Map.of(), false)).thenReturn(retired);
 
-        var response = service.updateHandles("player", new OjHandlesUpdateRequest(Map.of(), false));
+        var response = service.update("player", new AdminUserUpdateRequest(
+                "player", null, null, null, null, Map.of(), false));
 
         assertEquals(false, response.needCollect());
         assertTrue(response.handles().isEmpty());
@@ -160,36 +158,38 @@ class AdminUserServiceTest {
                 createdAt,
                 collectedAt
         );
-        when(userMapper.findByUsername("player")).thenReturn(player);
-        when(handleAccountService.getByUsername("player")).thenReturn(account);
+        when(handleAccountService.listAll()).thenReturn(List.of(account));
+        when(userMapper.findAll()).thenReturn(List.of(player));
 
-        var response = service.get("player");
+        var response = service.list().get(0);
 
         assertEquals(collectedAt, response.collectionStates().get("CODEFORCES").lastCollectedAt());
     }
 
     @Test
-    void purgesAllOjTrainingDataBeforeReplacingHandle() {
+    void purgesChangedAndRemovedHandlesBeforeOneAtomicReplacement() {
         AdminUserService service = service();
         User player = user("player", "ROLE_player");
         Instant now = Instant.parse("2026-07-12T00:00:00Z");
-        OjHandleAccount existing = new OjHandleAccount(
-                "player", Map.of("CODEFORCES", "tourist"), true, now, now);
+        OjHandleAccount existing = new OjHandleAccount("player", Map.of(
+                "CODEFORCES", "tourist", "ATCODER", "old-atcoder"), true, now, now);
         OjHandleAccount replaced = new OjHandleAccount(
                 "player", Map.of("CODEFORCES", "Benq"), true, now, now);
         when(userMapper.findByUsername("player")).thenReturn(player);
+        when(userMapper.updateAdminFields(player, "player")).thenReturn(1);
         when(handleAccountService.getByUsername("player")).thenReturn(existing);
-        when(handleAccountService.getHandle(existing, "CODEFORCES")).thenReturn("tourist");
-        when(handleAccountService.replaceHandleAfterPurge("player", "CODEFORCES", "Benq"))
-                .thenReturn(replaced);
+        when(handleAccountService.replaceHandlesAfterPurge(
+                "player", Map.of("CODEFORCES", "Benq"), true)).thenReturn(replaced);
 
-        var response = service.replaceHandle(
-                "player", new OjHandleReplaceRequest("CODEFORCES", "Benq"));
+        var response = service.update("player", new AdminUserUpdateRequest(
+                "player", null, null, null, null, Map.of("CODEFORCES", "Benq"), true));
 
         assertEquals("Benq", response.handles().get("CODEFORCES"));
         var ordered = inOrder(purgeService, handleAccountService);
         ordered.verify(purgeService).purgeStudentData("player", "CODEFORCES");
-        ordered.verify(handleAccountService).replaceHandleAfterPurge("player", "CODEFORCES", "Benq");
+        ordered.verify(purgeService).purgeStudentData("player", "ATCODER");
+        ordered.verify(handleAccountService).replaceHandlesAfterPurge(
+                "player", Map.of("CODEFORCES", "Benq"), true);
     }
 
 	@Test

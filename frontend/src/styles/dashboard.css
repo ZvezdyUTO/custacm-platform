@@ -494,6 +494,13 @@
   font-size: 12px;
 }
 
+.multi-summary-panel header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .rating-bars {
   display: grid;
   gap: 7px;
@@ -1704,6 +1711,19 @@
 .collection-confirm-actions button { display: inline-flex; height: 40px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--admin-border); background: #fff; padding: 0 16px; color: var(--admin-text); font: inherit; font-weight: 700; cursor: pointer; }
 .collection-confirm-actions .confirm-collection-button { border-color: #74313d; background: #74313d; color: #fff; }
 .collection-confirm-actions button:disabled { cursor: not-allowed; opacity: .5; }
+.admin-confirm-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; background: rgb(24 15 15 / 58%); padding: 24px; }
+.admin-confirm-dialog { display: grid; width: min(540px, 100%); grid-template-columns: auto 1fr; gap: 16px; border: 1px solid #a66b35; background: #fff; padding: 26px; box-shadow: 0 20px 60px rgb(36 14 14 / 28%); }
+.admin-confirm-dialog.is-danger { border-color: #b44c43; }
+.admin-confirm-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: #fff0dc; color: #9a5b1e; }
+.admin-confirm-dialog.is-danger .admin-confirm-icon { background: #fbe8e5; color: #a43129; }
+.admin-confirm-dialog.is-info .admin-confirm-icon { background: #e8f2ed; color: #356c55; }
+.admin-confirm-copy h3 { margin: 2px 0 8px; color: #351b19; font-size: 19px; }
+.admin-confirm-copy p { margin: 0; color: #735b57; font-size: 14px; line-height: 1.75; }
+.admin-confirm-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+.admin-confirm-actions button { display: inline-flex; height: 40px; align-items: center; justify-content: center; border: 1px solid var(--admin-border); background: #fff; padding: 0 16px; color: var(--admin-text); font: inherit; font-weight: 700; cursor: pointer; }
+.admin-confirm-actions .admin-confirm-primary { border-color: #8b542f; background: #8b542f; color: #fff; }
+.admin-confirm-dialog.is-danger .admin-confirm-primary { border-color: #9d3028; background: #9d3028; }
+.admin-confirm-actions button:disabled { cursor: not-allowed; opacity: .5; }
 .user-delete-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; background: rgb(24 15 15 / 58%); padding: 24px; }
 .user-delete-dialog { display: grid; width: min(560px, 100%); grid-template-columns: auto 1fr; gap: 16px; border: 1px solid #b44c43; background: #fff; padding: 26px; box-shadow: 0 20px 60px rgb(36 14 14 / 28%); }
 .user-delete-warning-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: #fbe8e5; color: #a43129; }

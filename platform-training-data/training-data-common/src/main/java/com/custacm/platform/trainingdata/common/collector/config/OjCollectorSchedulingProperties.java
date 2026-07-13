@@ -47,7 +47,7 @@ public record OjCollectorSchedulingProperties(
                 return new Schedule(
                         DEFAULT_NAME,
                         DEFAULT_OJ_NAME,
-                        true,
+                        false,
                         DEFAULT_CRON,
                         DEFAULT_ZONE,
                         DEFAULT_LOOKBACK
@@ -63,7 +63,7 @@ public record OjCollectorSchedulingProperties(
                 name = name.trim();
             }
             if (enabled == null) {
-                enabled = true;
+                enabled = false;
             }
             ojName = ojName == null || ojName.isBlank()
                     ? DEFAULT_OJ_NAME
@@ -78,7 +78,7 @@ public record OjCollectorSchedulingProperties(
             } else {
                 zone = zone.trim();
             }
-            if (lookback == null || lookback.isNegative() || lookback.isZero()) {
+            if (lookback == null || lookback.isNegative()) {
                 lookback = DEFAULT_LOOKBACK;
             }
         }

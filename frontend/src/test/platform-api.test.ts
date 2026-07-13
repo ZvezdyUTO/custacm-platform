@@ -3,30 +3,30 @@ import {
   batchCreateUsers,
   createCategory,
   createTag,
-  createUser,
   deleteUser,
   deleteHomepageBanner,
   deleteCategory,
   deleteTag,
   deleteArticle,
+	downloadAllArticlesBackup,
+	restoreArticle,
   getCollectionJob,
   listAdminUsers,
   listCollectionJobs,
   listHomepageBanners,
   listAdminCategories,
+	listAdminRecycleBinArticles,
   listAdminTags,
-  patchUser,
-  refreshWarehouse,
-  replaceOjHandle,
+  updateUser,
   reorderHomepageBanners,
   startCollectionJob,
-  updateOjHandles,
   updateCategory,
   uploadHomepageBanner,
 } from '../api/admin';
 import { changeCurrentPassword, getCurrentUser, login } from '../api/auth';
 import { ApiError, authHeaders, requestData } from '../api/client';
 import {
+  getAcceptedSummaries,
   getAcceptedSummary,
   getProblemFirstAccepted,
   getProblemSubmissions,
@@ -88,6 +88,25 @@ describe('Blog Result client', () => {
       status: 403,
       errorCode: 'AUTH_FORBIDDEN',
       message: '权限不足',
+    });
+  });
+
+  it('exposes Retry-After seconds for login cooldown handling', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      code: 429,
+      errorCode: 'AUTH_LOGIN_COOLDOWN',
+      msg: '登录冷却中，请 5 秒后再试',
+      data: null,
+    }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': '5' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(requestData('/login')).rejects.toMatchObject({
+      status: 429,
+      errorCode: 'AUTH_LOGIN_COOLDOWN',
+      retryAfterSeconds: 5,
     });
   });
 
@@ -239,6 +258,19 @@ describe('focused Blog training API', () => {
     expectBearer(init);
   });
 
+  it('loads all accepted summaries through one batch endpoint', async () => {
+    const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: [] });
+
+    await getAcceptedSummaries('token', range, OJ_NAMES.ATCODER, true);
+
+    const { init, url } = requestAt(fetchMock);
+    expect(url.pathname).toBe('/api/player/training-data/accepted-summaries');
+    expect(url.searchParams.get('ojName')).toBe('ATCODER');
+    expect(url.searchParams.get('includeRetired')).toBe('true');
+    expect(url.searchParams.get('acceptedFromDateUtcPlus8')).toBe('2024-01-01');
+    expectBearer(init);
+  });
+
   it('passes converted date, rating and page filters to user submissions', async () => {
     const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: {} });
 
@@ -317,38 +349,28 @@ describe('focused Blog admin API', () => {
     ]);
   });
 
-  it('maps list, create, patch, handle update and delete to Blog user routes', async () => {
+  it('maps list, atomic update and delete to Blog user routes', async () => {
     const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: {} });
 
     await listAdminUsers('token');
-    await createUser('token', { username: 'player-a', role: 'ROLE_player' });
-    await patchUser('token', 'player/a', { nickname: 'A' });
-    await updateOjHandles('token', 'player/a', {
+    await updateUser('token', 'player/a', {
+      newUsername: 'player/a', nickname: 'A', email: '', role: 'ROLE_player',
       handles: { [OJ_NAMES.CODEFORCES]: 'tourist' },
       needCollect: true,
     });
-    await replaceOjHandle('token', 'player/a', { ojName: OJ_NAMES.CODEFORCES, newHandle: 'Benq' });
     await deleteUser('token', 'player/a');
 
     expect(requestAt(fetchMock, 0).url.pathname).toBe('/api/admin/users');
     expect(requestAt(fetchMock, 0).init.method).toBeUndefined();
-    expect(requestAt(fetchMock, 1).url.pathname).toBe('/api/admin/users');
-    expect(requestAt(fetchMock, 1).init.method).toBe('POST');
+    expect(requestAt(fetchMock, 1).url.pathname).toBe('/api/admin/users/player%2Fa');
+    expect(requestAt(fetchMock, 1).init.method).toBe('PUT');
     expect(JSON.parse(String(requestAt(fetchMock, 1).init.body))).toEqual({
-      username: 'player-a',
-      role: 'ROLE_player',
+      newUsername: 'player/a', nickname: 'A', email: '', role: 'ROLE_player',
+      handles: { CODEFORCES: 'tourist' }, needCollect: true,
     });
     expect(requestAt(fetchMock, 2).url.pathname).toBe('/api/admin/users/player%2Fa');
-    expect(requestAt(fetchMock, 2).init.method).toBe('PATCH');
-    expect(JSON.parse(String(requestAt(fetchMock, 2).init.body))).toEqual({ nickname: 'A' });
-    expect(requestAt(fetchMock, 3).url.pathname).toBe('/api/admin/users/player%2Fa/oj-handles');
-    expect(requestAt(fetchMock, 3).init.method).toBe('PUT');
-    expect(requestAt(fetchMock, 4).url.pathname).toBe('/api/admin/users/player%2Fa/oj-handles:replace');
-    expect(requestAt(fetchMock, 4).init.method).toBe('POST');
-    expect(JSON.parse(String(requestAt(fetchMock, 4).init.body))).toEqual({ ojName: 'CODEFORCES', newHandle: 'Benq' });
-    expect(requestAt(fetchMock, 5).url.pathname).toBe('/api/admin/users/player%2Fa');
-    expect(requestAt(fetchMock, 5).init.method).toBe('DELETE');
-    expectBearer(requestAt(fetchMock, 5).init);
+    expect(requestAt(fetchMock, 2).init.method).toBe('DELETE');
+    expectBearer(requestAt(fetchMock, 2).init);
   });
 
   it('passes the refresh abort signal to the admin user list request', async () => {
@@ -380,17 +402,43 @@ describe('focused Blog admin API', () => {
     expectBearer(requestAt(fetchMock, 3).init);
   });
 
-  it('deletes an article through the Blog admin route', async () => {
-    const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: null });
+	it('moves, lists and restores articles through the Blog admin recycle bin routes', async () => {
+		const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: null });
 
-    await deleteArticle('token', 42);
+		await deleteArticle('token', 42);
+		await listAdminRecycleBinArticles('token', { pageNum: 2 });
+		await restoreArticle('token', 42);
 
-    const { init, url } = requestAt(fetchMock);
-    expect(url.pathname).toBe('/api/admin/blog');
+		const { init, url } = requestAt(fetchMock, 0);
+		expect(url.pathname).toBe('/api/admin/blog');
     expect(url.searchParams.get('id')).toBe('42');
-    expect(init.method).toBe('DELETE');
-    expectBearer(init);
-  });
+		expect(init.method).toBe('DELETE');
+		expectBearer(init);
+		expect(requestAt(fetchMock, 1).url.pathname).toBe('/api/admin/blogs/recycle-bin');
+		expect(requestAt(fetchMock, 1).url.searchParams.get('pageNum')).toBe('2');
+		expect(requestAt(fetchMock, 2).url.pathname).toBe('/api/admin/blog/restore');
+		expect(requestAt(fetchMock, 2).init.method).toBe('PUT');
+		expectBearer(requestAt(fetchMock, 2).init);
+	});
+
+	it('downloads the complete article backup as an authenticated zip', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(new Response('zip-data', {
+			status: 200,
+			headers: {
+				'Content-Type': 'application/zip',
+				'Content-Disposition': 'attachment; filename="custacm-article-backup-20260713-223500.zip"',
+			},
+		}));
+		vi.stubGlobal('fetch', fetchMock);
+
+		const download = await downloadAllArticlesBackup('token');
+
+		expect(download.filename).toBe('custacm-article-backup-20260713-223500.zip');
+		expect(await download.blob.text()).toBe('zip-data');
+		expect(requestAt(fetchMock).url.pathname).toBe('/api/admin/blogs/backup');
+		expectBearer(requestAt(fetchMock).init);
+		expect(new Headers(requestAt(fetchMock).init.headers).get('Accept')).toBe('application/zip');
+	});
 
   it('lists, creates without a color choice and deletes tags', async () => {
     const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: {} });
@@ -407,7 +455,7 @@ describe('focused Blog admin API', () => {
     expect(requestAt(fetchMock, 2).init.method).toBe('DELETE');
   });
 
-  it('maps collection jobs and warehouse refresh to Blog admin routes', async () => {
+  it('maps collection jobs to Blog admin routes', async () => {
     const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: {} });
     const collectionListController = new AbortController();
     const collectionJobController = new AbortController();
@@ -420,10 +468,6 @@ describe('focused Blog admin API', () => {
     });
     await listCollectionJobs('token', collectionListController.signal);
     await getCollectionJob('token', 'job/a', collectionJobController.signal);
-    await refreshWarehouse('token', OJ_NAMES.ATCODER, {
-      batchId: 'batch-1',
-      startFromTaskId: null,
-    });
 
     expect(requestAt(fetchMock, 0).url.pathname)
       .toBe('/api/admin/training-data/submission-collection-jobs');
@@ -434,13 +478,6 @@ describe('focused Blog admin API', () => {
     expect(requestAt(fetchMock, 2).url.pathname)
       .toBe('/api/admin/training-data/submission-collection-jobs/job%2Fa');
     expect(requestAt(fetchMock, 2).init.signal).toBe(collectionJobController.signal);
-    expect(requestAt(fetchMock, 3).url.pathname)
-      .toBe('/api/admin/training-data/ATCODER/warehouse:refresh');
-    expect(requestAt(fetchMock, 3).init.method).toBe('POST');
-    expect(JSON.parse(String(requestAt(fetchMock, 3).init.body))).toEqual({
-      batchId: 'batch-1',
-      startFromTaskId: null,
-    });
   });
 
   it('uses multipart upload and complete ordering for homepage banners', async () => {

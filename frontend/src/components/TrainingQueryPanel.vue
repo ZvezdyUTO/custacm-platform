@@ -38,7 +38,7 @@
     <div v-if="queryError" class="query-summary"><small class="query-error" role="alert">{{ queryError }}</small></div>
 
     <article v-if="mode === 'multiple'" class="multi-summary-panel">
-      <header><div><h2>多人通过统计</h2><p>按当前筛选条件汇总队员通过题目。</p></div>
+      <header><p>思考质量 &gt; 难度 &gt; 数量</p>
         <span>{{ multiUserProgress.active ? `加载 ${multiUserProgress.completed}/${multiUserProgress.total}` : `${multiUserRows.length} 人` }}</span>
       </header>
       <div class="auto-summary-table-scroll">
@@ -65,7 +65,7 @@
       </div>
       <div class="training-result-grid">
         <article class="rating-panel"><header><div class="rating-panel-title"><h2>难度分布</h2></div></header>
-          <div class="rating-bars"><div v-for="item in acceptedSummary?.ratingCounts || []" :key="item.problemRating" class="rating-bar-row"><span>{{ ratingLabel(item.problemRating) }}</span><div><i :style="{ background: ratingColor(item.problemRating), width: ratingWidth(item.acceptedProblemCount) }" /></div><strong>{{ item.acceptedProblemCount }}</strong></div><p v-if="!acceptedSummary?.ratingCounts.length">暂无通过汇总。</p></div>
+          <div class="rating-bars"><div v-for="item in acceptedSummary?.ratingCounts || []" :key="item.problemRating" class="rating-bar-row"><span>{{ ratingLabel(item.problemRating) }}</span><div><i :class="ratingToneClass(item.problemRating)" :style="{ width: ratingWidth(item.acceptedProblemCount) }" /></div><strong>{{ item.acceptedProblemCount }}</strong></div><p v-if="!acceptedSummary?.ratingCounts.length">暂无通过汇总。</p></div>
         </article>
         <article class="recent-submission-panel"><header><div class="activity-switch" role="tablist"><button :class="{ 'is-active': singleTab === 'submissions' }" type="button" @click="singleTab = 'submissions'">最近提交</button><button :class="{ 'is-active': singleTab === 'accepted' }" type="button" @click="singleTab = 'accepted'">最近通过</button></div></header>
           <div class="submission-table-scroll">
@@ -165,7 +165,6 @@ function ratingTone(value: string) {
   return rating < 1200 ? 'gray' : rating < 1400 ? 'green' : rating < 1600 ? 'cyan' : rating < 1900 ? 'blue' : rating < 2100 ? 'violet' : rating < 2400 ? 'orange' : 'red';
 }
 function ratingToneClass(value: string) { return `rating-tone-${ratingTone(value)}`; }
-function ratingColor(value: string) { return ({ gray: '#808080', green: '#008000', cyan: '#03a89e', blue: '#0000ff', yellow: '#d49b00', violet: '#aa00aa', orange: '#ff8c00', red: '#ff0000' } as const)[ratingTone(value)]; }
 function ratingWidth(value: number) { return `${Math.max(6, value / maxRatingCount.value * 100)}%`; }
 function verdict(item: SubmissionItem) { return item.accepted || item.verdict === 'OK' ? 'Accept' : item.verdict || 'UNKNOWN'; }
 </script>

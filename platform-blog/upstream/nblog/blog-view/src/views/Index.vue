@@ -9,10 +9,12 @@
 		<div v-else class="main">
 			<div class="m-padded-tb-big">
 				<div class="ui container">
-					<div class="ui stackable grid">
+					<div class="ui stackable grid main-grid">
 						<!--左侧-->
-						<div class="three wide column m-mobile-hide">
-							<Introduction :author-username="articleAuthor?.username || ''" :author-summary="articleAuthor" :class="{'m-display-none':focusMode}"/>
+						<div class="three wide column m-mobile-hide sidebar-column">
+							<aside class="sticky-sidebar sticky-sidebar-left" aria-label="个人资料">
+								<Introduction :author-username="articleAuthor?.username || ''" :author-summary="articleAuthor" :class="{'m-display-none':focusMode}"/>
+							</aside>
 						</div>
 						<!--中间-->
 						<div class="ten wide column">
@@ -23,11 +25,13 @@
 							</router-view>
 						</div>
 						<!--右侧-->
-						<div class="three wide column m-mobile-hide">
-							<FeaturedBlog :featuredBlogList="featuredBlogList" :class="{'m-display-none':focusMode}"/>
-							<Tags :tagList="tagList" :class="{'m-display-none':focusMode}"/>
-							<!--只在文章页面显示目录-->
-							<Tocbot v-if="$route.name==='blog'"/>
+						<div class="three wide column m-mobile-hide sidebar-column">
+							<aside class="sticky-sidebar sticky-sidebar-right" aria-label="内容导航">
+								<!--文章页优先展示目录；其它侧栏内容跟随同一吸附容器。-->
+								<Tocbot v-if="$route.name==='blog'"/>
+								<FeaturedBlog :featuredBlogList="featuredBlogList" :class="{'m-display-none':focusMode}"/>
+								<Tags :tagList="tagList" :class="{'m-display-none':focusMode}"/>
+							</aside>
 						</div>
 					</div>
 				</div>
@@ -55,7 +59,7 @@
 	import {mapState} from 'vuex'
 	import getPageTitle from '@/util/get-page-title'
 	import {SESSION_CHANGE_EVENT} from '@/auth/session'
-	import {SAVE_CLIENT_SIZE, SAVE_INTRODUCTION, SAVE_SITE_INFO, RESTORE_COMMENT_FORM} from "@/store/mutations-types";
+	import {SAVE_CLIENT_SIZE, SAVE_INTRODUCTION, SAVE_SITE_INFO} from "@/store/mutations-types";
 
 	export default {
 		name: "Index",
@@ -90,8 +94,6 @@
 		},
 		created() {
 			this.getSite()
-			//从localStorage恢复之前的评论信息
-			this.$store.commit(RESTORE_COMMENT_FORM)
 		},
 	mounted() {
 			window.addEventListener('storage', this.refreshVisibleContent)
@@ -136,10 +138,11 @@
 		max-width: 100%;
 		min-height: 100vh; /* 没有元素时，也把页面撑开至100% */
 		flex-direction: column;
-		overflow-x: hidden;
+		overflow-x: clip;
 	}
 
 	.main {
+		--sidebar-sticky-top: 64px;
 		width: 100%;
 		max-width: 100%;
 		margin-top: 40px;
@@ -158,6 +161,38 @@
 		min-width: 0;
 	}
 
+	.main-grid {
+		align-items: stretch;
+	}
+
+	.sidebar-column {
+		align-self: stretch !important;
+	}
+
+	.sticky-sidebar {
+		position: sticky;
+		top: var(--sidebar-sticky-top);
+		box-sizing: border-box;
+		max-height: calc(100vh - var(--sidebar-sticky-top) - 16px);
+		overflow-x: hidden;
+		overflow-y: auto;
+		scrollbar-color: rgba(86, 96, 106, .56) transparent;
+		scrollbar-width: thin;
+	}
+
+	.sticky-sidebar::-webkit-scrollbar {
+		width: 5px;
+	}
+
+	.sticky-sidebar::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.sticky-sidebar::-webkit-scrollbar-thumb {
+		border-radius: 999px;
+		background: rgba(86, 96, 106, .56);
+	}
+
 	.ui.grid .three.column {
 		padding: 0;
 	}
@@ -168,5 +203,13 @@
 
 	.m-display-none {
 		display: none !important;
+	}
+
+	@media screen and (max-width: 767px) {
+		.sticky-sidebar {
+			position: static;
+			max-height: none;
+			overflow: visible;
+		}
 	}
 </style>

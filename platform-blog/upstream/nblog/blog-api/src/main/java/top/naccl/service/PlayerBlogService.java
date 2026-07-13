@@ -31,14 +31,19 @@ public class PlayerBlogService {
 	@Autowired private CategoryService categoryService;
 	@Autowired private TagService tagService;
 	@Autowired private BlogService blogService;
-	@Autowired private CommentService commentService;
 	@Autowired private ImageAssetService imageAssetService;
+	@Autowired private ArticleRecycleBinService recycleBinService;
 
 	public PageInfo<top.naccl.entity.Blog> list(String username, String title, Integer categoryId,
 	                                           int pageNum, int pageSize) {
 		User user = requireUser(username);
 		PageHelper.startPage(pageNum, pageSize, "create_time desc");
 		return new PageInfo<>(blogMapper.getListByTitleAndCategoryIdAndUserId(title, categoryId, user.getId()));
+	}
+
+	public PageInfo<top.naccl.entity.Blog> listRecycleBin(String username, String title, Integer categoryId,
+			int pageNum, int pageSize) {
+		return recycleBinService.listForOwner(username, title, categoryId, pageNum, pageSize);
 	}
 
 	public top.naccl.entity.Blog get(String username, Long blogId) {
@@ -104,11 +109,12 @@ public class PlayerBlogService {
 
 	@Transactional(rollbackFor = Exception.class)
 	public void delete(String username, Long blogId) {
-		User user = requireUser(username);
-		requireOwnedBlog(user, blogId);
-		blogService.deleteBlogTagByBlogId(blogId);
-		commentService.deleteCommentsByBlogId(blogId);
-		blogService.deleteBlogById(blogId);
+		recycleBinService.moveOwnedToRecycleBin(username, blogId);
+	}
+
+	@Transactional(rollbackFor = Exception.class)
+	public void restore(String username, Long blogId) {
+		recycleBinService.restoreOwned(username, blogId);
 	}
 
 	private User requireUser(String username) {

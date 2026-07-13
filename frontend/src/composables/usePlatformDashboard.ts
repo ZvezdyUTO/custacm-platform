@@ -7,17 +7,17 @@ import {
   deleteHomepageBanner as deleteHomepageBannerApi,
   listAdminUsers,
   listAdminArticles,
+  listAdminRecycleBinArticles,
   listCollectionJobs,
   listHomepageBanners as listHomepageBannersApi,
-  patchUser as patchUserApi,
-  refreshWarehouse,
+  updateUser as updateUserApi,
   reorderHomepageBanners as reorderHomepageBannersApi,
   startCollectionJob,
   uploadHomepageBanner as uploadHomepageBannerApi,
-  updateOjHandles as updateOjHandlesApi,
-  replaceOjHandle as replaceOjHandleApi,
   updateArticleFeatured as updateArticleFeaturedApi,
   deleteArticle as deleteArticleApi,
+  restoreArticle as restoreArticleApi,
+  downloadAllArticlesBackup as downloadAllArticlesBackupApi,
   listAdminCategories as listAdminCategoriesApi,
   createCategory as createCategoryApi,
   updateCategory as updateCategoryApi,
@@ -26,6 +26,7 @@ import {
 } from '../api/admin';
 import { ApiError } from '../api/client';
 import {
+  getAcceptedSummaries,
   getAcceptedSummary,
   getProblemFirstAccepted,
   getProblemSubmissions,
@@ -41,12 +42,11 @@ import type {
   AdminTagPage,
   AdminUserCreateRequest,
   AdminUserMutationResponse,
-  AdminUserPatchRequest,
+  AdminUserUpdateRequest,
   CollectionJob,
   CollectionJobStartRequest,
   CurrentUser,
   HomepageBannerImage,
-  OjHandlesUpdateRequest,
   OjName,
   ProblemFirstAcceptedReport,
   ProblemSubmissionReport,
@@ -56,10 +56,9 @@ import type {
   UserFirstAcceptedReport,
   UserSubmissionReport,
   Username,
-  WarehouseRefreshRequest,
-  WarehouseRefreshResult,
 } from '../types';
-import { runLimited } from '../utils/runLimited';
+import type { AdminSection } from '../routing';
+import { saveFileDownload } from '../utils/fileDownload';
 
 export interface MultiUserSummaryRow {
   user: TrainingUser;
@@ -123,7 +122,7 @@ export function usePlatformDashboard(options: {
   token: Readonly<Ref<string | null>>;
   user: Readonly<Ref<CurrentUser | null>>;
   mode: Ref<TrainingQueryMode>;
-  adminTrainingActive: Ref<boolean>;
+  adminSection: Readonly<Ref<AdminSection | null>>;
   onUnauthorized(): void;
 }) {
   const status = ref<DashboardStatus>(options.token.value ? 'loading' : 'signed-out');
@@ -181,31 +180,41 @@ export function usePlatformDashboard(options: {
     const users = trainingUsers.value.filter((item) => item.ojNames.includes(selectedOjName.value));
     multiUserProgress.value = { completed: 0, total: users.length, active: true, failed: 0 };
     multiUserRows.value = [];
-    const results = await runLimited(users, 6, async (user) => {
-      try {
-        const summary = await getAcceptedSummary(token, user.username, trainingQuery.value, selectedOjName.value);
-        return { user, status: 'ready' as const, summary, message: null };
-      } catch (error) {
-        if (isUnauthorized(error)) throw error;
-        return { user, status: 'error' as const, summary: null, message: errorMessageOf(error) };
-      } finally {
-        if (sequence === requestSequence) {
-          multiUserProgress.value = {
-            ...multiUserProgress.value,
-            completed: multiUserProgress.value.completed + 1,
-          };
-        }
-      }
-    });
-    if (sequence !== requestSequence) return;
-    const rows = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
-    multiUserRows.value = rows.sort(compareMultiUserSummaryRows);
-    multiUserProgress.value = {
-      completed: rows.length,
-      total: users.length,
-      active: false,
-      failed: rows.filter((row) => row.status === 'error').length,
-    };
+    if (users.length === 0) {
+      multiUserProgress.value = { completed: 0, total: 0, active: false, failed: 0 };
+      return;
+    }
+    try {
+      const summaries = await getAcceptedSummaries(
+        token,
+        trainingQuery.value,
+        selectedOjName.value,
+        includeRetiredUsers.value,
+      );
+      if (sequence !== requestSequence) return;
+      const summariesByUsername = new Map(summaries.map((summary) => [summary.username, summary]));
+      const rows: MultiUserSummaryRow[] = users.map((user) => {
+        const summary = summariesByUsername.get(user.username);
+        return summary
+          ? { user, status: 'ready', summary, message: null }
+          : { user, status: 'error', summary: null, message: '批量汇总结果缺失，请重试。' };
+      });
+      const failed = rows.filter((row) => row.status === 'error').length;
+      multiUserRows.value = rows.sort(compareMultiUserSummaryRows);
+      multiUserProgress.value = { completed: rows.length, total: users.length, active: false, failed };
+      if (failed > 0) errorMessage.value = `${failed} 名队员的汇总结果缺失，请重试。`;
+    } catch (error) {
+      if (sequence !== requestSequence) return;
+      const message = errorMessageOf(error);
+      multiUserRows.value = users.map((user) => ({ user, status: 'error', summary: null, message }));
+      multiUserProgress.value = {
+        completed: users.length,
+        total: users.length,
+        active: false,
+        failed: users.length,
+      };
+      throw error;
+    }
   }
 
   async function loadSingleDetails(sequence = ++requestSequence) {
@@ -254,23 +263,32 @@ export function usePlatformDashboard(options: {
     errorMessage.value = null;
     try {
       const token = activeToken();
-      const users = await listTrainingUsers(token, includeRetiredUsers.value);
-      if (sequence !== requestSequence) return;
-      trainingUsers.value = users;
-      if (selectedUsername.value && !users.some((item) => item.username === selectedUsername.value)) {
-        selectedUsername.value = null;
-        acceptedSummary.value = null;
-        submissions.value = null;
-        firstAccepted.value = null;
+      const activeAdminSection = options.adminSection.value;
+      if (activeAdminSection !== null) {
+        if (options.user.value?.role === 'ROLE_admin') {
+          const needsUsers = activeAdminSection === 'users' || activeAdminSection === 'training';
+          const [allUsers, jobs] = await Promise.all([
+            needsUsers ? listAdminUsers(token) : Promise.resolve(adminUsers.value),
+            activeAdminSection === 'training' ? listCollectionJobs(token) : Promise.resolve(collectionJobs.value),
+          ]);
+          if (sequence !== requestSequence) return;
+          adminUsers.value = allUsers.map(withoutGeneratedPassword);
+          collectionJobs.value = jobs;
+        }
+        if (sequence === requestSequence) status.value = 'ready';
+        return;
       }
-      if (options.user.value?.role === 'ROLE_admin') {
-        const [allUsers, jobs] = await Promise.all([
-          listAdminUsers(token),
-          options.adminTrainingActive.value ? listCollectionJobs(token) : Promise.resolve(collectionJobs.value),
-        ]);
+
+      if (mode === 'multiple' || mode === 'single') {
+        const users = await listTrainingUsers(token, includeRetiredUsers.value);
         if (sequence !== requestSequence) return;
-        adminUsers.value = allUsers.map(withoutGeneratedPassword);
-        collectionJobs.value = jobs;
+        trainingUsers.value = users;
+        if (selectedUsername.value && !users.some((item) => item.username === selectedUsername.value)) {
+          selectedUsername.value = null;
+          acceptedSummary.value = null;
+          submissions.value = null;
+          firstAccepted.value = null;
+        }
       }
       if (mode === 'multiple') await loadMultiUserSummaries(sequence);
       if (mode === 'single') await loadSingleDetails(sequence);
@@ -325,9 +343,17 @@ export function usePlatformDashboard(options: {
     try {
       const summary = await getAcceptedSummary(activeToken(), username, trainingQuery.value, selectedOjName.value);
       const row: MultiUserSummaryRow = { user, status: 'ready', summary, message: null };
-      multiUserRows.value = [...multiUserRows.value.filter((item) => item.user.username !== username), row]
+      const rows = [...multiUserRows.value.filter((item) => item.user.username !== username), row]
         .sort(compareMultiUserSummaryRows);
+      const failed = rows.filter((item) => item.status === 'error').length;
+      multiUserRows.value = rows;
+      multiUserProgress.value = { completed: rows.length, total: rows.length, active: false, failed };
+      if (failed === 0) {
+        status.value = 'ready';
+        errorMessage.value = null;
+      }
     } catch (error) {
+      status.value = 'error';
       handleError(error);
     }
   }
@@ -354,20 +380,8 @@ export function usePlatformDashboard(options: {
     adminUsers.value = [...adminUsers.value, ...results.map(withoutGeneratedPassword)];
     return results;
   }
-  async function patchUser(username: Username, patch: AdminUserPatchRequest) {
-    const result = await patchUserApi(activeToken(), username, patch);
-    adminUsers.value = adminUsers.value.map((item) => item.user.username === username
-      ? withoutGeneratedPassword(result) : item);
-    return result;
-  }
-  async function updateOjHandles(username: Username, request: OjHandlesUpdateRequest) {
-    const result = await updateOjHandlesApi(activeToken(), username, request);
-    adminUsers.value = adminUsers.value.map((item) => item.user.username === username
-      ? withoutGeneratedPassword(result) : item);
-    return result;
-  }
-  async function replaceOjHandle(username: Username, ojName: OjName, newHandle: string) {
-    const result = await replaceOjHandleApi(activeToken(), username, { ojName, newHandle });
+  async function updateUser(username: Username, request: AdminUserUpdateRequest) {
+    const result = await updateUserApi(activeToken(), username, request);
     adminUsers.value = adminUsers.value.map((item) => item.user.username === username
       ? withoutGeneratedPassword(result) : item);
     return result;
@@ -407,10 +421,6 @@ export function usePlatformDashboard(options: {
     return result;
   }
 
-  async function refreshTrainingWarehouse(ojName: OjName, request: WarehouseRefreshRequest): Promise<WarehouseRefreshResult> {
-    return refreshWarehouse(activeToken(), ojName, request);
-  }
-
   async function loadHomepageBanners() {
     homepageBanners.value = await listHomepageBannersApi(activeToken());
   }
@@ -430,8 +440,8 @@ export function usePlatformDashboard(options: {
     homepageBanners.value = await deleteHomepageBannerApi(activeToken(), id);
   }
 
-  async function loadAdminArticles(query: { title?: string; categoryId?: number | null; pageNum?: number; pageSize?: number } = {}) {
-    adminArticles.value = await listAdminArticles(activeToken(), query);
+  async function loadAdminArticles(query: { title?: string; categoryId?: number | null; pageNum?: number; pageSize?: number } = {}, recycleBin = false) {
+	adminArticles.value = await (recycleBin ? listAdminRecycleBinArticles : listAdminArticles)(activeToken(), query);
     return adminArticles.value;
   }
 
@@ -454,6 +464,15 @@ export function usePlatformDashboard(options: {
     await deleteArticleApi(activeToken(), id);
   }
 
+  async function restoreArticle(id: number) {
+    await restoreArticleApi(activeToken(), id);
+  }
+
+  async function backupAllArticles() {
+    const download = await downloadAllArticlesBackupApi(activeToken());
+    saveFileDownload(download);
+  }
+
   async function loadAdminCategories(pageNum = 1, pageSize = 10) {
     adminCategories.value = await listAdminCategoriesApi(activeToken(), pageNum, pageSize);
     return adminCategories.value;
@@ -470,8 +489,16 @@ export function usePlatformDashboard(options: {
   }
 
   async function loadAdminTags(pageNum = 1, pageSize = 10) { adminTags.value = await listAdminTagsApi(activeToken(), pageNum, pageSize); }
-  async function createTag(name: string) { await createTagApi(activeToken(), name); await loadAdminTags(); }
-  async function deleteTag(id: number) { await deleteTagApi(activeToken(), id); await loadAdminTags(adminTags.value?.pageNum || 1); }
+  async function createTag(name: string) {
+    await createTagApi(activeToken(), name);
+    await loadAdminTags(1, adminTags.value?.pageSize || 15);
+  }
+  async function deleteTag(id: number) {
+    await deleteTagApi(activeToken(), id);
+    const currentPage = adminTags.value?.pageNum || 1;
+    const nextPage = adminTags.value?.list.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
+    await loadAdminTags(nextPage, adminTags.value?.pageSize || 15);
+  }
 
   async function deleteCategory(id: number) {
     await deleteCategoryApi(activeToken(), id);
@@ -495,6 +522,10 @@ export function usePlatformDashboard(options: {
     if (options.token.value) void refreshDashboard(mode);
   });
 
+  watch(options.adminSection, () => {
+    if (options.token.value) void refreshDashboard(options.mode.value);
+  });
+
   onBeforeUnmount(() => {
     requestSequence += 1;
     if (pollTimer !== null) window.clearTimeout(pollTimer);
@@ -511,10 +542,10 @@ export function usePlatformDashboard(options: {
     refreshDashboard, applyTrainingQuery, chooseUsername, setIncludeRetiredUsers, chooseOjName,
     retryMultiUserSummary, changeSubmissionPage, changeFirstAcceptedPage,
     changeProblemSubmissionPage, changeProblemFirstAcceptedPage,
-    batchCreateUsers, patchUser, updateOjHandles, replaceOjHandle, deleteUser,
-    batchCollectSubmissions, refreshTrainingWarehouse,
+    batchCreateUsers, updateUser, deleteUser,
+    batchCollectSubmissions,
     loadHomepageBanners, uploadHomepageBanner, reorderHomepageBanners, deleteHomepageBanner,
-    loadAdminArticles, updateArticleFeatured, deleteArticle,
+    loadAdminArticles, updateArticleFeatured, deleteArticle, restoreArticle, backupAllArticles,
     loadAdminCategories, createCategory, updateCategory, deleteCategory,
     loadAdminTags, createTag, deleteTag,
   };

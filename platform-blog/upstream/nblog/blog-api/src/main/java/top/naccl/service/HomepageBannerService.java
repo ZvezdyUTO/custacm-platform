@@ -1,7 +1,11 @@
 package top.naccl.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 import top.naccl.config.properties.UploadProperties;
 import top.naccl.exception.BadRequestException;
@@ -16,6 +20,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -28,6 +34,10 @@ import java.util.UUID;
  */
 @Service
 public class HomepageBannerService {
+    private static final Logger log = LoggerFactory.getLogger(HomepageBannerService.class);
+    private static final String FILE_DELETE_FAILED_ERROR_CODE = "HOMEPAGE_BANNER_FILE_DELETE_FAILED";
+    private static final String ORPHAN_SCAN_FAILED_ERROR_CODE = "HOMEPAGE_BANNER_ORPHAN_SCAN_FAILED";
+    private static final Duration ORPHAN_RETENTION = Duration.ofHours(1);
     static final int REQUIRED_WIDTH = 1920;
     static final int REQUIRED_HEIGHT = 1080;
     static final int MAX_IMAGE_COUNT = 2;
@@ -56,12 +66,14 @@ public class HomepageBannerService {
         try {
             Files.createDirectories(target.getParent());
             Files.write(target, file.getBytes(), StandardOpenOption.CREATE_NEW);
+            registerRollbackCleanup(target);
             return repository.insert("/api/image/" + fileName);
         } catch (IOException | RuntimeException exception) {
             try {
                 Files.deleteIfExists(target);
-            } catch (IOException ignored) {
-                // 原始异常包含稳定的请求错误信息，清理失败不覆盖它。
+            } catch (IOException cleanupException) {
+                log.error("Homepage banner rollback cleanup failed, errorCode={}, fileName={}",
+                        FILE_DELETE_FAILED_ERROR_CODE, target.getFileName(), cleanupException);
             }
             if (exception instanceof RuntimeException runtimeException) {
                 throw runtimeException;
@@ -92,10 +104,33 @@ public class HomepageBannerService {
         if (repository.delete(id) != 1) {
             throw new NotFoundException("首页图片不存在");
         }
-        deleteLocalFile(image.imageUrl());
+        runAfterCommit(() -> deleteLocalFileQuietly(image.imageUrl()));
         List<Long> remainingIds = repository.findAll().stream().map(HomepageBannerImage::id).toList();
         repository.replaceOrder(remainingIds);
         return repository.findAll();
+    }
+
+    public void cleanupOrphanFiles() {
+        Path root = Path.of(uploadProperties.getPath()).toAbsolutePath().normalize();
+        if (!Files.isDirectory(root)) {
+            return;
+        }
+        Set<String> referencedFiles = repository.findAll().stream()
+                .map(HomepageBannerImage::imageUrl)
+                .filter(url -> url != null && url.startsWith("/api/image/"))
+                .map(url -> url.substring("/api/image/".length()))
+                .collect(java.util.stream.Collectors.toSet());
+        Instant cutoff = Instant.now().minus(ORPHAN_RETENTION);
+        try (var files = Files.list(root)) {
+            files.filter(Files::isRegularFile)
+                    .filter(path -> isManagedFileName(path.getFileName().toString()))
+                    .filter(path -> !referencedFiles.contains(path.getFileName().toString()))
+                    .filter(path -> lastModifiedBefore(path, cutoff))
+                    .forEach(path -> deletePathQuietly(path, FILE_DELETE_FAILED_ERROR_CODE));
+        } catch (IOException exception) {
+            log.error("Homepage banner orphan scan failed, errorCode={}",
+                    ORPHAN_SCAN_FAILED_ERROR_CODE, exception);
+        }
     }
 
     private void validateFile(MultipartFile file) {
@@ -118,19 +153,72 @@ public class HomepageBannerService {
         }
     }
 
-    private void deleteLocalFile(String imageUrl) {
+    private void deleteLocalFileQuietly(String imageUrl) {
         String prefix = "/api/image/";
         if (imageUrl == null || !imageUrl.startsWith(prefix)) {
             return;
         }
         String fileName = imageUrl.substring(prefix.length());
-        if (!fileName.startsWith("homepage-banner-") || fileName.contains("/") || fileName.contains("\\")) {
+        if (!isManagedFileName(fileName)) {
             return;
         }
+        deletePathQuietly(Path.of(uploadProperties.getPath()).resolve(fileName).normalize(),
+                FILE_DELETE_FAILED_ERROR_CODE);
+    }
+
+    private static void registerRollbackCleanup(Path file) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status != STATUS_COMMITTED) {
+                    try {
+                        Files.deleteIfExists(file);
+                    } catch (IOException exception) {
+                        log.error("Homepage banner rollback cleanup failed, errorCode={}, fileName={}",
+                                FILE_DELETE_FAILED_ERROR_CODE, file.getFileName(), exception);
+                    }
+                }
+            }
+        });
+    }
+
+    private static void runAfterCommit(Runnable action) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            action.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
+    }
+
+    private static boolean isManagedFileName(String fileName) {
+        return fileName != null
+                && fileName.matches("homepage-banner-[0-9a-fA-F-]{36}\\.jpg");
+    }
+
+    private static boolean lastModifiedBefore(Path path, Instant cutoff) {
         try {
-            Files.deleteIfExists(Path.of(uploadProperties.getPath()).resolve(fileName).normalize());
+            return Files.getLastModifiedTime(path).toInstant().isBefore(cutoff);
         } catch (IOException exception) {
-            throw new BadRequestException("首页图片文件删除失败", exception);
+            log.error("Homepage banner timestamp read failed, errorCode={}, fileName={}",
+                    ORPHAN_SCAN_FAILED_ERROR_CODE, path.getFileName(), exception);
+            return false;
+        }
+    }
+
+    private static void deletePathQuietly(Path path, String errorCode) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException exception) {
+            log.error("Homepage banner file deletion failed, errorCode={}, fileName={}",
+                    errorCode, path.getFileName(), exception);
         }
     }
 }

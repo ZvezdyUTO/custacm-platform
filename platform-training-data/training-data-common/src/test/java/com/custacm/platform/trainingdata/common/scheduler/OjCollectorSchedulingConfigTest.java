@@ -27,7 +27,7 @@ class OjCollectorSchedulingConfigTest {
         OjScheduledSubmissionCollectionService collectionService = mock(OjScheduledSubmissionCollectionService.class);
         when(collectionService.collectRecentWindowForConfiguredHandles("CODEFORCES", Duration.ofHours(120)))
                 .thenReturn(successResult("CODEFORCES", "batch-codeforces"));
-        when(collectionService.collectRecentWindowForConfiguredHandles("ATCODER", Duration.ofHours(48)))
+        when(collectionService.collectRecentWindowForConfiguredHandles("ATCODER", Duration.ZERO))
                 .thenReturn(successResult("ATCODER", "batch-atcoder"));
         OjWarehouseRefreshHandler codeforcesRefreshHandler = refreshHandler("CODEFORCES", "batch-codeforces");
         OjWarehouseRefreshHandler atcoderRefreshHandler = refreshHandler("ATCODER", "batch-atcoder");
@@ -55,7 +55,7 @@ class OjCollectorSchedulingConfigTest {
                                 true,
                                 "0 30 12 * * *",
                                 "Asia/Shanghai",
-                                Duration.ofHours(48)
+                                Duration.ZERO
                         )
                 ),
                 null
@@ -72,7 +72,7 @@ class OjCollectorSchedulingConfigTest {
         registrar.getTriggerTaskList().getFirst().getRunnable().run();
         registrar.getTriggerTaskList().get(1).getRunnable().run();
         verify(collectionService).collectRecentWindowForConfiguredHandles("CODEFORCES", Duration.ofHours(120));
-        verify(collectionService).collectRecentWindowForConfiguredHandles("ATCODER", Duration.ofHours(48));
+        verify(collectionService).collectRecentWindowForConfiguredHandles("ATCODER", Duration.ZERO);
         verify(codeforcesRefreshHandler).refresh("batch-codeforces");
         verify(atcoderRefreshHandler).refresh("batch-atcoder");
     }
@@ -108,7 +108,7 @@ class OjCollectorSchedulingConfigTest {
     }
 
     @Test
-    void enablesScheduleByDefaultWhenFlagIsOmitted() {
+    void keepsScheduleDisabledWhenFlagIsOmitted() {
         OjCollectorSchedulingProperties properties = new OjCollectorSchedulingProperties(
                 List.of(new OjCollectorSchedulingProperties.Schedule(
                         "daily-recent-submissions",
@@ -128,7 +128,7 @@ class OjCollectorSchedulingConfigTest {
                 new OjWarehouseRefreshDispatcher(List.of())
         ).configureTasks(registrar);
 
-        assertThat(registrar.getTriggerTaskList()).hasSize(1);
+        assertThat(registrar.getTriggerTaskList()).isEmpty();
         assertThat(properties.jobItemInterval()).isEqualTo(Duration.ofSeconds(4));
     }
 

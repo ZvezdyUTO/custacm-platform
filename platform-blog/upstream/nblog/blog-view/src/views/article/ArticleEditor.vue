@@ -6,11 +6,11 @@
 				<h1 id="editor-title">{{ editing ? '编辑文章' : '发布文章' }}</h1>
 				<span>用实时 Markdown 记录题解和训练复盘，也可以直接导入 Markdown。</span>
 			</div>
-			<router-link to="/about">返回我的主页</router-link>
+			<router-link to="/profile">返回我的主页</router-link>
 		</header>
 
 		<div v-if="loading" class="editor-loading">正在准备文章…</div>
-		<div v-else-if="loadFailed" class="editor-load-failed"><strong>无法打开这篇文章</strong><span>{{ errorMessage }}</span><router-link to="/about">返回我的主页</router-link></div>
+		<div v-else-if="loadFailed" class="editor-load-failed"><strong>无法打开这篇文章</strong><span>{{ errorMessage }}</span><router-link to="/profile">返回我的主页</router-link></div>
 		<form v-else class="article-form" @submit.prevent="save(true)" @input="markDirty" @change="markDirty">
 			<section class="article-basics" aria-label="文章标题、描述与首图">
 				<div class="article-basics-fields">
@@ -46,7 +46,7 @@
 			<p v-if="errorMessage" class="editor-error" role="alert">{{ errorMessage }}</p>
 			<footer class="editor-footer">
 				<span>{{ dirty ? '有未保存的修改' : '已保存' }}</span>
-				<div><router-link to="/about">取消</router-link><button class="draft-button" type="button" :disabled="saving" @click="save(false)">保存为草稿</button><button type="submit" :disabled="saving">{{ saving ? '保存中…' : '立即发布' }}</button></div>
+				<div><router-link to="/profile">取消</router-link><button class="draft-button" type="button" :disabled="saving" @click="save(false)">保存为草稿</button><button type="submit" :disabled="saving">{{ saving ? '保存中…' : '立即发布' }}</button></div>
 			</footer>
 		</form>
 	</section>
@@ -207,7 +207,7 @@
 					this.temporaryAssets = []
 					this.dirty = false
 					this.msgSuccess(request.published ? '文章已发布' : '草稿已保存')
-					await this.$router.push(request.published ? `/blog/${savedId}` : '/about')
+					await this.$router.push(request.published ? `/blog/${savedId}` : '/profile')
 				} catch (error) { this.handleError(error, '文章保存失败') }
 				finally { this.saving = false }
 			},

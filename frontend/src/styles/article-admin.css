@@ -1,5 +1,12 @@
 /* Author: huangbingrui.awa */
 .article-admin-header { margin-bottom: 22px; }
+.article-admin-header > div { flex: 1; }
+.article-backup-button { display: inline-flex; min-width: 154px; height: 40px; align-items: center; justify-content: center; gap: 7px; margin-left: auto; border: 1px solid #446e60; background: #446e60; padding: 0 14px; color: #fff; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.article-backup-button:disabled { cursor: wait; opacity: .62; }
+.article-backup-notice { margin: -8px 0 16px; }
+.article-admin-tabs { display: flex; gap: 4px; margin: -4px 0 18px; border-bottom: 1px solid var(--admin-border); }
+.article-admin-tabs button { border: 0; border-bottom: 2px solid transparent; background: transparent; padding: 10px 14px; color: var(--admin-text-muted); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.article-admin-tabs button.is-active { border-bottom-color: #8d473f; color: #71352f; }
 .article-admin-filters { display: grid; grid-template-columns: minmax(280px, 1fr) 220px auto; align-items: end; gap: 14px; margin-bottom: 18px; padding: 18px; border: 1px solid var(--admin-border); background: var(--admin-surface, #fff); }
 .article-admin-filters label { display: grid; gap: 7px; color: var(--admin-text-muted); font-size: 13px; font-weight: 700; }
 .article-admin-filters input, .article-admin-filters select { height: 42px; border: 1px solid var(--admin-border); background: #fff; padding: 0 12px; color: var(--admin-text); font: inherit; }
@@ -16,12 +23,15 @@
 .article-admin-info p { margin: 8px 0 0; color: var(--admin-text-muted); font-size: 12px; }
 .article-publish-state { color: #9a746e; font-size: 12px; font-weight: 700; }
 .article-publish-state.is-published { color: #28794d; }
+.article-publish-state.is-recycle { color: #825d65; }
 .featured-toggle { display: inline-flex; height: 38px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #b9a29e; background: #fff; color: #76534d; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .featured-toggle.is-featured { border-color: #8d473f; background: #8d473f; color: #fff; }
 .featured-toggle:disabled { cursor: not-allowed; opacity: .5; }
 .article-admin-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .article-delete-button { display: inline-flex; height: 38px; align-items: center; justify-content: center; gap: 6px; border: 1px solid #bd7a72; background: #fff; padding: 0 12px; color: #9d3c35; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .article-delete-button:disabled { cursor: not-allowed; opacity: .5; }
+.article-restore-button { display: inline-flex; height: 38px; align-items: center; justify-content: center; gap: 6px; border: 1px solid #4f8068; background: #fff; padding: 0 13px; color: #2f694d; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.article-restore-button:disabled { cursor: not-allowed; opacity: .5; }
 .article-delete-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; background: rgb(24 15 15 / 58%); padding: 24px; }
 .article-delete-dialog { display: grid; width: min(520px, 100%); grid-template-columns: auto 1fr; gap: 16px; border: 1px solid #b44c43; background: #fff; padding: 26px; box-shadow: 0 20px 60px rgb(36 14 14 / 28%); }
 .article-delete-warning-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: #fbe8e5; color: #a43129; }

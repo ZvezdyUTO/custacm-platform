@@ -55,4 +55,24 @@ describe('homepage banner admin panel', () => {
     expect(wrapper.find('.homepage-banner-add').exists()).toBe(false);
     expect(wrapper.text()).toContain('首页最多保留两张图片');
   });
+
+  it('uses the shared confirmation dialog before deleting a banner', async () => {
+    const deleteHomepageBanner = vi.fn().mockResolvedValue(undefined);
+    const dashboard = {
+      homepageBanners: ref([
+        { id: 1, imageUrl: '/api/image/one.jpg', sortOrder: 0 },
+        { id: 2, imageUrl: '/api/image/two.jpg', sortOrder: 1 },
+      ]),
+      loadHomepageBanners: vi.fn().mockResolvedValue(undefined),
+      deleteHomepageBanner,
+    } as unknown as ReturnType<typeof usePlatformDashboard>;
+    const wrapper = mount(HomepageBannerAdminPanel, { props: { dashboard } });
+
+    await wrapper.get('button[aria-label="删除第 1 张首页图片"]').trigger('click');
+    expect(wrapper.get('[role="alertdialog"]').text()).toContain('删除这张首页图片');
+    expect(deleteHomepageBanner).not.toHaveBeenCalled();
+
+    await wrapper.get('.admin-confirm-primary').trigger('click');
+    expect(deleteHomepageBanner).toHaveBeenCalledWith(1);
+  });
 });

@@ -53,8 +53,8 @@
     <div v-if="pendingHandleReplacement" class="user-delete-backdrop" role="presentation" @click.self="pendingHandleReplacement = null">
       <section class="user-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="handle-replace-title" aria-describedby="handle-replace-description">
         <span class="user-delete-warning-icon"><TriangleAlert :size="26" /></span>
-        <div><h3 id="handle-replace-title">确认更换 OJ handle？</h3><p id="handle-replace-description">更换 handle 是高危操作。系统将永久删除 <strong>{{ pendingHandleReplacement.username }}</strong> 在对应 OJ 下的全部 ODS 与数仓训练记录，并清除旧绑定和采集状态后绑定新 handle。</p>
-          <ul class="handle-replacement-list"><li v-for="change in pendingHandleReplacement.changes" :key="change.ojName"><strong>{{ OJ_LABELS[change.ojName] }}</strong><code>{{ change.oldHandle }}</code><span>→</span><code>{{ change.newHandle }}</code></li></ul>
+        <div><h3 id="handle-replace-title">确认变更 OJ handle？</h3><p id="handle-replace-description">更换或解绑 handle 是高危操作。系统将永久删除 <strong>{{ pendingHandleReplacement.username }}</strong> 在对应 OJ 下的全部 ODS 与数仓训练记录，并重置采集状态。</p>
+          <ul class="handle-replacement-list"><li v-for="change in pendingHandleReplacement.changes" :key="change.ojName"><strong>{{ OJ_LABELS[change.ojName] }}</strong><code>{{ change.oldHandle }}</code><span>→</span><code>{{ change.newHandle || '解绑' }}</code></li></ul>
         </div>
         <div class="user-delete-dialog-actions"><button type="button" :disabled="handleReplaceBusy" @click="pendingHandleReplacement = null">取消</button><button class="confirm-user-delete-button" type="button" :disabled="handleReplaceBusy" @click="confirmHandleReplacement"><TriangleAlert :size="16" />{{ handleReplaceBusy ? '正在更换' : '确认清理并更换' }}</button></div>
       </section>
@@ -111,26 +111,23 @@ async function confirmHandleReplacement() {
 }
 async function executeSave(original: string, form: UserFormState, changes: HandleChange[]) {
   await run(async () => {
-    const accountResult = await props.dashboard.patchUser(original, { newUsername: form.username.trim(), nickname: form.nickname.trim(), email: form.email.trim(), role: form.role, ...(form.password ? { password: form.password } : {}) });
-    let result = accountResult;
-    if (original !== 'root') {
-      const regularHandles = handlesOf(form);
-      changes.forEach((change) => { delete regularHandles[change.ojName]; });
-      result = await props.dashboard.updateOjHandles(accountResult.user.username, { handles: regularHandles, needCollect: form.needCollect });
-      for (const change of changes) result = await props.dashboard.replaceOjHandle(result.user.username, change.ojName, change.newHandle);
-    }
-    showPasswords([accountResult]); expandedUsername.value = null; editForm.value = null;
-    const relogin = original === props.currentUsername && accountResult.reloginRequired;
-    pendingRelogin.value = relogin && Boolean(accountResult.generatedPassword);
+    const result = await props.dashboard.updateUser(original, {
+      newUsername: form.username.trim(), nickname: form.nickname.trim(), email: form.email.trim(), role: form.role,
+      ...(form.password ? { password: form.password } : {}),
+      ...(original === 'root' ? {} : { handles: handlesOf(form), needCollect: form.needCollect }),
+    });
+    showPasswords([result]); expandedUsername.value = null; editForm.value = null;
+    const relogin = original === props.currentUsername && result.reloginRequired;
+    pendingRelogin.value = relogin && Boolean(result.generatedPassword);
     notice.value = changes.length ? '用户修改已保存，旧 handle 的训练数据已清理。' : relogin ? '用户修改已保存，需要重新登录。' : '用户修改已保存。';
-    if (relogin && !accountResult.generatedPassword) emit('signOut');
+    if (relogin && !result.generatedPassword) emit('signOut');
   });
 }
 function handleChanges(current: AdminUserMutationResponse, form: UserFormState): HandleChange[] {
   const requested = handlesOf(form);
   return ([OJ_NAMES.CODEFORCES, OJ_NAMES.ATCODER] as OjName[]).flatMap((ojName) => {
     const oldHandle = current.handles[ojName]; const newHandle = requested[ojName];
-    return oldHandle && newHandle && oldHandle !== newHandle ? [{ ojName, oldHandle, newHandle }] : [];
+    return oldHandle && oldHandle !== newHandle ? [{ ojName, oldHandle, newHandle: newHandle || '' }] : [];
   });
 }
 function removeUser() { if (!expandedUsername.value) return; const item = props.dashboard.adminUsers.value.find((user) => user.user.username === expandedUsername.value); pendingDeleteUser.value = { username: expandedUsername.value, nickname: item?.user.nickname || '' }; }

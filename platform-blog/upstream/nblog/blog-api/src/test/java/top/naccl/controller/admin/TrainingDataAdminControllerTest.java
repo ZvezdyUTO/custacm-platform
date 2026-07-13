@@ -1,9 +1,8 @@
 package top.naccl.controller.admin;
 
-import com.custacm.platform.trainingdata.codeforces.app.CodeforcesOdsSubmissionIngestService;
-import com.custacm.platform.trainingdata.common.app.warehouse.OjWarehouseRefreshService;
 import com.custacm.platform.trainingdata.common.collector.job.OjSubmissionCollectionJobService;
-import com.custacm.platform.trainingdata.common.scheduler.OjScheduledSubmissionCollectionService;
+import com.custacm.platform.trainingdata.common.collector.job.OjSubmissionCollectionJobSnapshot;
+import com.custacm.platform.trainingdata.common.collector.job.OjSubmissionCollectionJobStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,115 +12,93 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import top.naccl.handler.ControllerExceptionHandler;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.NoSuchElementException;
+
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
+/**
+ * @author huangbingrui.awa
+ */
 @ExtendWith(MockitoExtension.class)
 class TrainingDataAdminControllerTest {
-    private static final String REFRESH_PATH = "/admin/training-data/codeforces/warehouse:refresh";
-
-    @Mock
-    private OjScheduledSubmissionCollectionService collectionService;
     @Mock
     private OjSubmissionCollectionJobService jobService;
-    @Mock
-    private CodeforcesOdsSubmissionIngestService codeforcesIngestService;
-    @Mock
-    private OjWarehouseRefreshService codeforcesRefreshService;
-    @Mock
-    private OjWarehouseRefreshService atcoderRefreshService;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = mockMvc(codeforcesRefreshService);
-    }
-
-    @Test
-    void nullBatchIdRefreshesLatestBatch() throws Exception {
-        mockMvc.perform(post(REFRESH_PATH)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"batchId":null,"startFromTaskId":" example.dws.daily_summary "}
-                                """))
-                .andExpect(status().isOk());
-
-        verify(codeforcesRefreshService).refreshLatest(" example.dws.daily_summary ");
-        verify(codeforcesRefreshService, never()).refresh(any(), any());
-    }
-
-    @Test
-    void blankBatchIdRefreshesLatestBatch() throws Exception {
-        mockMvc.perform(post(REFRESH_PATH)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"batchId":"   ","startFromTaskId":null}
-                                """))
-                .andExpect(status().isOk());
-
-        verify(codeforcesRefreshService).refreshLatest(null);
-        verify(codeforcesRefreshService, never()).refresh(any(), any());
-    }
-
-    @Test
-    void explicitBatchIdUsesStrictRefresh() throws Exception {
-        mockMvc.perform(post(REFRESH_PATH)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"batchId":"batch-42","startFromTaskId":"example.dwm.problem_first_accepted"}
-                                """))
-                .andExpect(status().isOk());
-
-        verify(codeforcesRefreshService).refresh("batch-42", "example.dwm.problem_first_accepted");
-    }
-
-    @Test
-    void missingLatestBatchIsBadRequest() throws Exception {
-        doThrow(new IllegalArgumentException("没有可刷新的最新批次"))
-                .when(codeforcesRefreshService).refreshLatest(null);
-
-        mockMvc.perform(post(REFRESH_PATH)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"batchId":null,"startFromTaskId":null}
-                                """))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"));
-    }
-
-    @Test
-    void missingExplicitBatchIsBadRequest() throws Exception {
-        doThrow(new IllegalArgumentException("批次不存在"))
-                .when(codeforcesRefreshService).refresh("missing-batch", null);
-
-        mockMvc.perform(post(REFRESH_PATH)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"batchId":"missing-batch","startFromTaskId":null}
-                                """))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"));
-    }
-
-    private MockMvc mockMvc(OjWarehouseRefreshService refreshService) {
-        TrainingDataAdminController controller = new TrainingDataAdminController(
-                collectionService,
-                jobService,
-                codeforcesIngestService,
-                refreshService,
-                atcoderRefreshService
-        );
-        return standaloneSetup(controller)
+        mockMvc = standaloneSetup(new TrainingDataAdminController(jobService))
                 .setControllerAdvice(new ControllerExceptionHandler())
                 .build();
+    }
+
+    @Test
+    void startsTheRetainedBatchCollectionJob() throws Exception {
+        when(jobService.startBatchCollection(
+                List.of("alice"), Duration.ofHours(24), true, "CODEFORCES"))
+                .thenReturn(job("job-1"));
+
+        mockMvc.perform(post("/admin/training-data/submission-collection-jobs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "usernames":["alice"],
+                                  "lookbackHours":24,
+                                  "refreshWarehouse":true,
+                                  "ojName":"CODEFORCES"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.jobId").value("job-1"));
+
+        verify(jobService).startBatchCollection(
+                List.of("alice"), Duration.ofHours(24), true, "CODEFORCES");
+    }
+
+    @Test
+    void listsRetainedCollectionJobs() throws Exception {
+        when(jobService.listJobs()).thenReturn(List.of(job("job-1")));
+
+        mockMvc.perform(get("/admin/training-data/submission-collection-jobs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].jobId").value("job-1"));
+    }
+
+    @Test
+    void missingCollectionJobReturnsNotFound() throws Exception {
+        when(jobService.getJob("missing")).thenThrow(new NoSuchElementException("missing"));
+
+        mockMvc.perform(get("/admin/training-data/submission-collection-jobs/missing"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("RESOURCE_NOT_FOUND"));
+    }
+
+    private static OjSubmissionCollectionJobSnapshot job(String jobId) {
+        return new OjSubmissionCollectionJobSnapshot(
+                jobId,
+                "CODEFORCES",
+                OjSubmissionCollectionJobStatus.RUNNING,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                List.of(),
+                Instant.EPOCH,
+                null,
+                "采集任务已创建",
+                List.of()
+        );
     }
 }

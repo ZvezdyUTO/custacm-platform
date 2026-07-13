@@ -27,7 +27,6 @@ import com.custacm.platform.trainingdata.common.infra.oj.repo.query.JdbcOjFirstA
 import com.custacm.platform.trainingdata.common.infra.oj.repo.query.JdbcOjSubmissionRepository;
 import com.custacm.platform.trainingdata.common.infra.oj.repo.warehouse.JdbcOjWarehouseDataPurgeRepository;
 import com.custacm.platform.trainingdata.common.scheduler.OjScheduledSubmissionCollectionService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -84,9 +83,9 @@ public class CommonTrainingDataConfig {
     @Bean
     OjHandleAccountRepository ojHandleAccountRepository(
             NamedParameterJdbcTemplate jdbcTemplate,
-            ObjectMapper objectMapper
+            PlatformTransactionManager transactionManager
     ) {
-        return new JdbcOjHandleAccountRepository(jdbcTemplate, objectMapper);
+        return new JdbcOjHandleAccountRepository(jdbcTemplate, transactionManager);
     }
 
     @Bean

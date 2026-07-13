@@ -9,8 +9,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 import top.naccl.entity.User;
 import top.naccl.mapper.UserMapper;
-import top.naccl.service.RedisService;
-import top.naccl.constant.RedisKeyConstants;
 import top.naccl.util.HashUtils;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,9 +21,6 @@ import static org.mockito.Mockito.when;
 class UserServiceImplTest {
 	@Mock
 	private UserMapper userMapper;
-	@Mock
-	private RedisService redisService;
-
 	@InjectMocks
 	private UserServiceImpl userService;
 
@@ -38,16 +33,6 @@ class UserServiceImplTest {
 		player.setNickname("旧昵称");
 		player.setPassword(HashUtils.getBC("old-password"));
 		player.setRole("ROLE_player");
-	}
-
-	@Test
-	void updatesNicknameWithoutRequiringUniqueness() {
-		when(userMapper.findByUsername("player1")).thenReturn(player);
-		when(userMapper.updateNicknameByUsername("player1", "共享昵称")).thenReturn(1);
-
-		assertTrue(userService.updateNickname("player1", "共享昵称"));
-		verify(userMapper).updateNicknameByUsername("player1", "共享昵称");
-		verify(redisService).deleteCacheByKey(RedisKeyConstants.HOME_BLOG_INFO_LIST);
 	}
 
 	@Test

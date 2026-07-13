@@ -5,36 +5,46 @@
 			class="training-frame"
 			:src="frameSource"
 			title="训练中心"
+			@load="syncThemeToFrame"
 		></iframe>
 	</section>
 </template>
 
 <script setup>
-import {computed, onBeforeUnmount, onMounted} from 'vue'
+import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
 import {useRoute} from 'vue-router'
+import {getCurrentTheme, THEME_CHANGE_EVENT} from '../../theme'
+import {buildTrainingFrameSource, isAllowedTrainingRoutePath} from '../../utils/trainingRoute'
 
 // Author: huangbingrui.awa
 const route = useRoute()
-const allowedPages = new Set(['login', 'multiple', 'single', 'problem', 'admin', 'admin/create-users', 'admin/users', 'admin/articles', 'admin/training', 'admin/appearance'])
+const frame = ref(null)
 const frameSource = computed(() => {
 	const rawPath = Array.isArray(route.params.trainingPath) ? route.params.trainingPath.join('/') : route.params.trainingPath
-	const page = allowedPages.has(rawPath) ? rawPath : 'multiple'
-	const query = new URLSearchParams()
-	for (const [key, value] of Object.entries(route.query)) {
-		if (typeof value === 'string') query.set(key, value)
-	}
-	return `/training-app/${page}${query.size ? `?${query.toString()}` : ''}`
+	return buildTrainingFrameSource(rawPath, route.query)
 })
 
 function syncTrainingUrl(event) {
-	if (event.origin !== window.location.origin || event.data?.type !== 'custacm:training-route') return
+	if (event.origin !== window.location.origin || event.source !== frame.value?.contentWindow || event.data?.type !== 'custacm:training-route') return
 	const path = typeof event.data.path === 'string' ? event.data.path : ''
-	if (!/^\/(?:login|multiple|single|problem|admin(?:\/(?:create-users|users|articles|training|appearance))?)(?:\?|$)/.test(path)) return
+	if (!isAllowedTrainingRoutePath(path)) return
 	window.history.replaceState(window.history.state, '', `/training${path}`)
 }
 
-onMounted(() => window.addEventListener('message', syncTrainingUrl))
-onBeforeUnmount(() => window.removeEventListener('message', syncTrainingUrl))
+function syncThemeToFrame(event) {
+	const theme = event?.detail?.theme === 'dark' || event?.detail?.theme === 'light'
+		? event.detail.theme : getCurrentTheme()
+	frame.value?.contentWindow?.postMessage({type: 'custacm:theme', theme}, window.location.origin)
+}
+
+onMounted(() => {
+	window.addEventListener('message', syncTrainingUrl)
+	window.addEventListener(THEME_CHANGE_EVENT, syncThemeToFrame)
+})
+onBeforeUnmount(() => {
+	window.removeEventListener('message', syncTrainingUrl)
+	window.removeEventListener(THEME_CHANGE_EVENT, syncThemeToFrame)
+})
 </script>
 
 <style scoped>

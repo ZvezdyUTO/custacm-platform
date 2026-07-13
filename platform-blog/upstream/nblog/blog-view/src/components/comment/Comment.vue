@@ -179,6 +179,16 @@
 		line-height: 1.5;
 	}
 
+	.ui.comments .comment .text :deep(.noto-emoji),
+	.ui.comments .comment .text :deep(.legacy-comment-emoji) {
+		display: inline-block;
+		width: 1.45em;
+		height: 1.45em;
+		margin: 0 .06em;
+		vertical-align: -.34em;
+		object-fit: contain;
+	}
+
 	.ui.comments .comment .text a {
 		cursor: pointer;
 		margin-right: 8px;

@@ -42,8 +42,6 @@
 					contentSelector: '.js-toc-content',
 					// Which headings to grab inside of the contentSelector element.
 					headingSelector: 'h1,h2,h3,h4',
-					// Element to add the positionFixedClass to.
-					positionFixedSelector: '.m-toc',
 					// Smooth scrolling enabled.
 					scrollSmooth: true,
 					// Smooth scroll duration.
@@ -106,11 +104,6 @@
 
 	.m-toc .is-collapsed {
 		max-height: 0
-	}
-
-	.m-toc.is-position-fixed {
-		position: sticky !important;
-		top: 60px
 	}
 
 	.m-toc .is-active-link {

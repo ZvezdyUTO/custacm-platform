@@ -9,4 +9,8 @@ public interface OjAcceptedSummaryRepository {
     List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
             OjAcceptedSummaryCriteria query
     );
+
+    List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+            List<OjAcceptedSummaryCriteria> queries
+    );
 }

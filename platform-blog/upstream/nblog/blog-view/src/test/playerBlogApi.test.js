@@ -4,7 +4,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 const {request} = vi.hoisted(() => ({request: vi.fn()}))
 vi.mock('@/plugins/axios', () => ({default: request}))
 
-import {createMyBlog, deleteMyBlog, deleteMyImage, getMyBlog, getMyBlogs, updateMyBlog, uploadMyImage} from '@/api/player-blog'
+import {createMyBlog, deleteMyBlog, deleteMyImage, getMyBlog, getMyBlogs, getMyDeletedBlogs, restoreMyBlog, updateMyBlog, uploadMyImage} from '@/api/player-blog'
 
 describe('player blog API', () => {
 	beforeEach(() => request.mockReset())
@@ -25,6 +25,16 @@ describe('player blog API', () => {
 		await deleteMyBlog('token-value', 9)
 		expect(request.mock.calls.map(([config]) => [config.method, config.url])).toEqual([
 			['GET', 'player/blog'], ['POST', 'player/blog'], ['PUT', 'player/blog'], ['DELETE', 'player/blog'],
+		])
+		expect(request.mock.calls.every(([config]) => config.headers.Authorization === 'Bearer token-value')).toBe(true)
+	})
+
+	it('lists and restores only through the authenticated player recycle bin routes', async () => {
+		request.mockResolvedValue({code: 200, data: {blogs: {list: []}}})
+		await getMyDeletedBlogs('token-value', {pageNum: 2})
+		await restoreMyBlog('token-value', 9)
+		expect(request.mock.calls.map(([config]) => [config.method, config.url])).toEqual([
+			['GET', 'player/blogs/recycle-bin'], ['PUT', 'player/blog/restore'],
 		])
 		expect(request.mock.calls.every(([config]) => config.headers.Authorization === 'Bearer token-value')).toBe(true)
 	})

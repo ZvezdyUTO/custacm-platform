@@ -28,7 +28,7 @@
 				<div class="guest-mark" aria-hidden="true">C</div>
 				<div class="header">尚未登录</div>
 				<p>登录后显示你的头像和个人资料。</p>
-				<router-link to="/training/login?returnTo=/about" class="ui button profile-login">登录训练中心</router-link>
+				<router-link to="/training/login?returnTo=/profile" class="ui button profile-login">登录训练中心</router-link>
 			</div>
 		</div>
 		<div v-if="displayProfile" class="ui segment profile-notes">
@@ -85,7 +85,7 @@
 				return this.authorUsername ? (this.authorProfile || this.authorSummary) : this.authUser
 			},
 			isProfilePage() {
-				return this.$route.name === 'about'
+				return this.$route.name === 'profile'
 			},
 			avatarSrc() {
 				return this.displayProfile?.avatarOriginalUrl || this.displayProfile?.avatar || '/img/default-avatar.jpg'
@@ -145,7 +145,7 @@
 			handleAvatarClick() {
 				if (this.authorUsername) return
 				if (!this.isProfilePage) {
-					this.$router.push('/about')
+					this.$router.push('/profile')
 					return
 				}
 				this.$refs.fileInput.click()

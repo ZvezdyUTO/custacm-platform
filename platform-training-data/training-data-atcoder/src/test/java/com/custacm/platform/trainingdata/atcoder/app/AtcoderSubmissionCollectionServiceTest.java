@@ -322,16 +322,15 @@ class AtcoderSubmissionCollectionServiceTest {
         }
 
         @Override
-        public OjHandleAccount updateUsernameAndNeedCollect(
-                String oldUsername,
-                String newUsername,
+        public OjHandleAccount replace(
+                String username,
                 Map<String, String> handles,
                 boolean needCollect,
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {
             account = new OjHandleAccount(
-                    newUsername,
+                    username,
                     handles,
                     needCollect,
                     collectionStates,
@@ -342,11 +341,18 @@ class AtcoderSubmissionCollectionServiceTest {
         }
 
         @Override
-        public OjHandleAccount updateCollectionStates(
-                String username,
-                Map<String, OjHandleCollectionState> collectionStates,
+        public boolean updateLastCollectedAtByHandle(
+                String ojName,
+                String handle,
+                Instant lastCollectedAt,
                 Instant updatedAt
         ) {
+            if (findByHandle(ojName, handle).isEmpty()) {
+                return false;
+            }
+            Map<String, OjHandleCollectionState> collectionStates =
+                    new java.util.LinkedHashMap<>(account.collectionStates());
+            collectionStates.put(OjNames.normalize(ojName), new OjHandleCollectionState(lastCollectedAt));
             account = new OjHandleAccount(
                     account.username(),
                     account.handles(),
@@ -355,7 +361,7 @@ class AtcoderSubmissionCollectionServiceTest {
                     account.createdAt(),
                     updatedAt
             );
-            return account;
+            return true;
         }
     }
 }

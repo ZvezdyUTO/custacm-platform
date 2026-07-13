@@ -5,64 +5,37 @@
 			发表评论
 			<el-button class="m-small" size="small" type="primary" @click="$store.commit(SET_PARENT_COMMENT_ID, -1)" v-show="parentCommentId!==-1">取消回复</el-button>
 		</h3>
-		<el-form :inline="true" :model="commentForm" :rules="formRules" ref="formRef" size="small">
-			<el-input :class="'textarea'" type="textarea" :rows="5" v-model="commentForm.content" placeholder="评论千万条，友善第一条"
+		<el-form :inline="true" :model="commentForm" size="small">
+			<el-input ref="commentInput" :class="'textarea'" type="textarea" :rows="5" v-model="commentForm.content" placeholder="评论千万条，友善第一条"
 			          maxlength="250" show-word-limit :validate-event="false"></el-input>
 			<div class="el-form-item el-form-item--small emoji">
-				<img src="https://cdn.naccl.top/blog/img/paopao/1.png" @click="showEmojiBox">
-				<div class="mask" v-show="emojiShow" @click="hideEmojiBox"></div>
-				<div class="emoji-box" v-show="emojiShow">
-					<div class="emoji-title">
-						<span>{{ activeEmojiTab === 0 ? 'tv_小电视' : activeEmojiTab === 1 ? '阿鲁' : '泡泡' }}</span>
-					</div>
-					<div class="emoji-wrap" v-show="activeEmojiTab===0">
-						<div class="emoji-list" v-for="(img,index) in tvMapper" :key="index" @click="insertEmoji(img.name)">
-							<img :src="img.src" :title="img.name">
+				<button class="emoji-trigger" type="button" :aria-expanded="emojiShow" aria-haspopup="dialog"
+				        aria-label="选择 Noto emoji" @mousedown.prevent="captureSelection" @click="showEmojiBox">
+					<img :src="emojiTriggerSrc" alt="" draggable="false"><span>表情</span>
+				</button>
+				<div class="emoji-mask" v-show="emojiShow" @click="hideEmojiBox"></div>
+				<transition name="emoji-popover">
+					<section ref="emojiBox" class="emoji-box" v-if="emojiShow" role="dialog" aria-label="Noto emoji 选择器"
+					         tabindex="-1" @keydown.esc.stop="hideEmojiBox">
+						<header class="emoji-title">
+							<div><strong>Noto emoji</strong><small>Google 圆形表情</small></div>
+							<button type="button" aria-label="关闭表情选择器" @click="hideEmojiBox">×</button>
+						</header>
+						<nav class="emoji-tabs" aria-label="表情分类">
+							<button v-for="category in emojiCategories" :key="category.id" type="button"
+							        :class="{on: activeEmojiTab === category.id}" @click="activeEmojiTab = category.id">
+								{{ category.label }}
+							</button>
+						</nav>
+						<div class="emoji-wrap" role="group" :aria-label="`${activeEmojiCategory.label}表情`">
+							<button class="emoji-list" v-for="emoji in activeEmojis" :key="emoji.unicode" type="button"
+							        :title="emoji.label" :aria-label="emoji.label" @click="insertEmoji(emoji.unicode)">
+								<img :src="notoEmojiUrl(emoji)" :alt="emoji.unicode" draggable="false">
+							</button>
 						</div>
-					</div>
-					<div class="emoji-wrap" v-show="activeEmojiTab===1">
-						<div class="emoji-list" v-for="(img,index) in aruMapper" :key="index" @click="insertEmoji(img.name)">
-							<img :src="img.src" :title="img.name">
-						</div>
-					</div>
-					<div class="emoji-wrap" v-show="activeEmojiTab===2">
-						<div class="emoji-list" v-for="(img,index) in paopaoMapper" :key="index" @click="insertEmoji(img.name)">
-							<img :src="img.src" :title="img.name">
-						</div>
-					</div>
-					<div class="emoji-tabs">
-						<a class="tab-link" :class="{'on':activeEmojiTab===0}" @click="activeEmojiTab=0">
-							<img src="https://cdn.naccl.top/blog/img/tv/1.png">
-						</a>
-						<a class="tab-link" :class="{'on':activeEmojiTab===1}" @click="activeEmojiTab=1">
-							<img src="https://cdn.naccl.top/blog/img/aru/1.png">
-						</a>
-						<a class="tab-link" :class="{'on':activeEmojiTab===2}" @click="activeEmojiTab=2">
-							<img src="https://cdn.naccl.top/blog/img/paopao/1.png">
-						</a>
-					</div>
-				</div>
+					</section>
+				</transition>
 			</div>
-			<el-form-item prop="nickname" v-if="false">
-				<el-input v-model="commentForm.nickname" placeholder="昵称（必填）" :validate-event="false">
-					<template #prefix><i class="user icon"></i></template>
-				</el-input>
-			</el-form-item>
-			<el-form-item prop="email" v-if="false">
-				<el-popover ref="emailPopover" placement="bottom" trigger="focus" content="用于接收回复邮件"></el-popover>
-				<el-input v-model="commentForm.email" placeholder="邮箱（必填）" :validate-event="false">
-					<template #prefix><i class="mail icon"></i></template>
-				</el-input>
-			</el-form-item>
-			<el-form-item prop="website" v-if="false">
-				<el-popover ref="websitePopover" placement="bottom" trigger="focus" content="可以让我参观一下吗😊"></el-popover>
-				<el-input v-model="commentForm.website" placeholder="https://（可选）" :validate-event="false">
-					<template #prefix><i class="map marker alternate icon"></i></template>
-				</el-input>
-			</el-form-item>
-			<el-form-item label="订阅回复" v-if="false">
-				<el-switch v-model="commentForm.notice"></el-switch>
-			</el-form-item>
 			<el-form-item>
 					<el-button type="primary" :disabled="submitting" v-throttle="[postForm,`click`,3000]">{{ submitting ? '发送中…' : '发表评论' }}</el-button>
 			</el-form-item>
@@ -73,81 +46,74 @@
 <script>
 	import {mapState} from 'vuex'
 	import {readToken} from "@/auth/session";
-	import {checkEmail, checkUrl} from "@/common/reg";
 	import {SET_PARENT_COMMENT_ID} from "@/store/mutations-types";
-	import tvMapper from '@/plugins/tvMapper.json'
-	import aruMapper from '@/plugins/aruMapper.json'
-	import paopaoMapper from '@/plugins/paopaoMapper.json'
+	import {notoEmojiCategories, notoEmojiUrl} from '@/plugins/notoEmoji'
 
-	const validateWebsite = (rule, value, callback) => {
-		if (value) {
-			return checkUrl(rule, value, callback)
-		}
-		callback()
-	}
 	export default {
 		name: "CommentForm",
 		computed: {
-			...mapState(['parentCommentId', 'commentForm', 'commentQuery'])
+			...mapState(['parentCommentId', 'commentForm', 'commentQuery']),
+			activeEmojiCategory() {
+				return this.emojiCategories.find(category => category.id === this.activeEmojiTab) || this.emojiCategories[0]
+			},
+			activeEmojis() {
+				return this.activeEmojiCategory.emojis
+			},
+			emojiTriggerSrc() {
+				return notoEmojiUrl(this.emojiCategories[0].emojis[0])
+			},
 		},
 		data() {
 			return {
 				SET_PARENT_COMMENT_ID,
-				formRules: {
-					nickname: [
-						{required: true, message: '请输入评论昵称'},
-						{max: 18, message: '昵称不可多于15个字符'}
-					],
-					email: [
-						{required: true, message: '请输入评论邮箱'},
-						{validator: checkEmail}
-					],
-					website: [
-						{required: false},
-						{validator: validateWebsite}
-					]
-				},
 				emojiShow: false,
-				activeEmojiTab: 0,
-				tvMapper: [],
-				aruMapper: [],
-				paopaoMapper: [],
-					textarea: null,
-					submitting: false,
+				activeEmojiTab: 'frequent',
+				emojiCategories: notoEmojiCategories,
+				textarea: null,
+				submitting: false,
 				start: 0,
 				end: 0,
 			}
 		},
-		created() {
-			this.tvMapper = tvMapper
-			this.aruMapper = aruMapper
-			this.paopaoMapper = paopaoMapper
-		},
 		mounted() {
-			this.textarea = document.querySelector('.el-form textarea')
+			const input = this.$refs.commentInput
+			this.textarea = input?.textarea
+				|| (input?.$el?.matches?.('textarea') ? input.$el : input?.$el?.querySelector?.('textarea'))
+				|| this.$el?.querySelector?.('textarea')
 		},
 		methods: {
-			showEmojiBox() {
+			notoEmojiUrl,
+			captureSelection() {
+				if (!this.textarea) return
 				this.start = this.textarea.selectionStart
 				this.end = this.textarea.selectionEnd
-				this.textarea.focus()
-				this.textarea.setSelectionRange(this.start, this.end)
-				this.emojiShow = !this.emojiShow
 			},
-			insertEmoji(name) {
+			showEmojiBox() {
+				this.captureSelection()
+				this.emojiShow = !this.emojiShow
+				if (this.emojiShow) this.$nextTick(() => this.$refs.emojiBox?.focus())
+			},
+			insertEmoji(unicode) {
 				let str = this.commentForm.content
-				this.commentForm.content = str.substring(0, this.start) + name + str.substring(this.end)
-				this.start += name.length
+				const nextContent = str.substring(0, this.start) + unicode + str.substring(this.end)
+				if (nextContent.length > 250) {
+					return this.$notify({title: '无法插入表情', message: '评论最多 250 个字符', type: 'warning'})
+				}
+				this.commentForm.content = nextContent
+				this.start += unicode.length
 				this.end = this.start
-				this.textarea.focus()
+				this.emojiShow = false
 				this.$nextTick(() => {
+					this.textarea.focus()
 					this.textarea.setSelectionRange(this.start, this.end)
 				})
 			},
 			hideEmojiBox() {
 				this.emojiShow = false
-				this.textarea.focus()
-				this.textarea.setSelectionRange(this.start, this.end)
+				this.$nextTick(() => {
+					this.textarea?.focus()
+					this.textarea?.setSelectionRange(this.start, this.end)
+				})
 			},
 				async postForm() {
 					const token = readToken()
@@ -196,112 +162,159 @@
 	}
 
 	.emoji {
-		margin-right: 5px;
 		position: relative;
+		margin-right: 8px;
 		user-select: none;
 	}
 
-	.emoji > img {
+	.emoji-trigger {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		height: 32px;
+		border: 1px solid #d9dee5;
+		border-radius: 7px;
+		background: #fff9df;
+		color: #55491c;
+		padding: 3px 10px 3px 7px;
+		font: inherit;
+		font-weight: 700;
 		cursor: pointer;
-		transition: all 0.3s ease-in-out;
-		-webkit-transition: all 0.3s ease-in-out;
-		-moz-transition: all 0.3s ease-in-out;
-		-o-transition: all 0.3s ease-in-out;
+		transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
 	}
 
-	.emoji > img:hover {
-		transform: rotate(360deg);
-		-webkit-transform: rotate(360deg);
-		-moz-transform: rotate(360deg);
-		-o-transform: rotate(360deg);
+	.emoji-trigger:hover,
+	.emoji-trigger[aria-expanded="true"] {
+		border-color: #d8b63f;
+		background: #fff4bd;
+		transform: translateY(-1px);
 	}
+
+	.emoji-trigger:focus-visible,
+	.emoji-box button:focus-visible {
+		outline: 2px solid #315a7d;
+		outline-offset: 2px;
+	}
+
+	.emoji-trigger img { width: 24px; height: 24px; }
 
 	.emoji-box {
-		color: #222;
-		overflow: visible;
-		background: #fff;
-		border: 1px solid #E5E9EF;
-		box-shadow: 0 11px 12px 0 rgba(106, 115, 133, 0.3);
-		border-radius: 8px;
-		width: 340px;
 		position: absolute;
-		top: 40px;
-		z-index: 100;
-	}
-
-	.emoji-box * {
-		box-sizing: content-box;
-	}
-
-	.emoji-box .emoji-title {
-		font-size: 12px;
-		line-height: 16px;
-		margin: 13px 15px 0;
-		color: #757575;
-	}
-
-	.emoji-box .emoji-wrap {
-		margin: 6px 11px 0 11px;
-		height: 185px;
-		overflow: auto;
-		word-break: break-word;
-	}
-
-	.emoji-box .emoji-wrap .emoji-list {
-		height: 33px;
-		color: #111;
-		border-radius: 4px;
-		transition: background 0.2s;
-		display: inline-block;
-		outline: 0;
-		cursor: pointer;
-	}
-
-	.emoji-box .emoji-wrap .emoji-list:hover {
-		background-color: #ddd;
-	}
-
-	.emoji-box .emoji-wrap .emoji-list img {
-		margin: 4px;
-		width: 25px;
-		height: 25px;
-	}
-
-	.emoji-box .emoji-tabs {
-		position: relative;
-		height: 36px;
-		overflow: hidden;
-		background-color: #f4f4f4;
-		border-radius: 0 0 4px 4px;
-	}
-
-	.emoji-box .emoji-tabs .tab-link {
-		cursor: pointer;
-		float: left;
-		padding: 7px 18px;
-		width: 22px;
-		height: 22px;
-	}
-
-	.emoji-box .emoji-tabs .tab-link.on {
-		background-color: #fff;
-	}
-
-	.emoji-box .emoji-tabs .tab-link img {
-		width: 22px;
-	}
-
-	.emoji-box .emoji-tabs .tab-link:hover {
-		background: #e7e7e7;
-	}
-
-	.mask {
-		pointer-events: auto;
-		position: fixed;
-		z-index: 99;
-		top: 0;
-		bottom: 0;
+		z-index: 101;
+		top: 41px;
 		left: 0;
-		right: 0;
+		width: 360px;
+		overflow: hidden;
+		border: 1px solid #dfe4e9;
+		border-radius: 12px;
+		background: #fff;
+		box-shadow: 0 18px 42px rgba(35, 45, 55, .18);
+		color: #27313a;
+	}
+
+	.emoji-box * { box-sizing: border-box; }
+
+	.emoji-title {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 13px 14px 10px;
+		border-bottom: 1px solid #edf0f2;
+	}
+
+	.emoji-title div { display: grid; gap: 2px; }
+	.emoji-title strong { font-size: 13px; letter-spacing: .01em; }
+	.emoji-title small { color: #8a949d; font-size: 10px; }
+
+	.emoji-title > button {
+		width: 28px;
+		height: 28px;
+		border: 0;
+		border-radius: 7px;
+		background: transparent;
+		color: #7f8992;
+		font-size: 20px;
+		line-height: 1;
+		cursor: pointer;
+	}
+
+	.emoji-title > button:hover { background: #f0f3f5; color: #27313a; }
+
+	.emoji-tabs {
+		display: flex;
+		gap: 3px;
+		padding: 8px 10px 5px;
+	}
+
+	.emoji-tabs button {
+		border: 0;
+		border-radius: 6px;
+		background: transparent;
+		color: #7a858e;
+		padding: 6px 10px;
+		font-size: 11px;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.emoji-tabs button:hover { background: #f2f4f6; color: #3b4650; }
+	.emoji-tabs button.on { background: #eef2f5; color: #17324d; }
+
+	.emoji-wrap {
+		display: grid;
+		grid-template-columns: repeat(8, 1fr);
+		gap: 3px;
+		min-height: 152px;
+		max-height: 218px;
+		overflow-y: auto;
+		padding: 7px 10px 12px;
+		scrollbar-width: thin;
+		scrollbar-color: #c7ced5 transparent;
+	}
+
+	.emoji-list {
+		display: grid;
+		place-items: center;
+		width: 38px;
+		height: 38px;
+		border: 0;
+		border-radius: 8px;
+		background: transparent;
+		cursor: pointer;
+		transition: background-color 140ms ease, transform 140ms ease;
+	}
+
+	.emoji-list:hover { background: #fff3b3; transform: translateY(-2px) scale(1.06); }
+	.emoji-list img { width: 29px; height: 29px; pointer-events: none; }
+
+	.emoji-mask {
+		position: fixed;
+		z-index: 100;
+		inset: 0;
+		pointer-events: auto;
+	}
+
+	.emoji-popover-enter-active,
+	.emoji-popover-leave-active {
+		transition: opacity 150ms ease, transform 150ms ease;
+		transform-origin: top left;
+	}
+
+	.emoji-popover-enter-from,
+	.emoji-popover-leave-to {
+		opacity: 0;
+		transform: translateY(-5px) scale(.98);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.emoji-trigger,
+		.emoji-list,
+		.emoji-popover-enter-active,
+		.emoji-popover-leave-active { transition: none; }
+	}
+
+	@media (max-width: 520px) {
+		.emoji-box { width: min(340px, calc(100vw - 42px)); }
+		.emoji-wrap { grid-template-columns: repeat(7, 1fr); }
 	}
 </style>

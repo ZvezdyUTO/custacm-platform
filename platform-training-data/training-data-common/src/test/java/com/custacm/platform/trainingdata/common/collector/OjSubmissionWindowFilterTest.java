@@ -87,6 +87,21 @@ class OjSubmissionWindowFilterTest {
                 .hasMessage("OJ submission page must be an array");
     }
 
+    @Test
+    void acceptsAnEmptyWindowForZeroLookback() {
+        Instant cursor = Instant.parse("2026-07-05T04:00:00Z");
+
+        var result = OjSubmissionWindowFilter.filterSortedPage(
+                objectMapper.createArrayNode().add(submission(401, cursor.minusSeconds(1).getEpochSecond())),
+                cursor,
+                cursor,
+                node -> OptionalLong.of(node.path("submittedAt").asLong())
+        );
+
+        assertThat(result.matchedSubmissions()).isEmpty();
+        assertThat(result.allSubmissionsAreOlderThanWindow()).isTrue();
+    }
+
     private com.fasterxml.jackson.databind.node.ObjectNode submission(long id, String submittedAt) {
         return submission(id, Instant.parse(submittedAt).getEpochSecond());
     }

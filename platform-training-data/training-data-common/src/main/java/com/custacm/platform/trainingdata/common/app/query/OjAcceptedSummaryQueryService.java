@@ -12,6 +12,8 @@ import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -84,6 +86,52 @@ public class OjAcceptedSummaryQueryService {
                 maxProblemRating
         );
         List<OjDailyRatingAcceptedSummary> rows = repository.findDailyRatingAcceptedSummaries(query);
+        return summarizeRows(account, ojHandle, query, rows);
+    }
+
+    public List<OjAcceptedSummaryReport> summarizeStudentsAcceptedProblems(
+            String ojName,
+            boolean includeRetired,
+            LocalDate acceptedFromDateUtcPlus8,
+            LocalDate acceptedToDateUtcPlus8,
+            Integer minProblemRating,
+            Integer maxProblemRating
+    ) {
+        String normalizedOjName = OjNames.normalize(ojName);
+        List<OjHandleAccount> accounts = handleAccountService.listAll().stream()
+                .filter(account -> includeRetired || account.needCollect())
+                .filter(account -> account.handles().containsKey(normalizedOjName))
+                .sorted(Comparator.comparing(OjHandleAccount::username))
+                .toList();
+        List<OjAcceptedSummaryCriteria> queries = accounts.stream()
+                .map(account -> new OjAcceptedSummaryCriteria(
+                        normalizedOjName,
+                        account.handles().get(normalizedOjName),
+                        acceptedFromDateUtcPlus8,
+                        acceptedToDateUtcPlus8,
+                        minProblemRating,
+                        maxProblemRating
+                ))
+                .toList();
+        List<OjDailyRatingAcceptedSummary> rows = repository.findDailyRatingAcceptedSummaries(queries);
+        Map<String, List<OjDailyRatingAcceptedSummary>> rowsByHandle = new LinkedHashMap<>();
+        rows.forEach(row -> rowsByHandle.computeIfAbsent(row.authorHandle(), ignored -> new ArrayList<>()).add(row));
+        return java.util.stream.IntStream.range(0, accounts.size())
+                .mapToObj(index -> summarizeRows(
+                        accounts.get(index),
+                        queries.get(index).authorHandle(),
+                        queries.get(index),
+                        rowsByHandle.getOrDefault(queries.get(index).authorHandle(), List.of())
+                ))
+                .toList();
+    }
+
+    private OjAcceptedSummaryReport summarizeRows(
+            OjHandleAccount account,
+            String ojHandle,
+            OjAcceptedSummaryCriteria query,
+            List<OjDailyRatingAcceptedSummary> rows
+    ) {
         OjDifficultyBucketPolicy bucketPolicy = bucketPolicies.policyFor(query.ojName());
         List<OjAcceptedSummaryReport.OjRatingAcceptedCount> ratingCounts = ratingCounts(
                 rows,

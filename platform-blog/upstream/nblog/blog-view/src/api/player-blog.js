@@ -20,6 +20,15 @@ export function getMyBlogs(token, query = {}) {
 	}), '文章列表获取失败')
 }
 
+export function getMyDeletedBlogs(token, query = {}) {
+	return dataOf(axios({
+		url: 'player/blogs/recycle-bin',
+		method: 'GET',
+		headers: bearer(token),
+		params: query,
+	}), '回收站文章获取失败')
+}
+
 export function getMyBlog(token, id) {
 	return dataOf(axios({
 		url: 'player/blog',
@@ -91,4 +100,13 @@ export async function deleteMyBlog(token, id) {
 		headers: bearer(token),
 		params: {id},
 	}), '文章删除失败')
+}
+
+export async function restoreMyBlog(token, id) {
+	await dataOf(axios({
+		url: 'player/blog/restore',
+		method: 'PUT',
+		headers: bearer(token),
+		params: {id},
+	}), '文章恢复失败')
 }

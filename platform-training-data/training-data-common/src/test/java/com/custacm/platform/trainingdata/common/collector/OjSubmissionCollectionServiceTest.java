@@ -83,6 +83,36 @@ class OjSubmissionCollectionServiceTest {
     }
 
     @Test
+    void acceptsZeroLookbackWithoutOverlappingThePreviousSuccessfulWindow() throws Exception {
+        FakeHandleResolver resolver = new FakeHandleResolver();
+        resolver.handlesByOj.put("CODEFORCES", List.of("existing", "first-run"));
+        resolver.lastCollectedAtByHandle.put("existing", NOW.minus(Duration.ofMinutes(30)));
+        FakeAdapter adapter = new FakeAdapter();
+        OjSubmissionCollectionService service = service(resolver, adapter);
+
+        OjSubmissionCollectionResult result = service.collectRecentWindowForConfiguredHandles(
+                "CODEFORCES",
+                Duration.ZERO
+        );
+
+        assertThat(result.status()).isEqualTo(OjSubmissionCollectionStatus.SUCCESS);
+        assertThat(adapter.collectedWindows).containsExactly(
+                new CollectedWindow("existing", NOW.minus(Duration.ofMinutes(30)), NOW),
+                new CollectedWindow("first-run", Instant.EPOCH, NOW)
+        );
+    }
+
+    @Test
+    void acceptsZeroLookbackWhenNoHandlesAreConfigured() throws Exception {
+        OjSubmissionCollectionResult result = service(new FakeHandleResolver(), new FakeAdapter())
+                .collectRecentWindowForConfiguredHandles("CODEFORCES", Duration.ZERO);
+
+        assertThat(result.status()).isEqualTo(OjSubmissionCollectionStatus.SUCCESS);
+        assertThat(result.windowStartInclusive()).isEqualTo(NOW);
+        assertThat(result.windowEndExclusive()).isEqualTo(NOW);
+    }
+
+    @Test
     void skipsNestedCollectionInSameJvm() throws Exception {
         FakeHandleResolver resolver = new FakeHandleResolver();
         FakeAdapter adapter = new FakeAdapter();

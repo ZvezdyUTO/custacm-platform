@@ -42,6 +42,20 @@ public class TrainingDataQueryController {
                 minProblemRating, maxProblemRating));
     }
 
+    @GetMapping("/accepted-summaries")
+    public Result acceptedSummaries(
+            @RequestParam(value = "ojName", defaultValue = OjNames.CODEFORCES) String ojName,
+            @RequestParam(value = "includeRetired", defaultValue = "false") boolean includeRetired,
+            @RequestParam(required = false) String acceptedFromDateUtcPlus8,
+            @RequestParam(required = false) String acceptedToDateUtcPlus8,
+            @RequestParam(required = false) Integer minProblemRating,
+            @RequestParam(required = false) Integer maxProblemRating
+    ) {
+        return Result.ok("获取成功", queryFacade.summarizeAcceptedProblems(
+                ojName, includeRetired, acceptedFromDateUtcPlus8, acceptedToDateUtcPlus8,
+                minProblemRating, maxProblemRating));
+    }
+
     @GetMapping("/submissions/by-user")
     public Result submissionsByUser(
             @RequestParam(value = "ojName", defaultValue = OjNames.CODEFORCES) String ojName,

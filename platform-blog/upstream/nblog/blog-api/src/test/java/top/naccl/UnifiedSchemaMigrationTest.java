@@ -48,6 +48,53 @@ class UnifiedSchemaMigrationTest {
 		assertTrue(migration.contains("method_name = 'syncBlogViewsToDatabase'"));
 	}
 
+	@Test
+	void expandsLegacyOjHandleJsonIntoRelationalBindingsWithoutDroppingLegacyData() throws IOException {
+		String migration = resource("/db/migration/V034__normalize_oj_handle_accounts.sql");
+
+		assertTrue(migration.contains("CREATE TABLE training_member"));
+		assertTrue(migration.contains("CREATE TABLE oj_handle_binding"));
+		assertTrue(migration.contains("CREATE TEMPORARY TABLE tmp_oj_handle_binding_v034"));
+		assertTrue(migration.contains("DROP TABLE IF EXISTS oj_handle_binding"));
+		assertTrue(migration.contains("DROP TABLE IF EXISTS training_member"));
+		assertTrue(migration.contains("PRIMARY KEY (username, oj_name)"));
+		assertTrue(migration.contains(
+				"UNIQUE KEY uk_oj_handle_binding_oj_name_handle (oj_name, handle)"));
+		assertTrue(migration.contains(
+				"handle varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL"));
+		assertTrue(migration.contains("FOREIGN KEY (username) REFERENCES `user` (username)"));
+		assertTrue(migration.contains("FOREIGN KEY (username) REFERENCES training_member (username)"));
+		assertTrue(migration.contains("JSON_EXTRACT(handles_json, '$.CODEFORCES')"));
+		assertTrue(migration.contains("JSON_EXTRACT(handles_json, '$.ATCODER')"));
+		assertTrue(migration.contains("$.CODEFORCES.lastCollectedAt"));
+		assertTrue(migration.contains("$.ATCODER.lastCollectedAt"));
+		assertFalse(migration.toLowerCase().contains("drop table oj_handle_account"));
+		assertFalse(migration.toLowerCase().contains("drop column handles_json"));
+	}
+
+	@Test
+	void removesTablesOwnedOnlyByRetiredPagesAndRuntimeSubsystems() throws IOException {
+		String migration = resource("/db/migration/V035__drop_retired_nblog_features.sql");
+
+		for (String table : new String[]{
+				"about", "friend", "moment", "schedule_job", "schedule_job_log",
+				"exception_log", "operation_log", "login_log", "visit_log",
+				"visit_record", "city_visitor", "visitor"
+		}) {
+			assertTrue(migration.contains("DROP TABLE IF EXISTS " + table));
+		}
+		assertFalse(migration.contains("DROP TABLE IF EXISTS site_setting"));
+		assertFalse(migration.contains("DROP TABLE IF EXISTS comment"));
+	}
+
+	@Test
+	void addsASevenDayArticleRecycleBinMarkerAndLookupIndex() throws IOException {
+		String migration = resource("/db/migration/V036__add_blog_recycle_bin.sql");
+
+		assertTrue(migration.contains("ADD COLUMN deleted_at DATETIME(0) NULL"));
+		assertTrue(migration.contains("ADD INDEX idx_blog_recycle_bin (deleted_at)"));
+	}
+
     private static String resource(String path) throws IOException {
         try (InputStream input = UnifiedSchemaMigrationTest.class.getResourceAsStream(path)) {
             if (input == null) {

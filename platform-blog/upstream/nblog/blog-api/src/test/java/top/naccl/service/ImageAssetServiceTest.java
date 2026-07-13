@@ -75,9 +75,8 @@ class ImageAssetServiceTest {
 	void rejectsManagedImageAlreadyBoundToAnotherArticle() {
 		ImageAsset asset = asset(4L, "123e4567-e89b-12d3-a456-426614174000",
 				ImageAsset.Purpose.ARTICLE_CONTENT, ImageAsset.Status.ACTIVE);
-		when(assetMapper.findByPublicId(asset.getPublicId())).thenReturn(asset);
-		when(assetMapper.findById(4L)).thenReturn(asset);
-		when(assetMapper.findReferencedBlogId(4L)).thenReturn(77L);
+		asset.setBlogId(77L);
+		when(assetMapper.findByPublicIdsWithReference(List.of(asset.getPublicId()))).thenReturn(List.of(asset));
 
 		assertThrows(ImageAssetException.class, () -> service().prepareBlogAssets(1L, 88L, null,
 				"![x](/api/image/assets/123e4567-e89b-12d3-a456-426614174000/thumbnail.jpg)"));
@@ -101,9 +100,7 @@ class ImageAssetServiceTest {
 	void userDeletionImmediatelyRemovesOnlyAssetsWithoutPreservedArticleReferences() {
 		ImageAsset temporary = asset(4L, "temp", ImageAsset.Purpose.ARTICLE_CONTENT, ImageAsset.Status.TEMP);
 		ImageAsset retained = asset(5L, "retained", ImageAsset.Purpose.ARTICLE_CONTENT, ImageAsset.Status.ACTIVE);
-		when(assetMapper.findByOwnerUserId(1L)).thenReturn(List.of(temporary, retained));
-		when(assetMapper.findReferencedBlogId(4L)).thenReturn(null);
-		when(assetMapper.findReferencedBlogId(5L)).thenReturn(88L);
+		when(assetMapper.findUnreferencedByOwnerUserId(1L)).thenReturn(List.of(temporary));
 
 		service().prepareUserAssetDeletion(1L);
 

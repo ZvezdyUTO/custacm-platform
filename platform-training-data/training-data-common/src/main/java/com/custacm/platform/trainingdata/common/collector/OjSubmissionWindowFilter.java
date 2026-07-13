@@ -53,8 +53,8 @@ public final class OjSubmissionWindowFilter {
         if (windowEndExclusive == null) {
             throw new IllegalArgumentException("windowEndExclusive must not be null");
         }
-        if (!windowStartInclusive.isBefore(windowEndExclusive)) {
-            throw new IllegalArgumentException("windowStartInclusive must be before windowEndExclusive");
+        if (windowStartInclusive.isAfter(windowEndExclusive)) {
+            throw new IllegalArgumentException("windowStartInclusive must not be after windowEndExclusive");
         }
     }
 

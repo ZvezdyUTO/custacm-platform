@@ -24,19 +24,11 @@ public class RedisKeyConstants {
 	 */
 	public static final String SITE_INFO_MAP = "publicSiteInfoMap:v2";
 	/**
-	 * 关于我页面key
+	 * 普通用户文章下载限流 key 前缀
 	 */
-	public static final String ABOUT_INFO_MAP = "aboutInfoMap";
+	public static final String ARTICLE_DOWNLOAD_RATE_LIMIT = "articleDownloadRateLimit:";
 	/**
-	 * 友链页面信息key
+	 * 登录尝试冷却 key 前缀；后缀为规范化 username 的 SHA-256。
 	 */
-	public static final String FRIEND_INFO_MAP = "friendInfoMap";
-	/**
-	 * 访客标识码key
-	 */
-	public static final String IDENTIFICATION_SET = "identificationSet";
-	/**
-	 * QQ号与对应头像URL key
-	 */
-	public static final String QQ_AVATAR_URL_MAP = "qqAvatarUrlMap";
+	public static final String LOGIN_ATTEMPT_COOLDOWN = "loginAttemptCooldown:";
 }

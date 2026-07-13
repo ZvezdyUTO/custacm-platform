@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -127,15 +128,23 @@ public class ImageAssetService {
 
 	public PreparedBlogAssets prepareBlogAssets(Long ownerUserId, Long blogId, Long coverAssetId, String content) {
 		ImageAsset cover = coverAssetId == null ? null
-				: requireBindableAsset(ownerUserId, blogId, coverAssetId, ImageAsset.Purpose.ARTICLE_COVER);
-		Map<Long, ImageAsset> contentAssets = new LinkedHashMap<>();
+				: validateBindableAsset(ownerUserId, blogId, assetMapper.findByIdWithReference(coverAssetId),
+						ImageAsset.Purpose.ARTICLE_COVER);
+		Set<String> referencedPublicIds = new LinkedHashSet<>();
 		Matcher matcher = MANAGED_IMAGE.matcher(content == null ? "" : content);
 		while (matcher.find()) {
-			ImageAsset asset = assetMapper.findByPublicId(matcher.group(1));
+			referencedPublicIds.add(matcher.group(1));
+		}
+		Map<String, ImageAsset> assetsByPublicId = referencedPublicIds.isEmpty() ? Map.of()
+				: assetMapper.findByPublicIdsWithReference(List.copyOf(referencedPublicIds)).stream()
+				.collect(java.util.stream.Collectors.toMap(ImageAsset::getPublicId, asset -> asset));
+		Map<Long, ImageAsset> contentAssets = new LinkedHashMap<>();
+		for (String publicId : referencedPublicIds) {
+			ImageAsset asset = assetsByPublicId.get(publicId);
 			if (asset == null) {
 				throw new ImageAssetException(IMAGE_NOT_OWNED, "正文引用的托管图片不存在");
 			}
-			ImageAsset validated = requireBindableAsset(ownerUserId, blogId, asset.getId(),
+			ImageAsset validated = validateBindableAsset(ownerUserId, blogId, asset,
 					ImageAsset.Purpose.ARTICLE_CONTENT);
 			contentAssets.put(validated.getId(), validated);
 		}
@@ -179,10 +188,7 @@ public class ImageAssetService {
 		if (ownerUserId == null) {
 			return;
 		}
-		List<ImageAsset> unreferenced = assetMapper.findByOwnerUserId(ownerUserId).stream()
-				.filter(asset -> assetMapper.findReferencedBlogId(asset.getId()) == null)
-				.toList();
-		markDeletingAfterCommit(unreferenced);
+		markDeletingAfterCommit(assetMapper.findUnreferencedByOwnerUserId(ownerUserId));
 	}
 
 	@Transactional
@@ -218,15 +224,14 @@ public class ImageAssetService {
 		cleanupOrphanDirectories(cutoff.toInstant());
 	}
 
-	private ImageAsset requireBindableAsset(Long ownerUserId, Long blogId, Long assetId,
+	private ImageAsset validateBindableAsset(Long ownerUserId, Long blogId, ImageAsset asset,
 			ImageAsset.Purpose expectedPurpose) {
-		ImageAsset asset = assetMapper.findById(assetId);
 		if (asset == null || !ownerUserId.equals(asset.getOwnerUserId())
 				|| !expectedPurpose.name().equals(asset.getPurpose())
 				|| ImageAsset.Status.DELETING.name().equals(asset.getStatus())) {
 			throw new ImageAssetException(IMAGE_NOT_OWNED, "图片不存在、用途不正确或不属于当前用户");
 		}
-		Long referencedBlogId = assetMapper.findReferencedBlogId(assetId);
+		Long referencedBlogId = asset.getBlogId();
 		if (referencedBlogId != null && !referencedBlogId.equals(blogId)) {
 			throw new ImageAssetException(IMAGE_NOT_OWNED, "托管图片不能跨文章复用");
 		}

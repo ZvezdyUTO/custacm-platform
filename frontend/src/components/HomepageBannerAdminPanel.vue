@@ -29,6 +29,19 @@
       </label>
     </div>
 
+    <AdminConfirmDialog
+      :open="pendingDeleteId !== null"
+      dialog-id="homepage-banner-delete"
+      title="删除这张首页图片？"
+      description="删除后首页会立即停止展示这张图片；只保留一张图片时不能继续删除。"
+      confirm-label="确认删除"
+      :busy="busy"
+      icon="delete"
+      tone="danger"
+      @cancel="pendingDeleteId = null"
+      @confirm="confirmRemove"
+    />
+
     <div v-if="cropSource" class="homepage-crop-dialog" role="dialog" aria-modal="true" aria-labelledby="homepage-crop-title">
       <section class="homepage-crop-panel">
         <header>
@@ -54,6 +67,7 @@ import { ArrowLeft, ArrowRight, Crop, ImagePlus, Plus, Trash2 } from '@lucide/vu
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
+import AdminConfirmDialog from './AdminConfirmDialog.vue';
 
 const props = defineProps<{ dashboard: ReturnType<typeof usePlatformDashboard> }>();
 const MAX_BANNER_COUNT = 2;
@@ -64,6 +78,7 @@ const pendingFiles = ref<File[]>([]);
 const busy = ref(false);
 const message = ref('');
 const errorMessage = ref('');
+const pendingDeleteId = ref<number | null>(null);
 let cropper: Cropper | null = null;
 
 const banners = computed(() => props.dashboard.homepageBanners.value);
@@ -175,8 +190,14 @@ async function move(index: number, offset: number) {
   }
 }
 
-async function remove(id: number) {
-  if (!window.confirm('确认删除这张首页图片？')) return;
+function remove(id: number) {
+  pendingDeleteId.value = id;
+}
+
+async function confirmRemove() {
+  const id = pendingDeleteId.value;
+  if (id === null) return;
+  pendingDeleteId.value = null;
   busy.value = true;
   errorMessage.value = '';
   try {

@@ -86,6 +86,14 @@ describe('training query automatic filters', () => {
     expect(applyTrainingQuery).toHaveBeenCalledWith(expect.objectContaining({ minProblemRating: '1200' }), 'multiple');
   });
 
+  it('shows the training guidance without a redundant multi-user heading', () => {
+    const { dashboard } = dashboardFixture();
+    const wrapper = mount(TrainingQueryPanel, { props: { dashboard, mode: 'multiple' } });
+
+    expect(wrapper.get('.multi-summary-panel header p').text()).toBe('思考质量 > 难度 > 数量');
+    expect(wrapper.find('.multi-summary-panel h2').exists()).toBe(false);
+  });
+
   it('waits for an invalid range to be corrected before refreshing', async () => {
     vi.useFakeTimers();
     const { dashboard, applyTrainingQuery } = dashboardFixture();

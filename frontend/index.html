@@ -3,6 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Author: huangbingrui.awa -->
+    <script>
+      (() => {
+        const storageKey = 'custacm.theme';
+        let storedTheme = null;
+        try {
+          const value = window.localStorage.getItem(storageKey);
+          storedTheme = value === 'light' || value === 'dark' ? value : null;
+        } catch {
+          storedTheme = null;
+        }
+        let systemTheme = 'light';
+        try {
+          systemTheme = typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
+        } catch {
+          systemTheme = 'light';
+        }
+        const theme = storedTheme || systemTheme;
+        const root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle('dark', theme === 'dark');
+        root.style.colorScheme = theme;
+      })();
+    </script>
     <meta
       name="description"
       content="custacm-platform 训练队管理平台后台工作台"

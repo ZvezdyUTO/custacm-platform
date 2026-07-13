@@ -14,9 +14,6 @@
               <span v-if="categories.length === 0" class="top-nav-empty">暂无分类</span>
             </div>
           </div>
-          <a href="/moments"><MessageCircle :size="17" aria-hidden="true" />动态</a>
-          <a href="/friends"><Users :size="17" aria-hidden="true" />友人帐</a>
-          <a href="/about"><Info :size="17" aria-hidden="true" />关于我</a>
           <div class="top-nav-menu top-training-menu" @mouseenter="trainingMenuOpen = true" @mouseleave="trainingMenuOpen = false">
             <button class="top-nav-trigger top-training-trigger" :class="{ 'is-active': isTrainingQueryPage }" type="button" :aria-expanded="trainingMenuOpen" @click="trainingMenuOpen = !trainingMenuOpen">
               <BarChart3 :size="17" aria-hidden="true" />训练中心<ChevronDown :size="13" aria-hidden="true" />
@@ -38,6 +35,24 @@
           </div>
         </form>
 
+        <button
+          class="blog-theme-toggle"
+          type="button"
+          role="switch"
+          :aria-label="currentTheme === 'dark' ? '切换到日间模式' : '切换到深夜模式'"
+          :aria-checked="currentTheme === 'dark'"
+          :title="currentTheme === 'dark' ? '切换到日间模式' : '切换到深夜模式'"
+          @click="switchTheme"
+        >
+          <span class="theme-switch-track" :class="{ 'is-dark': currentTheme === 'dark' }" aria-hidden="true">
+            <span class="theme-switch-thumb">
+              <Moon v-if="currentTheme === 'dark'" :size="13" />
+              <Sun v-else :size="13" />
+            </span>
+          </span>
+          <span class="theme-switch-status">{{ currentTheme === 'dark' ? '深夜模式' : '日间模式' }}</span>
+        </button>
+
         <RouterLink v-if="!currentUser" class="blog-account-link" to="/login"><UserRound :size="17" aria-hidden="true" />登录</RouterLink>
         <div v-else class="blog-account">
           <button class="blog-account-summary" type="button" :aria-expanded="accountOpen" @click="toggleAccount">
@@ -55,6 +70,7 @@
               </div>
             </form>
             <template v-else>
+              <a class="account-menu-button" href="/profile"><UserRound :size="15" />个人主页</a>
               <button class="account-menu-button" type="button" @click="changingPassword = true"><KeyRound :size="15" />修改密码</button>
               <button class="account-menu-button" type="button" @click="emit('signOut')"><LogOut :size="15" />退出</button>
             </template>
@@ -68,9 +84,10 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { BarChart3, ChevronDown, Home, Info, KeyRound, Lightbulb, LogOut, MessageCircle, Save, Search, UserRound, Users } from '@lucide/vue';
+import { BarChart3, ChevronDown, Home, KeyRound, Lightbulb, LogOut, Moon, Save, Search, Sun, UserRound } from '@lucide/vue';
 import { useRoute } from 'vue-router';
 import { requestData } from '../api/client';
+import { currentTheme as appliedTheme, subscribeTheme, toggleTheme, type ColorTheme } from '../theme';
 import type { CurrentUser } from '../types';
 
 // Author: huangbingrui.awa
@@ -83,7 +100,7 @@ const route = useRoute();
 const embedded = window.self !== window.top;
 const isLoginPage = computed(() => route.meta.page === 'login' || route.name === 'login');
 const isTrainingQueryPage = computed(() => ['multiple', 'single', 'problem'].includes(String(route.meta.page || route.name || '')));
-const siteName = ref("Naccl's Blog");
+const siteName = 'CustACM';
 const categories = ref<string[]>([]);
 const categoryMenuOpen = ref(false);
 const trainingMenuOpen = ref(false);
@@ -97,20 +114,27 @@ const newPassword = ref('');
 const confirmPassword = ref('');
 const passwordError = ref('');
 const submitting = ref(false);
+const currentTheme = ref<ColorTheme>(appliedTheme());
+let stopThemeSubscription: () => void = () => undefined;
 const displayName = computed(() => props.currentUser?.nickname || props.currentUser?.username || '');
 const avatar = computed(() => Array.from(displayName.value.trim())[0]?.toUpperCase() ?? 'U');
 
 onMounted(async () => {
+  currentTheme.value = appliedTheme();
+  stopThemeSubscription = subscribeTheme((theme) => { currentTheme.value = theme; });
+  if (embedded) return;
   try {
-    const site = await requestData<{ siteInfo?: { blogName?: string }; categoryList?: Array<{ name?: string }> }>('/site');
-    siteName.value = site.siteInfo?.blogName || siteName.value;
-    categories.value = (site.categoryList ?? []).map((category) => category.name?.trim()).filter((name): name is string => Boolean(name));
+    const result = await requestData<Array<{ name?: string }>>('/categories');
+    categories.value = result.map((category) => category.name?.trim()).filter((name): name is string => Boolean(name));
   } catch {
-    // The navigation keeps a stable fallback when the public Blog metadata is temporarily unavailable.
+    categories.value = [];
   }
 });
 
-onBeforeUnmount(() => window.clearTimeout(searchTimer));
+onBeforeUnmount(() => {
+  window.clearTimeout(searchTimer);
+  stopThemeSubscription();
+});
 
 function scheduleSearch() {
   window.clearTimeout(searchTimer);
@@ -131,6 +155,10 @@ function scheduleSearch() {
 function openSearchResult() {
   const result = searchResults.value[0];
   if (result) window.location.assign(`/blog/${result.id}`);
+}
+
+function switchTheme() {
+  currentTheme.value = toggleTheme();
 }
 
 function resetPassword() {

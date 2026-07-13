@@ -4,17 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import top.naccl.service.LoginLogService;
 import top.naccl.service.impl.UserServiceImpl;
 
 /**
@@ -27,24 +21,10 @@ public class SecurityConfig {
 	@Autowired
 	UserServiceImpl userService;
 	@Autowired
-	LoginLogService loginLogService;
-	@Autowired
 	MyAuthenticationEntryPoint myAuthenticationEntryPoint;
 
 	@Bean
-	public BCryptPasswordEncoder bCryptPasswordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
-
-	@Bean
-	public AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder) {
-		DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userService);
-		provider.setPasswordEncoder(passwordEncoder);
-		return new ProviderManager(provider);
-	}
-
-	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 				//禁用 csrf 防御
 				.csrf(AbstractHttpConfigurer::disable)
@@ -54,13 +34,12 @@ public class SecurityConfig {
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-						.requestMatchers(HttpMethod.POST, "/login", "/admin/login").permitAll()
+						.requestMatchers(HttpMethod.POST, "/login").permitAll()
 						.requestMatchers("/admin/**").hasRole("admin")
 						.requestMatchers("/player/**").hasAnyRole("admin", "player")
 						.requestMatchers(HttpMethod.GET, "/**").permitAll()
 						.anyRequest().denyAll())
-				//自定义JWT过滤器
-				.addFilterBefore(new JwtLoginFilter("/admin/login", authenticationManager, loginLogService), UsernamePasswordAuthenticationFilter.class)
+				//校验显式携带的JWT，并按数据库中的当前角色授权
 				.addFilterBefore(new JwtFilter(userService), UsernamePasswordAuthenticationFilter.class)
 				//未登录时，返回json，在前端执行重定向
 				.exceptionHandling(exception -> exception

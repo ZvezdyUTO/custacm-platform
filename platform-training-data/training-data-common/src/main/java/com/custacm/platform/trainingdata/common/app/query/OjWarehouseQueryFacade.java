@@ -12,6 +12,7 @@ import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjProblemSubm
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 
 import static com.custacm.platform.trainingdata.common.support.Texts.requireText;
 
@@ -50,6 +51,24 @@ public class OjWarehouseQueryFacade {
         return acceptedSummaryQueryService.summarizeStudentAcceptedProblems(
                 requireText(ojName, "ojName", OjWarehouseQueryFacade::invalidRequest),
                 requireText(username, "username", OjWarehouseQueryFacade::invalidRequest),
+                parseLocalDate(acceptedFromDateUtcPlus8, "acceptedFromDateUtcPlus8"),
+                parseLocalDate(acceptedToDateUtcPlus8, "acceptedToDateUtcPlus8"),
+                minProblemRating,
+                maxProblemRating
+        );
+    }
+
+    public List<OjAcceptedSummaryReport> summarizeAcceptedProblems(
+            String ojName,
+            boolean includeRetired,
+            String acceptedFromDateUtcPlus8,
+            String acceptedToDateUtcPlus8,
+            Integer minProblemRating,
+            Integer maxProblemRating
+    ) {
+        return acceptedSummaryQueryService.summarizeStudentsAcceptedProblems(
+                requireText(ojName, "ojName", OjWarehouseQueryFacade::invalidRequest),
+                includeRetired,
                 parseLocalDate(acceptedFromDateUtcPlus8, "acceptedFromDateUtcPlus8"),
                 parseLocalDate(acceptedToDateUtcPlus8, "acceptedToDateUtcPlus8"),
                 minProblemRating,

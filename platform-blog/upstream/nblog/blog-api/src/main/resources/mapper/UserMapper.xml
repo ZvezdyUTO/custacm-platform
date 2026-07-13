@@ -6,11 +6,6 @@
         select * from user where username=#{username} limit 1
     </select>
 
-    <!--按id查询User，实际上这个User就应该是博主-->
-    <select id="findById" resultType="top.naccl.entity.User">
-        select * from user where id=#{id} limit 1
-    </select>
-
     <select id="findAll" resultType="top.naccl.entity.User">
         select * from user order by id
     </select>
@@ -19,10 +14,6 @@
         insert into user (username, password, nickname, avatar, signature, email, role, create_time, update_time)
         values (#{username}, #{password}, #{nickname}, #{avatar}, coalesce(#{signature}, ''), #{email}, #{role}, now(), now())
     </insert>
-
-    <update id="updateNicknameByUsername">
-        update user set nickname=#{nickname}, update_time=now() where username=#{username}
-    </update>
 
     <update id="updateProfileByUsername">
         update user

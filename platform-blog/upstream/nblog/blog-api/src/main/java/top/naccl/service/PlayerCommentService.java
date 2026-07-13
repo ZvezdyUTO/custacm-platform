@@ -10,6 +10,7 @@ import top.naccl.exception.ForbiddenException;
 import top.naccl.exception.NotFoundException;
 import top.naccl.mapper.UserMapper;
 import top.naccl.model.dto.Comment;
+import top.naccl.model.dto.PlayerCommentCreateRequest;
 import top.naccl.util.StringUtils;
 import top.naccl.util.comment.CommentUtils;
 
@@ -25,19 +26,23 @@ public class PlayerCommentService {
 	@Autowired private CommentUtils commentUtils;
 
 	@Transactional(rollbackFor = Exception.class)
-	public void create(String username, boolean admin, Comment comment, String ip) {
-		String content = comment.getContent() == null ? null : comment.getContent().trim();
+	public void create(String username, boolean admin, PlayerCommentCreateRequest request, String ip) {
+		String content = request.content() == null ? null : request.content().trim();
 		if (StringUtils.isEmpty(content) || content.length() > 250
-				|| comment.getPage() == null || comment.getParentCommentId() == null) {
+				|| request.parentCommentId() == null) {
 			throw new BadRequestException("评论参数有误");
 		}
+		Comment comment = new Comment();
 		comment.setContent(content);
-		if (comment.getParentCommentId() != -1L) {
-			top.naccl.entity.Comment parent = commentService.getCommentById(comment.getParentCommentId());
-			comment.setPage(parent.getPage());
-			comment.setBlogId(parent.getPage() == 0 ? parent.getBlog().getId() : null);
-		} else if (comment.getPage() != 0) {
-			comment.setBlogId(null);
+		comment.setPage(0);
+		comment.setParentCommentId(request.parentCommentId());
+		comment.setBlogId(request.blogId());
+		if (request.parentCommentId() != -1L) {
+			top.naccl.entity.Comment parent = commentService.getCommentById(request.parentCommentId());
+			if (parent.getPage() == null || parent.getPage() != 0 || parent.getBlog() == null) {
+				throw new NotFoundException("评论页面不存在");
+			}
+			comment.setBlogId(parent.getBlog().getId());
 		}
 
 		CommentOpenStateEnum state = commentUtils.judgeCommentState(comment.getPage(), comment.getBlogId());

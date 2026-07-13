@@ -38,12 +38,12 @@ describe('shared Blog session', () => {
 	it('clears orphaned session data without touching unrelated storage', () => {
 		window.localStorage.setItem('custacm.accessToken', 'orphan-token')
 		window.localStorage.setItem('memberToken', 'legacy-token')
-		window.localStorage.setItem('identification', 'comment-identity')
+		window.localStorage.setItem('theme', 'dark')
 
 		expect(readToken()).toBeNull()
 		expect(window.localStorage.getItem('custacm.accessToken')).toBeNull()
 		expect(window.localStorage.getItem('memberToken')).toBeNull()
-		expect(window.localStorage.getItem('identification')).toBe('comment-identity')
+		expect(window.localStorage.getItem('theme')).toBe('dark')
 	})
 
 	it('emits the stable session change event when logging out', () => {

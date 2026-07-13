@@ -156,12 +156,15 @@
 	}
 
 	.view .background-layer {
-		transition: opacity .2s ease-in;
+		transition: opacity .2s ease-in, filter var(--theme-image-duration, 260ms) ease;
 	}
 
-	header.moving .view,
-	header.moving .background-layer {
+	header.moving .view {
 		transition: none;
+	}
+
+	header.moving .background-layer {
+		transition: filter var(--theme-image-duration, 260ms) ease;
 	}
 
 	.image-preloader {

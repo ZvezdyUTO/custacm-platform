@@ -1,17 +1,24 @@
 # platform-blog Agent Notes
 
-- `upstream/nblog/blog-api` 是根 Maven reactor 中唯一可运行后端，负责 Blog、首页图片存储、BCrypt 账号、HS512 JWT、`username`、`ROLE_admin`/`ROLE_player`、OJ handle 和训练数据 HTTP adapter。
-- Player 文章写操作必须按当前用户校验 `blog.user_id`；管理员可管理全部文章，但新建文章的作者必须绑定当前认证管理员，不得硬编码 user id 或信任请求体作者。
-- `upstream/nblog/blog-view` 是生产环境 `/` 下的 Vue 3 + Vite Blog，并持有 `/training/**` 外层路由和唯一 `Nav.vue`；独立训练运行时挂载在内部 `/training-app/**`。两者由 `frontend/Dockerfile` 构建并交给同一个 Nginx 服务。
-- Blog 顶栏“训练中心”是点击开关型下拉菜单：标题点击只展开/收起，不直接跳转，悬停不得展开；选择具体查询项后才导航。
-- 浏览器 API 统一从 `/api/**` 进入 Nginx，Blog API 的直接路径不带 `/api`。不要在 Vue Axios 全局拦截器附加共享 JWT。
-- Vue Blog 可读取 `custacm.accessToken` 与 `custacm.user` 展示账号摘要；普通页面左侧显示登录用户名片，文章详情左侧通过匿名公开资料接口显示文章作者名片。名片纯展示头像、nickname、username、签名和个人友情链接，修改入口统一位于右侧个人资料面板。文章列表、分类、标签、搜索和精选读取在存在会话时显式发送 Bearer，使登录用户看到内部文章；受保护评论提交、内部文章读取，以及本人头像、nickname、个性签名和个人友情链接更新也显式发送 Bearer JWT。个人友情链接仅允许 HTTP(S) 绝对地址且每人最多 8 条；公开 Blog 请求不得全局附加 JWT。
-- Vue Blog 的“我的主页”同页展示资料和本人文章；顶栏“发布文章”与作者详情页“编辑文章”只调用 `/player/blog**`，Markdown 导入仅在浏览器读取文本，不上传原文件。
-- 顶栏文章搜索只按标题匹配，候选摘要展示文章简介。文章不维护或展示阅读数；不得重新引入详情读取计数、Blog 阅读数 DTO 字段、Redis 计数缓存或定时同步任务。
-- 文章首图和正文图片通过 `/player/images` 上传到托管资产目录；正文图片最大 15MB，默认插入缩略图并在预览中按需加载归一化高清图。托管图片不可跨文章复用，删除文章、移除图片或更换头像后必须立即清理失效文件，并由定时任务兜底清理临时/孤儿目录。
-- Vue Blog 唯一默认首页图位于 `blog-view/public/img/homepage-banner-default.png`；Flyway 初始化数据与接口失败回退必须指向同一构建内置资源。
-- 用户头像字段为空时统一展示 `blog-view/public/img/default-avatar.jpg`；固定系统管理员 `root` 不得删除、改名、降权、绑定 OJ handle 或设置队员采集状态。
-- 训练采集、ODS/DWD/DWM/DWS 和数仓逻辑继续留在 `platform-training-data`；Blog API 负责身份、授权、用户/OJ handle 管理及向外暴露 HTTP。
-- `GET /player/training-data/users` 默认排除 `needCollect=false` 的已退役用户；仅当 `includeRetired=true` 时保留他们，响应仍不得暴露真实 handle 或采集状态。
-- Java 变更后在仓库根目录运行 `mvn clean test`；历史 NBlog 代码不强制补单测，新增或实质修改的业务逻辑应同步增加针对性单测。Vue 变更在 `blog-view` 运行 `npm ci`、`npm test` 和 `npm run build`。
-- 职责、路径、构建或权限改变时同步更新本文件、`README.md`、`upstream/nblog/blog-api/README.md`、`upstream/nblog/blog-view/README.md`、`../frontend/README.md`、`../docs/architecture.md` 和 `../docs/agent/context-map.md`。
+- `upstream/nblog/blog-api` 是根 Maven reactor 中唯一可运行后端，负责 Blog、评论、首页图片、BCrypt 账号、HS512 JWT、`username`、`ROLE_admin`/`ROLE_player`、OJ handle 和训练数据 HTTP adapter。
+- 对外只有一个 Nginx `frontend` 服务和一个站点；源码中仍有 Blog 与 Training 两份 Vue 3 构建。Blog 位于 `/`，并持有 `/training/**` 外层路由和唯一 `Nav.vue`；Training 运行时内部挂载在 `/training-app/**`。不要合并两个 Router，也不要显示第二条顶栏。
+- 两份 Vue 构建共享 `custacm.theme=light|dark`；无显式值时跟随系统偏好。Blog 顶栏以太阳/月亮拨杆作为生产环境唯一主题入口，Training 通过同源存储事件和受校验的 frame 消息同步；Blog 文章与实时编辑器的代码块在日间使用浅色语法主题、深夜恢复高对比度深色主题。深夜模式仅以 260ms 统一轻度降低业务图片亮度/饱和度，不得反色或覆盖成功/警告/危险语义，减少动态效果偏好下立即切换。
+- Blog 桌面三栏布局的左右侧栏在到达固定顶栏下方后整列吸附，并受主内容网格和页脚边界约束；侧栏高于可视区时允许自身纵向滚动。文章页右栏必须优先展示目录，首页、个人页及列表页继续吸附头像、精选文章与标签云。移动端仍隐藏两侧栏。
+- 浏览器 API 统一从 `/api/**` 进入 Nginx，Blog API 的直接路径不带 `/api`。公开 Vue 请求不得通过全局拦截器附加共享 JWT；受保护请求由对应 adapter 显式携带 Bearer token。
+- `/login` 按规范化 username 使用 Redis 原子五秒窗口：正确凭据释放占位，首次错误返回 401 与 `Retry-After: 5`，窗口内重复请求返回 429，Redis 不可用时失败关闭。Training 登录按钮必须消费服务端 `Retry-After` 展示倒计时，不能只做可绕过的前端延迟。
+- Blog 页面只保留首页、文章、分类、标签、个人主页和写作。不得恢复 About、Friends、Moments 页面或其 Controller/Service/Mapper/表，也不得恢复旧访问统计、日志管理、Quartz、邮件/Telegram 通知、QQ 查询、GitHub/又拍云上传链路。
+- 普通用户文章写操作必须按当前用户校验 `blog.user_id`；管理员可管理全部文章，但新建文章的作者必须来自当前认证管理员，不能硬编码 user id 或信任请求体作者。
+- 作者或管理员删除文章都只能写入 `deleted_at` 并固定保留七天；期间仅作者本人或管理员可恢复，不得提供提前物理删除入口。到期清理必须在事务中删除评论、标签关联和文章，并在提交后回收托管图片。
+- 单篇文章归档下载只允许登录用户读取已发布文章，ZIP 内 `article.md` 依次包含标题、简介和原始正文，托管首图/正文图使用扁平语义化文件名；普通用户按 username 在全部文章间共享 30 秒 Redis 原子窗口，管理员豁免，限流存储故障时普通用户失败关闭。管理员可从文章管理页下载包含全部文章状态、评论、作者资料和托管图片的全量 ZIP，备份不得包含密码、token 或评论 IP。
+- 管理员用户编辑统一走一个 `PUT /admin/users/{username}`。账号字段、改名、角色、密码、完整 OJ handle 集合和 `needCollect` 必须在同一事务内处理；更换或移除 handle 前先清理对应 OJ 训练数据。不得恢复拆分的 patch/replace-handle 接口。
+- 固定系统管理员 `root` 不得删除、改名、降权、绑定 OJ handle 或设置队员采集状态。
+- 多人训练汇总使用一次 `GET /player/training-data/accepted-summaries` 批量读取，不能在前端按用户制造 N+1 请求；单人查询继续使用单用户接口。
+- 分类与标签后台列表分别分页；公开独立训练外壳只读取 `/categories`，不为导航加载完整 `/site` 响应。
+- Vue Blog 的个人主页位于 `src/views/profile/Profile.vue`，同页展示资料、OJ handle、友情链接和本人文章；OJ handle 读取失败必须显示可重试错误，不能伪装成“未绑定”。
+- 评论只允许登录账号提交，创建请求只接受 `content`、`blogId` 和 `parentCommentId`；公开评论树按根评论分页并批量装配回复，不得恢复游客身份表单、评论通知或后台评论管理链路。
+- 新评论表情以标准 Unicode 存储；Blog 展示层使用同源 Google Noto Emoji SVG sprite 渲染选择器及受支持表情，禁止把表情 HTML 或第三方 CDN URL 写入评论。历史 tv/阿鲁/泡泡短码只保留只读渲染兼容。
+- 文章列表的标签应批量读取，Redis 缓存必须有 TTL 且失败时降级到数据库；事务内的缓存失效在提交后执行。
+- 文章首图、正文图片和头像通过本地托管资产管理；首页横幅同样只写本地上传目录。数据库提交后再删除失效文件，并由清理任务兜底临时文件、孤儿资产和横幅孤儿文件。
+- 训练自动采集和 AtCoder 题目元数据 bootstrap/调度默认关闭；只能由显式环境变量开启。
+- Java 变更后在仓库根运行 `mvn clean test`；打包行为改变时再运行 `mvn clean package -DskipTests`。Vue Blog 变更在 `blog-view` 运行 `npm ci`、`npm test` 和 `npm run build`。
+- 职责、路径、构建或权限改变时同步更新本文件、`README.md`、两个子模块 README、`../frontend/README.md` 及文档同步表要求的文件。

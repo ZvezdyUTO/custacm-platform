@@ -94,7 +94,7 @@ public class OjSubmissionCollectionService {
             Duration lookback,
             CollectionHandleSupplier handleSupplier
     ) throws JsonProcessingException {
-        Duration normalizedLookback = requirePositiveDuration(lookback, "lookback");
+        Duration normalizedLookback = requireNonNegativeDuration(lookback, "lookback");
         Instant windowEndExclusive = clock.instant();
         return collectWindow(
                 ojName,
@@ -274,14 +274,14 @@ public class OjSubmissionCollectionService {
         if (windowEndExclusive == null) {
             throw new IllegalArgumentException("windowEndExclusive must not be null");
         }
-        if (!windowStartInclusive.isBefore(windowEndExclusive)) {
-            throw new IllegalArgumentException("windowStartInclusive must be before windowEndExclusive");
+        if (windowStartInclusive.isAfter(windowEndExclusive)) {
+            throw new IllegalArgumentException("windowStartInclusive must not be after windowEndExclusive");
         }
     }
 
-    private static Duration requirePositiveDuration(Duration value, String fieldName) {
-        if (value == null || value.isZero() || value.isNegative()) {
-            throw new IllegalArgumentException(fieldName + " must be positive");
+    private static Duration requireNonNegativeDuration(Duration value, String fieldName) {
+        if (value == null || value.isNegative()) {
+            throw new IllegalArgumentException(fieldName + " must not be negative");
         }
         return value;
     }

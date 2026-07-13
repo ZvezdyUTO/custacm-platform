@@ -6,8 +6,7 @@ const RETURN_PATH_ORIGIN = 'https://training-return.invalid';
 const RETURN_PATHS = new Set([
 	'/',
 	'/home',
-	'/moments',
-	'/friends',
+	'/profile',
   DEFAULT_TRAINING_PATH,
   '/training/single',
   '/training/problem',
@@ -18,7 +17,6 @@ const RETURN_PATHS = new Set([
   '/training/admin/categories',
   '/training/admin/training',
   '/training/admin/appearance',
-	'/about',
 	'/write',
 ]);
 

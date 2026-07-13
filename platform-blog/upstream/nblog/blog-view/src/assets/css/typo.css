@@ -191,7 +191,7 @@
     font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
 }
 
-/* 块级代码保持透明背景，由 pre 统一承载深色主题。 */
+/* 块级代码保持透明背景，由 pre 统一承载当前明暗主题。 */
 .typo pre > code {
     margin: 0;
     border: 0;
@@ -314,40 +314,65 @@
     background: #496983;
 }
 
-/* 文章代码块使用更高对比度的深色语法主题，避免 token 在正文浅色背景中失去层次。 */
+/* 日间模式采用低眩光浅色语法主题，保持代码区与正文画布一致。 */
 .typo pre[class*="language-"] {
-    border: 1px solid #26384a;
-    background: #101923;
-    box-shadow: 0 10px 28px rgba(15, 27, 39, 0.14);
+    border: 1px solid #d0d7de;
+    background: #f6f8fa;
+    box-shadow: 0 10px 28px rgba(31, 35, 40, 0.08);
 }
 
 .typo pre[class*="language-"] code[class*="language-"] {
-    color: #e6edf3;
+    color: #24292f;
     text-shadow: none;
 }
 
-/* Prism token 自带颜色；代码被框选时统一覆盖 token 选区色，避免浅色语法文字落在浅色选区上。 */
+/* Prism token 自带颜色；代码被框选时统一覆盖 token 选区色，保证文字对比度。 */
 .typo pre[class*="language-"]::selection,
 .typo pre[class*="language-"] *::selection {
     color: #ffffff !important;
-    background: #315b7d !important;
+    background: #0969da !important;
     text-shadow: none !important;
 }
 
 .typo pre[class*="language-"]::-moz-selection,
 .typo pre[class*="language-"] *::-moz-selection {
     color: #ffffff !important;
-    background: #315b7d !important;
+    background: #0969da !important;
     text-shadow: none !important;
 }
 
-.typo .token.comment, .typo .token.block-comment, .typo .token.prolog, .typo .token.doctype, .typo .token.cdata { color: #8b9bad; }
-.typo .token.keyword, .typo .token.atrule, .typo .token.important, .typo .token.selector, .typo .token.builtin { color: #ff7ab2; font-weight: 700; }
-.typo .token.string, .typo .token.char, .typo .token.attr-value, .typo .token.regex, .typo .token.inserted { color: #a8e6a3; }
-.typo .token.number, .typo .token.boolean, .typo .token.constant, .typo .token.symbol { color: #82d2ff; }
-.typo .token.function, .typo .token.function-name, .typo .token.class-name, .typo .token.property { color: #ffd580; }
-.typo .token.tag, .typo .token.attr-name, .typo .token.deleted { color: #ff8f8f; }
-.typo .token.operator, .typo .token.entity, .typo .token.url, .typo .token.punctuation { color: #c9d6e2; }
+.typo .token.comment, .typo .token.block-comment, .typo .token.prolog, .typo .token.doctype, .typo .token.cdata { color: #57606a; }
+.typo .token.keyword, .typo .token.atrule, .typo .token.important, .typo .token.selector, .typo .token.builtin { color: #cf222e; font-weight: 700; }
+.typo .token.string, .typo .token.char, .typo .token.attr-value, .typo .token.regex, .typo .token.inserted { color: #0a3069; }
+.typo .token.number, .typo .token.boolean, .typo .token.constant, .typo .token.symbol { color: #0550ae; }
+.typo .token.function, .typo .token.function-name, .typo .token.class-name, .typo .token.property { color: #8250df; }
+.typo .token.tag, .typo .token.attr-name, .typo .token.deleted { color: #116329; }
+.typo .token.operator, .typo .token.entity, .typo .token.url, .typo .token.punctuation { color: #24292f; }
+
+.typo .line-numbers .line-numbers-rows {
+    border-right-color: #d0d7de;
+}
+
+.typo .line-numbers-rows > span::before {
+    color: #57606a;
+}
+
+.typo div.code-toolbar > .toolbar > .toolbar-item > a,
+.typo div.code-toolbar > .toolbar > .toolbar-item > button,
+.typo div.code-toolbar > .toolbar > .toolbar-item > span {
+    border: 1px solid #afb8c1;
+    background: #ffffff;
+    color: #57606a;
+    box-shadow: 0 1px 2px rgba(31, 35, 40, 0.08);
+}
+
+.typo div.code-toolbar > .toolbar > .toolbar-item > a:hover,
+.typo div.code-toolbar > .toolbar > .toolbar-item > a:focus,
+.typo div.code-toolbar > .toolbar > .toolbar-item > button:hover,
+.typo div.code-toolbar > .toolbar > .toolbar-item > button:focus {
+    background: #eaeef2;
+    color: #24292f;
+}
 
 /* 保证块/段落之间的空白隔行 */
 .typo p, .typo pre, .typo ul, .typo ol, .typo dl, .typo form, .typo hr, .typo table, blockquote {

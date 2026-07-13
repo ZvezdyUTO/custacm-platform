@@ -30,11 +30,26 @@ public class JdbcOjAcceptedSummaryRepository implements OjAcceptedSummaryReposit
     public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
             OjAcceptedSummaryCriteria query
     ) {
+        return findDailyRatingAcceptedSummaries(List.of(query));
+    }
+
+    @Override
+    public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+            List<OjAcceptedSummaryCriteria> queries
+    ) {
+        if (queries == null || queries.isEmpty()) {
+            return List.of();
+        }
+        OjAcceptedSummaryCriteria query = queries.getFirst();
+        validateSameFilters(queries, query);
         String tableName = OjWarehouseTableNames.dwsHandleDailyRatingAcceptedSummary(query.ojName());
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("handle", query.authorHandle());
+                .addValue("handles", queries.stream()
+                        .map(OjAcceptedSummaryCriteria::authorHandle)
+                        .distinct()
+                        .toList());
         List<String> predicates = new ArrayList<>();
-        predicates.add("handle = :handle");
+        predicates.add("handle in (:handles)");
 
         if (query.acceptedFromDateUtcPlus8() != null) {
             predicates.add("accepted_date_utc_plus8 >= :acceptedFromDateUtcPlus8");
@@ -54,7 +69,7 @@ public class JdbcOjAcceptedSummaryRepository implements OjAcceptedSummaryReposit
                     accepted_problem_count
                 from %s
                 where %s
-                order by accepted_date_utc_plus8 asc, difficulty asc
+                order by handle asc, accepted_date_utc_plus8 asc, difficulty asc
                 """.formatted(tableName, String.join(" and ", predicates));
 
         Map<String, OjDailyRatingAcceptedSummaryBuilder> builders = new LinkedHashMap<>();
@@ -70,6 +85,21 @@ public class JdbcOjAcceptedSummaryRepository implements OjAcceptedSummaryReposit
         return builders.values().stream()
                 .map(OjDailyRatingAcceptedSummaryBuilder::build)
                 .toList();
+    }
+
+    private static void validateSameFilters(
+            List<OjAcceptedSummaryCriteria> queries,
+            OjAcceptedSummaryCriteria expected
+    ) {
+        boolean mismatched = queries.stream().anyMatch(query ->
+                !expected.ojName().equals(query.ojName())
+                        || !java.util.Objects.equals(expected.acceptedFromDateUtcPlus8(), query.acceptedFromDateUtcPlus8())
+                        || !java.util.Objects.equals(expected.acceptedToDateUtcPlus8(), query.acceptedToDateUtcPlus8())
+                        || !java.util.Objects.equals(expected.minProblemRating(), query.minProblemRating())
+                        || !java.util.Objects.equals(expected.maxProblemRating(), query.maxProblemRating()));
+        if (mismatched) {
+            throw new IllegalArgumentException("batch accepted-summary queries must use identical filters");
+        }
     }
 
     private void addProblemRatingPredicates(

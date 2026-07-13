@@ -9,10 +9,14 @@ import top.naccl.entity.Tag;
 import top.naccl.exception.NotFoundException;
 import top.naccl.exception.PersistenceException;
 import top.naccl.mapper.TagMapper;
+import top.naccl.model.vo.BlogTagProjection;
 import top.naccl.service.RedisService;
 import top.naccl.service.TagService;
 
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Description: 博客标签业务层实现
@@ -44,8 +48,17 @@ public class TagServiceImpl implements TagService {
 	}
 
 	@Override
-	public List<Tag> getTagListByBlogId(Long blogId) {
-		return tagMapper.getTagListByBlogId(blogId);
+	public Map<Long, List<Tag>> getTagListsByBlogIds(Collection<Long> blogIds) {
+		if (blogIds == null || blogIds.isEmpty()) {
+			return Map.of();
+		}
+		Map<Long, List<Tag>> tagsByBlogId = new LinkedHashMap<>();
+		for (BlogTagProjection projection : tagMapper.getTagListByBlogIds(blogIds)) {
+			tagsByBlogId.computeIfAbsent(projection.getBlogId(), ignored -> new java.util.ArrayList<>())
+					.add(projection.toTag());
+		}
+		tagsByBlogId.replaceAll((ignored, tags) -> List.copyOf(tags));
+		return Map.copyOf(tagsByBlogId);
 	}
 
 	@Transactional(rollbackFor = Exception.class)
@@ -81,15 +94,4 @@ public class TagServiceImpl implements TagService {
 		redisService.deleteCacheByKey(RedisKeyConstants.TAG_CLOUD_LIST);
 	}
 
-	@Transactional(rollbackFor = Exception.class)
-	@Override
-	public void updateTag(Tag tag) {
-		tag.setColor(TaxonomyColorPalette.normalize(tag.getColor()));
-		if (tagMapper.updateTag(tag) != 1) {
-			throw new PersistenceException("标签更新失败");
-		}
-		redisService.deleteCacheByKey(RedisKeyConstants.TAG_CLOUD_LIST);
-		//修改了标签名或颜色，可能有首页文章关联了标签，也要更新首页缓存
-		redisService.deleteCacheByKey(RedisKeyConstants.HOME_BLOG_INFO_LIST);
-	}
 }

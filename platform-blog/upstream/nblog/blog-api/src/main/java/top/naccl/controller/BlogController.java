@@ -6,8 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.naccl.annotation.VisitLogger;
-import top.naccl.enums.VisitBehavior;
 import top.naccl.model.vo.BlogDetail;
 import top.naccl.model.vo.BlogInfo;
 import top.naccl.model.vo.PageResult;
@@ -34,7 +32,6 @@ public class BlogController {
 	 * @param pageNum 页码
 	 * @return
 	 */
-	@VisitLogger(VisitBehavior.INDEX)
 	@GetMapping("/blogs")
 	public Result blogs(@RequestParam(defaultValue = "1") Integer pageNum, Authentication authentication) {
 		PageResult<BlogInfo> pageResult = blogService.getBlogInfoListByIsPublished(pageNum, isAuthenticated(authentication));
@@ -47,7 +44,6 @@ public class BlogController {
 	 * @param id 博客id
 	 * @return
 	 */
-	@VisitLogger(VisitBehavior.BLOG)
 	@GetMapping("/blog")
 	public Result getBlog(@RequestParam Long id) {
 		BlogDetail blog = blogService.getBlogByIdAndIsPublished(id);
@@ -60,7 +56,6 @@ public class BlogController {
 	 * @param query 关键字字符串
 	 * @return
 	 */
-	@VisitLogger(VisitBehavior.SEARCH)
 	@GetMapping("/searchBlog")
 	public Result searchBlog(@RequestParam String query, Authentication authentication) {
 		//校验关键字字符串合法性

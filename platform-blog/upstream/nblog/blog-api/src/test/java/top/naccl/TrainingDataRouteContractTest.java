@@ -22,6 +22,7 @@ class TrainingDataRouteContractTest {
         assertEquals(Set.of(
                         "/users",
                         "/accepted-summary",
+                        "/accepted-summaries",
                         "/submissions/by-user",
                         "/submissions/by-problem",
                         "/first-accepted/by-user",
@@ -34,10 +35,7 @@ class TrainingDataRouteContractTest {
         assertEquals("/admin/training-data",
                 TrainingDataAdminController.class.getAnnotation(RequestMapping.class).value()[0]);
         assertEquals(Set.of(
-                        "/submissions:collect",
-                        "/submission-collection-jobs",
-                        "/ods/codeforces/submissions:batch-upsert",
-                        "/{ojName}/warehouse:refresh"),
+                        "/submission-collection-jobs"),
                 mappedPaths(TrainingDataAdminController.class, PostMapping.class));
         assertEquals(Set.of(
                         "/submission-collection-jobs",

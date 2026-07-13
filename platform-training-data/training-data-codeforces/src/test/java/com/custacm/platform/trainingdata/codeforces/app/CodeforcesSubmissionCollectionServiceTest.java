@@ -529,34 +529,40 @@ class CodeforcesSubmissionCollectionServiceTest {
         }
 
         @Override
-        public OjHandleAccount updateUsernameAndNeedCollect(
-                String oldUsername,
-                String newUsername,
+        public OjHandleAccount replace(
+                String username,
                 Map<String, String> handles,
                 boolean needCollect,
                 Map<String, OjHandleCollectionState> collectionStates,
                 Instant updatedAt
         ) {
-            OjHandleAccount existing = accountsByIdentity.remove(oldUsername);
+            OjHandleAccount existing = accountsByIdentity.get(username);
             OjHandleAccount updated = new OjHandleAccount(
-                    newUsername,
+                    username,
                     handles,
                     needCollect,
                     collectionStates,
                     existing.createdAt(),
                     updatedAt
             );
-            accountsByIdentity.put(newUsername, updated);
+            accountsByIdentity.put(username, updated);
             return updated;
         }
 
         @Override
-        public OjHandleAccount updateCollectionStates(
-                String username,
-                Map<String, OjHandleCollectionState> collectionStates,
+        public boolean updateLastCollectedAtByHandle(
+                String ojName,
+                String handle,
+                Instant lastCollectedAt,
                 Instant updatedAt
         ) {
-            OjHandleAccount existing = accountsByIdentity.get(username);
+            OjHandleAccount existing = findByHandle(ojName, handle).orElse(null);
+            if (existing == null) {
+                return false;
+            }
+            Map<String, OjHandleCollectionState> collectionStates =
+                    new java.util.LinkedHashMap<>(existing.collectionStates());
+            collectionStates.put(OjNames.normalize(ojName), new OjHandleCollectionState(lastCollectedAt));
             OjHandleAccount updated = new OjHandleAccount(
                     existing.username(),
                     existing.handles(),
@@ -565,8 +571,8 @@ class CodeforcesSubmissionCollectionServiceTest {
                     existing.createdAt(),
                     updatedAt
             );
-            accountsByIdentity.put(username, updated);
-            return updated;
+            accountsByIdentity.put(existing.username(), updated);
+            return true;
         }
     }
 

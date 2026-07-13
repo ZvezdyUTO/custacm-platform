@@ -51,22 +51,10 @@ const routes = [
 				meta: {title: '分类'}
 			},
 			{
-				path: '/moments',
-				name: 'moments',
-				component: () => import('@/views/moments/Moments.vue'),
-				meta: {title: '动态'}
-			},
-			{
-				path: '/friends',
-				name: 'friends',
-				component: () => import('@/views/friends/Friends.vue'),
-				meta: {title: '友人帐'}
-			},
-				{
-					path: '/about',
-					name: 'about',
-					component: () => import('@/views/about/About.vue'),
-					meta: {title: '我的主页'}
+				path: '/profile',
+				name: 'profile',
+				component: () => import('@/views/profile/Profile.vue'),
+				meta: {title: '我的主页'}
 			}
 		]
 	}

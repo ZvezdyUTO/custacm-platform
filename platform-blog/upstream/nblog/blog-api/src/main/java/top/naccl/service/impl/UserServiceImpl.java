@@ -9,8 +9,6 @@ import org.springframework.stereotype.Service;
 import top.naccl.entity.User;
 import top.naccl.exception.NotFoundException;
 import top.naccl.mapper.UserMapper;
-import top.naccl.service.RedisService;
-import top.naccl.constant.RedisKeyConstants;
 import top.naccl.service.UserService;
 import top.naccl.util.HashUtils;
 
@@ -23,9 +21,6 @@ import top.naccl.util.HashUtils;
 public class UserServiceImpl implements UserService, UserDetailsService {
 	@Autowired
 	private UserMapper userMapper;
-	@Autowired
-	private RedisService redisService;
-
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 		User user = userMapper.findByUsername(username);
@@ -48,31 +43,12 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 	}
 
 	@Override
-	public User findUserById(Long id) {
-		User user = userMapper.findById(id);
-		if (user == null) {
-			throw new NotFoundException("用户不存在");
-		}
-		return user;
-	}
-
-	@Override
 	public User findUserByUsername(String username) {
 		User user = userMapper.findByUsername(username);
 		if (user == null) {
 			throw new NotFoundException("用户不存在");
 		}
 		return user;
-	}
-
-	@Override
-	public boolean updateNickname(String username, String nickname) {
-		findUserByUsername(username);
-		boolean updated = userMapper.updateNicknameByUsername(username, nickname) == 1;
-		if (updated) {
-			redisService.deleteCacheByKey(RedisKeyConstants.HOME_BLOG_INFO_LIST);
-		}
-		return updated;
 	}
 
 	@Override

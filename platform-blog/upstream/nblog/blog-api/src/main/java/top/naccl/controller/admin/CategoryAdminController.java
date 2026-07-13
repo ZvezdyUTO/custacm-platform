@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.naccl.annotation.OperationLogger;
 import top.naccl.entity.Category;
 import top.naccl.model.vo.Result;
 import top.naccl.service.BlogService;
@@ -53,7 +52,6 @@ public class CategoryAdminController {
 	 * @param category 分类实体
 	 * @return
 	 */
-	@OperationLogger("添加分类")
 	@PostMapping("/category")
 	public Result saveCategory(@RequestBody Category category) {
 		return getResult(category, "save");
@@ -65,7 +63,6 @@ public class CategoryAdminController {
 	 * @param category 分类实体
 	 * @return
 	 */
-	@OperationLogger("修改分类")
 	@PutMapping("/category")
 	public Result updateCategory(@RequestBody Category category) {
 		return getResult(category, "update");
@@ -104,7 +101,6 @@ public class CategoryAdminController {
 	 * @param id 分类id
 	 * @return
 	 */
-	@OperationLogger("删除分类")
 	@DeleteMapping("/category")
 	public Result delete(@RequestParam Long id) {
 		//删除存在博客关联的分类后，该博客的查询会出异常

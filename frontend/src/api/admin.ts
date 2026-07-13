@@ -1,7 +1,7 @@
 import type {
   AdminUserCreateRequest,
   AdminUserMutationResponse,
-  AdminUserPatchRequest,
+  AdminUserUpdateRequest,
   AdminArticleListResponse,
   AdminCategory,
   AdminCategoryPage,
@@ -9,13 +9,8 @@ import type {
   CollectionJob,
   CollectionJobStartRequest,
   HomepageBannerImage,
-  OjHandlesUpdateRequest,
-  OjHandleReplaceRequest,
-  OjName,
-  WarehouseRefreshRequest,
-  WarehouseRefreshResult,
 } from '../types';
-import { authHeaders, requestData } from './client';
+import { authHeaders, requestData, requestDownload, type FileDownload } from './client';
 
 function jsonHeaders(token: string): HeadersInit {
   return {
@@ -44,13 +39,6 @@ export function listAdminUsers(
   return requestData('/admin/users', { headers: authHeaders(token), signal });
 }
 
-export function createUser(
-  token: string,
-  request: AdminUserCreateRequest,
-): Promise<AdminUserMutationResponse> {
-  return jsonRequest(token, '/admin/users', 'POST', request);
-}
-
 export function batchCreateUsers(
   token: string,
   requests: AdminUserCreateRequest[],
@@ -58,38 +46,12 @@ export function batchCreateUsers(
   return jsonRequest(token, '/admin/users:batch-create', 'POST', requests);
 }
 
-export function patchUser(
+export function updateUser(
   token: string,
   username: string,
-  request: AdminUserPatchRequest,
+  request: AdminUserUpdateRequest,
 ): Promise<AdminUserMutationResponse> {
-  return jsonRequest(token, `/admin/users/${encodeURIComponent(username)}`, 'PATCH', request);
-}
-
-export function updateOjHandles(
-  token: string,
-  username: string,
-  request: OjHandlesUpdateRequest,
-): Promise<AdminUserMutationResponse> {
-  return jsonRequest(
-    token,
-    `/admin/users/${encodeURIComponent(username)}/oj-handles`,
-    'PUT',
-    request,
-  );
-}
-
-export function replaceOjHandle(
-  token: string,
-  username: string,
-  request: OjHandleReplaceRequest,
-): Promise<AdminUserMutationResponse> {
-  return jsonRequest(
-    token,
-    `/admin/users/${encodeURIComponent(username)}/oj-handles:replace`,
-    'POST',
-    request,
-  );
+  return jsonRequest(token, `/admin/users/${encodeURIComponent(username)}`, 'PUT', request);
 }
 
 export function deleteUser(token: string, username: string): Promise<void> {
@@ -124,19 +86,6 @@ export function getCollectionJob(
   return requestData(
     `/admin/training-data/submission-collection-jobs/${encodeURIComponent(jobId)}`,
     { headers: authHeaders(token), signal },
-  );
-}
-
-export function refreshWarehouse(
-  token: string,
-  ojName: OjName,
-  request: WarehouseRefreshRequest,
-): Promise<WarehouseRefreshResult> {
-  return jsonRequest(
-    token,
-    `/admin/training-data/${encodeURIComponent(ojName)}/warehouse:refresh`,
-    'POST',
-    request,
   );
 }
 
@@ -178,6 +127,25 @@ export function listAdminArticles(
   return requestData(`/admin/blogs?${params.toString()}`, { headers: authHeaders(token) });
 }
 
+export function listAdminRecycleBinArticles(
+  token: string,
+  query: { title?: string; categoryId?: number | null; pageNum?: number; pageSize?: number } = {},
+): Promise<AdminArticleListResponse> {
+  const params = new URLSearchParams({
+    title: query.title || '',
+    pageNum: String(query.pageNum || 1),
+    pageSize: String(query.pageSize || 10),
+  });
+  if (query.categoryId) params.set('categoryId', String(query.categoryId));
+  return requestData(`/admin/blogs/recycle-bin?${params.toString()}`, { headers: authHeaders(token) });
+}
+
+export function downloadAllArticlesBackup(token: string): Promise<FileDownload> {
+  return requestDownload('/admin/blogs/backup', 'custacm-article-backup.zip', {
+    headers: { ...authHeaders(token), Accept: 'application/zip' },
+  });
+}
+
 export function updateArticleFeatured(token: string, id: number, featured: boolean): Promise<void> {
   const params = new URLSearchParams({ id: String(id), recommend: String(featured) });
   return requestData(`/admin/blog/recommend?${params.toString()}`, {
@@ -190,6 +158,14 @@ export function deleteArticle(token: string, id: number): Promise<void> {
   const params = new URLSearchParams({ id: String(id) });
   return requestData(`/admin/blog?${params.toString()}`, {
     method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
+export function restoreArticle(token: string, id: number): Promise<void> {
+  const params = new URLSearchParams({ id: String(id) });
+  return requestData(`/admin/blog/restore?${params.toString()}`, {
+    method: 'PUT',
     headers: authHeaders(token),
   });
 }

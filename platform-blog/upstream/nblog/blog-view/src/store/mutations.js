@@ -5,8 +5,6 @@ import {
 	SET_COMMENT_QUERY_PAGE_NUM,
 	SET_PARENT_COMMENT_ID,
 	RESET_COMMENT_FORM,
-	RESTORE_COMMENT_FORM,
-	SET_COMMENT_QUERY_PAGE,
 	SET_COMMENT_QUERY_BLOG_ID,
 	SET_COMMENT_QUERY_INTERNAL,
 	SET_IS_BLOG_RENDER_COMPLETE,
@@ -28,9 +26,6 @@ export default {
 		state.commentTotalPage = data.comments.totalPage
 		state.comments = data.comments.list
 	},
-	[SET_COMMENT_QUERY_PAGE](state, page) {
-		state.commentQuery.page = page
-	},
 	[SET_COMMENT_QUERY_BLOG_ID](state, blogId) {
 		state.commentQuery.blogId = blogId
 	},
@@ -44,23 +39,7 @@ export default {
 		state.parentCommentId = parentCommentId
 	},
 	[RESET_COMMENT_FORM](state) {
-		const commentForm = {
-			nickname: state.commentForm.nickname,
-			email: state.commentForm.email,
-			website: state.commentForm.website
-		}
-		//保存访客信息，下次评论时自动填充表单
-		window.localStorage.setItem('commentForm', JSON.stringify(commentForm))
 		state.commentForm.content = ''
-		state.commentForm.notice = true
-	},
-	[RESTORE_COMMENT_FORM](state) {
-		const lastForm = JSON.parse(window.localStorage.getItem('commentForm'))
-		if (lastForm) {
-			state.commentForm.nickname = lastForm.nickname
-			state.commentForm.email = lastForm.email
-			state.commentForm.website = lastForm.website
-		}
 	},
 	[SET_IS_BLOG_RENDER_COMPLETE](state, ok) {
 		state.isBlogRenderComplete = ok

@@ -8,57 +8,19 @@ import {getCommentListByQuery, getInternalCommentList, submitComment} from "@/ap
 import {clearSession, readToken} from "@/auth/session";
 import {ElMessage, ElNotification} from "element-plus";
 import router from "../router";
-import tvMapper from '@/plugins/tvMapper.json'
-import aruMapper from '@/plugins/aruMapper.json'
-import paopaoMapper from '@/plugins/paopaoMapper.json'
-
-function escapeCommentHtml(value) {
-	return String(value).replace(/[&<>"']/g, character => ({
-		'&': '&amp;',
-		'<': '&lt;',
-		'>': '&gt;',
-		'"': '&quot;',
-		"'": '&#39;',
-	})[character])
-}
+import {formatCommentContent} from '@/util/commentContent'
 
 export default {
 	getCommentList({commit, rootState}) {
-		function replaceEmoji(comment, emoji) {
-			comment.content = comment.content.replace(new RegExp(emoji.reg, 'g'), `<img src="${emoji.src}">`)
-		}
-
-		function convertEmoji(comment) {
-			tvMapper.forEach(emoji => {
-				replaceEmoji(comment, emoji)
-			})
-			aruMapper.forEach(emoji => {
-				replaceEmoji(comment, emoji)
-			})
-			paopaoMapper.forEach(emoji => {
-				replaceEmoji(comment, emoji)
-			})
-		}
-
 		const request = rootState.commentQuery.internal
 			? getInternalCommentList(readToken(), rootState.commentQuery)
 			: getCommentListByQuery(rootState.commentQuery)
 		request.then(res => {
 			if (res.code === 200) {
 				res.data.comments.list.forEach(comment => {
-					//转义评论中的html
-					comment.content = escapeCommentHtml(comment.content)
-					//查找评论中是否有表情
-					if (comment.content.indexOf('@[') != -1) {
-						convertEmoji(comment)
-					}
+					comment.content = formatCommentContent(comment.content)
 					comment.replyComments.forEach(comment => {
-						//转义评论中的html
-						comment.content = escapeCommentHtml(comment.content)
-						//查找评论中是否有表情
-						if (comment.content.indexOf('@[') != -1) {
-							convertEmoji(comment)
-						}
+						comment.content = formatCommentContent(comment.content)
 					})
 				})
 				commit(SAVE_COMMENT_RESULT, res.data)
@@ -68,10 +30,11 @@ export default {
 		})
 	},
 	submitCommentForm({rootState, dispatch, commit}, token) {
-		let form = {...rootState.commentForm}
-		form.page = rootState.commentQuery.page
-		form.blogId = rootState.commentQuery.blogId
-		form.parentCommentId = rootState.parentCommentId
+		const form = {
+			content: rootState.commentForm.content,
+			blogId: rootState.commentQuery.blogId,
+			parentCommentId: rootState.parentCommentId,
+		}
 		return submitComment(token, form).then(res => {
 			if (res.code === 200) {
 				ElNotification({

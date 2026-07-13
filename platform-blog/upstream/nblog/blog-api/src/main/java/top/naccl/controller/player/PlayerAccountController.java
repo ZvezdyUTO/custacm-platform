@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import top.naccl.model.dto.NicknameUpdate;
 import top.naccl.model.dto.PasswordUpdate;
 import top.naccl.model.dto.PlayerProfileUpdateRequest;
 import top.naccl.model.dto.ProfileLinksReplaceRequest;
@@ -66,16 +65,6 @@ public class PlayerAccountController {
 			}
 			throw exception;
 		}
-	}
-
-	@PatchMapping("/nickname")
-	public Result updateNickname(Authentication authentication, @RequestBody NicknameUpdate update) {
-		String nickname = update.getNickname() == null ? null : update.getNickname().trim();
-		if (StringUtils.isEmpty(nickname) || nickname.length() > 30) {
-			return Result.create(400, "昵称长度应为 1 到 30 个字符");
-		}
-		return userService.updateNickname(authentication.getName(), nickname)
-				? Result.ok("修改成功") : Result.error("修改失败");
 	}
 
 	@PostMapping(value = "/avatar", consumes = "multipart/form-data")

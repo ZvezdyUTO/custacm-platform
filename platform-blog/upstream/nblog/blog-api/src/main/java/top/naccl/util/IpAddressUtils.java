@@ -1,16 +1,8 @@
 package top.naccl.util;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.lionsoul.ip2region.xdb.Searcher;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.stereotype.Component;
-import org.springframework.util.FileCopyUtils;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -20,7 +12,6 @@ import java.net.UnknownHostException;
  * @Date: 2020-08-18
  */
 @Slf4j
-@Component
 public class IpAddressUtils {
 	/**
 	 * 在Nginx等代理之后获取用户真实IP地址
@@ -53,51 +44,15 @@ public class IpAddressUtils {
 				try {
 					inet = InetAddress.getLocalHost();
 				} catch (UnknownHostException e) {
-					log.error("getIpAddress exception:", e);
+					log.error("Failed to resolve local address, errorCode=IP_LOCAL_ADDRESS_RESOLUTION_FAILED", e);
 				}
-				ip = inet.getHostAddress();
+				if (inet != null) {
+					ip = inet.getHostAddress();
+				}
 			}
 		}
-		return StringUtils.substringBefore(ip, ",");
+		int separator = ip.indexOf(',');
+		return separator < 0 ? ip : ip.substring(0, separator);
 	}
 
-	private static Searcher searcher;
-	private static Method method;
-
-	/**
-	 * 在服务启动时加载 ip2region.xdb 到内存中
-	 * 解决打包 jar 后找不到 ip2region.xdb 的问题
-	 *
-	 * @throws Exception 出现异常应该直接抛出终止程序启动，避免后续invoke时出现更多错误
-	 */
-	@PostConstruct
-	private void initIp2regionResource() throws Exception {
-		InputStream inputStream = new ClassPathResource("/ipdb/ip2region.xdb").getInputStream();
-		//将 ip2region.xdb 转为 ByteArray
-		byte[] dbBinStr = FileCopyUtils.copyToByteArray(inputStream);
-		// 2、使用上述的 dbBinStr 创建一个完全基于内存的查询对象。
-		searcher = new Searcher(null, null, dbBinStr);
-		//二进制方式初始化 DBSearcher，需要使用基于内存的查找算法 memorySearch
-		method = searcher.getClass().getMethod("search", String.class);
-	}
-
-	/**
-	 * 根据 IP 从 ip2region.xdb 中获取地理位置
-	 *
-	 * @param ip
-	 * @return
-	 */
-	public static String getCityInfo(String ip) {
-		try {
-			String ipInfo = (String) method.invoke(searcher, ip);
-			if (!StringUtils.isEmpty(ipInfo)) {
-				ipInfo = ipInfo.replace("|0", "");
-				ipInfo = ipInfo.replace("0|", "");
-			}
-			return ipInfo;
-		} catch (Exception e) {
-			log.error("getCityInfo exception:", e);
-		}
-		return "";
-	}
 }

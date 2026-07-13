@@ -34,6 +34,7 @@ public class Blog {
 	private Boolean top;//是否置顶
 	private Date createTime;//创建时间
 	private Date updateTime;//更新时间
+	private Date deletedAt;//进入回收站的时间，null 表示正常文章
 	private Integer words;//文章字数
 	private Integer readTime;//阅读时长(分钟)
 

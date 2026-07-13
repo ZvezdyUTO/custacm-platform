@@ -10,6 +10,7 @@ import top.naccl.entity.ImageAsset;
 import top.naccl.exception.ImageAssetException;
 import top.naccl.service.ImageAssetCleanupJob;
 import top.naccl.service.ImageAssetService;
+import top.naccl.service.HomepageBannerService;
 import top.naccl.service.PlayerProfileService;
 import top.naccl.service.TrainingUserQueryService;
 
@@ -74,9 +75,11 @@ class IntegratedControllerCoverageTest {
 	@Test
 	void scheduledCleanupDelegatesToAssetService() {
 		ImageAssetService service = mock(ImageAssetService.class);
+		HomepageBannerService bannerService = mock(HomepageBannerService.class);
 
-		new ImageAssetCleanupJob(service).cleanup();
+		new ImageAssetCleanupJob(service, bannerService).cleanup();
 
 		verify(service).cleanupStaleAssets();
+		verify(bannerService).cleanupOrphanFiles();
 	}
 }

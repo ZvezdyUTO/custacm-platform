@@ -4,7 +4,6 @@ import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleAccount;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 public interface TrainingUserDirectory {
     List<OjHandleAccount> listAll();
@@ -15,6 +14,6 @@ public interface TrainingUserDirectory {
 
     String getHandle(OjHandleAccount account, String ojName);
 
-    Optional<OjHandleAccount> markCollectedByHandle(
+    void markCollectedByHandle(
             String ojName, String handle, Instant collectedAt);
 }

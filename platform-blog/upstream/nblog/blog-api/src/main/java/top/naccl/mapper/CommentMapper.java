@@ -3,6 +3,7 @@ package top.naccl.mapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.stereotype.Repository;
 import top.naccl.entity.Comment;
+import top.naccl.model.vo.ArticleBackupComment;
 import top.naccl.model.vo.PageComment;
 
 import java.util.List;
@@ -15,27 +16,17 @@ import java.util.List;
 @Mapper
 @Repository
 public interface CommentMapper {
-	List<Comment> getListByPageAndParentCommentId(Integer page, Long blogId, Long parentCommentId);
-
-	List<Comment> getListByParentCommentId(Long parentCommentId);
-
 	List<PageComment> getPageCommentListByPageAndParentCommentId(Integer page, Long blogId, Long parentCommentId);
+
+	List<PageComment> getPublishedReplyList(Integer page, Long blogId);
 
 	Comment getCommentById(Long id);
 
-	int updateCommentPublishedById(Long commentId, Boolean published);
-
-	int updateCommentNoticeById(Long commentId, Boolean notice);
-
-	int deleteCommentById(Long commentId);
+	List<ArticleBackupComment> getArticleBackupComments(List<Long> blogIds);
 
 	int deleteCommentsByBlogId(Long blogId);
 
-	int updateComment(Comment comment);
-
 	int countByPageAndIsPublished(Integer page, Long blogId, Boolean isPublished);
-
-	int countComment();
 
 	int saveComment(top.naccl.model.dto.Comment comment);
 }

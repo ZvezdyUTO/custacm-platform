@@ -3,8 +3,9 @@ package top.naccl.mapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.stereotype.Repository;
 import top.naccl.entity.Tag;
-import top.naccl.model.vo.TagBlogCount;
+import top.naccl.model.vo.BlogTagProjection;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -19,7 +20,7 @@ public interface TagMapper {
 
 	List<Tag> getTagListNotId();
 
-	List<Tag> getTagListByBlogId(Long blogId);
+	List<BlogTagProjection> getTagListByBlogIds(Collection<Long> blogIds);
 
 	int saveTag(Tag tag);
 
@@ -29,7 +30,4 @@ public interface TagMapper {
 
 	int deleteTagById(Long id);
 
-	int updateTag(Tag tag);
-
-	List<TagBlogCount> getTagBlogCount();
 }

@@ -25,7 +25,7 @@ Current phase: operate the integrated Blog API backend and the Vue 3 Blog / Vue 
 - Do not reintroduce demo-token or in-memory login flows unless the user explicitly changes the identity decision.
 - Passwords, account management, handles, and token issuance belong to Blog API; there is no public registration flow.
 - Other business modules reference users by `username`.
-- HTTP APIs must follow `docs/authorization.md`: `/admin/**` is admin-only, `/player/**` is player-or-admin, public GET and OPTIONS are anonymous, and the only anonymous business writes are `POST /login` and `POST /admin/login`.
+- HTTP APIs must follow `docs/authorization.md`: `/admin/**` is admin-only, `/player/**` is player-or-admin, public GET and OPTIONS are anonymous, and the only anonymous business write is `POST /login`.
 - The two Vue 3 applications share `custacm.accessToken` and `custacm.user` for login continuity. Public Blog requests must not globally attach JWTs; protected requests attach Bearer tokens explicitly.
 - Keep Vue Blog routing under `/`, Vue Training routing under `/training/**`, and browser API routing under `/api/**`; do not couple the two frontend routers.
 - Keep training domain/app/infra boundaries clear and keep `top.naccl` as NBlog's package root.

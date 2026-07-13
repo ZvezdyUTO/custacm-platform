@@ -14,13 +14,16 @@
 						<h2 class="ui header m-center">{{ blog.title }}</h2>
 					</div>
 					<div class="row m-padded-tb-small">
-						<div class="ui horizontal link list m-center">
+						<div class="ui horizontal link list m-center article-meta-list">
 							<div class="item m-common-black" v-if="blog.authorNickname"><i class="small user icon"></i><span>{{ blog.authorNickname }}</span></div>
 							<div class="item m-datetime"><i class="small calendar icon"></i><span>{{ $filters.dateFormat(blog.createTime, 'YYYY-MM-DD') }}</span></div>
 							<div class="item m-common-black"><i class="small pencil alternate icon"></i><span>字数≈{{ blog.words }}字</span></div>
 							<div class="item m-common-black"><i class="small clock icon"></i><span>阅读时长≈{{ blog.readTime }}分</span></div>
-							<a class="item m-common-black" aria-label="切换字体大小" @click.prevent="bigFontSize=!bigFontSize"><div data-inverted="" data-tooltip="点击切换字体大小" data-position="top center"><i class="font icon"></i></div></a>
-							<a class="item m-common-black" aria-label="切换专注模式" @click.prevent="changeFocusMode"><div data-inverted="" data-tooltip="专注模式" data-position="top center"><i class="book icon"></i></div></a>
+							<a class="item m-common-black article-meta-icon-action" aria-label="切换字体大小" data-inverted="" data-tooltip="点击切换字体大小" data-position="top center" @click.prevent="bigFontSize=!bigFontSize"><i class="font icon"></i></a>
+							<a class="item m-common-black article-meta-icon-action" aria-label="切换专注模式" data-inverted="" data-tooltip="专注模式" data-position="top center" @click.prevent="changeFocusMode"><i class="book icon"></i></a>
+							<a v-if="authUser" class="item article-download-link" :class="{disabled: downloading}" aria-label="下载文章与图片压缩包" @click.prevent="downloadArticle">
+								<i :class="downloading ? 'spinner loading icon' : 'download icon'"></i><span>{{ downloading ? '打包中' : '下载文章包' }}</span>
+							</a>
 							<router-link v-if="isAuthor" :to="`/write/${blog.id}`" class="item article-edit-link"><i class="edit outline icon"></i><span>编辑文章</span></router-link>
 						</div>
 					</div>
@@ -66,7 +69,7 @@
 		</div>
 		<!--评论-->
 		<div class="ui bottom teal attached segment threaded comments">
-			<CommentList :page="0" :blogId="blogId" :internal="Boolean(blog.internal)" v-if="blog.commentEnabled"/>
+			<CommentList :blogId="blogId" :internal="Boolean(blog.internal)" v-if="blog.commentEnabled"/>
 			<h3 class="ui header" v-else>评论已关闭</h3>
 		</div>
 		<ManagedImageViewer ref="managedImageViewer"/>
@@ -74,12 +77,12 @@
 </template>
 
 <script>
-	import {getBlogById} from "@/api/blog";
+	import {downloadBlog, getBlogById} from "@/api/blog";
 	import {getInternalBlog} from '@/api/player-blog'
 	import CommentList from "@/components/comment/CommentList";
 		import {mapState} from "vuex";
 		import {SET_FOCUS_MODE, SET_IS_BLOG_RENDER_COMPLETE} from '@/store/mutations-types';
-	import {readToken, readUser, SESSION_CHANGE_EVENT} from '@/auth/session'
+	import {clearSession, readToken, readUser, SESSION_CHANGE_EVENT} from '@/auth/session'
 	import getPageTitle from '@/util/get-page-title'
 	import {isArticleAuthor} from '@/util/articleForm'
 	import renderMathInElement from 'katex/contrib/auto-render'
@@ -87,6 +90,7 @@
 	import ManagedImageViewer from '@/components/article/ManagedImageViewer.vue'
 	import {originalUrlForManagedThumbnail} from '@/util/articleImages'
 	import {sanitizeHtml} from '@/util/sanitizeHtml'
+	import {articleDownloadFilename, retryAfterSeconds, saveArticleDownload} from '@/util/articleDownload'
 
 	export default {
 		name: "Blog",
@@ -97,6 +101,7 @@
 					blog: {},
 					bigFontSize: false,
 					authUser: readUser(),
+					downloading: false,
 				}
 			},
 		computed: {
@@ -152,6 +157,40 @@
 			sanitizeHtml,
 			taxonomyStyle(color) { return {backgroundColor: color || '#8B1E3F', color: '#fff'} },
 				refreshUser() { this.authUser = readUser() },
+			async downloadArticle() {
+				if (this.downloading) return
+				const token = readToken()
+				if (!token) {
+					this.refreshUser()
+					this.$router.push({path: '/training/login', query: {returnTo: this.$route.fullPath}})
+					return
+				}
+				this.downloading = true
+				try {
+					const blob = await downloadBlog(token, this.blogId)
+					saveArticleDownload(blob, articleDownloadFilename(this.blog.title, this.blogId))
+					this.msgSuccess('文章下载已开始')
+				} catch (error) {
+					const status = error?.response?.status
+					if (status === 401) {
+						clearSession()
+						this.refreshUser()
+						this.$router.push({path: '/training/login', query: {returnTo: this.$route.fullPath}})
+						return
+					}
+					if (status === 429) {
+						this.msgError(`下载过于频繁，请 ${retryAfterSeconds(error)} 秒后再试`)
+						return
+					}
+					if (status === 503) {
+						this.msgError('下载服务暂时不可用，请稍后重试')
+						return
+					}
+					this.msgError('文章下载失败，请稍后重试')
+				} finally {
+					this.downloading = false
+				}
+			},
 			openManagedImage(event) {
 				const image = event.target instanceof HTMLImageElement ? event.target : null
 				const link = image?.closest('a')
@@ -243,7 +282,55 @@
 
 	.article-edit-link {
 		color: #17324d !important;
-		font-weight: 700;
+		font-weight: 600;
+	}
+
+	.article-download-link {
+		color: #176b5b !important;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.article-meta-list.ui.horizontal.list {
+		display: flex !important;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: .65rem 1.15rem;
+		line-height: 1.25;
+	}
+
+	.article-meta-list.ui.horizontal.list > .item {
+		display: inline-flex !important;
+		align-items: center;
+		min-height: 1.5rem;
+		margin: 0 !important;
+		padding: 0 !important;
+		font-size: 1rem;
+		line-height: 1.25;
+	}
+
+	.article-meta-list.ui.horizontal.list > .item > i.icon {
+		flex: 0 0 1em;
+		width: 1em !important;
+		height: 1em !important;
+		margin: 0 .38em 0 0 !important;
+		font-size: 1em !important;
+		line-height: 1 !important;
+	}
+
+	.article-meta-list.ui.horizontal.list > .item > span {
+		line-height: 1.25;
+	}
+
+	.article-meta-list.ui.horizontal.list > .article-meta-icon-action > i.icon {
+		margin-right: 0 !important;
+	}
+
+	.article-download-link.disabled {
+		cursor: wait;
+		opacity: .58;
+		pointer-events: none;
 	}
 
 	.article-category-ribbon {

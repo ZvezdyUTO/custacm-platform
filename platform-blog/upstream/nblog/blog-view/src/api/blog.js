@@ -16,6 +16,16 @@ export function getBlogById(id) {
 	})
 }
 
+export function downloadBlog(token, id) {
+	return axios({
+		url: 'player/blog/download',
+		method: 'GET',
+		headers: {Authorization: `Bearer ${token}`},
+		params: {id},
+		responseType: 'blob',
+	})
+}
+
 export function getSearchBlogList(query) {
 	return axios({
 		url: 'searchBlog',

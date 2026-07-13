@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.test.web.servlet.MockMvc;
 import top.naccl.entity.User;
-import top.naccl.service.LoginLogService;
 import top.naccl.service.RedisService;
 import top.naccl.service.impl.UserServiceImpl;
 import top.naccl.util.JwtUtils;
@@ -33,10 +32,9 @@ import static org.mockito.Mockito.when;
 @Import({SecurityConfig.class, MyAuthenticationEntryPoint.class, SecurityConfigTest.ProbeController.class})
 class SecurityConfigTest {
 	@Autowired private MockMvc mockMvc;
-	@Autowired private BCryptPasswordEncoder passwordEncoder;
 	@MockitoBean private UserServiceImpl userService;
-	@MockitoBean private LoginLogService loginLogService;
 	@MockitoBean private RedisService redisService;
+	private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
 	@BeforeEach
 	void setUpJwt() {
@@ -82,23 +80,13 @@ class SecurityConfigTest {
 	}
 
 	@Test
-	void playerCanLoginAndReceiveExistingJwtResponseShape() throws Exception {
-		User player = new User();
-		player.setId(2L);
-		player.setUsername("player1");
-		player.setNickname("Player One");
-		player.setPassword(passwordEncoder.encode("123456"));
-		player.setRole("ROLE_player");
-		when(userService.loadUserByUsername("player1")).thenReturn(player);
-
+	void onlyCurrentPublicLoginRouteIsPermitted() throws Exception {
+		mockMvc.perform(post("/login"))
+				.andExpect(status().isOk());
 		mockMvc.perform(post("/admin/login")
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"username\":\"player1\",\"password\":\"123456\"}"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.code").value(200))
-				.andExpect(jsonPath("$.data.user.username").value("player1"))
-				.andExpect(jsonPath("$.data.user.role").value("ROLE_player"))
-				.andExpect(jsonPath("$.data.token").isString());
+				.content("{}"))
+				.andExpect(status().isUnauthorized());
 	}
 
 	@Test
@@ -143,6 +131,7 @@ class SecurityConfigTest {
 		}
 		@GetMapping("/player/probe") String playerProbe() { return "ok"; }
 		@GetMapping("/admin/probe") String adminProbe() { return "ok"; }
-		@PostMapping("/comment") String publicWriteProbe() { return "not allowed"; }
-	}
+			@PostMapping("/comment") String publicWriteProbe() { return "not allowed"; }
+			@PostMapping("/login") String loginProbe() { return "ok"; }
+		}
 }

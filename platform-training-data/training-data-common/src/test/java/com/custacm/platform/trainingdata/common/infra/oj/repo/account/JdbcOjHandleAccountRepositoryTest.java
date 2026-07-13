@@ -3,18 +3,16 @@ package com.custacm.platform.trainingdata.common.infra.oj.repo.account;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleAccount;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleCollectionState;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.jdbc.datasource.init.ScriptUtils;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -22,113 +20,84 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * @author huangbingrui.awa
+ */
 class JdbcOjHandleAccountRepositoryTest {
     private static final Instant CREATED_AT = Instant.parse("2026-07-05T00:00:00Z");
+    private static final Instant FIRST_COLLECTED_AT = Instant.parse("2026-07-04T00:00:00Z");
     private static final Instant UPDATED_AT = Instant.parse("2026-07-05T01:00:00Z");
 
     private JdbcTemplate jdbcTemplate;
     private JdbcOjHandleAccountRepository repository;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         DataSource dataSource = new DriverManagerDataSource(
-                "jdbc:h2:mem:cf_handle_account_" + UUID.randomUUID()
+                "jdbc:h2:mem:oj_handle_account_" + UUID.randomUUID()
                         + ";MODE=MySQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1",
                 "sa",
                 ""
         );
         jdbcTemplate = new JdbcTemplate(dataSource);
-        repository = new JdbcOjHandleAccountRepository(new NamedParameterJdbcTemplate(dataSource), new ObjectMapper());
-        try (Connection connection = dataSource.getConnection()) {
-            ScriptUtils.executeSqlScript(
-                    connection,
-                    new ClassPathResource("db/migration/V014__create_codeforces_handle_account.sql")
-            );
-            ScriptUtils.executeSqlScript(
-                    connection,
-                    new ClassPathResource("db/migration/V016__add_codeforces_handle_account_need_collect.sql")
-            );
-            ScriptUtils.executeSqlScript(
-                    connection,
-                    new ClassPathResource("db/migration/V018__rename_oj_handle_account_and_store_handles_map.sql")
-            );
-            ScriptUtils.executeSqlScript(
-                    connection,
-                    new ClassPathResource("db/migration/V021__add_oj_handle_account_collection_states.sql")
-            );
-        }
+        createRelationalSchema();
+        repository = new JdbcOjHandleAccountRepository(
+                new NamedParameterJdbcTemplate(dataSource),
+                new DataSourceTransactionManager(dataSource)
+        );
     }
 
     @Test
-    void savesListsAndChangesUsernameWithoutChangingHandle() {
-        repository.save(new OjHandleAccount(
+    void savesListsAndReplacesCollectionSettings() {
+        repository.save(account(
                 "112487张三",
                 Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder"),
                 false,
-                Map.of(
-                        OjNames.CODEFORCES,
-                        new OjHandleCollectionState(Instant.parse("2026-07-04T00:00:00Z"))
-                ),
-                CREATED_AT,
-                CREATED_AT
+                Map.of(OjNames.CODEFORCES, new OjHandleCollectionState(FIRST_COLLECTED_AT))
         ));
 
-        OjHandleAccount listed = repository.findAll().get(0);
+        OjHandleAccount listed = repository.findAll().getFirst();
 
         assertThat(listed.username()).isEqualTo("112487张三");
-        assertThat(listed.handles()).containsEntry(OjNames.CODEFORCES, "tourist");
-        assertThat(listed.handles()).containsEntry(OjNames.ATCODER, "tourist_atcoder");
+        assertThat(listed.handles())
+                .containsEntry(OjNames.CODEFORCES, "tourist")
+                .containsEntry(OjNames.ATCODER, "tourist_atcoder");
         assertThat(listed.needCollect()).isFalse();
         assertThat(listed.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
-                .isEqualTo(Instant.parse("2026-07-04T00:00:00Z"));
+                .isEqualTo(FIRST_COLLECTED_AT);
         assertThat(listed.collectionStates().get(OjNames.ATCODER).lastCollectedAt()).isNull();
 
-        OjHandleAccount changed = repository.updateUsernameAndNeedCollect(
+        OjHandleAccount changed = repository.replace(
                 "112487张三",
-                "112488张三",
-                Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder"),
+                listed.handles(),
                 true,
                 Map.of(
-                        OjNames.CODEFORCES,
-                        new OjHandleCollectionState(Instant.parse("2026-07-04T00:00:00Z")),
-                        OjNames.ATCODER,
-                        new OjHandleCollectionState(UPDATED_AT)
+                        OjNames.CODEFORCES, new OjHandleCollectionState(FIRST_COLLECTED_AT),
+                        OjNames.ATCODER, new OjHandleCollectionState(UPDATED_AT)
                 ),
                 UPDATED_AT
         );
 
-        assertThat(changed.username()).isEqualTo("112488张三");
-        assertThat(changed.handles()).containsEntry(OjNames.CODEFORCES, "tourist");
-        assertThat(changed.handles()).containsEntry(OjNames.ATCODER, "tourist_atcoder");
+        assertThat(changed.username()).isEqualTo("112487张三");
+        assertThat(changed.handles()).isEqualTo(listed.handles());
         assertThat(changed.needCollect()).isTrue();
         assertThat(changed.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
-                .isEqualTo(Instant.parse("2026-07-04T00:00:00Z"));
-        assertThat(changed.collectionStates().get(OjNames.ATCODER).lastCollectedAt()).isEqualTo(UPDATED_AT);
+                .isEqualTo(FIRST_COLLECTED_AT);
+        assertThat(changed.collectionStates().get(OjNames.ATCODER).lastCollectedAt())
+                .isEqualTo(UPDATED_AT);
         assertThat(changed.createdAt()).isEqualTo(CREATED_AT);
         assertThat(changed.updatedAt()).isEqualTo(UPDATED_AT);
-        assertThat(repository.findAll())
-                .extracting(OjHandleAccount::username)
-                .containsExactly("112488张三");
-        assertThat(repository.findAll().get(0).handles())
-                .containsEntry(OjNames.CODEFORCES, "tourist")
-                .containsEntry(OjNames.ATCODER, "tourist_atcoder");
+        assertThat(repository.findByUsername("112487张三")).contains(changed);
     }
 
     @Test
     void findsAllHandleAccountsOrderedByUsername() {
-        repository.save(new OjHandleAccount(
-                "112488李四",
-                Map.of(OjNames.CODEFORCES, "Benq"),
-                true,
-                CREATED_AT,
-                CREATED_AT
-        ));
-        repository.save(new OjHandleAccount(
+        repository.save(account("112488李四", Map.of(OjNames.CODEFORCES, "Benq"), true, Map.of()));
+        repository.save(account(
                 "112487张三",
                 Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder"),
                 true,
-                CREATED_AT,
-                CREATED_AT
+                Map.of()
         ));
 
         assertThat(repository.findAll())
@@ -140,21 +109,14 @@ class JdbcOjHandleAccountRepositoryTest {
     }
 
     @Test
-    void findsHandleAccountByRequestedOjHandle() {
-        repository.save(new OjHandleAccount(
+    void findsHandleAccountThroughTheIndexedOjBinding() {
+        repository.save(account(
                 "112487张三",
                 Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder"),
                 true,
-                CREATED_AT,
-                CREATED_AT
+                Map.of()
         ));
-        repository.save(new OjHandleAccount(
-                "112488李四",
-                Map.of(OjNames.ATCODER, "tourist"),
-                true,
-                CREATED_AT,
-                CREATED_AT
-        ));
+        repository.save(account("112488李四", Map.of(OjNames.ATCODER, "tourist"), true, Map.of()));
 
         assertThat(repository.findByHandle("codeforces", "tourist"))
                 .get()
@@ -168,114 +130,146 @@ class JdbcOjHandleAccountRepositoryTest {
     }
 
     @Test
-    void updatesHandlesJsonWhenChangingAccount() {
-        repository.save(new OjHandleAccount(
+    void synchronizesAddedUpdatedAndRemovedBindings() {
+        repository.save(account(
                 "112487张三",
-                Map.of(OjNames.CODEFORCES, "tourist"),
+                Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "old_atcoder"),
                 true,
-                CREATED_AT,
-                CREATED_AT
+                Map.of(
+                        OjNames.CODEFORCES, new OjHandleCollectionState(FIRST_COLLECTED_AT),
+                        OjNames.ATCODER, new OjHandleCollectionState(FIRST_COLLECTED_AT)
+                )
         ));
 
-        OjHandleAccount changed = repository.updateUsernameAndNeedCollect(
+        OjHandleAccount changed = repository.replace(
                 "112487张三",
-                "112487张三",
-                Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder"),
-                true,
-                Map.of(),
+                Map.of(OjNames.ATCODER, "new_atcoder"),
+                false,
+                Map.of(OjNames.ATCODER, OjHandleCollectionState.empty()),
                 UPDATED_AT
         );
 
-        assertThat(changed.handles())
-                .containsEntry(OjNames.CODEFORCES, "tourist")
-                .containsEntry(OjNames.ATCODER, "tourist_atcoder");
-        assertThat(repository.findAll().get(0).handles())
-                .containsEntry(OjNames.CODEFORCES, "tourist")
-                .containsEntry(OjNames.ATCODER, "tourist_atcoder");
+        assertThat(changed.handles()).containsExactly(Map.entry(OjNames.ATCODER, "new_atcoder"));
+        assertThat(changed.collectionStates().get(OjNames.ATCODER).lastCollectedAt()).isNull();
+        assertThat(repository.findByHandle(OjNames.CODEFORCES, "tourist")).isEmpty();
+        assertThat(repository.findByHandle(OjNames.ATCODER, "old_atcoder")).isEmpty();
     }
 
     @Test
-    void updatesCollectionStatesWithoutChangingIdentityHandlesOrNeedCollect() {
-        repository.save(new OjHandleAccount(
+    void atomicallyUpdatesOnlyTheRequestedHandleCursor() {
+        repository.save(account(
                 "112487张三",
                 Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "tourist_atcoder"),
-                false,
-                CREATED_AT,
-                CREATED_AT
+                true,
+                Map.of(
+                        OjNames.CODEFORCES, new OjHandleCollectionState(FIRST_COLLECTED_AT),
+                        OjNames.ATCODER, new OjHandleCollectionState(FIRST_COLLECTED_AT)
+                )
         ));
 
-        OjHandleAccount changed = repository.updateCollectionStates(
-                "112487张三",
-                Map.of(
-                        OjNames.CODEFORCES,
-                        new OjHandleCollectionState(Instant.parse("2026-07-04T00:00:00Z")),
-                        OjNames.ATCODER,
-                        new OjHandleCollectionState(UPDATED_AT)
-                ),
-                UPDATED_AT
-        );
+        assertThat(repository.updateLastCollectedAtByHandle(
+                "codeforces", "tourist", UPDATED_AT, UPDATED_AT)).isTrue();
+        assertThat(repository.updateLastCollectedAtByHandle(
+                OjNames.CODEFORCES, "missing", UPDATED_AT, UPDATED_AT)).isFalse();
 
-        assertThat(changed.username()).isEqualTo("112487张三");
-        assertThat(changed.handles())
-                .containsEntry(OjNames.CODEFORCES, "tourist")
-                .containsEntry(OjNames.ATCODER, "tourist_atcoder");
-        assertThat(changed.needCollect()).isFalse();
+        OjHandleAccount changed = repository.findByUsername("112487张三").orElseThrow();
         assertThat(changed.collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
-                .isEqualTo(Instant.parse("2026-07-04T00:00:00Z"));
-        assertThat(changed.collectionStates().get(OjNames.ATCODER).lastCollectedAt()).isEqualTo(UPDATED_AT);
-        assertThat(changed.createdAt()).isEqualTo(CREATED_AT);
+                .isEqualTo(UPDATED_AT);
+        assertThat(changed.collectionStates().get(OjNames.ATCODER).lastCollectedAt())
+                .isEqualTo(FIRST_COLLECTED_AT);
         assertThat(changed.updatedAt()).isEqualTo(UPDATED_AT);
     }
 
     @Test
-    void databaseDefaultsNeedCollectToTrueForExistingInsertShape() {
+    void databaseDefaultsNeedCollectForAMemberWithoutBindings() {
         jdbcTemplate.update("""
-                insert into oj_handle_account (username, handles_json, created_at, updated_at)
-                values ('112487张三', '{"CODEFORCES":"tourist"}', current_timestamp, current_timestamp)
-                """);
+                        insert into training_member (username, created_at, updated_at)
+                        values (?, ?, ?)
+                        """,
+                "112487张三", Timestamp.from(CREATED_AT), Timestamp.from(CREATED_AT));
 
-        assertThat(repository.findAll().get(0).needCollect()).isTrue();
-        assertThat(repository.findAll().get(0).collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
-                .isNull();
-    }
-
-    @Test
-    void readsLegacyCollectionStateJsonWhileIgnoringRemovedHistoryFlag() {
-        jdbcTemplate.update("""
-                insert into oj_handle_account (
-                    username, handles_json, collection_states_json, created_at, updated_at
-                ) values (
-                    '112487张三',
-                    '{"CODEFORCES":"tourist"}',
-                    '{"CODEFORCES":{"historyStartReached":true,"lastCollectedAt":"2026-07-04T00:00:00Z"}}',
-                    current_timestamp,
-                    current_timestamp
-                )
-                """);
-
-        assertThat(repository.findAll().getFirst().collectionStates().get(OjNames.CODEFORCES).lastCollectedAt())
-                .isEqualTo(Instant.parse("2026-07-04T00:00:00Z"));
+        OjHandleAccount account = repository.findByUsername("112487张三").orElseThrow();
+        assertThat(account.needCollect()).isTrue();
+        assertThat(account.handles()).isEmpty();
+        assertThat(account.collectionStates()).isEmpty();
     }
 
     @Test
     void databaseRejectsDuplicateIdentity() {
-        repository.save(new OjHandleAccount(
-                "112487张三",
-                Map.of(OjNames.CODEFORCES, "tourist"),
-                true,
-                CREATED_AT,
-                CREATED_AT
-        ));
+        repository.save(account("112487张三", Map.of(OjNames.CODEFORCES, "tourist"), true, Map.of()));
 
-        assertThatThrownBy(() -> repository.save(new OjHandleAccount(
-                "112487张三",
-                Map.of(OjNames.CODEFORCES, "Benq"),
-                true,
-                CREATED_AT,
-                CREATED_AT
-        ))).isInstanceOf(DuplicateKeyException.class);
+        assertThatThrownBy(() -> repository.save(account(
+                "112487张三", Map.of(OjNames.CODEFORCES, "Benq"), true, Map.of()
+        ))).isInstanceOf(DataIntegrityViolationException.class);
 
-        Integer count = jdbcTemplate.queryForObject("select count(*) from oj_handle_account", Integer.class);
+        Integer count = jdbcTemplate.queryForObject("select count(*) from training_member", Integer.class);
         assertThat(count).isEqualTo(1);
+    }
+
+    @Test
+    void databaseRejectsDuplicateHandleWithinTheSameOjAndRollsBackTheMember() {
+        repository.save(account("112487张三", Map.of(OjNames.CODEFORCES, "tourist"), true, Map.of()));
+
+        assertThatThrownBy(() -> repository.save(account(
+                "112488李四", Map.of(OjNames.CODEFORCES, "tourist"), true, Map.of()
+        ))).isInstanceOf(DataIntegrityViolationException.class);
+
+        assertThat(repository.findByUsername("112488李四")).isEmpty();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from training_member", Integer.class))
+                .isEqualTo(1);
+    }
+
+    @Test
+    void sameHandleTextMayBelongToDifferentOjs() {
+        repository.save(account("112487张三", Map.of(OjNames.CODEFORCES, "tourist"), true, Map.of()));
+        repository.save(account("112488李四", Map.of(OjNames.ATCODER, "tourist"), true, Map.of()));
+
+        assertThat(repository.findByHandle(OjNames.CODEFORCES, "tourist"))
+                .get().extracting(OjHandleAccount::username).isEqualTo("112487张三");
+        assertThat(repository.findByHandle(OjNames.ATCODER, "tourist"))
+                .get().extracting(OjHandleAccount::username).isEqualTo("112488李四");
+    }
+
+    private OjHandleAccount account(
+            String username,
+            Map<String, String> handles,
+            boolean needCollect,
+            Map<String, OjHandleCollectionState> collectionStates
+    ) {
+        return new OjHandleAccount(
+                username,
+                handles,
+                needCollect,
+                collectionStates,
+                CREATED_AT,
+                CREATED_AT
+        );
+    }
+
+    private void createRelationalSchema() {
+        jdbcTemplate.execute("""
+                create table training_member (
+                    username varchar(128) not null,
+                    need_collect boolean not null default true,
+                    created_at timestamp(6) not null,
+                    updated_at timestamp(6) not null,
+                    primary key (username)
+                )
+                """);
+        jdbcTemplate.execute("""
+                create table oj_handle_binding (
+                    username varchar(128) not null,
+                    oj_name varchar(32) not null,
+                    handle varchar(128) not null,
+                    last_collected_at timestamp(6),
+                    created_at timestamp(6) not null,
+                    updated_at timestamp(6) not null,
+                    primary key (username, oj_name),
+                    unique (oj_name, handle),
+                    constraint fk_binding_member foreign key (username)
+                        references training_member (username)
+                        on update cascade on delete cascade
+                )
+                """);
     }
 }

@@ -29,10 +29,12 @@
 									</div>
 								</div>
 								<div class="list-article-meta" aria-label="文章信息">
-									<span><i class="calendar outline icon"></i>{{ $filters.dateFormat(item.createTime, 'YYYY-MM-DD')}}</span>
-									<span><i class="file alternate outline icon"></i>{{ item.words }} 字</span>
+									<span class="list-article-date"><i class="calendar outline icon"></i>{{ $filters.dateFormat(item.createTime, 'YYYY-MM-DD')}}</span>
+									<span class="list-article-stats">
+										<span><i class="file alternate outline icon"></i>{{ item.words }} 字</span>
+									</span>
 								</div>
-								</div>
+							</div>
 							<figure v-if="item.firstPicture" class="list-card-cover">
 								<img :src="item.firstPicture" :alt="`${item.title} 首图`" loading="lazy" decoding="async">
 							</figure>
@@ -131,8 +133,8 @@
 		align-items: center;
 		width: 100%;
 		min-width: 0;
-		gap: 1rem;
-		padding: 0.7rem 0.85rem;
+		gap: 0.75rem;
+		padding: 0.9rem 0.75rem 0.9rem 1rem;
 		background: transparent;
 		border: 2px solid #17324d;
 		border-radius: 14px;
@@ -142,18 +144,19 @@
 	.list-author-identity {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		min-width: 135px;
+		min-width: 0;
+		flex: 1 1 auto;
+		gap: 0.9rem;
 	}
 
 	.list-author-avatar {
-		width: 48px;
-		height: 48px;
-		flex: 0 0 48px;
+		width: 72px;
+		height: 72px;
+		flex: 0 0 72px;
 		object-fit: cover;
-		border: 2px solid #fff;
+		border: 3px solid #fff;
 		border-radius: 50%;
-		box-shadow: 0 0 0 1px #d5e0e9, 0 5px 12px rgba(23, 50, 77, 0.13);
+		box-shadow: 0 0 0 1px #d5e0e9, 0 6px 16px rgba(23, 50, 77, 0.16);
 	}
 
 	.list-author-copy {
@@ -184,13 +187,27 @@
 	}
 
 	.list-article-meta {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		padding-left: 1rem;
+		display: grid;
+		min-width: max-content;
+		flex: 0 0 auto;
+		justify-items: start;
+		margin-left: auto;
+		gap: 0.3rem;
+		padding-left: 0.7rem;
 		border-left: 1px solid rgba(23, 50, 77, 0.35);
 		color: #526476;
-		font-size: 0.84rem;
+		font-size: 0.78rem;
+		text-align: left;
+	}
+
+	.list-article-date {
+		font-weight: 700;
+	}
+
+	.list-article-stats {
+		display: flex;
+		align-items: center;
+		gap: 0.85rem;
 	}
 
 	.list-card-category {
@@ -198,7 +215,8 @@
 		margin-bottom: 1.25rem !important;
 	}
 
-	.list-article-meta span {
+	.list-article-date,
+	.list-article-stats > span {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.32rem;
@@ -252,13 +270,14 @@
 	}
 
 	.list-card-cover {
+		box-sizing: border-box;
 		width: 100%;
 		aspect-ratio: 16 / 9;
 		margin: 0;
 		overflow: hidden;
 		background: #edf1f4;
-		border: 1px solid #d8e0e6;
-		border-radius: 6px;
+		border: 2px solid #17324d;
+		border-radius: 14px;
 	}
 
 	.list-card-cover img {
@@ -277,22 +296,23 @@
 
 	@container (max-width: 900px) {
 		.list-card-layout { gap: 1rem; }
-		.list-author-card { align-items: flex-start; flex-direction: column; gap: 0.65rem; }
-		.list-article-meta {
-			width: 100%;
-			flex-wrap: wrap;
-			gap: 0.45rem 0.7rem;
-			padding: 0.6rem 0 0;
-			border-top: 1px solid rgba(23, 50, 77, 0.25);
-			border-left: 0;
-			font-size: 0.78rem;
-		}
+		.list-author-card { gap: 0.65rem; }
+		.list-author-avatar { width: 64px; height: 64px; flex-basis: 64px; }
+		.list-article-meta { padding-left: 0.55rem; font-size: 0.74rem; }
 	}
 
 	@container (max-width: 560px) {
 		.list-card-layout { grid-template-columns: minmax(0, 1fr); }
 		.list-card-aside { grid-row: 2; }
 		.list-card-cover { max-width: 100%; }
+		.list-author-card { align-items: flex-start; flex-direction: column; gap: 0.75rem; }
+		.list-author-identity { width: 100%; }
+		.list-article-meta {
+			width: 100%;
+			padding: 0.75rem 0 0;
+			border-top: 1px solid rgba(23, 50, 77, 0.25);
+			border-left: 0;
+		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {

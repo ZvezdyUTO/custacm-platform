@@ -17,13 +17,9 @@ import java.util.List;
 public interface UserMapper {
 	User findByUsername(String username);
 
-	User findById(Long id);
-
 	List<User> findAll();
 
 	int insert(User user);
-
-	int updateNicknameByUsername(String username, String nickname);
 
 	int updateProfileByUsername(@Param("username") String username, @Param("nickname") String nickname,
 			@Param("signature") String signature);

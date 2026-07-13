@@ -17,6 +17,7 @@
         <result property="top" column="is_top"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
+		<result property="deletedAt" column="deleted_at"/>
         <result property="words" column="words"/>
         <result property="readTime" column="read_time"/>
         <association property="user" javaType="top.naccl.entity.User">
@@ -24,6 +25,8 @@
             <result property="username" column="username"/>
             <result property="nickname" column="nickname"/>
             <result property="avatar" column="avatar"/>
+			<result property="avatarAssetId" column="avatar_asset_id"/>
+			<result property="signature" column="signature"/>
             <result property="email" column="email"/>
             <result property="createTime" column="user_create_time"/>
             <result property="updateTime" column="user_update_time"/>
@@ -48,9 +51,10 @@
         b.is_comment_enabled, b.is_top,
         c.id as category_id, c.category_name
         from blog as b left join category as c on b.category_id=c.id
-        <where>
+		<where>
+			b.deleted_at is null
             <if test="title!=null and title!=''">
-                b.title like #{titlePattern}
+				and b.title like #{titlePattern}
             </if>
             <if test="categoryId!=null">
                 and b.category_id=#{categoryId}
@@ -65,7 +69,7 @@
         b.is_appreciation, b.is_comment_enabled, b.is_top, b.user_id,
         c.id as category_id, c.category_name
         from blog as b left join category as c on b.category_id=c.id
-        where b.user_id=#{userId}
+		where b.user_id=#{userId} and b.deleted_at is null
         <if test="title!=null and title!=''">
             and b.title like #{titlePattern}
         </if>
@@ -73,6 +77,59 @@
             and b.category_id=#{categoryId}
         </if>
     </select>
+
+	<!--管理员完整备份：读取所有仍存在的文章，包括草稿、内部文章和回收站文章。-->
+	<select id="getAllBlogsForBackup" resultMap="blog">
+		select b.id, b.title, b.first_picture, b.first_picture_asset_id, b.content, b.description,
+		b.is_published, b.is_internal, b.is_recommend, b.is_appreciation, b.is_comment_enabled, b.is_top,
+		b.create_time, b.update_time, b.deleted_at, b.words, b.read_time,
+		b.user_id, u.username, u.nickname, u.avatar, u.avatar_asset_id, u.signature, u.email,
+		u.create_time as user_create_time, u.update_time as user_update_time, u.role,
+		c.id as category_id, c.category_name, c.color as category_color,
+		bt.tag_id as tag_id, t.tag_name as tag_name, t.color
+		from blog as b
+		left join user as u on b.user_id=u.id
+		left join category as c on b.category_id=c.id
+		left join blog_tag as bt on b.id=bt.blog_id
+		left join tag as t on bt.tag_id=t.id
+		order by b.id, t.id
+	</select>
+
+	<!--管理员查询仍在七天保留期内的回收站文章-->
+	<select id="getRecycleBinList" resultMap="blog">
+		<bind name="titlePattern" value="'%' + title + '%'"/>
+		select b.id, b.title, b.first_picture, b.first_picture_asset_id, b.create_time, b.update_time,
+		b.deleted_at, b.is_published, b.is_internal, b.is_recommend, b.is_appreciation,
+		b.is_comment_enabled, b.is_top, b.user_id, u.username, u.nickname, u.avatar, u.role,
+		c.id as category_id, c.category_name
+		from blog as b
+		left join user as u on b.user_id=u.id
+		left join category as c on b.category_id=c.id
+		where b.deleted_at is not null and b.deleted_at &gt; #{cutoff}
+		<if test="title!=null and title!=''">
+			and b.title like #{titlePattern}
+		</if>
+		<if test="categoryId!=null">
+			and b.category_id=#{categoryId}
+		</if>
+	</select>
+
+	<!--作者查询本人仍在七天保留期内的回收站文章-->
+	<select id="getRecycleBinListByUserId" resultMap="blog">
+		<bind name="titlePattern" value="'%' + title + '%'"/>
+		select b.id, b.title, b.first_picture, b.first_picture_asset_id, b.create_time, b.update_time,
+		b.deleted_at, b.is_published, b.is_internal, b.is_recommend, b.is_appreciation,
+		b.is_comment_enabled, b.is_top, b.user_id,
+		c.id as category_id, c.category_name
+		from blog as b left join category as c on b.category_id=c.id
+		where b.user_id=#{userId} and b.deleted_at is not null and b.deleted_at &gt; #{cutoff}
+		<if test="title!=null and title!=''">
+			and b.title like #{titlePattern}
+		</if>
+		<if test="categoryId!=null">
+			and b.category_id=#{categoryId}
+		</if>
+	</select>
 
     <resultMap id="searchBlog" type="top.naccl.model.vo.SearchBlog">
         <id property="id" column="id"/>
@@ -85,23 +142,13 @@
         <bind name="queryPattern" value="'%' + query + '%'"/>
         select id, title, description
         from blog
-        where is_published=true
+		where is_published=true and deleted_at is null
         <if test="includeInternal == false">
           and is_internal=false
         </if>
           and title like #{queryPattern}
         order by update_time desc, id desc
         limit 10
-    </select>
-
-    <resultMap id="blogIdAndTitle" type="top.naccl.model.vo.BlogIdAndTitle">
-        <id property="id" column="id"/>
-        <result property="title" column="title"/>
-    </resultMap>
-
-    <!--查询所有博客id和title-->
-    <select id="getIdAndTitleList" resultMap="blogIdAndTitle">
-        select id, title from blog order by create_time desc
     </select>
 
     <resultMap id="blogInfo" type="top.naccl.model.vo.BlogInfo">
@@ -127,7 +174,7 @@
 		select b.id, b.title, b.first_picture, b.description, b.is_top, b.create_time, b.words, b.read_time,
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from blog as b left join category as c on b.category_id=c.id left join user as u on b.user_id=u.id
-        where b.is_published=true
+		where b.is_published=true and b.deleted_at is null
         <if test="includeInternal == false">
           and b.is_internal=false
         </if>
@@ -138,7 +185,7 @@
 		select b.id, b.title, b.first_picture, b.description, b.is_top, b.create_time, b.words, b.read_time,
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from category as c left join blog as b on b.category_id=c.id left join user as u on b.user_id=u.id
-        where c.category_name=#{categoryName} and b.is_published=true
+		where c.category_name=#{categoryName} and b.is_published=true and b.deleted_at is null
         <if test="includeInternal == false">
           and b.is_internal=false
         </if>
@@ -150,7 +197,7 @@
 		c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar
         from tag as t left join blog_tag as bt on t.id=bt.tag_id left join blog as b on bt.blog_id=b.id
         left join category as c on b.category_id=c.id left join user as u on b.user_id=u.id
-        where t.tag_name=#{tagName} and b.is_published=true
+		where t.tag_name=#{tagName} and b.is_published=true and b.deleted_at is null
         <if test="includeInternal == false">
           and b.is_internal=false
         </if>
@@ -167,7 +214,7 @@
     <select id="getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend" resultMap="randomBlog">
         select id, title, create_time, first_picture
         from blog
-        where is_published=true and is_recommend=true
+		where is_published=true and is_recommend=true and deleted_at is null
         <if test="includeInternal == false">
           and is_internal=false
         </if>
@@ -178,6 +225,32 @@
     <delete id="deleteBlogById">
         delete from blog where id=#{id}
     </delete>
+
+	<!--文章移入回收站；只有正常文章可以执行一次删除-->
+	<update id="moveBlogToRecycleBin">
+		update blog set deleted_at=#{deletedAt} where id=#{id} and deleted_at is null
+	</update>
+
+	<update id="moveOwnedBlogToRecycleBin">
+		update blog set deleted_at=#{deletedAt}
+		where id=#{id} and user_id=#{userId} and deleted_at is null
+	</update>
+
+	<!--只允许恢复尚未超过固定七天保留期的文章-->
+	<update id="restoreBlogFromRecycleBin">
+		update blog set deleted_at=null
+		where id=#{id} and deleted_at is not null and deleted_at &gt; #{cutoff}
+	</update>
+
+	<update id="restoreOwnedBlogFromRecycleBin">
+		update blog set deleted_at=null
+		where id=#{id} and user_id=#{userId} and deleted_at is not null and deleted_at &gt; #{cutoff}
+	</update>
+
+	<select id="findExpiredRecycleBinBlogIds" resultType="java.lang.Long">
+		select id from blog where deleted_at is not null and deleted_at &lt;= #{cutoff}
+		order by deleted_at, id for update
+	</select>
 
     <!--维护 blog_tag 表(删除)-->
     <delete id="deleteBlogTagByBlogId">
@@ -199,30 +272,8 @@
 
     <!--更新博客推荐状态-->
     <update id="updateBlogRecommendById">
-        update blog set is_recommend=#{recommend} where id=#{blogId}
+		update blog set is_recommend=#{recommend} where id=#{blogId} and deleted_at is null
     </update>
-
-    <!--更新博客置顶状态-->
-    <update id="updateBlogTopById">
-        update blog set is_top=#{top} where id=#{blogId}
-    </update>
-
-    <!--更新博客可见性状态-->
-    <update id="updateBlogVisibilityById">
-        update blog set is_appreciation=#{bv.appreciation}, is_recommend=#{bv.recommend}, is_comment_enabled=#{bv.commentEnabled},
-        is_top=#{bv.top}, is_published=#{bv.published}, is_internal=#{bv.internal}
-        where id=#{blogId}
-    </update>
-
-    <!--按id查询博客-->
-    <select id="getBlogById" resultMap="blog">
-        select b.id, b.title, b.first_picture, b.first_picture_asset_id, b.content, b.description, b.is_recommend, b.is_published, b.is_internal, b.is_appreciation,
-        b.is_comment_enabled, b.is_top, b.create_time, b.update_time, b.words, b.read_time,
-        c.id as category_id, c.category_name, c.color as category_color,
-        bt.tag_id as tag_id, t.tag_name as tag_name, t.color
-        from (((blog as b left join category as c on b.category_id=c.id) left join blog_tag as bt on b.id=bt.blog_id) left join tag as t on bt.tag_id=t.id)
-        where b.id=#{id}
-    </select>
 
     <!--按id和作者查询博客-->
     <select id="getBlogByIdAndUserId" resultMap="blog">
@@ -236,12 +287,7 @@
         left join category as c on b.category_id=c.id
         left join blog_tag as bt on b.id=bt.blog_id
         left join tag as t on bt.tag_id=t.id
-        where b.id=#{id} and b.user_id=#{userId}
-    </select>
-
-    <!--按id查询博客标题-->
-    <select id="getTitleByBlogId" resultType="java.lang.String">
-        select title from blog where id=#{id}
+		where b.id=#{id} and b.user_id=#{userId} and b.deleted_at is null
     </select>
 
     <resultMap id="blogDetail" type="top.naccl.model.vo.BlogDetail">
@@ -278,7 +324,7 @@
         t.tag_name as tag_name, t.color
         from blog as b left join user as u on b.user_id=u.id left join category as c on b.category_id=c.id
         left join blog_tag as bt on b.id=bt.blog_id left join tag as t on bt.tag_id=t.id
-        where b.id=#{id} and b.is_published=true and b.is_internal=false
+		where b.id=#{id} and b.is_published=true and b.is_internal=false and b.deleted_at is null
     </select>
 
     <!--按id查询仅登录用户可见的已发布博客-->
@@ -289,7 +335,25 @@
         t.tag_name as tag_name, t.color
         from blog as b left join user as u on b.user_id=u.id left join category as c on b.category_id=c.id
         left join blog_tag as bt on b.id=bt.blog_id left join tag as t on bt.tag_id=t.id
-        where b.id=#{id} and b.is_published=true and b.is_internal=true
+		where b.id=#{id} and b.is_published=true and b.is_internal=true and b.deleted_at is null
+    </select>
+
+    <!--按 id 查询登录用户可下载的已发布文章，保留原始 Markdown 正文-->
+    <select id="getPublishedBlogForDownload" resultMap="blog">
+		select b.id, b.title, b.first_picture, b.first_picture_asset_id, b.content, b.description,
+		b.is_published, b.is_internal, b.is_recommend, b.is_appreciation, b.is_comment_enabled, b.is_top,
+		b.create_time, b.update_time, b.words, b.read_time,
+		b.user_id, u.username, u.nickname, u.avatar, u.avatar_asset_id, u.signature, u.email,
+		u.create_time as user_create_time, u.update_time as user_update_time, u.role,
+		c.id as category_id, c.category_name, c.color as category_color,
+		bt.tag_id as tag_id, t.tag_name as tag_name, t.color
+		from blog as b
+		left join user as u on b.user_id=u.id
+		left join category as c on b.category_id=c.id
+		left join blog_tag as bt on b.id=bt.blog_id
+		left join tag as t on bt.tag_id=t.id
+		where b.id=#{id} and b.is_published=true and b.deleted_at is null
+		order by t.id
     </select>
 
     <!--更新博客-->
@@ -298,18 +362,8 @@
         is_recommend=#{recommend}, is_published=#{published}, is_internal=#{internal}, is_appreciation=#{appreciation}, is_comment_enabled=#{commentEnabled},
         is_top=#{top}, create_time=#{createTime}, update_time=#{updateTime},
         words=#{words}, read_time=#{readTime}, category_id=#{category.id}
-        where id=#{id}
+		where id=#{id} and deleted_at is null
     </update>
-
-    <!--查询博客总数-->
-    <select id="countBlog" resultType="java.lang.Integer">
-        select count(*) from blog
-    </select>
-
-    <!--查询公开博客总数-->
-    <select id="countBlogByIsPublished" resultType="java.lang.Integer">
-        select count(*) from blog where is_published=true and is_internal=false
-    </select>
 
     <!--按分类id查询博客数量-->
     <select id="countBlogByCategoryId" resultType="java.lang.Integer">
@@ -323,25 +377,16 @@
 
     <!--查询博客是否启用评论-->
     <select id="getCommentEnabledByBlogId" resultType="java.lang.Boolean">
-        select is_comment_enabled from blog where id=#{blogId}
+		select is_comment_enabled from blog where id=#{blogId} and deleted_at is null
     </select>
 
     <!--查询博客是否公开-->
     <select id="getPublishedByBlogId" resultType="java.lang.Boolean">
-        select is_published from blog where id=#{blogId}
+		select is_published from blog where id=#{blogId} and deleted_at is null
     </select>
 
     <select id="getInternalByBlogId" resultType="java.lang.Boolean">
-        select is_internal from blog where id=#{blogId}
+		select is_internal from blog where id=#{blogId} and deleted_at is null
     </select>
 
-    <resultMap id="categoryBlogCount" type="top.naccl.model.vo.CategoryBlogCount">
-        <id property="id" column="category_id"/>
-        <result property="value" column="blog_count"/>
-    </resultMap>
-
-    <!--查询每个分类的博客数量-->
-    <select id="getCategoryBlogCountList" resultMap="categoryBlogCount">
-        select category_id, count(category_id) as blog_count from blog group by category_id
-    </select>
 </mapper>

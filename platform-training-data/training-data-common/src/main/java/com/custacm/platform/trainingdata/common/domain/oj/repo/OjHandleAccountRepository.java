@@ -17,18 +17,18 @@ public interface OjHandleAccountRepository {
 
     OjHandleAccount save(OjHandleAccount account);
 
-    OjHandleAccount updateUsernameAndNeedCollect(
-            String oldUsername,
-            String newUsername,
+    OjHandleAccount replace(
+            String username,
             Map<String, String> handles,
             boolean needCollect,
             Map<String, OjHandleCollectionState> collectionStates,
             Instant updatedAt
     );
 
-    OjHandleAccount updateCollectionStates(
-            String username,
-            Map<String, OjHandleCollectionState> collectionStates,
+    boolean updateLastCollectedAtByHandle(
+            String ojName,
+            String handle,
+            Instant lastCollectedAt,
             Instant updatedAt
     );
 }

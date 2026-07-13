@@ -88,84 +88,27 @@ public class OjHandleAccountService implements TrainingUserDirectory {
         return handle;
     }
 
-    public OjHandleAccount changeUsername(
-            String oldUsername,
-            String newUsername,
-            Boolean needCollect
+    /**
+     * Replaces the complete handle set after the caller has purged data for every removed or changed handle.
+     */
+    public OjHandleAccount replaceHandlesAfterPurge(
+            String username,
+            Map<String, String> handles,
+            boolean needCollect
     ) {
-        return changeUsername(oldUsername, newUsername, needCollect, null);
-    }
-
-    public OjHandleAccount changeUsername(
-            String oldUsername,
-            String newUsername,
-            Boolean needCollect,
-            Map<String, String> handles
-    ) {
-        String normalizedOldUsername = requireText(
-                oldUsername,
-                "oldUsername",
-                OjHandleAccountService::invalidRequest
-        );
-        String normalizedNewUsername = requireText(
-                newUsername,
-                "newUsername",
-                OjHandleAccountService::invalidRequest
-        );
-        OjHandleAccount existing = repository.findByUsername(normalizedOldUsername)
-                .orElseThrow(() -> new OjHandleAccountException(
-                        OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_NOT_FOUND,
-                        "OJ handle account not found"
-                ));
-        boolean identityChanged = !normalizedOldUsername.equals(normalizedNewUsername);
-        if (identityChanged && repository.findByUsername(normalizedNewUsername).isPresent()) {
-            throw new OjHandleAccountException(
-                    OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_IDENTITY_EXISTS,
-                        "newUsername already has an OJ handle account"
-            );
-        }
-        Map<String, String> updatedHandles = handles == null ? existing.handles() : mergeHandles(existing.handles(), handles);
-        rejectReplacedHandles(existing.handles(), updatedHandles);
-        validateHandleOwnership(normalizedOldUsername, updatedHandles);
-        boolean updatedNeedCollect = needCollect == null ? existing.needCollect() : needCollect;
-        boolean handlesChanged = !updatedHandles.equals(existing.handles());
-        if (!identityChanged && needCollect == null && !handlesChanged) {
-            return existing;
-        }
-        return repository.updateUsernameAndNeedCollect(
-                normalizedOldUsername,
-                normalizedNewUsername,
-                updatedHandles,
-                updatedNeedCollect,
-                collectionStatesForUpdatedHandles(existing, updatedHandles),
-                clock.instant()
-        );
-    }
-
-    public OjHandleAccount replaceHandleAfterPurge(String username, String ojName, String newHandle) {
         String normalizedUsername = requireText(username, "username", OjHandleAccountService::invalidRequest);
-        String normalizedOjName = requireOjName(ojName);
-        String normalizedHandle = requireText(newHandle, "newHandle", OjHandleAccountService::invalidRequest);
+        Map<String, String> normalizedHandles = normalizeHandles(handles);
         OjHandleAccount existing = repository.findByUsername(normalizedUsername)
                 .orElseThrow(OjHandleAccountService::notFound);
-        if (!existing.handles().containsKey(normalizedOjName)) {
-            throw new OjHandleAccountException(
-                    OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_NOT_FOUND,
-                    normalizedOjName + " handle is not bound"
-            );
-        }
-        if (normalizedHandle.equals(existing.handles().get(normalizedOjName))) {
+        validateHandleOwnership(normalizedUsername, normalizedHandles);
+        if (normalizedHandles.equals(existing.handles()) && needCollect == existing.needCollect()) {
             return existing;
         }
-        Map<String, String> updatedHandles = new LinkedHashMap<>(existing.handles());
-        updatedHandles.put(normalizedOjName, normalizedHandle);
-        validateHandleOwnership(normalizedUsername, updatedHandles);
-        return repository.updateUsernameAndNeedCollect(
+        return repository.replace(
                 normalizedUsername,
-                normalizedUsername,
-                updatedHandles,
-                existing.needCollect(),
-                collectionStatesForUpdatedHandles(existing, updatedHandles),
+                normalizedHandles,
+                needCollect,
+                collectionStatesForUpdatedHandles(existing, normalizedHandles),
                 clock.instant()
         );
     }
@@ -183,22 +126,7 @@ public class OjHandleAccountService implements TrainingUserDirectory {
         }
     }
 
-    private static void rejectReplacedHandles(
-            Map<String, String> existingHandles,
-            Map<String, String> updatedHandles
-    ) {
-        for (Map.Entry<String, String> entry : existingHandles.entrySet()) {
-            String updatedHandle = updatedHandles.get(entry.getKey());
-            if (updatedHandle != null && !entry.getValue().equals(updatedHandle)) {
-                throw new OjHandleAccountException(
-                        OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_REPLACEMENT_REQUIRES_PURGE,
-                        entry.getKey() + " handle replacement requires training data purge"
-                );
-            }
-        }
-    }
-
-    public Optional<OjHandleAccount> markCollectedByHandle(
+    public void markCollectedByHandle(
             String ojName,
             String handle,
             Instant collectedAt
@@ -211,26 +139,12 @@ public class OjHandleAccountService implements TrainingUserDirectory {
                     "collectedAt must not be null"
             );
         }
-        return repository.findByHandle(normalizedOjName, normalizedHandle)
-                .map(account -> repository.updateCollectionStates(
-                        account.username(),
-                        markCollected(account.collectionStates(), normalizedOjName, collectedAt),
-                        clock.instant()
-                ));
-    }
-
-    private static Map<String, OjHandleCollectionState> markCollected(
-            Map<String, OjHandleCollectionState> collectionStates,
-            String ojName,
-            Instant collectedAt
-    ) {
-        Map<String, OjHandleCollectionState> updated = new LinkedHashMap<>(collectionStates);
-        updated.put(
-                ojName,
-                updated.getOrDefault(ojName, OjHandleCollectionState.empty())
-                        .markCollected(collectedAt)
+        repository.updateLastCollectedAtByHandle(
+                normalizedOjName,
+                normalizedHandle,
+                collectedAt,
+                clock.instant()
         );
-        return updated;
     }
 
     private static Map<String, OjHandleCollectionState> collectionStatesForUpdatedHandles(
@@ -272,18 +186,6 @@ public class OjHandleAccountService implements TrainingUserDirectory {
                     ex.getMessage()
             );
         }
-    }
-
-    private static Map<String, String> mergeHandles(
-            Map<String, String> existingHandles,
-            Map<String, String> updatedHandles
-    ) {
-        if (updatedHandles == null || updatedHandles.isEmpty()) {
-            return normalizeHandles(existingHandles);
-        }
-        Map<String, String> mergedHandles = new LinkedHashMap<>(existingHandles);
-        normalizeHandles(updatedHandles).forEach(mergedHandles::put);
-        return normalizeHandles(mergedHandles);
     }
 
     private static OjHandleAccountException invalidRequest(String message) {

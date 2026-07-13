@@ -4,14 +4,13 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 import top.naccl.entity.Blog;
-import top.naccl.model.dto.BlogVisibility;
 import top.naccl.model.vo.BlogDetail;
 import top.naccl.model.vo.BlogInfo;
-import top.naccl.model.vo.CategoryBlogCount;
 import top.naccl.model.vo.RandomBlog;
 import top.naccl.model.vo.SearchBlog;
 
 import java.util.List;
+import java.util.Date;
 
 /**
  * @Description: 博客文章持久层接口
@@ -25,10 +24,17 @@ public interface BlogMapper {
 
 	List<Blog> getListByTitleAndCategoryIdAndUserId(String title, Integer categoryId, Long userId);
 
+	List<Blog> getAllBlogsForBackup();
+
+	List<Blog> getRecycleBinList(@Param("title") String title, @Param("categoryId") Integer categoryId,
+			@Param("cutoff") Date cutoff);
+
+	List<Blog> getRecycleBinListByUserId(@Param("title") String title,
+			@Param("categoryId") Integer categoryId, @Param("userId") Long userId,
+			@Param("cutoff") Date cutoff);
+
 	List<SearchBlog> getSearchBlogListByQueryAndIsPublished(@Param("query") String query,
 			@Param("includeInternal") boolean includeInternal);
-
-	List<Blog> getIdAndTitleList();
 
 	List<BlogInfo> getBlogInfoListByIsPublished(@Param("includeInternal") boolean includeInternal);
 
@@ -43,6 +49,18 @@ public interface BlogMapper {
 
 	int deleteBlogById(Long id);
 
+	int moveBlogToRecycleBin(@Param("id") Long id, @Param("deletedAt") Date deletedAt);
+
+	int moveOwnedBlogToRecycleBin(@Param("id") Long id, @Param("userId") Long userId,
+			@Param("deletedAt") Date deletedAt);
+
+	int restoreBlogFromRecycleBin(@Param("id") Long id, @Param("cutoff") Date cutoff);
+
+	int restoreOwnedBlogFromRecycleBin(@Param("id") Long id, @Param("userId") Long userId,
+			@Param("cutoff") Date cutoff);
+
+	List<Long> findExpiredRecycleBinBlogIds(@Param("cutoff") Date cutoff);
+
 	int deleteBlogTagByBlogId(Long blogId);
 
 	int saveBlog(top.naccl.model.dto.Blog blog);
@@ -51,25 +69,15 @@ public interface BlogMapper {
 
 	int updateBlogRecommendById(Long blogId, Boolean recommend);
 
-	int updateBlogVisibilityById(Long blogId, BlogVisibility bv);
-
-	int updateBlogTopById(Long blogId, Boolean top);
-
-	Blog getBlogById(Long id);
-
 	Blog getBlogByIdAndUserId(Long id, Long userId);
-
-	String getTitleByBlogId(Long id);
 
 	BlogDetail getBlogByIdAndIsPublished(Long id);
 
 	BlogDetail getInternalBlogById(Long id);
 
+	Blog getPublishedBlogForDownload(Long id);
+
 	int updateBlog(top.naccl.model.dto.Blog blog);
-
-	int countBlog();
-
-	int countBlogByIsPublished();
 
 	int countBlogByCategoryId(Long categoryId);
 
@@ -81,5 +89,4 @@ public interface BlogMapper {
 
 	Boolean getInternalByBlogId(Long blogId);
 
-	List<CategoryBlogCount> getCategoryBlogCountList();
 }

@@ -66,6 +66,23 @@ export function getAcceptedSummary(
   }), signal);
 }
 
+export function getAcceptedSummaries(
+  token: string,
+  range: TrainingQueryRange,
+  ojName: OjName,
+  includeRetired = false,
+  signal?: AbortSignal,
+): Promise<AcceptedSummary[]> {
+  return authenticatedGet(token, withQuery('/player/training-data/accepted-summaries', {
+    ojName,
+    includeRetired: includeRetired ? true : undefined,
+    acceptedFromDateUtcPlus8: range.acceptedFromDateUtcPlus8,
+    acceptedToDateUtcPlus8: range.acceptedToDateUtcPlus8,
+    minProblemRating: range.minProblemRating,
+    maxProblemRating: range.maxProblemRating,
+  }), signal);
+}
+
 export function getUserSubmissions(
   token: string,
   username: string,
