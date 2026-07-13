@@ -1,0 +1,169 @@
+docs/agent/README.md
+  s_78b22fd0f58e8e::t_5f130295d6f31f 6,13,15
+docs/agent/context-map.md
+  s_78b22fd0f58e8e::t_f1ad25af8667ca 5-8
+docs/api.md
+  s_78b22fd0f58e8e::t_785e304fa1d10e 67-68,76-77,82,93,154-156
+docs/architecture.md
+  s_78b22fd0f58e8e::t_ec06dff8f67f9d 38-39,67-69,71,73
+docs/authorization.md
+  s_25061c872c025c::t_ffdf367098e69a 38
+frontend/AGENTS.md
+  s_78b22fd0f58e8e::t_d0f164a0744796 10,14-15,62,64,71-72
+frontend/README.md
+  s_78b22fd0f58e8e::t_092c9e965334f2 32-33,36,39,64,170,173,177,179,185-186
+frontend/src/api/training.ts
+  s_25061c872c025c::t_7b3b22c6190290 14,44,47-49
+frontend/src/components/AdminUserManagementPanel.vue
+  s_25061c872c025c::t_82d6e5dfde9e07 5,16-17,22-23,67,77-81,122
+frontend/src/components/AppShell.vue
+  s_25061c872c025c::t_d789ceab9155f7 21,85
+frontend/src/components/TrainingDataOpsPanel.vue
+  s_78b22fd0f58e8e::t_0f02d39084f247 5,8,16-17,33,44,53,55-56,60-61
+frontend/src/components/TrainingQueryPanel.vue
+  s_25061c872c025c::t_4e2dcf24a8bb12 13,27,32-33,101,106,127-129,155,157
+frontend/src/composables/usePlatformDashboard.ts
+  s_25061c872c025c::t_0855e33dd13633 133,257,300-304,398,401-407,504,511
+frontend/src/styles/dashboard.css
+  s_78b22fd0f58e8e::t_8924bce9e511de 180,186-194,214-218,221-225,229-234,1409-1439,1642-1668
+frontend/src/test/admin-training.test.ts
+  s_78b22fd0f58e8e::t_40359b5839eb52 21-26,33-34,41-42,47,50,54,59,69-70
+frontend/src/test/admin-users-vue.test.ts
+  s_25061c872c025c::t_5442f79e0f445b 2,13,73,75,98,120,125-139,158-172
+frontend/src/test/app-shell-vue.test.ts
+  s_25061c872c025c::t_26624a89acb2f6 58-80
+frontend/src/test/platform-api.test.ts
+  s_25061c872c025c::t_c7f14340776495 207,211,216-225
+frontend/src/test/training-query-panel.test.ts
+  s_25061c872c025c::t_03b302d529c559 14,22,43-72,80,115
+frontend/src/types.ts
+  s_78b22fd0f58e8e::t_4a4442e2dcf2ce 34-36
+platform-blog/AGENTS.md
+  s_25061c872c025c::t_9780686968fc8d 10,15
+platform-blog/README.md
+  s_78b22fd0f58e8e::t_351c2496158e9f 27,29,40
+platform-blog/upstream/nblog/blog-api/README.md
+  s_78b22fd0f58e8e::t_99a11587b49609 26,48,62,70-72,83
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/constant/RedisKeyConstants.java
+  s_25061c872c025c::t_7971e2c5b6c147 13
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/player/PlayerBlogController.java
+  s_25061c872c025c::t_3920b016e8aa66 55
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/player/TrainingDataQueryController.java
+  s_25061c872c025c::t_84d2958873298e 27-28
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/AdminUserMutationResponse.java
+  s_78b22fd0f58e8e::t_c5d2b865fa5236 5,12,16-17
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/SearchBlog.java
+  s_25061c872c025c::t_2af7d1b7a34018 20
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/TrainingUserQueryService.java
+  s_25061c872c025c::t_939db2316790f4 24,28
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/AdminUserService.java
+  s_78b22fd0f58e8e::t_cb1f17ea259694 168,188,193,233-235,251-274,285-286
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/BlogServiceImpl.java
+  s_25061c872c025c::t_1a763e3e66f72a 56,101,252
+platform-blog/upstream/nblog/blog-api/src/main/resources/application.properties
+  s_78b22fd0f58e8e::t_265d7f854aa488 32-63
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V033__remove_blog_views.sql
+  s_25061c872c025c::t_b5357cc639ac03 1-6
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/BlogMapper.xml
+  s_25061c872c025c::t_22896c05841137 80,86,127,138,149,195,197,220,230,276,287,299
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/BlogApiModuleCompositionTest.java
+  s_2a2d5941669104::t_14d46e2d601686 5-6,10-12,14,28-85
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/UnifiedSchemaMigrationTest.java
+  s_25061c872c025c::t_94fe7975e3223a 42-50
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/IntegratedControllerCoverageTest.java
+  s_25061c872c025c::t_0bb404cc69be22 58,65
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/AdminUserServiceTest.java
+  s_78b22fd0f58e8e::t_74b76ccd1a5443 7,149-170
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/TrainingUserQueryServiceTest.java
+  s_25061c872c025c::t_b0c50578d85ed7 36,42-60
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/impl/BlogSearchServiceTest.java
+  s_25061c872c025c::t_c4eafaa5fde0a3 36-38,40,44-45,56,62,66
+platform-blog/upstream/nblog/blog-view/README.md
+  s_ed40a8cd80112a::t_c20cceccc5fd96 48,59,88
+platform-blog/upstream/nblog/blog-view/src/assets/css/typo.css
+  s_ed40a8cd80112a::t_9bb9ded692ffbd 92
+platform-blog/upstream/nblog/blog-view/src/components/index/Nav.vue
+  s_25061c872c025c::t_a785c3cf4329f0 23,48,108-111,448
+platform-blog/upstream/nblog/blog-view/src/test/markdownContentStyle.test.js
+  s_ed40a8cd80112a::t_a2a528067e967f 1-25
+platform-blog/upstream/nblog/blog-view/src/test/navTrainingMenu.test.js
+  s_25061c872c025c::t_c5239f1a60acc1 23,39,68-75,94,104
+platform-training-data/AGENTS.md
+  s_78b22fd0f58e8e::t_a708c61af63235 6
+platform-training-data/README.md
+  s_78b22fd0f58e8e::t_c1f277b4847a5a 13
+platform-training-data/training-data-atcoder/src/test/java/com/custacm/platform/trainingdata/atcoder/app/AtcoderSubmissionCollectionServiceTest.java
+  s_78b22fd0f58e8e::t_f29e4467b877fd 75-96,126-127,174-183,197,285-301,304,309,315,333,341,350-353,355,358
+platform-training-data/training-data-codeforces/src/test/java/com/custacm/platform/trainingdata/codeforces/app/CodeforcesSubmissionCollectionServiceTest.java
+  s_78b22fd0f58e8e::t_39b9d3baa1e211 186,191,197,465-479,494-497
+platform-training-data/training-data-common/README.md
+  s_78b22fd0f58e8e::t_204c2aa5c6d150 40,58-59
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/account/OjHandleAccountService.java
+  s_78b22fd0f58e8e::t_8ae125f901304e 217,231
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/app/account/TrainingUserDirectory.java
+  s_78b22fd0f58e8e::t_c1ad762874ab33 19
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/AbstractOjSubmissionCollectionAdapter.java
+  s_78b22fd0f58e8e::t_f11b1259f1d643 57
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/OjCollectionHandleResolver.java
+  s_78b22fd0f58e8e::t_b77e680d17bcd4 11-14
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/OjHandleAccountCollectionHandleResolver.java
+  s_78b22fd0f58e8e::t_9d6b93e6ec5c62 5,38-46,53
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/OjSubmissionCollectionService.java
+  s_78b22fd0f58e8e::t_df2014614e4a16 101,109,113-114,123,129-135,143-144,152,163,170-177,195-197,202,214,236-257
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/collector/result/OjHandleCollectionOutcome.java
+  s_78b22fd0f58e8e::t_9fdcbed68bcfb0 9
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/domain/oj/model/OjHandleCollectionState.java
+  s_78b22fd0f58e8e::t_9810347ffbac0b 9,12,16
+platform-training-data/training-data-common/src/main/java/com/custacm/platform/trainingdata/common/infra/oj/repo/account/JdbcOjHandleAccountRepository.java
+  s_78b22fd0f58e8e::t_2fe9235e81c8e3 7,243-244
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/app/account/OjHandleAccountServiceTest.java
+  s_78b22fd0f58e8e::t_29fee133080d19 116,130-131,146,169
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/collector/OjSubmissionCollectionServiceTest.java
+  s_78b22fd0f58e8e::t_bde045a7506f0d 31-33,45,54-58,60-61,79,82,123,145,174,190-194,201,205-207
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/domain/oj/model/OjHandleAccountTest.java
+  s_78b22fd0f58e8e::t_885cf9b6124c01 66,74-76
+platform-training-data/training-data-common/src/test/java/com/custacm/platform/trainingdata/common/infra/oj/repo/account/JdbcOjHandleAccountRepositoryTest.java
+  s_78b22fd0f58e8e::t_4b2e15f1ef42aa 70,84,93,95,104-105,211,213,223-224,242-259
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d079431bb0d6be6077f7725279492b216aece1f5",
+  "prompts": {},
+  "sessions": {
+    "s_25061c872c025c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f59b0-9a9a-7403-81a6-6089cb9f87b1",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_2a2d5941669104": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5a25-2e6a-7791-b631-6741be74f2f5",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_78b22fd0f58e8e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5a49-b214-78e3-9573-dd794bc1fb7a",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_ed40a8cd80112a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5a74-a128-7933-952f-ed6a1c0f395b",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
