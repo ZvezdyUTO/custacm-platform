@@ -1,319 +1,258 @@
 <template>
-	<header ref="header" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave" @mousemove="handleMouseMove">
-		<div class="view" :style="viewStyle">
-			<img class="image-preloader" :src="images[0]" alt="" @load="loaded = true">
-			<div
-				v-for="(image, index) in images"
-				:key="`${image}-${index}`"
-				class="background-layer"
-				:style="layerStyle(image, index)"
-			></div>
-		</div>
-		<div class="welcome-title" :aria-label="welcomeText">
-			<div class="welcome-wordmark" aria-hidden="true">
+	<header class="home-hero">
+		<div class="home-hero-copy">
+			<h1 aria-label="Welcome to the CUSTACM Platform">
 				<span
-					v-for="character in welcomeLeadCharacters"
-					:key="character.key"
-					:class="{'welcome-letter': !character.isSpace, 'welcome-space': character.isSpace}"
-					:style="character.style"
-				>{{ character.value }}</span>
-			</div>
-			<div class="welcome-brand-mark" aria-hidden="true">CUSTACM</div>
+					v-for="(line, lineIndex) in titleLines"
+					:key="`title-line-${lineIndex}`"
+					class="home-hero-title-line"
+					aria-hidden="true"
+				>
+					<span
+						v-for="character in line"
+						:key="character.key"
+						:class="character.isSpace ? 'home-hero-title-space' : 'home-hero-title-letter'"
+						:style="character.style"
+					>{{ character.value }}</span>
+				</span>
+			</h1>
 		</div>
-		<div class="wrapper">
-			<button type="button" class="header-scroll-button" aria-label="向下滚动到文章列表" @click="scrollToMain"><AppIcon name="arrow-down" :size="30" /></button>
-		</div>
-		<div class="wave1"></div>
-		<div class="wave2"></div>
+		<figure class="home-hero-media">
+			<img src="/img/homepage-banner-default.png" alt="CUSTACM 平台首页首图" loading="eager" decoding="async">
+			<ul class="home-hero-logos" aria-label="赛事与校队标志">
+				<li>
+					<a href="https://icpc.global/" target="_blank" rel="noopener noreferrer" aria-label="访问 ICPC 官网">
+						<img class="home-hero-logo home-hero-logo--icpc" src="/img/home-logos/icpc-foundation.svg" alt="ICPC">
+					</a>
+				</li>
+				<li>
+					<a href="https://ccpc.io/" target="_blank" rel="noopener noreferrer" aria-label="访问 CCPC 官网">
+						<img class="home-hero-logo home-hero-logo--ccpc" src="/img/home-logos/ccpc.png" alt="CCPC">
+					</a>
+				</li>
+				<li>
+					<img class="home-hero-logo home-hero-logo--custacm" src="/img/home-logos/custacm-round.png" alt="CUSTACM 校队标志">
+				</li>
+			</ul>
+		</figure>
 	</header>
 </template>
 
 <script>
-	import {mapState} from 'vuex'
-	import defaultSettings from '@/settings'
-	import {getHomepageBanners} from '@/api/index'
-	import {homepageBannerHeight, homepageBannerOpacity, homepageBannerPointerRatio} from '@/util/homepageBanner'
-
 	export default {
 		name: "Header",
-	data() {
-			const welcomeText = 'Welcome to CUSTACM'
+		data() {
 			let letterIndex = 0
-			const welcomeLeadCharacters = [...'WELCOME TO'].map((value, index) => {
+			const titleLines = ['Welcome to the', 'CUSTACM Platform'].map((line, lineIndex) => [...line].map((value, characterIndex) => {
 				const isSpace = value === ' '
 				const currentLetterIndex = letterIndex
 				if (!isSpace) letterIndex += 1
 				return {
-					key: `${value}-${index}`,
+					key: `${lineIndex}-${characterIndex}-${value}`,
 					value: isSpace ? '\u00a0' : value,
 					isSpace,
 					style: isSpace ? undefined : {
-						'--delay': `${currentLetterIndex * -0.24}s`,
-						'--height': `${10 + (currentLetterIndex % 5) * 2}px`
+						'--delay': `${currentLetterIndex * -.24}s`,
+						'--height': `${4 + (currentLetterIndex % 5)}px`
 					}
 				}
-			})
-			return {
-				loaded: false,
-				images: [defaultSettings.homepageBanner],
-				pointerRatio: 0,
-				defaultSettings,
-				welcomeText,
-				welcomeLeadCharacters
-			}
-		},
-		computed: {
-			...mapState(['clientSize']),
-			viewStyle() {
-				return {transform: `translateX(${(this.pointerRatio - 0.5) * 100}px)`}
-			}
-		},
-		watch: {
-			'clientSize.clientHeight'() {
-				this.setHeaderHeight()
-			}
-		},
-		created() {
-			this.loadHomepageBanners()
-		},
-		mounted() {
-			this.setHeaderHeight()
-		},
-		methods: {
-			async loadHomepageBanners() {
-				try {
-					const res = await getHomepageBanners()
-					const urls = res.code === 200 ? res.data.map(item => item.imageUrl).filter(Boolean) : []
-					if (urls.length) {
-						this.loaded = false
-						this.images = urls
-					}
-				} catch {
-					// 后端不可用时继续使用构建内置的默认图片，保证首页仍可展示。
-				}
-			},
-			layerStyle(image, index) {
-				return {
-					backgroundImage: `url(${image})`,
-					opacity: homepageBannerOpacity(this.images.length, this.pointerRatio, index),
-					zIndex: 10 + index
-				}
-			},
-			handleMouseEnter() {
-				this.$refs.header.classList.add('moving')
-			},
-			handleMouseLeave() {
-				this.pointerRatio = 0
-				this.$refs.header.classList.remove('moving')
-			},
-			handleMouseMove(event) {
-				if (this.images.length <= 1) return
-				const bounds = this.$refs.header.getBoundingClientRect()
-				this.pointerRatio = homepageBannerPointerRatio(event.clientX, bounds.left, bounds.width)
-				this.$refs.header.classList.add('moving')
-			},
-			//根据可视窗口高度，动态改变首图大小
-			setHeaderHeight() {
-				this.$refs.header.style.height = homepageBannerHeight(
-					this.clientSize.clientHeight,
-					this.clientSize.clientWidth
-				) + 'px'
-			},
-			//平滑滚动至正文部分
-			scrollToMain() {
-				window.scrollTo({top: this.clientSize.clientHeight, behavior: 'smooth'})
-			}
-		},
+			}))
+			return {titleLines}
+		}
 	}
 </script>
 
 <style scoped>
-	@import url('https://fonts.googleapis.com/css2?family=Bowlby+One+SC&display=swap');
-
-	header {
+	.home-hero {
 		position: relative;
+		box-sizing: border-box;
 		overflow: hidden;
+		background: var(--home-canvas, var(--color-canvas));
+		padding: clamp(168px, 20vh, 220px) 32px 0;
+		color: var(--home-text, var(--color-text));
 		user-select: none;
 	}
 
-	.view {
-		position: absolute;
-		top: 0;
-		right: 0;
-		bottom: 0;
-		left: 0;
-		display: flex;
-		justify-content: center;
-		transition: transform .2s ease-in;
-	}
-
-	.view .background-layer {
-		background-position: center center;
-		background-size: cover;
-		position: absolute;
-		width: 110%;
-		height: 100%;
-	}
-
-	.view .background-layer {
-		transition: opacity .2s ease-in, filter var(--theme-image-duration, 260ms) ease;
-	}
-
-	header.moving .view {
-		transition: none;
-	}
-
-	header.moving .background-layer {
-		transition: filter var(--theme-image-duration, 260ms) ease;
-	}
-
-	.image-preloader {
-		display: none;
-	}
-
-	.welcome-title {
-		position: absolute;
-		z-index: 60;
-		top: 33%;
-		left: 50%;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: clamp(18px, 2.4vh, 30px);
-		justify-content: center;
-		width: min(94vw, 1460px);
-		opacity: .8;
-		transform: translate(-50%, -50%);
-		filter: drop-shadow(0 10px 22px rgb(3 25 48 / 30%));
-		animation: welcomeFade 1.2s ease-out both;
-	}
-
-	.welcome-wordmark {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: min(88vw, 1120px);
-		font-family: 'Bowlby One SC', sans-serif;
-		font-size: min(9.28vw, 118.4px);
-		line-height: 1;
-		white-space: nowrap;
-		color: #f3f7f8;
-		-webkit-text-stroke: min(.18vw, 3px) #111;
-		paint-order: stroke fill;
-		filter: drop-shadow(.035em .055em 0 rgb(0 0 0 / 56%)) drop-shadow(0 .12em .18em rgb(0 0 0 / 24%));
-	}
-
-	.welcome-letter {
-		display: inline-block;
-		animation: letterFloat 6.4s ease-in-out var(--delay) infinite;
-	}
-
-	.welcome-space {
-		display: inline-block;
-		width: .34em;
-	}
-
-	.welcome-brand-mark {
-		width: min(88vw, 1120px);
-		font-family: 'Bowlby One SC', sans-serif;
-		font-size: min(12.56vw, 160px);
-		line-height: .76;
+	.home-hero-copy {
+		width: min(1280px, 100%);
+		margin: 0 auto;
 		text-align: center;
+	}
+
+	.home-hero h1 {
+		margin: 0;
+		color: var(--home-text, var(--color-text));
+		font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+		font-size: clamp(68px, 7vw, 104px);
+		font-weight: 800;
+		letter-spacing: -.065em;
+		line-height: .98;
+		text-rendering: geometricPrecision;
+		text-wrap: balance;
+		word-spacing: .1em;
+	}
+
+	.home-hero-title-line {
+		display: block;
 		white-space: nowrap;
-		color: #f3f7f8;
-		-webkit-text-stroke: min(.18vw, 3px) #111;
-		paint-order: stroke fill;
-		filter: drop-shadow(.035em .055em 0 rgb(0 0 0 / 56%)) drop-shadow(0 .12em .18em rgb(0 0 0 / 24%));
-		animation: brandFloat 6.4s ease-in-out -1.3s infinite;
 	}
 
-	@keyframes welcomeFade {
-		from { opacity: 0; transform: translate(-50%, calc(-50% + 14px)); }
-		to { opacity: .8; transform: translate(-50%, -50%); }
+	.home-hero-title-line:first-child {
+		position: relative;
+		top: -8px;
 	}
 
-	@keyframes brandFloat {
-		0%, 100% { transform: translateY(5px); }
-		50% { transform: translateY(-9px); }
+	.home-hero-title-letter {
+		display: inline-block;
+		animation: titleLetterFloat 6.4s ease-in-out var(--delay) infinite;
 	}
 
-	@keyframes letterFloat {
+	.home-hero-title-space {
+		display: inline-block;
+		width: .36em;
+	}
+
+	@keyframes titleLetterFloat {
 		0%, 100% { transform: translateY(calc(var(--height) * .35)); }
 		50% { transform: translateY(calc(var(--height) * -.65)); }
 	}
 
+	.home-hero-media {
+		position: relative;
+		left: 50%;
+		width: 100vw;
+		aspect-ratio: 16 / 9;
+		overflow: hidden;
+		margin: clamp(56px, 6vw, 86px) 0 0;
+		transform: translateX(-50%);
+	}
+
+	.home-hero-media img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: center;
+	}
+
+	.home-hero-media::after {
+		position: absolute;
+		inset: auto 0 0;
+		height: clamp(190px, 28%, 350px);
+		background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--home-canvas, var(--color-canvas)) 28%, transparent) 24%, color-mix(in srgb, var(--home-canvas, var(--color-canvas)) 72%, transparent) 68%, var(--home-canvas, var(--color-canvas)) 96%);
+		backdrop-filter: blur(24px);
+		-webkit-backdrop-filter: blur(24px);
+		mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, .12) 12%, rgba(0, 0, 0, .52) 46%, rgba(0, 0, 0, .9) 76%, #000 92%);
+		-webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, .12) 12%, rgba(0, 0, 0, .52) 46%, rgba(0, 0, 0, .9) 76%, #000 92%);
+		content: '';
+		pointer-events: none;
+	}
+
+	.home-hero-logos {
+		position: absolute;
+		z-index: 2;
+		top: 4%;
+		left: clamp(24px, 2.5vw, 48px);
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		width: min(480px, 36vw);
+		margin: 0;
+		padding: 0;
+		gap: clamp(24px, 2.25vw, 34px);
+		list-style: none;
+	}
+
+	.home-hero-logos li,
+	.home-hero-logos a {
+		display: grid;
+		place-items: center;
+	}
+
+	.home-hero-logos li:nth-child(1) { animation: homeLogoFloatA 6.2s ease-in-out -.8s infinite; }
+	.home-hero-logos li:nth-child(2) { animation: homeLogoFloatB 7.1s ease-in-out -3.4s infinite; }
+	.home-hero-logos li:nth-child(3) { animation: homeLogoFloatC 5.8s ease-in-out -1.9s infinite; }
+
+	.home-hero-logos a {
+		border-radius: 50%;
+		transition: opacity 180ms ease, transform 180ms ease;
+	}
+
+	.home-hero-logos a:hover,
+	.home-hero-logos a:focus-visible {
+		opacity: .78;
+		transform: translateY(-3px);
+	}
+
+	.home-hero-logo {
+		display: block;
+		width: auto;
+		height: clamp(72px, 7vw, 104px);
+		object-fit: contain;
+	}
+
+	.home-hero-logo--icpc { width: clamp(94px, 9vw, 132px); }
+	.home-hero-logo--ccpc { width: clamp(72px, 7vw, 104px); }
+	.home-hero-logo--custacm { width: clamp(72px, 7vw, 104px); }
+
+	@keyframes homeLogoFloatA {
+		0%, 100% { transform: translateY(1px) rotate(-.08deg); }
+		38% { transform: translateY(-3px) rotate(.1deg); }
+		72% { transform: translateY(2px) rotate(-.05deg); }
+	}
+
+	@keyframes homeLogoFloatB {
+		0%, 100% { transform: translateY(-1px) rotate(.08deg); }
+		31% { transform: translateY(2px) rotate(-.12deg); }
+		68% { transform: translateY(-4px) rotate(.06deg); }
+	}
+
+	@keyframes homeLogoFloatC {
+		0%, 100% { transform: translateY(1px) rotate(.1deg); }
+		44% { transform: translateY(-3px) rotate(-.1deg); }
+		76% { transform: translateY(.5px) rotate(.04deg); }
+	}
+
 	@media (prefers-reduced-motion: reduce) {
-		.welcome-title,
-		.welcome-letter,
-		.welcome-brand-mark,
-		.header-scroll-button {
+		.home-hero-title-letter,
+		.home-hero-logos li {
 			animation: none;
 		}
 	}
 
-	.wrapper {
-		position: absolute;
-		width: 100px;
-		bottom: 150px;
-		left: 0;
-		right: 0;
-		margin: auto;
-		font-size: 26px;
-		z-index: 100;
-	}
-
-	.header-scroll-button {
-		border: 0;
-		background: transparent;
-		color: #fff;
-		padding: 0;
-		opacity: 0.5;
-		cursor: pointer;
-		position: absolute;
-		top: 55px;
-		left: 20px;
-		animation: opener .5s ease-in-out alternate infinite;
-		transition: opacity .2s ease-in-out, transform .5s ease-in-out .2s;
-	}
-
-	.header-scroll-button:hover {
-		opacity: 1;
-	}
-
-	@keyframes opener {
-		100% {
-			top: 65px
+	@media screen and (max-width: 767px) {
+		.home-hero {
+			padding: 112px 16px 0;
 		}
-	}
 
-	.wave1, .wave2 {
-		position: absolute;
-		bottom: 0;
-		background-image: none;
-		-webkit-mask-repeat: repeat-x;
-		-webkit-mask-position: left bottom;
-		-webkit-mask-size: auto 100%;
-		mask-repeat: repeat-x;
-		mask-position: left bottom;
-		mask-size: auto 100%;
-		transition-duration: .4s, .4s;
-		z-index: 80;
-	}
+		.home-hero h1 {
+			font-size: clamp(42px, 12vw, 64px);
+			letter-spacing: -.045em;
+			line-height: 1.02;
+		}
 
-	.wave1 {
-		background-color: color-mix(in srgb, var(--home-canvas, var(--color-canvas-alternate)) 72%, transparent);
-		-webkit-mask-image: url('/img/header/wave1.png');
-		mask-image: url('/img/header/wave1.png');
-		height: 75px;
-		width: 100%;
-	}
+		.home-hero-title-line {
+			white-space: normal;
+		}
 
-	.wave2 {
-		background-color: var(--home-canvas, var(--color-canvas-alternate));
-		-webkit-mask-image: url('/img/header/wave2.png');
-		mask-image: url('/img/header/wave2.png');
-		height: 90px;
-		width: calc(100% + 100px);
-		left: -100px;
+		.home-hero-media { margin-top: 40px; }
+
+		.home-hero-media::after {
+			height: 144px;
+			backdrop-filter: blur(16px);
+			-webkit-backdrop-filter: blur(16px);
+		}
+
+		.home-hero-logos {
+			top: 8%;
+			left: 20px;
+			width: calc(100% - 40px);
+			gap: 20px;
+		}
+
+		.home-hero-logo { height: 64px; }
+		.home-hero-logo--icpc { width: 84px; }
+		.home-hero-logo--ccpc,
+		.home-hero-logo--custacm { width: 64px; }
 	}
 </style>

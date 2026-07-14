@@ -2,6 +2,7 @@ import {createApp} from 'vue'
 import App from './App.vue'
 import router from './router'
 import store from './store'
+import '@fontsource-variable/jetbrains-mono/wght.css'
 //自定义css
 import './assets/css/tokens.css'
 import './assets/css/base.css'
@@ -10,7 +11,6 @@ import "./assets/css/typo.css";
 //Element Plus
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
-import 'element-plus/theme-chalk/dark/css-vars.css'
 //moment
 import {dateFilters} from './util/dateTimeFormatUtils.js'
 //v-viewer
@@ -21,11 +21,8 @@ import directives from './util/directive'
 //懒加载
 import VueLazyload from 'vue-lazyload'
 import loadingImage from './assets/img/loading.gif'
-import {initializeTheme} from './theme'
 import AppIcon from './components/common/AppIcon.vue'
-// Load theme overrides after every vendor stylesheet.
 import './assets/css/blog-redesign.css'
-import './assets/css/night.css'
 
 console.log(
 	'%c NBlog %c By Naccl %c https://github.com/Naccl/NBlog',
@@ -33,8 +30,6 @@ console.log(
 	'background:#41b883 ; padding: 1px; border-radius: 0 3px 3px 0;  color: #000',
 	'background:transparent'
 )
-
-initializeTheme()
 
 const app = createApp(App)
 

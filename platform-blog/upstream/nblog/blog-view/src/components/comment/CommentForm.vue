@@ -5,7 +5,7 @@
 			发表评论
 			<el-button class="m-small" size="small" type="primary" @click="$store.commit(SET_PARENT_COMMENT_ID, -1)" v-show="parentCommentId!==-1">取消回复</el-button>
 		</h3>
-		<el-form :inline="true" :model="commentForm" size="small">
+		<el-form class="comment-form-layout" :inline="true" :model="commentForm" size="small">
 			<el-input ref="commentInput" :class="'textarea'" type="textarea" :rows="5" v-model="commentForm.content" placeholder="评论千万条，友善第一条"
 			          maxlength="250" show-word-limit :validate-event="false"></el-input>
 			<div class="el-form-item el-form-item--small emoji">
@@ -37,7 +37,7 @@
 				</transition>
 			</div>
 			<el-form-item>
-					<el-button type="primary" :disabled="submitting" v-throttle="[postForm,`click`,3000]">{{ submitting ? '发送中…' : '发表评论' }}</el-button>
+					<el-button class="comment-submit-button" type="primary" :disabled="submitting" v-throttle="[postForm,`click`,3000]">{{ submitting ? '发送中…' : '发表评论' }}</el-button>
 			</el-form-item>
 		</el-form>
 	</div>
@@ -134,13 +134,15 @@
 
 <style>
 	.form {
-		background: #fff;
 		position: relative;
+		background: transparent;
 	}
 
 	.form h3 {
-		margin: 5px;
-		font-weight: 500 !important;
+		margin: 0 0 12px;
+		color: var(--color-text);
+		font-size: 16px;
+		font-weight: 750 !important;
 	}
 
 	.form .m-small {
@@ -148,9 +150,20 @@
 		padding: 4px 5px;
 	}
 
-	.el-form .textarea {
-		margin-top: 5px;
-		margin-bottom: 15px;
+	.comment-form-layout {
+		display: flex !important;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 10px;
+	}
+
+	.comment-form-layout .textarea {
+		flex: 0 0 100%;
+		margin: 0 0 4px;
+	}
+
+	.comment-form-layout > .el-form-item {
+		margin: 0 !important;
 	}
 
 	.el-form textarea {
@@ -176,31 +189,50 @@
 		align-items: center;
 		gap: 7px;
 		height: 32px;
-		border: 1px solid #d9dee5;
+		border: 1px solid var(--anthropic-dark);
 		border-radius: 7px;
-		background: #fff9df;
-		color: #55491c;
+		background: var(--anthropic-dark);
+		color: var(--anthropic-ivory-light);
 		padding: 3px 10px 3px 7px;
 		font: inherit;
+		font-size: 12px;
 		font-weight: 700;
+		line-height: 1;
 		cursor: pointer;
 		transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
 	}
 
 	.emoji-trigger:hover,
 	.emoji-trigger[aria-expanded="true"] {
-		border-color: #d8b63f;
-		background: #fff4bd;
+		border-color: var(--anthropic-slate-medium);
+		background: var(--anthropic-slate-medium);
 		transform: translateY(-1px);
 	}
 
 	.emoji-trigger:focus-visible,
 	.emoji-box button:focus-visible {
-		outline: 2px solid #315a7d;
+		outline: 2px solid var(--anthropic-clay);
 		outline-offset: 2px;
 	}
 
 	.emoji-trigger img { width: 24px; height: 24px; }
+
+	.comment-submit-button.el-button--primary {
+		min-height: 32px;
+		border-color: var(--anthropic-dark) !important;
+		background: var(--anthropic-dark) !important;
+		color: var(--anthropic-ivory-light) !important;
+		padding: 6px 14px !important;
+		font-size: 12px;
+		font-weight: 700;
+		line-height: 1;
+	}
+
+	.comment-submit-button.el-button--primary:hover,
+	.comment-submit-button.el-button--primary:focus-visible {
+		border-color: var(--anthropic-slate-medium) !important;
+		background: var(--anthropic-slate-medium) !important;
+	}
 
 	.emoji-box {
 		position: absolute;
@@ -209,11 +241,11 @@
 		left: 0;
 		width: 360px;
 		overflow: hidden;
-		border: 1px solid #dfe4e9;
+		border: 1px solid var(--anthropic-cloud-light);
 		border-radius: 12px;
-		background: #fff;
-		box-shadow: 0 18px 42px rgba(35, 45, 55, .18);
-		color: #27313a;
+		background: var(--anthropic-ivory-light);
+		box-shadow: 0 18px 42px color-mix(in srgb, var(--anthropic-slate-dark) 18%, transparent);
+		color: var(--anthropic-slate-dark);
 	}
 
 	.emoji-box * { box-sizing: border-box; }
@@ -223,12 +255,12 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 13px 14px 10px;
-		border-bottom: 1px solid #edf0f2;
+		border-bottom: 1px solid var(--anthropic-cloud-light);
 	}
 
 	.emoji-title div { display: grid; gap: 2px; }
 	.emoji-title strong { font-size: 13px; letter-spacing: .01em; }
-	.emoji-title small { color: #8a949d; font-size: 10px; }
+	.emoji-title small { color: var(--anthropic-cloud-dark); font-size: 10px; }
 
 	.emoji-title > button {
 		width: 28px;
@@ -236,13 +268,13 @@
 		border: 0;
 		border-radius: 7px;
 		background: transparent;
-		color: #7f8992;
+		color: var(--anthropic-slate-light);
 		font-size: 20px;
 		line-height: 1;
 		cursor: pointer;
 	}
 
-	.emoji-title > button:hover { background: #f0f3f5; color: #27313a; }
+	.emoji-title > button:hover { background: var(--anthropic-ivory-medium); color: var(--anthropic-slate-dark); }
 
 	.emoji-tabs {
 		display: flex;
@@ -254,15 +286,15 @@
 		border: 0;
 		border-radius: 6px;
 		background: transparent;
-		color: #7a858e;
+		color: var(--anthropic-slate-light);
 		padding: 6px 10px;
 		font-size: 11px;
 		font-weight: 700;
 		cursor: pointer;
 	}
 
-	.emoji-tabs button:hover { background: #f2f4f6; color: #3b4650; }
-	.emoji-tabs button.on { background: #eef2f5; color: #17324d; }
+	.emoji-tabs button:hover { background: var(--anthropic-ivory-medium); color: var(--anthropic-slate-medium); }
+	.emoji-tabs button.on { background: var(--anthropic-ivory-dark); color: var(--anthropic-slate-dark); }
 
 	.emoji-wrap {
 		display: grid;
@@ -273,7 +305,7 @@
 		overflow-y: auto;
 		padding: 7px 10px 12px;
 		scrollbar-width: thin;
-		scrollbar-color: #c7ced5 transparent;
+		scrollbar-color: var(--anthropic-cloud-medium) transparent;
 	}
 
 	.emoji-list {
@@ -288,7 +320,7 @@
 		transition: background-color 140ms ease, transform 140ms ease;
 	}
 
-	.emoji-list:hover { background: #fff3b3; transform: translateY(-2px) scale(1.06); }
+	.emoji-list:hover { background: #e3dacc; transform: translateY(-2px) scale(1.06); }
 	.emoji-list img { width: 29px; height: 29px; pointer-events: none; }
 
 	.emoji-mask {

@@ -1,16 +1,13 @@
 package top.naccl.controller;
 
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.naccl.entity.Category;
 import top.naccl.entity.Tag;
-import top.naccl.model.vo.RandomBlog;
 import top.naccl.model.vo.Result;
-import top.naccl.service.BlogService;
 import top.naccl.service.CategoryService;
+import top.naccl.service.HomepageFeaturedGroupService;
 import top.naccl.service.SiteSettingService;
 import top.naccl.service.TagService;
 
@@ -28,27 +25,25 @@ public class IndexController {
 	@Autowired
 	SiteSettingService siteSettingService;
 	@Autowired
-	BlogService blogService;
+	HomepageFeaturedGroupService homepageFeaturedGroupService;
 	@Autowired
 	CategoryService categoryService;
 	@Autowired
 	TagService tagService;
 
 	/**
-	 * 获取页面仍在使用的站点配置、分类列表、标签云和精选文章
+	 * 获取页面仍在使用的站点配置、分类列表、标签云和精选文章组
 	 *
 	 * @return
 	 */
 	@GetMapping("/site")
-	public Result site(Authentication authentication) {
+	public Result site() {
 		Map<String, Object> map = siteSettingService.getSiteInfo();
-		boolean includeInternal = authentication != null && !(authentication instanceof AnonymousAuthenticationToken);
 		List<Category> categoryList = categoryService.getCategoryNameList();
 		List<Tag> tagList = tagService.getTagListNotId();
-		List<RandomBlog> featuredBlogList = blogService.getFeaturedBlogList(includeInternal);
 		map.put("categoryList", categoryList);
 		map.put("tagList", tagList);
-		map.put("featuredBlogList", featuredBlogList);
+		map.put("featuredGroups", homepageFeaturedGroupService.listPublic());
 		return Result.ok("请求成功", map);
 	}
 }

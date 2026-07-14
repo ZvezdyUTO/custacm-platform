@@ -107,16 +107,15 @@ function changeAdminSection(section: AdminSection) {
     navigationNotice.value = '请先保存一次性密码，再点击“我已保存，重新登录”。';
     return;
   }
-  void router.push(section === 'create'
-    ? '/admin/create-users'
-    : section === 'articles'
-      ? '/admin/articles'
-    : section === 'categories'
-      ? '/admin/categories'
-    : section === 'training'
-      ? '/admin/training'
-      : section === 'appearance'
-        ? '/admin/appearance'
-        : '/admin/users');
+  const paths: Record<AdminSection, string> = {
+    create: '/admin/create-users',
+    users: '/admin/users',
+    articles: '/admin/articles',
+    categories: '/admin/categories',
+    competitions: '/admin/competitions',
+    training: '/admin/training',
+    appearance: '/admin/appearance',
+  };
+  void router.push(paths[section]);
 }
 </script>

@@ -38,12 +38,12 @@ public class CompetitionAdminController {
 	public Result recycleBin(
 			@RequestParam(required = false) Integer startYear,
 			@RequestParam(required = false) Integer endYear,
-			@RequestParam(required = false) String type,
+			@RequestParam(required = false) String category,
 			@RequestParam(defaultValue = "1") Integer pageNum,
 			@RequestParam(defaultValue = "10") Integer pageSize
 	) {
 		return Result.ok("获取成功",
-				competitionService.listRecycleBin(startYear, endYear, type, pageNum, pageSize));
+				competitionService.listRecycleBin(startYear, endYear, category, pageNum, pageSize));
 	}
 
 	@DeleteMapping("/{id}")

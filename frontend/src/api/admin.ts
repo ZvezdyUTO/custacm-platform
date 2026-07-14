@@ -8,7 +8,16 @@ import type {
   AdminTagPage,
   CollectionJob,
   CollectionJobStartRequest,
-  HomepageBannerImage,
+  Competition,
+  CompetitionAwardCreateRequest,
+  CompetitionCreateRequest,
+  CompetitionListQuery,
+  CompetitionPageResponse,
+  CompetitionParticipantsCreateRequest,
+  HomepageFeaturedImage,
+  HomepageFeaturedArticleCandidate,
+  HomepageFeaturedGroup,
+  HomepageFeaturedGroupUpsertRequest,
 } from '../types';
 import { authHeaders, requestData, requestDownload, type FileDownload } from './client';
 
@@ -30,6 +39,21 @@ function jsonRequest<T>(
     headers: jsonHeaders(token),
     body: JSON.stringify(body),
   });
+}
+
+function competitionListPath(path: string, query: CompetitionListQuery = {}) {
+  const params = new URLSearchParams({
+    pageNum: String(query.pageNum ?? 1),
+    pageSize: String(query.pageSize ?? 15),
+  });
+  if (query.startYear !== null && query.startYear !== undefined) {
+    params.set('startYear', String(query.startYear));
+  }
+  if (query.endYear !== null && query.endYear !== undefined) {
+    params.set('endYear', String(query.endYear));
+  }
+  if (query.category) params.set('category', query.category);
+  return `${path}?${params.toString()}`;
 }
 
 export function listAdminUsers(
@@ -89,27 +113,174 @@ export function getCollectionJob(
   );
 }
 
-export function listHomepageBanners(token: string): Promise<HomepageBannerImage[]> {
-  return requestData('/admin/homepage-banners', { headers: authHeaders(token) });
+export function listHomepageFeaturedImages(token: string): Promise<HomepageFeaturedImage[]> {
+  return requestData('/admin/homepage-featured-images', { headers: authHeaders(token) });
 }
 
-export function uploadHomepageBanner(token: string, image: Blob): Promise<HomepageBannerImage> {
+export function uploadHomepageFeaturedImage(
+  token: string,
+  image: Blob,
+): Promise<HomepageFeaturedImage> {
   const formData = new FormData();
-  formData.append('file', image, 'homepage-banner.jpg');
-  return requestData('/admin/homepage-banners', {
+  formData.append('file', image, 'homepage-featured.jpg');
+  return requestData('/admin/homepage-featured-images', {
     method: 'POST',
     headers: authHeaders(token),
     body: formData,
   });
 }
 
-export function reorderHomepageBanners(token: string, ids: number[]): Promise<HomepageBannerImage[]> {
-  return jsonRequest(token, '/admin/homepage-banners/order', 'PUT', { ids });
+export function reorderHomepageFeaturedImages(
+  token: string,
+  ids: number[],
+): Promise<HomepageFeaturedImage[]> {
+  return jsonRequest(token, '/admin/homepage-featured-images/order', 'PUT', { ids });
 }
 
-export function deleteHomepageBanner(token: string, id: number): Promise<HomepageBannerImage[]> {
-  return requestData(`/admin/homepage-banners/${encodeURIComponent(id)}`, {
+export function deleteHomepageFeaturedImage(
+  token: string,
+  id: number,
+): Promise<HomepageFeaturedImage[]> {
+  return requestData(`/admin/homepage-featured-images/${encodeURIComponent(id)}`, {
     method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
+export function listHomepageFeaturedGroups(token: string): Promise<HomepageFeaturedGroup[]> {
+  return requestData('/admin/homepage-featured-groups', { headers: authHeaders(token) });
+}
+
+export function searchHomepageFeaturedArticleCandidates(
+  token: string,
+  query = '',
+): Promise<HomepageFeaturedArticleCandidate[]> {
+  const params = new URLSearchParams({ query: query.trim() });
+  return requestData(`/admin/homepage-featured-groups/candidates?${params.toString()}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function createHomepageFeaturedGroup(
+  token: string,
+  request: HomepageFeaturedGroupUpsertRequest,
+): Promise<HomepageFeaturedGroup[]> {
+  return jsonRequest(token, '/admin/homepage-featured-groups', 'POST', request);
+}
+
+export function updateHomepageFeaturedGroup(
+  token: string,
+  id: number,
+  request: HomepageFeaturedGroupUpsertRequest,
+): Promise<HomepageFeaturedGroup[]> {
+  return jsonRequest(
+    token,
+    `/admin/homepage-featured-groups/${encodeURIComponent(id)}`,
+    'PUT',
+    request,
+  );
+}
+
+export function reorderHomepageFeaturedGroups(
+  token: string,
+  ids: number[],
+): Promise<HomepageFeaturedGroup[]> {
+  return jsonRequest(token, '/admin/homepage-featured-groups/order', 'PUT', { ids });
+}
+
+export function deleteHomepageFeaturedGroup(
+  token: string,
+  id: number,
+): Promise<HomepageFeaturedGroup[]> {
+  return requestData(`/admin/homepage-featured-groups/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
+export function listCompetitions(
+  query: CompetitionListQuery = {},
+  signal?: AbortSignal,
+): Promise<CompetitionPageResponse> {
+  return requestData(competitionListPath('/competitions', query), { signal });
+}
+
+export function listCompetitionRecycleBin(
+  token: string,
+  query: CompetitionListQuery = {},
+  signal?: AbortSignal,
+): Promise<CompetitionPageResponse> {
+  return requestData(competitionListPath('/admin/competitions/recycle-bin', query), {
+    headers: authHeaders(token),
+    signal,
+  });
+}
+
+export function createCompetition(
+  token: string,
+  request: CompetitionCreateRequest,
+): Promise<Competition> {
+  return jsonRequest(token, '/admin/competitions', 'POST', request);
+}
+
+export function addCompetitionParticipants(
+  token: string,
+  competitionId: number,
+  request: CompetitionParticipantsCreateRequest,
+): Promise<Competition> {
+  return jsonRequest(
+    token,
+    `/admin/competitions/${encodeURIComponent(competitionId)}/participants`,
+    'POST',
+    request,
+  );
+}
+
+export function deleteCompetitionParticipant(
+  token: string,
+  competitionId: number,
+  participantId: number,
+): Promise<void> {
+  return requestData(
+    `/admin/competitions/${encodeURIComponent(competitionId)}/participants/${encodeURIComponent(participantId)}`,
+    { method: 'DELETE', headers: authHeaders(token) },
+  );
+}
+
+export function addCompetitionAward(
+  token: string,
+  competitionId: number,
+  request: CompetitionAwardCreateRequest,
+): Promise<Competition> {
+  return jsonRequest(
+    token,
+    `/admin/competitions/${encodeURIComponent(competitionId)}/awards`,
+    'POST',
+    request,
+  );
+}
+
+export function deleteCompetitionAward(
+  token: string,
+  competitionId: number,
+  awardId: number,
+): Promise<void> {
+  return requestData(
+    `/admin/competitions/${encodeURIComponent(competitionId)}/awards/${encodeURIComponent(awardId)}`,
+    { method: 'DELETE', headers: authHeaders(token) },
+  );
+}
+
+export function moveCompetitionToRecycleBin(token: string, id: number): Promise<void> {
+  return requestData(`/admin/competitions/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
+export function restoreCompetition(token: string, id: number): Promise<Competition> {
+  return requestData(`/admin/competitions/${encodeURIComponent(id)}/restore`, {
+    method: 'PUT',
     headers: authHeaders(token),
   });
 }
@@ -143,14 +314,6 @@ export function listAdminRecycleBinArticles(
 export function downloadAllArticlesBackup(token: string): Promise<FileDownload> {
   return requestDownload('/admin/blogs/backup', 'custacm-article-backup.zip', {
     headers: { ...authHeaders(token), Accept: 'application/zip' },
-  });
-}
-
-export function updateArticleFeatured(token: string, id: number, featured: boolean): Promise<void> {
-  const params = new URLSearchParams({ id: String(id), recommend: String(featured) });
-  return requestData(`/admin/blog/recommend?${params.toString()}`, {
-    method: 'PUT',
-    headers: authHeaders(token),
   });
 }
 

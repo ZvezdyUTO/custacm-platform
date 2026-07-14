@@ -31,13 +31,6 @@ class BlogAdminControllerTest {
 	@InjectMocks private BlogAdminController controller;
 
 	@Test
-	void updatesRecommendationThroughTheRetainedAdminEndpoint() {
-		controller.updateRecommend(42L, true);
-
-		verify(blogService).updateBlogRecommendById(42L, true);
-	}
-
-	@Test
 	void movesDeletedArticleToTheSevenDayRecycleBin() {
 		controller.delete(42L);
 

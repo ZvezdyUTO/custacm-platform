@@ -1,27 +1,25 @@
 <template>
-	<div ref="nav" class="site-nav" :class="{'transparent':$route.name==='home' && clientSize.clientWidth>768}">
+	<div ref="nav" class="site-nav">
 		<div class="site-container nav-container">
 			<router-link to="/" class="nav-item nav-brand" aria-label="CUSTACM 首页">
 				<span class="nav-brand-plate">
 					<img src="/img/custacm-wordmark.png" alt="CUSTACM">
 				</span>
 			</router-link>
-			<router-link to="/home" class="nav-item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='home'}">
+			<router-link to="/home" class="nav-item nav-primary-item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='home'}">
 				<AppIcon name="home" />首页
 			</router-link>
-			<el-dropdown trigger="click" @command="categoryRoute">
-				<span class="el-dropdown-link nav-item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='category'}">
-					<AppIcon name="lightbulb" />分类<AppIcon name="chevron-down" />
-				</span>
-				<template #dropdown>
-					<el-dropdown-menu>
-						<el-dropdown-item :command="category.name" v-for="(category,index) in categoryList" :key="index">{{ category.name }}</el-dropdown-item>
-					</el-dropdown-menu>
-				</template>
-			</el-dropdown>
+			<router-link to="/articles" class="nav-item nav-primary-item nav-articles"
+			             :class="{'m-mobile-hide': mobileHide, 'active': articleNavigationActive}">
+				<AppIcon name="book" />文章
+			</router-link>
+			<router-link to="/competitions" class="nav-item nav-primary-item nav-competitions"
+			             :class="{'m-mobile-hide': mobileHide, 'active': competitionNavigationActive}">
+				<AppIcon name="trophy" />赛事荣誉
+			</router-link>
 			<el-dropdown class="nav-training-dropdown" trigger="click" :class="{'m-mobile-hide': mobileHide}" @command="trainingRoute">
-				<button type="button" class="el-dropdown-link nav-item nav-training-trigger" :class="{'active':trainingNavigationActive}">
-					<AppIcon name="bar-chart" />训练中心<AppIcon name="chevron-down" />
+				<button type="button" class="el-dropdown-link nav-item nav-primary-item nav-training-trigger" :class="{'active':trainingNavigationActive}">
+					<AppIcon name="bar-chart" />训练中心<AppIcon name="chevron-down" class="nav-menu-chevron" />
 				</button>
 				<template #dropdown>
 					<el-dropdown-menu>
@@ -31,45 +29,13 @@
 					</el-dropdown-menu>
 				</template>
 				</el-dropdown>
-				<router-link v-if="authUser" to="/write" class="nav-item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='write'}">
+				<router-link v-if="authUser" to="/write" class="nav-item nav-primary-item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='write'}">
 					<AppIcon name="edit" />发布文章
 				</router-link>
-			<div class="nav-item m-search" :class="{'m-mobile-hide': mobileHide}">
-				<el-input v-model="queryString" placeholder="搜索文章" aria-label="搜索文章"
-				          @input="handleSearchInput" @keyup.enter="submitSearch" @blur="closeSearchResults">
-					<template #suffix>
-						<AppIcon :name="searchLoading ? 'loader' : 'search'" :spin="searchLoading" class="el-input__icon" />
-					</template>
-				</el-input>
-				<div v-if="searchOpen" class="m-search-item m-search-panel">
-					<button v-for="item in queryResult" :key="item.id || item.title" type="button"
-					        :disabled="!item.id" @mousedown.prevent="handleSelect(item)">
-						<span class="title">{{ item.title }}</span>
-						<span v-if="item.description" class="description">{{ item.description }}</span>
-					</button>
-				</div>
-			</div>
-			<button
-				type="button"
-				class="nav-item nav-theme-toggle"
-				:class="{'m-mobile-hide': mobileHide}"
-				role="switch"
-				:aria-label="themeToggleLabel"
-				:aria-checked="darkTheme ? 'true' : 'false'"
-				:title="themeToggleLabel"
-				@click.stop="switchTheme"
-			>
-				<span class="nav-theme-track" :class="{'is-dark': darkTheme}" aria-hidden="true">
-					<span class="nav-theme-thumb">
-						<AppIcon :name="darkTheme ? 'moon' : 'sun'" :size="12" />
-					</span>
-				</span>
-				<span class="nav-theme-status">{{ darkTheme ? '深夜模式' : '日间模式' }}</span>
-			</button>
-			<router-link v-if="!authUser" :to="loginTarget" class="nav-item" :class="{'m-mobile-hide': mobileHide}">
+			<router-link v-if="!authUser" :to="loginTarget" class="nav-item nav-account" :class="{'m-mobile-hide': mobileHide}">
 				<AppIcon name="user" />登录
 			</router-link>
-			<el-dropdown v-else trigger="click" :class="{'m-mobile-hide': mobileHide}" @command="accountCommand">
+			<el-dropdown v-else trigger="click" class="nav-account" :class="{'m-mobile-hide': mobileHide}" @command="accountCommand">
 				<button type="button" class="nav-item nav-auth-trigger">
 					<AppIcon name="user-circle" />
 					<span>{{ authUser.nickname || authUser.username }}</span>
@@ -96,34 +62,24 @@
 </template>
 
 <script>
-	import {getSearchBlogList} from "@/api/blog";
 	import {accountMenuItems} from "@/auth/account-menu";
 	import {clearSession, readUser, SESSION_CHANGE_EVENT} from "@/auth/session";
-	import {getCurrentTheme, THEME_CHANGE_EVENT, toggleTheme} from '@/theme'
-	import {mapState} from 'vuex'
 
 	export default {
 		name: "Nav",
-		props: {
-			categoryList: {
-				type: Array,
-				required: true
-			},
-		},
 		data() {
 			return {
 				authUser: readUser(),
-				darkTheme: getCurrentTheme() === 'dark',
 				mobileHide: true,
-				queryString: '',
-				queryResult: [],
-				searchOpen: false,
-				searchLoading: false,
-				searchRequestId: 0
 			}
 		},
 		computed: {
-			...mapState(['clientSize']),
+			articleNavigationActive() {
+				return ['articles', 'category', 'tag', 'blog'].includes(this.$route.name)
+			},
+			competitionNavigationActive() {
+				return this.$route.name === 'competitions' || this.$route.name === 'competition-detail'
+			},
 			trainingNavigationActive() {
 				return this.$route.name === 'training'
 					&& /^\/training\/(?:multiple|single|problem)\/?$/.test(this.$route.path)
@@ -133,9 +89,6 @@
 			},
 			accountItems() {
 				return accountMenuItems(this.authUser)
-			},
-			themeToggleLabel() {
-				return this.darkTheme ? '当前深夜模式，切换到日间模式' : '当前日间模式，切换到深夜模式'
 			}
 		},
 		watch: {
@@ -147,18 +100,6 @@
 		mounted() {
 			window.addEventListener('storage', this.handleStorage)
 			window.addEventListener(SESSION_CHANGE_EVENT, this.refreshAuthUser)
-			window.addEventListener(THEME_CHANGE_EVENT, this.refreshTheme)
-			//监听页面滚动位置，改变导航栏的显示
-			window.addEventListener('scroll', () => {
-				//首页且不是移动端
-				if (this.$route.name === 'home' && this.clientSize.clientWidth > 768) {
-					if (window.scrollY > this.clientSize.clientHeight / 2) {
-						this.$refs.nav.classList.remove('transparent')
-					} else {
-						this.$refs.nav.classList.add('transparent')
-					}
-				}
-			})
 			//监听点击事件，收起导航菜单
 			document.addEventListener('click', (e) => {
 				//遍历冒泡
@@ -172,15 +113,8 @@
 		beforeUnmount() {
 			window.removeEventListener('storage', this.handleStorage)
 			window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshAuthUser)
-			window.removeEventListener(THEME_CHANGE_EVENT, this.refreshTheme)
 		},
 		methods: {
-			switchTheme() {
-				this.darkTheme = toggleTheme() === 'dark'
-			},
-			refreshTheme(event) {
-				this.darkTheme = (event?.detail?.theme || getCurrentTheme()) === 'dark'
-			},
 			accountCommand(command) {
 				if (command === 'profile') {
 					this.$router.push('/profile')
@@ -209,55 +143,8 @@
 			toggle() {
 				this.mobileHide = !this.mobileHide
 			},
-			categoryRoute(name) {
-				this.$router.push(`/category/${name}`)
-			},
 			trainingRoute(path) {
 				this.$router.push(`/training/${path}`)
-			},
-			handleSearchInput() {
-				this.searchRequestId += 1
-				this.searchLoading = false
-				this.searchOpen = false
-			},
-			closeSearchResults() {
-				this.searchOpen = false
-			},
-			submitSearch() {
-				const query = this.queryString.trim()
-				this.searchOpen = false
-				if (query === ''
-						|| query.indexOf('%') !== -1
-						|| query.indexOf('_') !== -1
-						|| query.indexOf('[') !== -1
-						|| query.indexOf('#') !== -1
-						|| query.indexOf('*') !== -1
-						|| query.length > 20) {
-					return Promise.resolve()
-				}
-				const requestId = ++this.searchRequestId
-				this.searchLoading = true
-				return getSearchBlogList(query).then(res => {
-					if (requestId !== this.searchRequestId) return
-					if (res.code === 200) {
-						this.queryResult = Array.isArray(res.data) ? res.data : []
-						if (this.queryResult.length === 0) {
-							this.queryResult.push({title: '无相关搜索结果'})
-						}
-						this.searchOpen = true
-					}
-				}).catch(() => {
-					if (requestId !== this.searchRequestId) return
-					this.msgError("请求失败")
-				}).finally(() => {
-					if (requestId === this.searchRequestId) this.searchLoading = false
-				})
-			},
-			handleSelect(item) {
-				if (item.id) {
-					this.searchOpen = false
-					this.$router.push(`/blog/${item.id}`)
-				}
 			}
 		}
 	}
@@ -308,6 +195,31 @@
 		cursor: pointer;
 	}
 
+	.site-nav .nav-primary-item {
+		box-sizing: border-box;
+		gap: 8px;
+		font-family: var(--font-sans) !important;
+		font-size: 16px !important;
+		font-weight: 500 !important;
+		line-height: 24px !important;
+		letter-spacing: 0 !important;
+		text-rendering: geometricPrecision;
+	}
+
+	.site-nav .nav-primary-item > .app-icon {
+		width: 20px;
+		height: 20px;
+		flex-basis: 20px;
+		stroke-width: 2;
+	}
+
+	.site-nav .nav-primary-item > .nav-menu-chevron {
+		width: 16px;
+		height: 16px;
+		flex-basis: 16px;
+		margin-left: -2px;
+	}
+
 	.site-nav .nav-item.active::after {
 		position: absolute;
 		right: 12px;
@@ -346,27 +258,6 @@
 		outline: none;
 	}
 
-	.site-nav.transparent {
-		background: transparent !important;
-	}
-
-	.site-nav.transparent .nav-container > .nav-item:not(.nav-brand):not(.m-search),
-	.site-nav.transparent .el-dropdown-link,
-	.site-nav.transparent .nav-auth-trigger {
-		-webkit-text-stroke: .35px rgba(13, 20, 26, .9);
-		paint-order: stroke fill;
-		text-shadow: 0 1px 2px rgba(13, 20, 26, .72), 0 0 1px rgba(13, 20, 26, .9);
-	}
-
-	.site-nav.transparent .active.nav-item::after {
-		background: transparent !important;
-		transition: .3s ease-out;
-	}
-
-	.site-nav.transparent .active.nav-item:hover::after {
-		background: transparent !important;
-	}
-
 	.el-dropdown-link {
 		outline-style: none !important;
 		outline-color: unset !important;
@@ -390,74 +281,6 @@
 		background: #17191b;
 		color: #fff;
 		cursor: pointer;
-	}
-
-	.nav-theme-toggle {
-		display: flex !important;
-		min-width: 76px;
-		align-items: center;
-		justify-content: center;
-		border: 0;
-		background: transparent;
-		color: rgba(255, 255, 255, .9);
-		padding-right: 11px !important;
-		padding-left: 11px !important;
-		font: inherit;
-		cursor: pointer;
-	}
-
-	.nav-theme-track {
-		position: relative;
-		display: block;
-		width: 52px;
-		height: 28px;
-		border: 1px solid rgba(255, 255, 255, .32);
-		border-radius: 999px;
-		background: rgba(255, 255, 255, .12);
-		box-shadow: inset 0 1px 3px rgba(0, 0, 0, .25);
-		transition: border-color .2s ease, background-color .2s ease;
-	}
-
-	.nav-theme-thumb {
-		position: absolute;
-		top: 3px;
-		left: 3px;
-		display: grid;
-		width: 20px;
-		height: 20px;
-		place-items: center;
-		border-radius: 50%;
-		background: #f2e8dc;
-		color: #9a5b1e;
-		box-shadow: 0 2px 7px rgba(0, 0, 0, .32);
-		transform: translateX(0);
-		transition: transform .2s ease, background-color .2s ease, color .2s ease;
-	}
-
-	.nav-theme-track.is-dark .nav-theme-thumb {
-		background: #d9944a;
-		color: #21150c;
-		transform: translateX(24px);
-	}
-
-	.nav-theme-thumb > .app-icon {
-		width: 1em;
-		margin: 0 !important;
-		font-size: 12px;
-	}
-
-	.nav-theme-toggle:focus-visible {
-		outline: none;
-	}
-
-	.nav-theme-status {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 
 	.el-dropdown-menu {
@@ -524,77 +347,8 @@
 		background: #fff !important;
 	}
 
-	.m-search {
-		position: relative;
-		width: 220px;
-		min-width: 220px;
-		margin-left: auto !important;
-		padding: 0 !important;
-	}
-
-	.m-search input {
-		color: #1f2933 !important;
-		border: 0px !important;
-		background-color: transparent;
-		padding: .67857143em .25em .67857143em .85em;
-	}
-
-	.m-search input::placeholder {
-		color: #909399;
-		font-size: 13px;
-	}
-
-	.m-search .app-icon {
-		color: #606266 !important;
-	}
-
-	.m-search-item {
-		min-width: 350px !important;
-	}
-
-	.m-search-panel {
-		position: absolute;
-		top: calc(100% + 8px);
-		right: 0;
-		z-index: 2100;
-		overflow: hidden;
-		border: 1px solid #e4e7ed;
-		border-radius: 4px;
-		background: #fff;
-		box-shadow: 0 6px 18px rgba(0, 0, 0, .14);
-	}
-
-	.m-search-panel button {
-		display: block;
-		width: 100%;
-		border: 0;
-		background: #fff;
-		padding: 9px 12px;
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.m-search-panel button:hover:not(:disabled) {
-		background: #f5f7fa;
-	}
-
-	.m-search-panel button:disabled {
-		cursor: default;
-	}
-
-	.m-search-panel .title {
-		display: block;
-		text-overflow: ellipsis;
-		overflow: hidden;
-		color: rgba(0, 0, 0, 0.87);
-	}
-
-	.m-search-panel .description {
-		display: block;
-		text-overflow: ellipsis;
-		overflow: hidden;
-		font-size: 12px;
-		color: rgba(0, 0, 0, .70);
+	.nav-account {
+		margin-left: auto;
 	}
 
 		.nav-auth-trigger {
@@ -621,16 +375,11 @@
 			padding: 0 8px;
 		}
 
-		.site-nav .nav-container > .nav-item:not(.m-search),
+		.site-nav .nav-container > .nav-item,
 		.site-nav .nav-container .el-dropdown-link,
 		.site-nav .nav-container .nav-auth-trigger {
 			padding-left: .7em !important;
 			padding-right: .7em !important;
-		}
-
-		.m-search {
-			width: 160px;
-			min-width: 160px;
 		}
 
 			.nav-auth-trigger,
@@ -648,6 +397,10 @@
 		.site-nav .nav-item:not(.nav-brand) {
 			width: 100%;
 			justify-content: flex-start;
+		}
+
+		.nav-account {
+			margin-left: 0;
 		}
 
 		.site-nav .nav-brand {

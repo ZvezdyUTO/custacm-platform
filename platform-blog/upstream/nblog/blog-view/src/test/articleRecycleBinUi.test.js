@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
 	deleteMyBlog: vi.fn(),
 	restoreMyBlog: vi.fn(),
 	readToken: vi.fn(),
+	readUser: vi.fn(),
 }))
 
 vi.mock('element-plus', () => ({ElMessageBox: {confirm: mocks.confirm}}))
@@ -15,7 +16,7 @@ vi.mock('@/api/player-blog', () => ({
 	getMyDeletedBlogs: vi.fn(),
 	restoreMyBlog: mocks.restoreMyBlog,
 }))
-vi.mock('@/auth/session', () => ({clearSession: vi.fn(), readToken: mocks.readToken}))
+vi.mock('@/auth/session', () => ({clearSession: vi.fn(), readToken: mocks.readToken, readUser: mocks.readUser}))
 
 import MyArticles from '@/components/profile/MyArticles.vue'
 import source from '@/components/profile/MyArticles.vue?raw'

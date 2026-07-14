@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   batchCreateUsers,
+  createHomepageFeaturedGroup,
   createCategory,
   createTag,
   deleteUser,
-  deleteHomepageBanner,
+  deleteHomepageFeaturedImage,
+  deleteHomepageFeaturedGroup,
   deleteCategory,
   deleteTag,
   deleteArticle,
@@ -13,15 +15,19 @@ import {
   getCollectionJob,
   listAdminUsers,
   listCollectionJobs,
-  listHomepageBanners,
+  listHomepageFeaturedImages,
+  listHomepageFeaturedGroups,
   listAdminCategories,
 	listAdminRecycleBinArticles,
   listAdminTags,
   updateUser,
-  reorderHomepageBanners,
+  reorderHomepageFeaturedImages,
+  reorderHomepageFeaturedGroups,
+  searchHomepageFeaturedArticleCandidates,
   startCollectionJob,
   updateCategory,
-  uploadHomepageBanner,
+  uploadHomepageFeaturedImage,
+  updateHomepageFeaturedGroup,
 } from '../api/admin';
 import { changeCurrentPassword, getCurrentUser, login } from '../api/auth';
 import { ApiError, authHeaders, requestData } from '../api/client';
@@ -480,21 +486,45 @@ describe('focused Blog admin API', () => {
     expect(requestAt(fetchMock, 2).init.signal).toBe(collectionJobController.signal);
   });
 
-  it('uses multipart upload and complete ordering for homepage banners', async () => {
+  it('uses multipart upload and complete ordering for homepage featured images', async () => {
     const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: [] });
     const image = new Blob(['jpeg'], { type: 'image/jpeg' });
 
-    await listHomepageBanners('token');
-    await uploadHomepageBanner('token', image);
-    await reorderHomepageBanners('token', [3, 1, 2]);
-    await deleteHomepageBanner('token', 3);
+    await listHomepageFeaturedImages('token');
+    await uploadHomepageFeaturedImage('token', image);
+    await reorderHomepageFeaturedImages('token', [3, 1, 2]);
+    await deleteHomepageFeaturedImage('token', 3);
 
-    expect(requestAt(fetchMock, 0).url.pathname).toBe('/api/admin/homepage-banners');
+    expect(requestAt(fetchMock, 0).url.pathname).toBe('/api/admin/homepage-featured-images');
     expect(requestAt(fetchMock, 1).init.body).toBeInstanceOf(FormData);
     expect(new Headers(requestAt(fetchMock, 1).init.headers).has('Content-Type')).toBe(false);
-    expect(requestAt(fetchMock, 2).url.pathname).toBe('/api/admin/homepage-banners/order');
+    expect(requestAt(fetchMock, 2).url.pathname).toBe('/api/admin/homepage-featured-images/order');
     expect(JSON.parse(String(requestAt(fetchMock, 2).init.body))).toEqual({ ids: [3, 1, 2] });
-    expect(requestAt(fetchMock, 3).url.pathname).toBe('/api/admin/homepage-banners/3');
+    expect(requestAt(fetchMock, 3).url.pathname).toBe('/api/admin/homepage-featured-images/3');
     expect(requestAt(fetchMock, 3).init.method).toBe('DELETE');
+    expectBearer(requestAt(fetchMock, 3).init);
+  });
+
+  it('maps homepage featured-group composition to the admin contracts', async () => {
+    const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: [] });
+    const request = { title: '训练方法', articleIds: [11, 12, 13] };
+
+    await listHomepageFeaturedGroups('token');
+    await searchHomepageFeaturedArticleCandidates('token', '复盘');
+    await createHomepageFeaturedGroup('token', request);
+    await updateHomepageFeaturedGroup('token', 7, request);
+    await reorderHomepageFeaturedGroups('token', [7, 3]);
+    await deleteHomepageFeaturedGroup('token', 7);
+
+    expect(requestAt(fetchMock, 0).url.pathname).toBe('/api/admin/homepage-featured-groups');
+    expect(requestAt(fetchMock, 1).url.pathname).toBe('/api/admin/homepage-featured-groups/candidates');
+    expect(requestAt(fetchMock, 1).url.searchParams.get('query')).toBe('复盘');
+    expect(requestAt(fetchMock, 2).init.method).toBe('POST');
+    expect(JSON.parse(String(requestAt(fetchMock, 2).init.body))).toEqual(request);
+    expect(requestAt(fetchMock, 3).url.pathname).toBe('/api/admin/homepage-featured-groups/7');
+    expect(requestAt(fetchMock, 3).init.method).toBe('PUT');
+    expect(JSON.parse(String(requestAt(fetchMock, 4).init.body))).toEqual({ ids: [7, 3] });
+    expect(requestAt(fetchMock, 5).init.method).toBe('DELETE');
+    expectBearer(requestAt(fetchMock, 5).init);
   });
 });

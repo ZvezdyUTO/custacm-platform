@@ -6,15 +6,14 @@ import { describe, expect, it } from 'vitest';
 
 const stylesEntry = readFileSync(resolve(cwd(), 'src/styles.css'), 'utf8');
 const redesignCss = readFileSync(resolve(cwd(), 'src/styles/training-redesign.css'), 'utf8');
-const darkCss = readFileSync(resolve(cwd(), 'src/styles/dark.css'), 'utf8');
 const viewSource = readFileSync(resolve(cwd(), 'src/views/TrainingView.vue'), 'utf8');
 const loginSource = readFileSync(resolve(cwd(), 'src/components/LoginPanel.vue'), 'utf8');
 const loginFooterSource = readFileSync(resolve(cwd(), 'src/components/LoginFooter.vue'), 'utf8');
 
 describe('Training visual redesign contract', () => {
-  it('loads generated tokens first and keeps dark overrides last', () => {
+  it('loads generated tokens first without a switchable dark override', () => {
     expect(stylesEntry.indexOf('./styles/tokens.css')).toBeLessThan(stylesEntry.indexOf('./styles/foundation.css'));
-    expect(stylesEntry.indexOf('./styles/training-redesign.css')).toBeLessThan(stylesEntry.indexOf('./styles/dark.css'));
+    expect(stylesEntry).not.toContain('./styles/dark.css');
   });
 
   it('limits glass styling to approved floating surfaces', () => {
@@ -28,7 +27,7 @@ describe('Training visual redesign contract', () => {
 
   it('uses shared motion tokens for the route transition', () => {
     expect(viewSource).toContain('<Transition name="route-fade" mode="out-in">');
-    expect(redesignCss).toMatch(/\.route-fade-enter-active,[\s\S]*var\(--duration-theme\)[\s\S]*var\(--ease-standard\)/);
+    expect(redesignCss).toMatch(/\.route-fade-enter-active,[\s\S]*var\(--duration-medium\)[\s\S]*var\(--ease-standard\)/);
   });
 
   it('uses the centered account-style login without changing the navigation shell', () => {
@@ -54,9 +53,7 @@ describe('Training visual redesign contract', () => {
     expect(redesignCss).toContain('--login-mark-accent: color-mix');
     expect(redesignCss).toMatch(/\.login-brand-mark \{[\s\S]*box-shadow: 0 10px 32px color-mix\(in srgb, var\(--color-text\) 8%, transparent\);/);
     expect(redesignCss).not.toMatch(/\.login-brand-mark \{[\s\S]*0 0 96px 28px/);
-    expect(darkCss).toMatch(/html\.dark \.login-brand-mark[\s\S]*0 0 220px 82px/);
-    expect(darkCss).toContain('filter: brightness(1.1) saturate(1.04) contrast(1.02)');
-    expect(redesignCss).toMatch(/html:not\(\.dark\) \.training-site\.is-login-page \.login-submit[\s\S]*background: #c9962e;/);
+    expect(redesignCss).toMatch(/\.training-site\.is-login-page \.login-submit[\s\S]*background: #c9962e;/);
     expect(redesignCss).toMatch(/\.login-submit:hover:not\(:disabled\)[\s\S]*background: #a87a1f;/);
   });
 });

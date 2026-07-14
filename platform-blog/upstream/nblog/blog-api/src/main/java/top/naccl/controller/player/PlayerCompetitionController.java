@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import top.naccl.model.dto.CompetitionAchievementOrderRequest;
 import top.naccl.model.dto.CompetitionAchievementVisibilityRequest;
 import top.naccl.model.vo.Result;
 import top.naccl.service.CompetitionService;
@@ -47,5 +48,12 @@ public class PlayerCompetitionController {
 		competitionService.updateAchievementVisibility(
 				authentication.getName(), competitionId, awardId, request);
 		return Result.ok("奖项展示状态更新成功");
+	}
+
+	@PutMapping("/achievement-order")
+	public Result updateAchievementOrder(Authentication authentication,
+			@RequestBody CompetitionAchievementOrderRequest request) {
+		competitionService.updateAchievementOrder(authentication.getName(), request);
+		return Result.ok("奖项展示顺序更新成功");
 	}
 }

@@ -47,6 +47,8 @@
 		<result property="username" column="username"/>
 		<result property="displayNameSnapshot" column="display_name_snapshot"/>
 		<result property="displayName" column="display_name"/>
+		<result property="profileVisible" column="profile_visible"/>
+		<result property="profileSortOrder" column="profile_sort_order"/>
 	</resultMap>
 
 	<resultMap id="article" type="top.naccl.entity.CompetitionArticle">
@@ -70,6 +72,8 @@
 		<result property="rankPosition" column="rank_position"/>
 		<result property="rankTotal" column="rank_total"/>
 		<result property="awardName" column="award_name"/>
+		<result property="profileVisible" column="profile_visible"/>
+		<result property="profileOrder" column="profile_sort_order"/>
 	</resultMap>
 
 	<sql id="competitionColumns">
@@ -87,12 +91,15 @@
 		<if test="yearTo != null">
 			and c.competition_year &lt;= #{yearTo}
 		</if>
-		<if test="type != null">
-			and exists (
-				select 1
-				from competition_type_tag ctt
-				where ctt.competition_id = c.id and ctt.type = #{type}
-			)
+		<if test="categoryTypes != null and !categoryTypes.isEmpty()">
+			and (select count(*) from competition_type_tag ctt where ctt.competition_id = c.id)
+				= #{categoryTypeCount}
+			<foreach collection="categoryTypes" item="categoryType">
+				and exists (
+					select 1 from competition_type_tag ctt
+					where ctt.competition_id = c.id and ctt.type = #{categoryType}
+				)
+			</foreach>
 		</if>
 		order by c.competition_year desc, c.id desc
 	</select>
@@ -107,12 +114,15 @@
 		<if test="yearTo != null">
 			and c.competition_year &lt;= #{yearTo}
 		</if>
-		<if test="type != null">
-			and exists (
-				select 1
-				from competition_type_tag ctt
-				where ctt.competition_id = c.id and ctt.type = #{type}
-			)
+		<if test="categoryTypes != null and !categoryTypes.isEmpty()">
+			and (select count(*) from competition_type_tag ctt where ctt.competition_id = c.id)
+				= #{categoryTypeCount}
+			<foreach collection="categoryTypes" item="categoryType">
+				and exists (
+					select 1 from competition_type_tag ctt
+					where ctt.competition_id = c.id and ctt.type = #{categoryType}
+				)
+			</foreach>
 		</if>
 		order by c.deleted_at desc, c.id desc
 	</select>
@@ -359,38 +369,66 @@
 			and p.username = #{username}
 	</delete>
 
-	<select id="findAchievementProfileVisibility" resultType="java.lang.Boolean">
-		select car.profile_visible
+	<select id="findAchievementProfileStateForUpdate" resultMap="recipient">
+		select car.competition_id, car.award_id, car.participant_id,
+		car.profile_visible, car.profile_sort_order
 		from competition_award_recipient car
 		join competition_participant p
 			on p.id = car.participant_id and p.competition_id = car.competition_id
 		where car.competition_id = #{competitionId}
 			and car.award_id = #{awardId}
 			and p.username = #{username}
+		for update
 	</select>
 
 	<update id="updateAchievementProfileVisibility">
 		update competition_award_recipient car
 		join competition_participant p
 			on p.id = car.participant_id and p.competition_id = car.competition_id
-		set car.profile_visible = #{visible}
+		set car.profile_visible = #{visible}, car.profile_sort_order = #{profileSortOrder}
 		where car.competition_id = #{competitionId}
 			and car.award_id = #{awardId}
 			and p.username = #{username}
+	</update>
+
+	<select id="findVisibleAchievementOrdersForUpdate" resultMap="recipient">
+		select car.competition_id, car.award_id, car.participant_id,
+		car.profile_visible, car.profile_sort_order
+		from competition_award_recipient car
+		join competition_participant p
+			on p.id = car.participant_id and p.competition_id = car.competition_id
+		join competition c on c.id = car.competition_id and c.deleted_at is null
+		where p.username = #{username} and car.profile_visible = true
+		order by car.profile_sort_order, car.award_id
+		for update
+	</select>
+
+	<update id="updateAchievementProfileOrder">
+		update competition_award_recipient car
+		join competition_participant p
+			on p.id = car.participant_id and p.competition_id = car.competition_id
+		join competition c on c.id = car.competition_id and c.deleted_at is null
+		set car.profile_sort_order = #{profileSortOrder}
+		where car.award_id = #{awardId}
+			and p.username = #{username}
+			and car.profile_visible = true
 	</update>
 
 	<select id="findActiveAwardProjectionsByUsername" resultMap="awardFlat">
 		select c.id as competition_id, c.full_name as competition_full_name,
 		c.competition_year, ctt.type as competition_type,
 		a.id as award_id, a.award_mode, a.team_name, a.award_scope,
-		a.award_level, a.rank_position, a.rank_total, a.award_name, car.profile_visible
+		a.award_level, a.rank_position, a.rank_total, a.award_name,
+		car.profile_visible, car.profile_sort_order
 		from competition_participant p
 		join competition_award_recipient car on car.participant_id = p.id
 		join competition_award a on a.id = car.award_id
 		join competition c on c.id = a.competition_id and c.deleted_at is null
 		left join competition_type_tag ctt on ctt.competition_id = c.id
 		where p.username = #{username}
-		order by c.competition_year desc, c.id desc, a.id, ctt.type
+		order by car.profile_visible desc,
+		case when car.profile_visible then car.profile_sort_order end,
+		c.competition_year desc, c.id desc, a.id, ctt.type
 	</select>
 
 </mapper>

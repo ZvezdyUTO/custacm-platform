@@ -1,6 +1,6 @@
 <template>
 	<Teleport to="body">
-		<div v-if="visible" ref="viewer" class="managed-viewer" role="dialog" aria-modal="true" aria-label="文章图片预览"
+		<div v-if="visible" ref="viewer" class="managed-viewer" role="dialog" aria-modal="true" aria-label="图片预览"
 		     tabindex="-1" @mousedown.self="close" @keydown.esc.stop="close" @keydown.tab="trapTab">
 			<button class="viewer-close" type="button" aria-label="关闭图片预览" @click="close">×</button>
 			<div class="viewer-stage"><img :src="displayUrl" :alt="alt"></div>
@@ -29,7 +29,7 @@
 				this.displayUrl = thumbnailUrl
 				this.alt = alt
 				this.loading = false
-				this.originalLoaded = false
+				this.originalLoaded = !originalUrl || originalUrl === thumbnailUrl
 				this.errorMessage = ''
 				this.visible = true
 				this.$nextTick(() => focusDialog(this.$refs.viewer, '.viewer-close'))
@@ -54,12 +54,12 @@
 </script>
 
 <style scoped>
-	.managed-viewer { position: fixed; z-index: 10070; inset: 0; display: grid; grid-template-rows: 1fr auto auto; place-items: center; background: rgba(4,10,15,.92); padding: 56px 24px 24px; color: #fff; }
+	.managed-viewer { position: fixed; z-index: 10070; inset: 0; display: grid; grid-template-rows: 1fr auto auto; place-items: center; background: color-mix(in srgb, var(--anthropic-dark) 92%, transparent); padding: 56px 24px 24px; color: var(--anthropic-ivory-light); }
 	.viewer-stage { display: grid; place-items: center; width: 100%; height: 100%; min-height: 0; }
 	.viewer-stage img { display: block; max-width: min(94vw, 1600px); max-height: 76vh; object-fit: contain; }
-	.viewer-close { position: absolute; top: 16px; right: 22px; border: 0; background: transparent; color: #fff; font-size: 36px; }
-	.viewer-toolbar { display: flex; align-items: center; gap: 16px; margin-top: 16px; color: #c9d1d8; font-size: 12px; }
-	.viewer-toolbar button { border: 1px solid rgba(255,255,255,.55); background: #fff; color: #182b3b; padding: 9px 16px; font-weight: 800; }
+	.viewer-close { position: absolute; top: 16px; right: 22px; border: 0; background: transparent; color: var(--anthropic-ivory-light); font-size: 36px; }
+	.viewer-toolbar { display: flex; align-items: center; gap: 16px; margin-top: 16px; color: var(--anthropic-cloud-light); font-size: 12px; }
+	.viewer-toolbar button { border: 1px solid var(--anthropic-cloud-medium); background: var(--anthropic-ivory-light); color: var(--anthropic-slate-dark); padding: 9px 16px; font-weight: 800; }
 	.viewer-toolbar button:disabled { opacity: .65; }
-	.managed-viewer p { margin: 10px 0 0; color: #ffb5b5; font-size: 12px; }
+	.managed-viewer p { margin: 10px 0 0; color: #ebcece; font-size: 12px; }
 </style>

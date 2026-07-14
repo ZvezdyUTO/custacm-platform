@@ -203,29 +203,6 @@
         </if>
     </select>
 
-    <resultMap id="randomBlog" type="top.naccl.model.vo.RandomBlog">
-        <id property="id" column="id"/>
-        <result property="title" column="title"/>
-		<result property="description" column="description"/>
-        <result property="createTime" column="create_time"/>
-        <result property="firstPicture" column="first_picture"/>
-		<result property="categoryName" column="category_name"/>
-		<result property="top" column="is_top"/>
-    </resultMap>
-
-	<!--首页精选区：置顶优先、管理员精选其次，再以最新文章补足三篇。-->
-	<select id="getFeaturedBlogList" resultMap="randomBlog">
-		select b.id, b.title,
-		       coalesce(nullif(trim(b.description), ''), nullif(trim(left(b.content, 280)), ''), '暂无简介') as description,
-		       b.create_time, b.first_picture, b.is_top, c.category_name
-		from blog as b left join category as c on b.category_id=c.id
-		where b.is_published=true and b.deleted_at is null
-        <if test="includeInternal == false">
-		  and b.is_internal=false
-        </if>
-		order by b.is_top desc, b.is_recommend desc, b.update_time desc, b.id desc limit #{limitNum}
-    </select>
-
     <!--按id删除博客-->
     <delete id="deleteBlogById">
         delete from blog where id=#{id}
@@ -275,11 +252,6 @@
         #{top}, #{createTime}, #{updateTime}, #{words}, #{readTime}, #{category.id}, #{user.id})
     </insert>
 
-    <!--更新博客推荐状态-->
-    <update id="updateBlogRecommendById">
-		update blog set is_recommend=#{recommend} where id=#{blogId} and deleted_at is null
-    </update>
-
     <!--按id和作者查询博客-->
     <select id="getBlogByIdAndUserId" resultMap="blog">
         select b.id, b.title, b.first_picture, b.first_picture_asset_id, b.content, b.description, b.is_recommend, b.is_published, b.is_internal, b.is_appreciation,
@@ -300,6 +272,7 @@
         <result property="authorUsername" column="author_username"/>
         <result property="title" column="title"/>
         <result property="firstPicture" column="first_picture"/>
+		<result property="description" column="description"/>
         <result property="content" column="content"/>
         <result property="internal" column="is_internal"/>
         <result property="appreciation" column="is_appreciation"/>
@@ -323,7 +296,7 @@
 
     <!--按id查询公开博客-->
     <select id="getBlogByIdAndIsPublished" resultMap="blogDetail">
-		select b.id, b.title, b.first_picture, b.content, b.is_internal, b.is_appreciation, b.is_comment_enabled, b.is_top,
+		select b.id, b.title, b.first_picture, b.description, b.content, b.is_internal, b.is_appreciation, b.is_comment_enabled, b.is_top,
         b.create_time, b.update_time, b.words, b.read_time,
         c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar,
         t.tag_name as tag_name, t.color
@@ -334,7 +307,7 @@
 
     <!--按id查询仅登录用户可见的已发布博客-->
     <select id="getInternalBlogById" resultMap="blogDetail">
-		select b.id, b.title, b.first_picture, b.content, b.is_internal, b.is_appreciation, b.is_comment_enabled, b.is_top,
+		select b.id, b.title, b.first_picture, b.description, b.content, b.is_internal, b.is_appreciation, b.is_comment_enabled, b.is_top,
         b.create_time, b.update_time, b.words, b.read_time,
         c.category_name, c.color as category_color, u.username as author_username, coalesce(u.nickname,'已注销用户') as author_nickname, u.avatar as author_avatar,
         t.tag_name as tag_name, t.color

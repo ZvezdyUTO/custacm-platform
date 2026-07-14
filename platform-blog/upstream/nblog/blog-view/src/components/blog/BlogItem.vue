@@ -1,6 +1,7 @@
 <template>
-	<div>
-		<div class="content-panel m-padded-tb-large m-margin-bottom-big m-box blog-list-card" v-for="item in blogList" :key="item.id">
+	<div class="blog-item-collection" :class="{'is-grid': layout === 'grid'}">
+		<article class="content-panel m-padded-tb-large m-margin-bottom-big m-box blog-list-card" v-for="item in blogList" :key="item.id" :style="cardStyle(item)">
+			<a v-if="layout === 'grid'" class="list-card-hit-area" :href="`/blog/${item.id}`" :aria-label="`阅读文章：${item.title}`" @click.prevent="toBlog(item)"></a>
 			<div class="featured-corner-mark" v-if="item.top" aria-label="置顶文章">
 				<AppIcon name="arrow-up-circle" />
 			</div>
@@ -15,7 +16,7 @@
 								<AppIcon name="folder" /><span class="m-text-500">{{ item.category.name }}</span>
 							</router-link>
 							<div class="typo line-numbers match-braces rainbow-braces list-card-description" v-lazy-container="{selector: 'img'}" v-viewer v-html="sanitizeHtml(item.description)"></div>
-							<div class="list-card-action">
+							<div v-if="layout !== 'grid'" class="list-card-action">
 								<a href="javascript:;" @click.prevent="toBlog(item)" class="read-more-button">阅读全文</a>
 							</div>
 						</div>
@@ -28,6 +29,10 @@
 										<span v-if="item.authorUsername">@{{ item.authorUsername }}</span>
 									</div>
 								</div>
+								<div v-if="layout === 'grid' && item.tags.length" class="list-author-tags" aria-label="文章标签">
+									<router-link :to="`/tag/${tag.name}`" class="taxonomy-chip list-author-tag" :style="taxonomyStyle(tag.color)" v-for="(tag,index) in item.tags" :key="index">{{ tag.name }}</router-link>
+									<span class="list-author-tags-more" aria-label="还有更多标签" title="还有更多标签" hidden>…</span>
+								</div>
 								<div class="list-article-meta" aria-label="文章信息">
 									<span class="list-article-date"><AppIcon name="calendar" />{{ $filters.dateFormat(item.createTime, 'YYYY-MM-DD')}}</span>
 									<span class="list-article-stats">
@@ -38,48 +43,174 @@
 							<figure v-if="item.firstPicture" class="list-card-cover">
 								<img :src="item.firstPicture" :alt="`${item.title} 首图`" loading="lazy" decoding="async">
 							</figure>
+							<figure v-else-if="layout === 'grid'" class="list-card-cover list-card-cover-empty" :aria-label="`${item.title} 暂无首图`">
+								<div><AppIcon name="file" :size="28" /><span>暂无首图</span></div>
+							</figure>
 						</aside>
 					</div>
-					<!--横线-->
-					<div class="section-divider m-margin-lr-no"></div>
-					<!--标签-->
-					<div class="row m-padded-tb-no">
-						<div class="column m-padding-left-no">
-							<router-link :to="`/tag/${tag.name}`" class="taxonomy-chip m-text-500 m-margin-small" :style="taxonomyStyle(tag.color)" v-for="(tag,index) in item.tags" :key="index">{{ tag.name }}</router-link>
+					<template v-if="layout !== 'grid'">
+						<!--横线-->
+						<div class="section-divider m-margin-lr-no"></div>
+						<!--标签-->
+						<div class="row m-padded-tb-no list-card-tags">
+							<div class="column m-padding-left-no">
+								<router-link :to="`/tag/${tag.name}`" class="taxonomy-chip m-text-500 m-margin-small" :style="taxonomyStyle(tag.color)" v-for="(tag,index) in item.tags" :key="index">{{ tag.name }}</router-link>
+							</div>
 						</div>
-					</div>
+					</template>
 				</div>
 			</div>
-		</div>
+		</article>
 	</div>
 </template>
 
 <script>
 	import {sanitizeHtml} from '@/util/sanitizeHtml'
+
+	export function countVisibleTags(widths, availableWidth, ellipsisWidth, gap) {
+		const totalWidth = widths.reduce((total, width) => total + width, 0) + Math.max(0, widths.length - 1) * gap
+		if (totalWidth <= availableWidth) return {count: widths.length, overflow: false}
+
+		const tagBudget = Math.max(0, availableWidth - ellipsisWidth - gap)
+		let usedWidth = 0
+		let count = 0
+		for (const width of widths) {
+			const nextWidth = usedWidth + (count > 0 ? gap : 0) + width
+			if (nextWidth > tagBudget) break
+			usedWidth = nextWidth
+			count += 1
+		}
+		return {count, overflow: true}
+	}
+
 	export default {
 		name: "BlogItem",
 		props: {
 			blogList: {
 				type: Array,
 				required: true
+			},
+			layout: {
+				type: String,
+				default: 'list',
+				validator: value => ['list', 'grid'].includes(value)
 			}
 		},
 		methods: {
 			sanitizeHtml,
+			measureTagRow(row) {
+				const tags = [...row.querySelectorAll('.list-author-tag')]
+				const more = row.querySelector('.list-author-tags-more')
+				if (!tags.length || !more) return
+
+				tags.forEach(tag => { tag.hidden = false })
+				more.hidden = false
+				const availableWidth = row.clientWidth
+				if (!availableWidth) {
+					more.hidden = true
+					return
+				}
+
+				const rowStyle = window.getComputedStyle(row)
+				const gap = Number.parseFloat(rowStyle.columnGap || rowStyle.gap) || 0
+				const widths = tags.map(tag => tag.getBoundingClientRect().width)
+				const ellipsisWidth = more.getBoundingClientRect().width
+				const result = countVisibleTags(widths, availableWidth, ellipsisWidth, gap)
+				tags.forEach((tag, index) => { tag.hidden = index >= result.count })
+				more.hidden = !result.overflow
+			},
+			observeTagRows() {
+				const rows = [...this.$el.querySelectorAll('.list-author-tags')]
+				if (this.tagResizeObserver) this.tagResizeObserver.disconnect()
+				rows.forEach(row => {
+					this.measureTagRow(row)
+					if (this.tagResizeObserver) this.tagResizeObserver.observe(row)
+				})
+			},
 			taxonomyStyle(color) { return {backgroundColor: color || '#8B1E3F', color: '#fff'} },
+			cardStyle(item) { return {'--category-color': item.category?.color || '#17324d'} },
 			useDefaultAvatar(event) {
 				if (!event.target.src.endsWith('/img/default-avatar.jpg')) event.target.src = '/img/default-avatar.jpg'
 			},
 			toBlog(blog) {
 				this.$store.dispatch('goBlogPage', blog)
 			}
+		},
+		mounted() {
+			if (typeof ResizeObserver !== 'undefined') {
+				this.tagResizeObserver = new ResizeObserver(entries => {
+					entries.forEach(entry => this.measureTagRow(entry.target))
+				})
+			}
+			this.$nextTick(this.observeTagRows)
+		},
+		updated() {
+			this.$nextTick(this.observeTagRows)
+		},
+		beforeUnmount() {
+			if (this.tagResizeObserver) this.tagResizeObserver.disconnect()
 		}
 	}
 </script>
 
 <style scoped>
+	.blog-item-collection.is-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		align-items: stretch;
+		gap: 1.5rem;
+		margin-bottom: 3rem;
+	}
+
 	.blog-list-card {
 		container-type: inline-size;
+	}
+
+	.blog-item-collection.is-grid .blog-list-card {
+		display: flex;
+		min-width: 0;
+		height: 100%;
+		margin-bottom: 0 !important;
+		overflow: hidden;
+		padding: 0 !important;
+		border-top: 4px solid var(--category-color);
+	}
+
+	.list-card-hit-area {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		border-radius: inherit;
+		cursor: pointer;
+	}
+
+	.list-card-hit-area:focus-visible {
+		outline: 3px solid var(--color-focus-ring, #0071e3);
+		outline-offset: -4px;
+	}
+
+	.blog-item-collection.is-grid .list-card-title a,
+	.blog-item-collection.is-grid .list-card-category,
+	.blog-item-collection.is-grid .list-author-tag {
+		position: relative;
+		z-index: 2;
+	}
+
+	.blog-item-collection.is-grid .featured-corner-mark {
+		pointer-events: none;
+	}
+
+	.blog-item-collection.is-grid .blog-list-content,
+	.blog-item-collection.is-grid .blog-list-grid {
+		width: 100%;
+		min-width: 0;
+		height: 100%;
+	}
+
+	.blog-item-collection.is-grid .blog-list-grid {
+		display: flex;
+		margin: 0 !important;
+		flex-direction: column;
 	}
 
 	.list-card-layout {
@@ -190,7 +321,7 @@
 
 	.list-article-meta {
 		display: grid;
-		min-width: max-content;
+		min-width: 0;
 		flex: 0 0 auto;
 		justify-items: start;
 		margin-left: auto;
@@ -296,6 +427,170 @@
 		padding: 0.75rem 0 0.2rem;
 	}
 
+	.blog-item-collection.is-grid .list-card-layout {
+		display: grid;
+		min-height: 0;
+		flex: 1 1 auto;
+		grid-template-areas:
+			"cover"
+			"main"
+			"author";
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: auto minmax(0, 1fr) auto;
+		gap: 0;
+		padding: 0;
+	}
+
+	.blog-item-collection.is-grid .list-card-main {
+		grid-area: main;
+		padding: 1.35rem 1.5rem 1.15rem;
+	}
+
+	.blog-item-collection.is-grid .list-card-aside {
+		display: contents;
+	}
+
+	.blog-item-collection.is-grid .list-card-cover {
+		grid-area: cover;
+		border: 0;
+		border-radius: 0;
+	}
+
+	.blog-item-collection.is-grid .list-card-cover-empty {
+		display: grid;
+		place-items: center;
+		background:
+			linear-gradient(135deg, color-mix(in srgb, var(--category-color) 10%, transparent), transparent 58%),
+			var(--color-surface-subtle, #fafafc);
+		color: var(--color-text-faint, #7a7a80);
+	}
+
+	.blog-item-collection.is-grid .list-card-cover-empty > div {
+		display: inline-flex;
+		align-items: center;
+		flex-direction: column;
+		gap: 0.55rem;
+		font-size: 0.78rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+	}
+
+	.blog-item-collection.is-grid .list-card-category {
+		order: 1;
+		margin: 0 0 0.85rem !important;
+		padding: 0.45rem 0.72rem;
+		border-radius: 999px;
+		font-size: 0.78rem;
+	}
+
+	.blog-item-collection.is-grid .list-card-title {
+		order: 2;
+		margin: 0 0 0.85rem !important;
+		font-size: clamp(1.3rem, 1.45vw, 1.65rem) !important;
+	}
+
+	.blog-item-collection.is-grid .list-card-title a {
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		max-height: 2.5em;
+	}
+
+	.blog-item-collection.is-grid .list-card-description {
+		order: 3;
+		max-height: 4.8em;
+		overflow: hidden;
+		padding: 0 !important;
+		color: var(--color-text-muted, #606066);
+		font-size: 0.92rem;
+		line-height: 1.6;
+	}
+
+	.blog-item-collection.is-grid .list-card-description :deep(> :first-child) {
+		margin-top: 0;
+	}
+
+	.blog-item-collection.is-grid .list-card-description :deep(> :last-child) {
+		margin-bottom: 0;
+	}
+
+	.blog-item-collection.is-grid .list-author-card {
+		grid-area: author;
+		width: auto;
+		min-width: 0;
+		margin: 0 1.5rem 1.25rem;
+		padding: 0.75rem 0;
+		background: transparent;
+		border: 0;
+		border-top: 1px solid var(--color-border, #d9d9de);
+		border-radius: 0;
+		box-shadow: none;
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
+
+	.blog-item-collection.is-grid .list-author-identity {
+		flex: 0 1 42%;
+	}
+
+	.blog-item-collection.is-grid .list-author-tags {
+		display: flex;
+		min-width: 0;
+		flex: 1 1 auto;
+		align-items: center;
+		gap: 0.35rem;
+		overflow: hidden;
+	}
+
+	.blog-item-collection.is-grid .list-author-tag {
+		min-width: max-content;
+		max-width: 7rem;
+		flex: 0 0 auto;
+		overflow: hidden;
+		padding: 0.42em 0.65em;
+		font-size: 0.7rem;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.blog-item-collection.is-grid .list-author-tags-more {
+		display: inline-flex;
+		min-width: 1.5rem;
+		min-height: 1.75rem;
+		flex: 0 0 1.5rem;
+		align-items: center;
+		justify-content: center;
+		color: var(--catalog-muted, #87867f);
+		font-size: 1rem;
+		font-weight: 700;
+		line-height: 1;
+	}
+
+	.blog-item-collection.is-grid .list-author-tag[hidden],
+	.blog-item-collection.is-grid .list-author-tags-more[hidden] {
+		display: none;
+	}
+
+	.blog-item-collection.is-grid .list-author-avatar {
+		width: 44px;
+		height: 44px;
+		flex-basis: 44px;
+	}
+
+	.blog-item-collection.is-grid .list-author-copy strong {
+		font-size: 0.9rem;
+	}
+
+	.blog-item-collection.is-grid .list-author-copy span,
+	.blog-item-collection.is-grid .list-article-meta {
+		font-size: 0.72rem;
+	}
+
+	@media (max-width: 900px) {
+		.blog-item-collection.is-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+
 	@container (max-width: 900px) {
 		.list-card-layout { gap: 1rem; }
 		.list-author-card { gap: 0.65rem; }
@@ -309,6 +604,7 @@
 		.list-card-cover { max-width: 100%; }
 		.list-author-card { align-items: flex-start; flex-direction: column; gap: 0.75rem; }
 		.list-author-identity { width: 100%; }
+		.blog-item-collection.is-grid .list-author-tags { width: 100%; }
 		.list-article-meta {
 			width: 100%;
 			padding: 0.75rem 0 0;

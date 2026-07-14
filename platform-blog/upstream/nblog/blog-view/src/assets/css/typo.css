@@ -188,10 +188,10 @@
     color: #e4305e;
     background: #fdf2f5;
     border-radius: 3px;
-    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-family: var(--font-mono);
 }
 
-/* 块级代码保持透明背景，由 pre 统一承载当前明暗主题。 */
+/* 块级代码保持透明背景，由 pre 统一承载固定浅色代码表面。 */
 .typo pre > code {
     margin: 0;
     border: 0;
@@ -260,9 +260,15 @@
     overscroll-behavior-x: contain;
     scrollbar-color: #7891a8 #e5ebf0;
     scrollbar-width: thin;
+    font-family: var(--font-mono);
+    font-variant-ligatures: contextual common-ligatures;
     font-size: 14px;
     border-radius: 8px;
     padding: 1.25rem 1.5rem;
+}
+
+.typo pre code {
+    font-family: inherit;
 }
 
 /* 长代码、表格、公式或无法断行的原始 Markdown 内容只在自身区域横向滚动，不能撑破文章列。 */
@@ -314,7 +320,7 @@
     background: #496983;
 }
 
-/* 日间模式采用低眩光浅色语法主题，保持代码区与正文画布一致。 */
+/* 采用低眩光浅色语法配色，保持代码区与正文画布一致。 */
 .typo pre[class*="language-"] {
     border: 1px solid #d0d7de;
     background: #f6f8fa;

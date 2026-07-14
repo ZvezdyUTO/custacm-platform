@@ -25,10 +25,14 @@ import java.util.List;
 @Repository
 public interface CompetitionMapper {
 	List<Competition> findActiveCompetitions(@Param("yearFrom") Integer yearFrom,
-			@Param("yearTo") Integer yearTo, @Param("type") CompetitionType type);
+			@Param("yearTo") Integer yearTo,
+			@Param("categoryTypes") Collection<CompetitionType> categoryTypes,
+			@Param("categoryTypeCount") Integer categoryTypeCount);
 
 	List<Competition> findRecycleBinCompetitions(@Param("yearFrom") Integer yearFrom,
-			@Param("yearTo") Integer yearTo, @Param("type") CompetitionType type,
+			@Param("yearTo") Integer yearTo,
+			@Param("categoryTypes") Collection<CompetitionType> categoryTypes,
+			@Param("categoryTypeCount") Integer categoryTypeCount,
 			@Param("cutoff") Date cutoff);
 
 	Competition findActiveCompetitionById(Long id);
@@ -90,12 +94,17 @@ public interface CompetitionMapper {
 	int unbindOwnedArticle(@Param("participantId") Long participantId,
 			@Param("username") String username, @Param("blogId") Long blogId);
 
-	Boolean findAchievementProfileVisibility(@Param("competitionId") Long competitionId,
+	CompetitionAwardRecipient findAchievementProfileStateForUpdate(@Param("competitionId") Long competitionId,
 			@Param("awardId") Long awardId, @Param("username") String username);
 
 	int updateAchievementProfileVisibility(@Param("competitionId") Long competitionId,
 			@Param("awardId") Long awardId, @Param("username") String username,
-			@Param("visible") boolean visible);
+			@Param("visible") boolean visible, @Param("profileSortOrder") Long profileSortOrder);
+
+	List<CompetitionAwardRecipient> findVisibleAchievementOrdersForUpdate(String username);
+
+	int updateAchievementProfileOrder(@Param("username") String username,
+			@Param("awardId") Long awardId, @Param("profileSortOrder") Long profileSortOrder);
 
 	List<CompetitionAwardFlatProjection> findActiveAwardProjectionsByUsername(String username);
 }

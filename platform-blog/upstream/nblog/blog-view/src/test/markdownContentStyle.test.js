@@ -1,6 +1,10 @@
 // Author: huangbingrui.awa
 import {describe, expect, it} from 'vitest'
-import typoCss from '../assets/css/typo.css?raw'
+import {readFileSync} from 'node:fs'
+import {resolve} from 'node:path'
+
+const baseCss = readFileSync(resolve(process.cwd(), 'src/assets/css/base.css'), 'utf8')
+const typoCss = readFileSync(resolve(process.cwd(), 'src/assets/css/typo.css'), 'utf8')
 
 describe('Markdown content styles', () => {
 	it('keeps ordered and unordered list markers inside article content', () => {
@@ -21,5 +25,12 @@ describe('Markdown content styles', () => {
 		for (const item of listItems) {
 			expect(getComputedStyle(item).overflowX).not.toBe('auto')
 		}
+	})
+
+	it('uses the bundled JetBrains Mono family for inline and fenced code', () => {
+		expect(baseCss).toContain('--font-mono: "JetBrains Mono Variable"')
+		expect(typoCss).toMatch(/\.typo :not\(pre\) > code \{[\s\S]*font-family: var\(--font-mono\);/)
+		expect(typoCss).toMatch(/\.typo pre \{[\s\S]*font-family: var\(--font-mono\);/)
+		expect(typoCss).toMatch(/\.typo pre code \{[\s\S]*font-family: inherit;/)
 	})
 })

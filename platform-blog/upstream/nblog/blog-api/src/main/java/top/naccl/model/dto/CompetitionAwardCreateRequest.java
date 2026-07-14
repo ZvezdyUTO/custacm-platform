@@ -8,9 +8,7 @@ import java.util.List;
 public record CompetitionAwardCreateRequest(
 		String awardMode,
 		String teamName,
-		String awardScope,
-		Integer awardLevel,
-		String awardName,
+		String awardTier,
 		Integer rankPosition,
 		Integer rankTotal,
 		List<String> recipientUsernames

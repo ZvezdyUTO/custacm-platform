@@ -88,8 +88,12 @@ class PlayerAvatarServiceTest {
 				31L,
 				"2025 年中国高校计算机大赛-团体程序设计天梯赛",
 				2025,
+				"GPLT_NATIONAL",
+				"GPLT 团体程序设计天梯赛（国赛）",
 				List.of(new CompetitionResponse.Type("GPLT", "团体程序设计天梯赛")),
 				42L,
+				"SECOND_PRIZE",
+				"二等奖",
 				"TEAM",
 				"团队",
 				"custacm",
@@ -97,10 +101,11 @@ class PlayerAvatarServiceTest {
 				"国家级",
 				2,
 				"二等奖",
-				8,
-				300,
-				"(8/300)",
-				true
+				null,
+				null,
+				null,
+				true,
+				1L
 		);
 	}
 }

@@ -13,7 +13,6 @@ import top.naccl.mapper.BlogMapper;
 import top.naccl.model.vo.BlogDetail;
 import top.naccl.model.vo.BlogInfo;
 import top.naccl.model.vo.PageResult;
-import top.naccl.model.vo.RandomBlog;
 import top.naccl.model.vo.SearchBlog;
 import top.naccl.service.BlogService;
 import top.naccl.service.RedisService;
@@ -35,8 +34,6 @@ public class BlogServiceImpl implements BlogService {
 	TagService tagService;
 	@Autowired
 	RedisService redisService;
-	//首页精选区固定展示三篇：置顶和精选优先，最新文章补足。
-	private static final int featuredBlogLimitNum = 3;
 	//每页显示5条博客简介
 	private static final int pageSize = 5;
 	//博客简介列表排序方式
@@ -103,14 +100,6 @@ public class BlogServiceImpl implements BlogService {
 		return blogInfos;
 	}
 
-	@Override
-	public List<RandomBlog> getFeaturedBlogList(boolean includeInternal) {
-		List<RandomBlog> blogs = blogMapper.getFeaturedBlogList(featuredBlogLimitNum, includeInternal);
-		blogs.forEach(blog -> blog.setDescription(MarkdownUtils.markdownToHtmlExtensions(
-				blog.getDescription() == null ? "" : blog.getDescription())));
-		return blogs;
-	}
-
 	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void deleteBlogTagByBlogId(Long blogId) {
@@ -132,14 +121,6 @@ public class BlogServiceImpl implements BlogService {
 	public void saveBlogTag(Long blogId, Long tagId) {
 		if (blogMapper.saveBlogTag(blogId, tagId) != 1) {
 			throw new PersistenceException("维护博客标签关联表失败");
-		}
-	}
-
-	@Transactional(rollbackFor = Exception.class)
-	@Override
-	public void updateBlogRecommendById(Long blogId, Boolean recommend) {
-		if (blogMapper.updateBlogRecommendById(blogId, recommend) != 1) {
-			throw new PersistenceException("操作失败");
 		}
 	}
 

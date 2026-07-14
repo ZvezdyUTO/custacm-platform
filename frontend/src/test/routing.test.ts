@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import router from '../router';
 import { navigateToBlogReturnPath, safeReturnPath } from '../routing';
 
 describe('safe training return paths', () => {
@@ -15,6 +16,7 @@ describe('safe training return paths', () => {
     expect(safeReturnPath('/training/admin/appearance')).toBe('/training/admin/appearance');
     expect(safeReturnPath('/training/admin/articles')).toBe('/training/admin/articles');
     expect(safeReturnPath('/training/admin/categories')).toBe('/training/admin/categories');
+    expect(safeReturnPath('/training/admin/competitions')).toBe('/training/admin/competitions');
   });
 
 	it('keeps the supported Blog writing return paths', () => {
@@ -28,7 +30,15 @@ describe('safe training return paths', () => {
 		expect(safeReturnPath('/profile?tab=articles')).toBe('/profile?tab=articles');
 		expect(safeReturnPath('/category/题解')).toBe('/category/%E9%A2%98%E8%A7%A3');
 		expect(safeReturnPath('/tag/dp')).toBe('/tag/dp');
+		expect(safeReturnPath('/competitions?type=ICPC')).toBe('/competitions?type=ICPC');
+		expect(safeReturnPath('/competitions/42#awards')).toBe('/competitions/42#awards');
 	});
+
+  it('registers the competition admin route with the dedicated section', () => {
+    const resolved = router.resolve('/admin/competitions');
+    expect(resolved.name).toBe('admin-competitions');
+    expect(resolved.meta).toMatchObject({ page: 'admin', adminSection: 'competitions' });
+  });
 
   it('preserves a supported admin section', () => {
     expect(safeReturnPath('/training/admin?section=training')).toBe(
@@ -44,6 +54,9 @@ describe('safe training return paths', () => {
 		'/friends',
 		'/moments',
 		'/write/not-an-id',
+		'/competitions/0',
+		'/competitions/not-an-id',
+		'/competitions/42/edit',
   ])('rejects an unsupported or non-canonical path: %s', (value) => {
     expect(safeReturnPath(value)).toBe('/training/multiple');
   });

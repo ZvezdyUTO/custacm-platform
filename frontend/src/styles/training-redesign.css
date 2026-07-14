@@ -134,29 +134,11 @@
   color: var(--color-text);
 }
 
-.blog-theme-toggle,
 .blog-account-link,
 .blog-account-summary,
 .password-change-form input,
 .login-card input {
   border-radius: var(--radius-control);
-}
-
-.theme-switch-track {
-  border-color: color-mix(in srgb, var(--color-action) 28%, var(--color-border));
-  background: color-mix(in srgb, var(--color-action) 12%, var(--color-surface));
-  transition: border-color var(--duration-theme) var(--ease-standard), background-color var(--duration-theme) var(--ease-standard);
-}
-
-.theme-switch-thumb {
-  background: var(--color-surface);
-  color: var(--color-action);
-  transition: transform var(--duration-theme) var(--ease-standard), background-color var(--duration-theme) var(--ease-standard), color var(--duration-theme) var(--ease-standard);
-}
-
-.theme-switch-track.is-dark .theme-switch-thumb {
-  background: var(--color-action);
-  color: var(--color-on-action);
 }
 
 .blog-avatar {
@@ -175,7 +157,7 @@
 
 .route-fade-enter-active,
 .route-fade-leave-active {
-  transition: opacity var(--duration-theme) var(--ease-standard), transform var(--duration-theme) var(--ease-standard);
+  transition: opacity var(--duration-medium) var(--ease-standard), transform var(--duration-medium) var(--ease-standard);
 }
 
 .route-fade-enter-from,
@@ -202,7 +184,7 @@
 .article-admin-list,
 .category-admin-card,
 .tag-admin-card,
-.homepage-banner-card {
+.homepage-featured-card {
   border-color: var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-surface);
@@ -469,14 +451,14 @@ html.login-scrollbar-hidden body::-webkit-scrollbar {
   background: var(--color-action-hover);
 }
 
-html:not(.dark) .training-site.is-login-page .login-submit {
+.training-site.is-login-page .login-submit {
   border-color: #c9962e;
   background: #c9962e;
   color: #1d1d1f;
 }
 
-html:not(.dark) .training-site.is-login-page .login-submit:hover:not(:disabled),
-html:not(.dark) .training-site.is-login-page .login-submit:focus-visible:not(:disabled) {
+.training-site.is-login-page .login-submit:hover:not(:disabled),
+.training-site.is-login-page .login-submit:focus-visible:not(:disabled) {
   border-color: #a87a1f;
   background: #a87a1f;
   color: #1d1d1f;

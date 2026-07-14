@@ -9,19 +9,19 @@ import org.springframework.stereotype.Component;
 @Component
 public class ImageAssetCleanupJob {
 	private final ImageAssetService imageAssetService;
-	private final HomepageBannerService homepageBannerService;
+	private final HomepageFeaturedImageService homepageFeaturedImageService;
 
 	public ImageAssetCleanupJob(
 			ImageAssetService imageAssetService,
-			HomepageBannerService homepageBannerService
+			HomepageFeaturedImageService homepageFeaturedImageService
 	) {
 		this.imageAssetService = imageAssetService;
-		this.homepageBannerService = homepageBannerService;
+		this.homepageFeaturedImageService = homepageFeaturedImageService;
 	}
 
 	@Scheduled(cron = "${image.assets.cleanup-cron:0 25 3 * * *}")
 	public void cleanup() {
 		imageAssetService.cleanupStaleAssets();
-		homepageBannerService.cleanupOrphanFiles();
+		homepageFeaturedImageService.cleanupOrphanFiles();
 	}
 }

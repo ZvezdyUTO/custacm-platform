@@ -3,6 +3,8 @@ import {mount} from '@vue/test-utils'
 import {createStore} from 'vuex'
 import {describe, expect, it, vi} from 'vitest'
 import Comment from '@/components/comment/Comment.vue'
+import commentSource from '@/components/comment/Comment.vue?raw'
+import commentFormSource from '@/components/comment/CommentForm.vue?raw'
 
 describe('comment identity', () => {
 	it('shows a small username for account comments and omits it for anonymous comments', () => {
@@ -17,5 +19,16 @@ describe('comment identity', () => {
 
 		expect(wrapper.findAll('.comment-username')).toHaveLength(1)
 		expect(wrapper.get('.comment-username').text()).toBe('player-24')
+	})
+
+	it('uses a stable comment grid and Anthropic charcoal actions', () => {
+		expect(commentSource).toContain('class="comment-header"')
+		expect(commentSource).toContain('grid-template-columns: 48px minmax(0, 1fr);')
+		expect(commentSource).toContain('class="comment-reply-button"')
+		expect(commentSource).not.toContain('<div class="border"></div>')
+		expect(commentFormSource).toContain('class="comment-form-layout"')
+		expect(commentFormSource).toContain('class="comment-submit-button"')
+		expect(commentFormSource).toContain('background: var(--anthropic-dark);')
+		expect(commentFormSource.match(/font-size: 12px;/g)?.length).toBeGreaterThanOrEqual(2)
 	})
 })

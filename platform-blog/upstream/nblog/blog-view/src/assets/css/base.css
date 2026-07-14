@@ -1,6 +1,7 @@
 :root {
     /* Keep the public Blog canvas aligned with the Training/Admin applications. */
     --blog-fog: #f4f6f8;
+    --font-mono: "JetBrains Mono Variable", "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
 }
 
 *,

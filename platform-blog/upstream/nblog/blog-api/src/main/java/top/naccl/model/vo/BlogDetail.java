@@ -27,6 +27,7 @@ public class BlogDetail {
 	private Long id;
 	private String title;//文章标题
 	private String firstPicture;//文章首图
+	private String description;//文章简介
 	private String content;//文章正文
 	private Boolean internal;//仅登录用户可见
 	private Boolean appreciation;//赞赏开关

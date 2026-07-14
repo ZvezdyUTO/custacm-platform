@@ -29,18 +29,19 @@ function dashboardFixture() {
 afterEach(() => vi.useRealTimers());
 
 describe('training query automatic filters', () => {
-  it('leaves the single-user selector empty until the user chooses a player', () => {
+  it('leaves the single-user search empty until the user chooses a player', () => {
     const { dashboard } = dashboardFixture();
     dashboard.trainingUsers.value = [{ username: 'player-a', nickname: '队员甲', ojNames: [OJ_NAMES.CODEFORCES] }];
     const wrapper = mount(TrainingQueryPanel, { props: { dashboard, mode: 'single' } });
 
-    const selector = wrapper.get('select[aria-label="队员"]');
-    expect((selector.element as HTMLSelectElement).value).not.toBe('player-a');
-    expect(selector.find('option:checked').text()).toBe('请选择队员');
+    const search = wrapper.get('input[aria-label="队员"]');
+    expect((search.element as HTMLInputElement).value).toBe('');
+    expect(search.attributes('placeholder')).toBe('输入用户名或姓名');
+    expect(search.attributes('role')).toBe('combobox');
     expect(dashboard.chooseUsername).not.toHaveBeenCalled();
   });
 
-  it('shows username-first single-user options in descending student-number order', () => {
+  it('matches username or nickname substrings and selects from a descending result list', async () => {
     const { dashboard } = dashboardFixture();
     dashboard.trainingUsers.value = [
       { username: '25000002', nickname: '队员乙', ojNames: [OJ_NAMES.CODEFORCES] },
@@ -48,13 +49,54 @@ describe('training query automatic filters', () => {
     ];
     const wrapper = mount(TrainingQueryPanel, { props: { dashboard, mode: 'single' } });
 
-    expect(wrapper.findAll('select[aria-label="队员"] option').slice(1).map((option) => option.text())).toEqual([
-      '25000010 · 队员甲',
-      '25000002 · 队员乙',
+    const search = wrapper.get('input[aria-label="队员"]');
+    await search.setValue('250000');
+    expect(wrapper.findAll('.player-search-options button').map((option) => option.text())).toEqual([
+      '25000010队员甲',
+      '25000002队员乙',
     ]);
+
+    await search.setValue('队员乙');
+    expect(wrapper.findAll('.player-search-options button')).toHaveLength(1);
+    await wrapper.get('.player-search-options button').trigger('mousedown');
+    expect(dashboard.chooseUsername).toHaveBeenCalledWith('25000002');
+    expect((search.element as HTMLInputElement).value).toBe('25000002 · 队员乙');
+    expect(wrapper.find('.player-search-options').exists()).toBe(false);
   });
 
-  it('reloads the directory with retired users from multiple and single views', async () => {
+  it('queries the first highlighted player when the search icon is clicked', async () => {
+    const { dashboard } = dashboardFixture();
+    dashboard.trainingUsers.value = [
+      { username: '25000002', nickname: '队员乙', ojNames: [OJ_NAMES.CODEFORCES] },
+      { username: '25000010', nickname: '队员甲', ojNames: [OJ_NAMES.CODEFORCES] },
+    ];
+    const wrapper = mount(TrainingQueryPanel, { props: { dashboard, mode: 'single' } });
+
+    await wrapper.get('input[aria-label="队员"]').setValue('250000');
+    const submit = wrapper.get('button[aria-label="搜索队员"]');
+    await submit.trigger('mousedown');
+    await submit.trigger('click');
+
+    expect(dashboard.chooseUsername).toHaveBeenCalledWith('25000010');
+  });
+
+  it('uses a site-style OJ menu and applies the selected platform', async () => {
+    const { dashboard } = dashboardFixture();
+    const wrapper = mount(TrainingQueryPanel, { props: { dashboard, mode: 'multiple' } });
+
+    expect(wrapper.find('select[aria-label="选择 OJ"]').exists()).toBe(false);
+    const trigger = wrapper.get('.oj-select-trigger');
+    expect(trigger.text()).toBe('Codeforces');
+    await trigger.trigger('click');
+    expect(wrapper.findAll('.oj-select-options button').map((option) => option.text())).toEqual(['Codeforces', 'AtCoder']);
+    await wrapper.findAll('.oj-select-options button')[1]!.trigger('mousedown');
+
+    expect(dashboard.selectedOjName.value).toBe(OJ_NAMES.ATCODER);
+    expect(dashboard.chooseOjName).toHaveBeenCalledWith(OJ_NAMES.ATCODER);
+    expect(wrapper.find('.oj-select-options').exists()).toBe(false);
+  });
+
+  it('keeps the retired-user toggle only on the multiple-user view', async () => {
     const multiple = dashboardFixture().dashboard;
     const multipleWrapper = mount(TrainingQueryPanel, { props: { dashboard: multiple, mode: 'multiple' } });
     const multipleToggle = multipleWrapper.get('label.query-retired-toggle');
@@ -64,10 +106,8 @@ describe('training query automatic filters', () => {
 
     const single = dashboardFixture().dashboard;
     const singleWrapper = mount(TrainingQueryPanel, { props: { dashboard: single, mode: 'single' } });
-    const singleToggle = singleWrapper.get('label.query-retired-toggle');
-    expect(singleToggle.text()).toBe('选择退役队员');
-    await singleToggle.get('input').setValue(true);
-    expect(single.setIncludeRetiredUsers).toHaveBeenCalledWith(true);
+    expect(singleWrapper.find('label.query-retired-toggle').exists()).toBe(false);
+    expect(single.setIncludeRetiredUsers).not.toHaveBeenCalled();
   });
 
   it('removes the query button and applies a valid filter after a short debounce', async () => {
@@ -120,6 +160,7 @@ describe('training query automatic filters', () => {
     await vi.advanceTimersByTimeAsync(300);
     expect(applyTrainingQuery).not.toHaveBeenCalled();
     expect(wrapper.get('.query-problem-apply-button').text()).toBe('查询');
+    expect(wrapper.get('.query-form').classes()).toContain('problem-query-form');
     expect(wrapper.get('.query-filter-hint').text()).toBe('日期的任一边界留空时，不限制对应方向的范围。');
 
     await wrapper.get('.query-form').trigger('submit');

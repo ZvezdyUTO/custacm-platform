@@ -4,7 +4,6 @@ import top.naccl.entity.Blog;
 import top.naccl.model.vo.BlogDetail;
 import top.naccl.model.vo.BlogInfo;
 import top.naccl.model.vo.PageResult;
-import top.naccl.model.vo.RandomBlog;
 import top.naccl.model.vo.SearchBlog;
 
 import java.util.List;
@@ -23,15 +22,11 @@ public interface BlogService {
 	PageResult<BlogInfo> getBlogInfoListByTagNameAndIsPublished(String tagName, Integer pageNum,
 			boolean includeInternal);
 
-	List<RandomBlog> getFeaturedBlogList(boolean includeInternal);
-
 	void deleteBlogTagByBlogId(Long blogId);
 
 	void saveBlog(top.naccl.model.dto.Blog blog);
 
 	void saveBlogTag(Long blogId, Long tagId);
-
-	void updateBlogRecommendById(Long blogId, Boolean recommend);
 
 	BlogDetail getBlogByIdAndIsPublished(Long id);
 

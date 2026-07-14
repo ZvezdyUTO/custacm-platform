@@ -5,8 +5,8 @@
 @import "./styles/dashboard.css";
 @import "./styles/table.css";
 @import "./styles/side-panel.css";
-@import "./styles/homepage-banner-admin.css";
+@import "./styles/homepage-featured-images-admin.css";
 @import "./styles/article-admin.css";
 @import "./styles/category-admin.css";
+@import "./styles/competition-admin.css";
 @import "./styles/training-redesign.css";
-@import "./styles/dark.css";

@@ -115,17 +115,4 @@ public class BlogAdminController {
 		return Result.ok("恢复成功");
 	}
 
-	/**
-	 * 更新博客推荐状态
-	 *
-	 * @param id        博客id
-	 * @param recommend 是否推荐
-	 * @return
-	 */
-	@PutMapping("/blog/recommend")
-	public Result updateRecommend(@RequestParam Long id, @RequestParam Boolean recommend) {
-		blogService.updateBlogRecommendById(id, recommend);
-		return Result.ok("操作成功");
-	}
-
 }

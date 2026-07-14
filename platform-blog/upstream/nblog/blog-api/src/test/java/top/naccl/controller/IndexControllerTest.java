@@ -2,8 +2,8 @@ package top.naccl.controller;
 
 import org.junit.jupiter.api.Test;
 import top.naccl.model.vo.Result;
-import top.naccl.service.BlogService;
 import top.naccl.service.CategoryService;
+import top.naccl.service.HomepageFeaturedGroupService;
 import top.naccl.service.SiteSettingService;
 import top.naccl.service.TagService;
 
@@ -23,7 +23,7 @@ class IndexControllerTest {
 	void siteResponseOmitsUnusedLegacyPayloads() {
 		IndexController controller = new IndexController();
 		controller.siteSettingService = mock(SiteSettingService.class);
-		controller.blogService = mock(BlogService.class);
+		controller.homepageFeaturedGroupService = mock(HomepageFeaturedGroupService.class);
 		controller.categoryService = mock(CategoryService.class);
 		controller.tagService = mock(TagService.class);
 		when(controller.siteSettingService.getSiteInfo()).thenReturn(new HashMap<>(Map.of(
@@ -31,14 +31,15 @@ class IndexControllerTest {
 		)));
 		when(controller.categoryService.getCategoryNameList()).thenReturn(java.util.List.of());
 		when(controller.tagService.getTagListNotId()).thenReturn(java.util.List.of());
-		when(controller.blogService.getFeaturedBlogList(false))
-				.thenReturn(java.util.List.of());
+		when(controller.homepageFeaturedGroupService.listPublic()).thenReturn(java.util.List.of());
 
-		Result result = controller.site(null);
+		Result result = controller.site();
 		Map<?, ?> data = (Map<?, ?>) result.getData();
 
 		assertEquals(200, result.getCode());
 		assertEquals(5, data.size());
+		assertEquals(java.util.List.of(), data.get("featuredGroups"));
+		assertFalse(data.containsKey("featuredBlogList"));
 		assertFalse(data.containsKey("badges"));
 		assertFalse(data.containsKey("newBlogList"));
 	}

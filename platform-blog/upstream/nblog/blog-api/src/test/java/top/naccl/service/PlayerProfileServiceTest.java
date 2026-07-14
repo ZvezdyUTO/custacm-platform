@@ -123,6 +123,20 @@ class PlayerProfileServiceTest {
 	}
 
 	@Test
+	void rejectsSignatureLongerThanFortyCharacters() {
+		when(userMapper.findByUsername("player1")).thenReturn(player);
+
+		BadRequestException exception = assertThrows(BadRequestException.class,
+				() -> service.update("player1", new PlayerProfileUpdateRequest(null, "签".repeat(41))));
+
+		assertEquals("个性签名不能超过 40 个字符", exception.getMessage());
+		verify(userMapper, never()).updateProfileByUsername(
+				org.mockito.ArgumentMatchers.any(),
+				org.mockito.ArgumentMatchers.any(),
+				org.mockito.ArgumentMatchers.any());
+	}
+
+	@Test
 	void replacesLinksInSubmittedOrder() {
 		when(userMapper.findByUsername("player1")).thenReturn(player);
 		when(linkMapper.insert(org.mockito.ArgumentMatchers.any())).thenReturn(1);
@@ -190,8 +204,12 @@ class PlayerProfileServiceTest {
 				31L,
 				"2025 年中国高校计算机大赛-团体程序设计天梯赛",
 				2025,
+				"GPLT_NATIONAL",
+				"GPLT 团体程序设计天梯赛（国赛）",
 				List.of(new CompetitionResponse.Type("GPLT", "团体程序设计天梯赛")),
 				41L,
+				"FIRST_PRIZE",
+				"一等奖",
 				"INDIVIDUAL",
 				"个人",
 				null,
@@ -199,10 +217,11 @@ class PlayerProfileServiceTest {
 				"国家级",
 				1,
 				"一等奖",
-				3,
-				120,
-				"(3/120)",
-				true
+				null,
+				null,
+				null,
+				true,
+				1L
 		);
 	}
 }

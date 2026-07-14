@@ -1,6 +1,6 @@
 # Frontend Design System
 
-本文定义 custacm-platform 两份 Vue 3 前端共享的视觉语言。它约束设计 token、主题、排版、圆角、动效、玻璃表面和验收方式，不改变两套 Router、认证、API 或部署边界。
+本文定义 custacm-platform 两份 Vue 3 前端共享的视觉语言。它约束设计 token、固定浅色语义、排版、圆角、动效、玻璃表面和验收方式，不改变两套 Router、认证、API 或部署边界。
 
 当前状态：阶段 4 双端验收进行中。Training 与 Blog 均已接入共享 token；自动验收已通过，等待关键视口和品牌色人工确认。
 
@@ -9,7 +9,7 @@
 ## 设计原则
 
 1. 内容优先：装饰不能压过文章、训练数据和管理操作。
-2. 统一角色：两端使用相同的语义 token，不要求不同主题使用相同的绝对色值。
+2. 统一角色：两端使用相同的固定浅色语义 token；固定深色内容页使用页面级局部变量。
 3. 信息密度分级：Blog 阅读页面可以舒展，训练表格和管理界面保持紧凑。
 4. 克制使用玻璃：首轮只允许顶栏、下拉菜单和 Modal/Dialog 使用。
 5. 可访问性是完成条件：键盘、焦点、对比度和 reduced-motion 与视觉效果同时验收。
@@ -40,16 +40,16 @@ platform-blog/upstream/nblog/blog-view/src/assets/css/tokens.css
 
 ## 颜色角色
 
-| Token | Light | Dark | 用途 |
-| --- | --- | --- | --- |
-| `--color-canvas` | `#ffffff` | `#171513` | 页面底色 |
-| `--color-canvas-alternate` | `#f5f5f7` | `#201c19` | 交替分区 |
-| `--color-surface` | `#ffffff` | `#25211e` | 实体内容表面 |
-| `--color-text` | `#1d1d1f` | `#f2ede7` | 主文字 |
-| `--color-text-muted` | `#606066` | `#c5bbb1` | 次要文字 |
-| `--color-action` | `#0066cc` | `#c98542` | 当前主题主交互 |
-| `--color-action-hover` | `#0071e3` | `#dda05f` | 主交互 hover |
-| `--color-focus-ring` | `#0071e3` | `#d79a5c` | 键盘焦点环 |
+| Token | 值 | 用途 |
+| --- | --- | --- |
+| `--color-canvas` | `#ffffff` | 页面底色 |
+| `--color-canvas-alternate` | `#f5f5f7` | 交替分区 |
+| `--color-surface` | `#ffffff` | 实体内容表面 |
+| `--color-text` | `#1d1d1f` | 主文字 |
+| `--color-text-muted` | `#606066` | 次要文字 |
+| `--color-action` | `#0066cc` | 主交互 |
+| `--color-action-hover` | `#0071e3` | 主交互 hover |
+| `--color-focus-ring` | `#0071e3` | 键盘焦点环 |
 
 成功、警告、危险使用独立语义 token，不从主交互色推导。用户自定义分类色、文章图片、头像和横幅也不被主交互色覆盖。
 
@@ -84,7 +84,7 @@ platform-blog/upstream/nblog/blog-view/src/assets/css/tokens.css
 
 首轮允许玻璃的位置：
 
-- Blog 唯一顶栏和 Training 独立开发顶栏；
+- Blog 唯一顶栏（浅色路由使用共享浅色玻璃，固定暖黑文章目录使用同模糊强度的暗色玻璃）和 Training 独立开发顶栏；
 - 下拉菜单；
 - Modal/Dialog。
 
@@ -97,7 +97,7 @@ platform-blog/upstream/nblog/blog-view/src/assets/css/tokens.css
 | Token | 值 | 用途 |
 | --- | --- | --- |
 | `--duration-fast` | 150ms | hover、焦点和轻量反馈 |
-| `--duration-theme` | 260ms | 沿用图片主题切换约定 |
+| `--duration-medium` | 260ms | 路由切换等中等时长反馈 |
 | `--duration-slow` | 400ms | 大型面板或路由进入 |
 | `--ease-standard` | `cubic-bezier(0.32, 0.72, 0, 1)` | 标准缓动 |
 
@@ -121,7 +121,8 @@ platform-blog/upstream/nblog/blog-view/src/assets/css/tokens.css
 
 | 页面 | 必须覆盖的状态 |
 | --- | --- |
-| Blog 首页 | light、dark、桌面、代表性移动端导航 |
+| Blog 首页 | 固定浅色、桌面、代表性移动端导航 |
+| 文章目录 | 固定深色目录、桌面、代表性移动端导航 |
 | 文章详情 | 正常、请求失败、登录/未登录中适用的状态 |
 | 登录页 | 默认、错误、冷却倒计时 |
 | 训练查询 | 正常、空数据、加载、失败 |
@@ -153,43 +154,50 @@ platform-blog/upstream/nblog/blog-view/src/assets/css/tokens.css
 
 ## 后续决策记录
 
+### 2026-07-15 单一视觉模式
+
+- 全局夜间模式、主题切换按钮、`custacm.theme`、系统主题跟随和 Blog/Training frame 主题桥全部退役。
+- 共享 token 只保留固定浅色值；Training 不再加载 `dark.css`，Blog 不再加载 `night.css` 或 Element Plus 暗色变量。
+- 文章目录、黑色页脚等固定深色区域继续使用页面级 class 和局部颜色，不能因为全局夜间模式退役而改成浅色。
+- 两份 HTML 不再执行首屏主题脚本；业务图片不再因视觉模式变化统一滤色。
+
 ### 阶段 2 实现记录
 
-- Training 从 `src/styles.css` 首行加载生成 token，并以 `training-redesign.css` 集中承载试点覆盖；既有 `dark.css` 继续最后加载。
+- Training 从 `src/styles.css` 首行加载生成 token，并以 `training-redesign.css` 集中承载试点覆盖。
 - 独立开发顶栏、下拉菜单和 `AdminConfirmDialog` 使用玻璃；表格、卡片、表单和侧面板保持实体表面。
 - 管理区原酒红交互变量在试点层映射到统一 `--color-action`，业务成功/警告/危险色保持独立。
 - Training 路由切换使用 8px 淡入位移和共享动效 token；reduced-motion 时 token 自动归零。
 - `AdminConfirmDialog` 支持焦点进入、Tab/Shift+Tab 循环、Esc 取消和关闭后焦点归还。
-- 核心前景/背景组合的静态 WCAG 对比度为：日间 Action/白 5.57:1、正文/白 16.83:1、次要文字/白 6.25:1；深夜 Action/按钮前景 5.96:1、正文/画布 15.65:1、次要文字/画布 9.64:1。
+- 核心前景/背景组合的静态 WCAG 对比度为：Action/白 5.57:1、正文/白 16.83:1、次要文字/白 6.25:1。
 - 1280×720 独立登录页浏览器实测无横向溢出；顶栏计算样式为 72% 白色玻璃、20px blur/180% saturate，登录卡圆角 18px。1440×900、1920×1080 与需要认证的业务页仍留待统一环境双端验收。
 
 ### 阶段 3 实现记录
 
-- Blog 从 `main.js` 在基础样式前加载生成 token，并以 `blog-redesign.css` 集中承载日间语义映射和 Element Plus 变量；现有 `night.css` 继续最后加载。
+- Blog 从 `main.js` 在基础样式前加载生成 token，并以 `blog-redesign.css` 集中承载固定浅色语义映射和 Element Plus 变量。
 - Blog 唯一顶栏、下拉/搜索/表情浮层和裁剪 Dialog 使用玻璃；文章卡片、评论、写作页、个人页、表单和侧栏保持实体表面。
-- 日间主操作切换到 Action Blue，深夜继续从 token 使用暖橙；分类、标签、成功、警告和危险业务语义不被覆盖。
+- 主操作使用 Action Blue；分类、标签、成功、警告和危险业务语义不被覆盖。
 - `AvatarCropDialog`、文章首图裁剪、`ManagedImageViewer` 与评论表情选择器支持焦点进入或归位、Tab/Shift+Tab 循环、Esc 关闭；正文托管缩略图可用 Enter/空格打开预览并在关闭后归还焦点，保存或加载期间仍阻止不安全关闭。
 - Semantic UI class 和图标依赖未在本阶段清理，继续留给阶段 6。
 - Blog 阶段 3 通过 36 个测试文件共 114 项测试和生产构建；JS/CSS gzip 总量较阶段 1 基线下降 2.2%。完整桌面、移动端和双端 iframe 截图验收留待阶段 4。
 
 ### 阶段 4 验收记录
 
-- 统一 Blog 顶栏保持不变；Training 登录区域按账户中心式布局改为大留白、184px CUST ACM 圆形徽章、大标题、380px 宽且 46px 高的用户名/密码输入和 40px 圆形箭头提交按钮；日间登录按钮使用徽章金 `#C9962E`，hover/focus 使用 `#A87A1F`，箭头采用深墨色以保持清晰，深夜按钮继续使用主题暖橙。表单与标题之间保留 52px 留白，使账号密码区域进一步下移。徽章使用项目内置 `public/img/custacm-training-logo.jpg`：日间不使用外发光，仅保留轻微自然投影和边框；深夜轻微提亮徽章本体，并以五层暖橙光从近处高亮逐渐衰减到 220px 后融入背景。服务端冷却与错误状态保持可见。登录页自身固定为 iframe 视口高度并作为内部纵向滚动容器，提供额外 220px 内容区；鼠标滚轮、触控板和触摸滚动保持可用但隐藏滚动条，且滚动不会继续传递给 Blog 外壳。徽章从顶部原尺寸随内部滚动缩至最低 72%，回到顶部恢复，离开登录页后恢复默认滚动条；`prefers-reduced-motion` 下固定原尺寸。
+- 统一 Blog 顶栏保持不变；Training 登录区域按账户中心式布局改为大留白、184px CUST ACM 圆形徽章、大标题、380px 宽且 46px 高的用户名/密码输入和 40px 圆形箭头提交按钮；登录按钮固定使用徽章金 `#C9962E`，hover/focus 使用 `#A87A1F`，箭头采用深墨色以保持清晰。表单与标题之间保留 52px 留白，使账号密码区域进一步下移。徽章使用项目内置 `public/img/custacm-training-logo.jpg`，保留轻微自然投影和边框。服务端冷却与错误状态保持可见。登录页自身固定为 iframe 视口高度并作为内部纵向滚动容器，提供额外 220px 内容区；鼠标滚轮、触控板和触摸滚动保持可用但隐藏滚动条，且滚动不会继续传递给 Blog 外壳。徽章从顶部原尺寸随内部滚动缩至最低 72%，回到顶部恢复，离开登录页后恢复默认滚动条；`prefers-reduced-motion` 下固定原尺寸。
 - Blog `/`、`/training/login` 与经 Blog 代理的 `/training-app/login` 均返回 200，双 Vite 开发链路可用；本机 Blog API 8090 和 Docker daemon 未运行，因此不声称已验收登录后真实业务数据。
-- Blog 主题、Training frame 主题桥、Blog 暗色与阶段 3 样式聚焦测试共 16 项通过；Training 全部 17 个测试文件共 107 项通过。
-- 玻璃表面按实际 alpha 与相邻画布混合后的静态 WCAG 对比度为：日间正文 16.41:1、日间次要文字 6.09:1、深夜正文 14.25:1、深夜次要文字 8.78:1；日间和深夜主按钮分别为 5.57:1、5.96:1。
+- 当时的主题链路验收已被 2026-07-15 单一视觉模式决策取代；当前测试改为约束无主题按钮、无暗色样式入口，并保护固定深色文章目录。
+- 玻璃表面按实际 alpha 与相邻画布混合后的静态 WCAG 对比度为：正文 16.41:1、次要文字 6.09:1，主按钮 5.57:1。
 - 侧栏与分页确认继续使用实体表面：它们占据布局空间且承载连续阅读/导航，不属于悬浮层；本阶段不新增可选玻璃精修。
-- 品牌色技术建议保持日间 Action Blue `#0066cc`、深夜暖橙 `#c98542`。该组合通过 AA 且与两端语义角色一致，但最终视觉确认仍需项目所有者在关键视口查看后批准。
-- Blog 的 Training host 使用 border-box 在 `100vh` 内包含 51px 顶栏预留，且登录路由不再在 iframe 外追加 Footer，修复外层 `100vh + 51px` 与 Footer 共同产生的蓝色滚动条；原 Blog Footer 的项目与竞赛平台链接在 Training iframe 内由 `LoginFooter.vue` 复现，和登录内容共用 `.training-site.is-login-page` 内部滚动容器，因此底部内容无需借助 Blog 外层滚动即可到达。其它 Training 页面如仍需要外层滚动，thumb 使用淡灰色圆头，深夜使用中性暖灰。
+- 品牌色固定使用 Action Blue `#0066cc`；固定深色内容页可使用页面级局部交互色，但不得恢复全局模式分支。
+- Blog 的 Training host 使用 border-box 在 `100vh` 内包含 51px 顶栏预留，且登录路由不再在 iframe 外追加 Footer，修复外层 `100vh + 51px` 与 Footer 共同产生的蓝色滚动条；原 Blog Footer 的项目与竞赛平台链接在 Training iframe 内由 `LoginFooter.vue` 复现，和登录内容共用 `.training-site.is-login-page` 内部滚动容器，因此底部内容无需借助 Blog 外层滚动即可到达。其它 Training 页面如仍需要外层滚动，thumb 固定使用淡灰色圆头。
 - 应用内浏览器当前无法建立控制连接；仍待人工检查 Blog/Training 的 1440×900、1920×1080、Blog 代表性移动端导航，以及登录后的文章、查询、管理员表格与打开弹层。该限制不能用静态测试替代或标记为已完成。
 
 ### 阶段 5 组件库评估
 
-结论：**不启动组件库迁移**。Blog 继续使用 Element Plus，Training 继续使用原生 Vue 组件；共享 token、主题协议和交互规范负责统一视觉。阶段 6 只清理 Semantic UI，并把 Blog 图标统一到 Lucide，不把组件库迁移夹带进依赖退出。
+结论：**不启动组件库迁移**。Blog 继续使用 Element Plus，Training 继续使用原生 Vue 组件；共享 token 和交互规范负责统一视觉。阶段 6 只清理 Semantic UI，并把 Blog 图标统一到 Lucide，不把组件库迁移夹带进依赖退出。
 
 #### 仓库证据
 
-- Blog 当前固定 `element-plus@2.14.3`，在 `main.js` 全量注册并导入完整 CSS；生产源码中有 11 个文件直接使用 Element Plus，覆盖按钮、输入、表单、分页、下拉、Popover、Divider 与 Backtop 等 11 类标签。现有阶段 3 主题变量、深夜覆盖和交互测试均建立在这套实现上。
+- Blog 当前固定 `element-plus@2.14.3`，在 `main.js` 全量注册并导入完整 CSS；生产源码中有 11 个文件直接使用 Element Plus，覆盖按钮、输入、表单、分页、下拉、Popover、Divider 与 Backtop 等 11 类标签。现有阶段 3 语义变量和交互测试均建立在这套实现上。
 - Blog 的 Semantic UI 仍涉及 18 个 Vue 文件，另有 `badge.css` 和 `main.js` 的全局 CSS 导入；这是一项明确的遗留依赖退出任务，但不构成替换 Element Plus 的理由。
 - Training 没有组件库，13 个 Vue 文件共使用 66 个原生按钮、34 个输入框、7 个 select、6 个 table 和 1 个 textarea。现有焦点、确认框、表格滚动和业务状态都有项目内测试；全量替换会扩大回归面，并增加 Training 构建体积。
 - 两端 Router、构建产物和运行边界按架构要求保持独立；即使使用同一组件库，也不会共享运行时组件实例。当前共享 token 已经实现视觉统一，因此“同库”不是“同视觉”的必要条件。
@@ -205,7 +213,7 @@ platform-blog/upstream/nblog/blog-view/src/assets/css/tokens.css
 
 #### 官方能力与维护信号
 
-- Element Plus 官方文档说明其主题系统支持 CSS 变量、按 class 范围覆盖和 `html.dark` 暗色变量，和项目当前 token/主题协议直接兼容：[Theming](https://element-plus.org/en-US/guide/theming)、[Dark Mode](https://element-plus.org/en-US/guide/dark-mode)。评估日官方仓库显示最新发布为 2.14.3（2026-07-10），与项目锁定版本一致：[Element Plus releases](https://github.com/element-plus/element-plus/releases)。
+- Element Plus 官方文档说明其样式系统支持 CSS 变量和按 class 范围覆盖，和项目当前固定浅色 token 兼容：[Theming](https://element-plus.org/en-US/guide/theming)。评估日官方仓库显示最新发布为 2.14.3（2026-07-10），与项目锁定版本一致：[Element Plus releases](https://github.com/element-plus/element-plus/releases)。
 - ant-design-vue 官方仓库确认其面向 Vue 的企业桌面组件定位，但评估日 Releases 显示最新稳定版仍为 4.2.6（2024-11-11）。它具备候选能力，但没有足以抵消双端重迁成本的项目内优势：[ant-design-vue](https://github.com/vueComponent/ant-design-vue)、[releases](https://github.com/vueComponent/ant-design-vue/releases)。
 
 #### 重新评估触发条件
@@ -219,7 +227,7 @@ platform-blog/upstream/nblog/blog-view/src/assets/css/tokens.css
 
 ### 阶段 6 Semantic UI 退出记录
 
-- 审计覆盖 18 个生产 Vue 文件；15 个模板中的 `ui` 布局 class 全部改为项目自有的导航、网格、内容表面、侧栏、评论和按钮 class，日间与深夜样式同步改用这些稳定选择器。
+- 审计覆盖 18 个生产 Vue 文件；15 个模板中的 `ui` 布局 class 全部改为项目自有的导航、网格、内容表面、侧栏、评论和按钮 class，并改用这些稳定选择器。
 - 39 个旧 `<i>` 字体图标统一替换为全局 `AppIcon`。该组件集中维护语义名称到 `@lucide/vue` 的映射、尺寸、旋转加载态和减少动态效果降级，业务模板不直接依赖具体 Lucide 组件名。
 - 删除 `semantic-ui-css` 依赖、全局 Semantic CSS、旧 Ali 图标 CSS 入口及其字体资产；Element Plus 保持不变，没有夹带组件库迁移。
 - 新增退出契约测试，阻止生产 Vue/JS 重新出现 Semantic UI class、旧 `<i>` 图标、全局 Semantic 导入或依赖声明；最终视觉收尾又覆盖搜索胶囊单一圆角表面、顶栏 Tab 不绘制蓝色矩形轮廓以及浅灰圆头页面滚动条。Blog 共 37 个测试文件、119 项测试及生产构建通过。

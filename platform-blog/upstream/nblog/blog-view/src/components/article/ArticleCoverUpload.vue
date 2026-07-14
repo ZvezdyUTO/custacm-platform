@@ -109,4 +109,17 @@
 	.cover-crop-dialog footer { justify-content: flex-end; }
 	.cover-crop-dialog footer button { border: 1px solid #c7d0d8; background: #fff; padding: 9px 15px; font-weight: 700; }
 	.cover-crop-dialog footer .primary { border-color: #17324d; background: #17324d; color: #fff; }
+
+	.cover-heading { color: var(--anthropic-slate-medium); }
+	.cover-heading small, .cover-empty span, .cover-crop-dialog header p { color: var(--anthropic-slate-light); }
+	.cover-preview { border-color: var(--anthropic-cloud-light); background: var(--anthropic-ivory-medium); }
+	.cover-preview label, .cover-preview button { border-color: var(--anthropic-cloud-light); background: var(--anthropic-ivory-light); color: var(--anthropic-slate-medium); }
+	.cover-empty { border-color: var(--anthropic-cloud-medium); background: var(--anthropic-ivory-medium); color: var(--anthropic-slate-medium); }
+	.cover-error { color: var(--anthropic-error); }
+	.cover-crop-backdrop { background: color-mix(in srgb, var(--anthropic-dark) 82%, transparent); }
+	.cover-crop-dialog { background: var(--anthropic-ivory-light); box-shadow: 0 28px 80px color-mix(in srgb, var(--anthropic-dark) 35%, transparent); }
+	.cover-crop-dialog h2 { color: var(--anthropic-slate-dark); }
+	.cover-crop-stage { background: var(--anthropic-dark); }
+	.cover-crop-dialog footer button { border-color: var(--anthropic-cloud-medium); background: var(--anthropic-ivory-light); color: var(--anthropic-slate-dark); }
+	.cover-crop-dialog footer .primary { border-color: var(--anthropic-clay); background: var(--anthropic-clay); color: #fff; }
 </style>

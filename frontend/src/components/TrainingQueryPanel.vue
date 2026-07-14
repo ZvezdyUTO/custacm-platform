@@ -1,18 +1,110 @@
 <template>
   <section class="training-query" aria-label="训练数据查询">
-    <component :is="mode === 'problem' ? 'form' : 'div'" :class="['query-form', { 'multi-query-form': mode === 'multiple' }]" @submit.prevent="apply(filterSignature(), true)">
-      <label class="query-field query-oj-field compact"><span class="query-field-label">OJ</span>
-        <select v-model="selectedOjName" aria-label="选择 OJ" :disabled="isRefreshing" @change="changeOj">
-          <option :value="OJ_NAMES.CODEFORCES">{{ OJ_LABELS.CODEFORCES }}</option>
-          <option :value="OJ_NAMES.ATCODER">{{ OJ_LABELS.ATCODER }}</option>
-        </select>
-      </label>
-      <label v-if="mode === 'single'" class="query-field wide"><span class="query-field-label">队员</span>
-        <select v-model="selectedUsername" aria-label="队员" :disabled="trainingUsers.length === 0 || isRefreshing" @change="chooseUser">
-          <option disabled :value="null">{{ trainingUsers.length ? '请选择队员' : '等待训练数据' }}</option>
-          <option v-for="item in sortedSingleTrainingUsers" :key="item.username" :value="item.username">{{ trainingUserOptionLabel(item) }}</option>
-        </select>
-      </label>
+    <component
+      :is="mode === 'problem' ? 'form' : 'div'"
+      :class="['query-form', {
+        'multi-query-form': mode === 'multiple',
+        'single-query-form': mode === 'single',
+        'problem-query-form': mode === 'problem',
+      }]"
+      @submit.prevent="apply(filterSignature(), true)"
+    >
+      <div class="query-field query-oj-field compact">
+        <span id="oj-select-label" class="query-field-label">OJ</span>
+        <div class="oj-select-control">
+          <button
+            class="oj-select-trigger"
+            type="button"
+            aria-controls="oj-select-options"
+            :aria-activedescendant="ojMenuOpen ? ojOptionId(activeOjIndex) : undefined"
+            :aria-expanded="ojMenuOpen"
+            aria-haspopup="listbox"
+            aria-labelledby="oj-select-label"
+            :disabled="isRefreshing"
+            @blur="closeOjMenu"
+            @click="toggleOjMenu"
+            @keydown.down.prevent="moveOjActive(1)"
+            @keydown.up.prevent="moveOjActive(-1)"
+            @keydown.enter.prevent="chooseActiveOj"
+            @keydown.esc.prevent="closeOjMenu"
+          >
+            <span>{{ OJ_LABELS[selectedOjName] }}</span>
+            <ChevronDown :class="{ 'is-open': ojMenuOpen }" :size="16" aria-hidden="true" />
+          </button>
+          <div v-if="ojMenuOpen" id="oj-select-options" class="oj-select-options" role="listbox">
+            <button
+              v-for="(item, index) in ojOptions"
+              :id="ojOptionId(index)"
+              :key="item.value"
+              :aria-selected="selectedOjName === item.value"
+              :class="{ 'is-active': activeOjIndex === index, 'is-selected': selectedOjName === item.value }"
+              role="option"
+              tabindex="-1"
+              type="button"
+              @mousedown.prevent="chooseOj(item.value)"
+              @mousemove="activeOjIndex = index"
+            >
+              {{ item.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div v-if="mode === 'single'" class="query-field wide player-search-field">
+        <label class="query-field-label" for="player-search-input">队员</label>
+        <div class="player-search-control">
+          <input
+            id="player-search-input"
+            v-model="playerSearchQuery"
+            aria-autocomplete="list"
+            aria-controls="player-search-options"
+            :aria-activedescendant="activePlayerSearchIndex >= 0 ? playerSearchOptionId(activePlayerSearchIndex) : undefined"
+            :aria-expanded="playerSearchOpen"
+            aria-label="队员"
+            autocomplete="off"
+            :disabled="trainingUsers.length === 0 || isRefreshing"
+            :placeholder="trainingUsers.length ? '输入用户名或姓名' : '等待训练数据'"
+            role="combobox"
+            spellcheck="false"
+            @blur="closePlayerSearch"
+            @focus="focusPlayerSearch"
+            @input="handlePlayerSearchInput"
+            @keydown.down.prevent="movePlayerSearchActive(1)"
+            @keydown.up.prevent="movePlayerSearchActive(-1)"
+            @keydown.enter.prevent="submitPlayerSearch"
+            @keydown.esc.prevent="closePlayerSearch"
+          />
+          <button
+            class="player-search-submit"
+            type="button"
+            aria-label="搜索队员"
+            :disabled="trainingUsers.length === 0 || isRefreshing"
+            @mousedown.prevent
+            @click="submitPlayerSearch"
+          >
+            <Search :size="16" aria-hidden="true" />
+          </button>
+          <div v-if="playerSearchOpen" id="player-search-options" class="player-search-options" role="listbox">
+            <button
+              v-for="(item, index) in filteredSingleTrainingUsers"
+              :id="playerSearchOptionId(index)"
+              :key="item.username"
+              :aria-selected="index === activePlayerSearchIndex"
+              :class="{ 'is-active': index === activePlayerSearchIndex }"
+              role="option"
+              tabindex="-1"
+              type="button"
+              @mousedown.prevent="selectPlayer(item)"
+              @mousemove="activePlayerSearchIndex = index"
+            >
+              <span class="title">{{ item.username }}</span>
+              <span class="description">{{ item.nickname || '未设置姓名' }}</span>
+            </button>
+            <button v-if="filteredSingleTrainingUsers.length === 0" aria-disabled="true" disabled role="option" type="button">
+              <span class="title">无相关队员</span>
+            </button>
+          </div>
+        </div>
+      </div>
       <label v-else-if="mode === 'problem'" class="query-field wide"><span class="query-field-label">题目编号</span>
         <input v-model="problemKey" :placeholder="selectedOjName === OJ_NAMES.ATCODER ? '例如 abc443_c' : '例如 2242:C'" />
       </label>
@@ -24,7 +116,7 @@
       <template v-if="mode !== 'problem'">
         <label class="query-field compact"><span class="query-field-label">最低 rating</span><input v-model="draft.minProblemRating" min="0" placeholder="不限" type="number" /></label>
         <label class="query-field compact"><span class="query-field-label">最高 rating</span><input v-model="draft.maxProblemRating" min="0" placeholder="不限" type="number" /></label>
-        <label class="query-retired-toggle"><input v-model="includeRetiredUsers" type="checkbox" :disabled="isRefreshing" @change="changeRetiredVisibility"><span>{{ mode === 'multiple' ? '显示退役队员' : '选择退役队员' }}</span></label>
+        <label v-if="mode === 'multiple'" class="query-retired-toggle"><input v-model="includeRetiredUsers" type="checkbox" :disabled="isRefreshing" @change="changeRetiredVisibility"><span>显示退役队员</span></label>
       </template>
       <button v-if="mode === 'problem'" class="primary-button query-problem-apply-button" :disabled="isRefreshing || Boolean(queryError)" type="submit">查询</button>
     </component>
@@ -95,10 +187,10 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
-import { RefreshCw } from '@lucide/vue';
+import { ChevronDown, RefreshCw, Search } from '@lucide/vue';
 import PaginationBar from './PaginationBar.vue';
 import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
-import { OJ_LABELS, OJ_NAMES, type SubmissionItem, type TrainingQueryMode, type TrainingQueryRange, type TrainingUser } from '../types';
+import { OJ_LABELS, OJ_NAMES, type OjName, type SubmissionItem, type TrainingQueryMode, type TrainingQueryRange, type TrainingUser } from '../types';
 
 // Author: huangbingrui.awa
 const props = defineProps<{ dashboard: ReturnType<typeof usePlatformDashboard>; mode: TrainingQueryMode }>();
@@ -111,6 +203,11 @@ const { status, trainingUsers, includeRetiredUsers, selectedTrainingUser, select
 const draft = reactive<TrainingQueryRange>({ ...trainingQuery.value });
 const singleTab = ref<'submissions' | 'accepted'>('submissions');
 const problemTab = ref<'submissions' | 'accepted'>('submissions');
+const ojMenuOpen = ref(false);
+const activeOjIndex = ref(0);
+const playerSearchQuery = ref('');
+const playerSearchOpen = ref(false);
+const activePlayerSearchIndex = ref(-1);
 const isRefreshing = computed(() => status.value === 'loading');
 const updatedAt = computed(() => new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'medium', hour12: false }).format(new Date()));
 const queryError = computed(() => {
@@ -124,12 +221,27 @@ const multiAcceptedCount = computed(() => multiUserRows.value.reduce((sum, row) 
 const ratingBuckets = computed(() => [...new Set(multiUserRows.value.flatMap((row) => row.summary?.ratingCounts.map((item) => item.problemRating) || []))].sort(compareRating));
 const multiTableMinWidth = computed(() => 276 + ratingBuckets.value.length * 56);
 const displayRows = computed(() => multiUserRows.value.map((row) => ({ row, counts: new Map(row.summary?.ratingCounts.map((item) => [item.problemRating, item.acceptedProblemCount]) || []) })));
+const ojOptions: { value: OjName; label: string }[] = [
+  { value: OJ_NAMES.CODEFORCES, label: OJ_LABELS.CODEFORCES },
+  { value: OJ_NAMES.ATCODER, label: OJ_LABELS.ATCODER },
+];
 const sortedSingleTrainingUsers = computed(() => [...trainingUsers.value].sort((left, right) => (
   trainingUserOptionLabel(right).localeCompare(trainingUserOptionLabel(left), 'zh-CN', { numeric: true })
 )));
+const filteredSingleTrainingUsers = computed(() => {
+  const query = playerSearchQuery.value.trim().toLocaleLowerCase();
+  if (!query) return [];
+  return sortedSingleTrainingUsers.value.filter((item) => (
+    item.username.toLocaleLowerCase().includes(query) || item.nickname.toLocaleLowerCase().includes(query)
+  ));
+});
 const maxRatingCount = computed(() => Math.max(1, ...(acceptedSummary.value?.ratingCounts.map((item) => item.acceptedProblemCount) || [])));
 watch(trainingQuery, (query) => Object.assign(draft, query), { deep: true });
 watch(draft, scheduleAutoApply, { deep: true });
+watch(selectedTrainingUser, (user) => {
+  if (user) playerSearchQuery.value = trainingUserOptionLabel(user);
+  else if (!selectedUsername.value) playerSearchQuery.value = '';
+}, { immediate: true });
 onBeforeUnmount(() => window.clearTimeout(autoApplyTimer));
 
 function filterSignature() { return JSON.stringify({ ...draft, problemKey: props.mode === 'problem' ? problemKey.value.trim() : '' }); }
@@ -151,10 +263,83 @@ async function apply(signature = filterSignature(), force = false) {
 }
 async function refresh() { await dashboard.refreshDashboard(props.mode); }
 async function changeOj() { if (props.mode !== 'problem') await dashboard.chooseOjName(selectedOjName.value); }
-async function chooseUser() { if (selectedUsername.value) await dashboard.chooseUsername(selectedUsername.value); }
+function openOjMenu() {
+  ojMenuOpen.value = true;
+  activeOjIndex.value = Math.max(0, ojOptions.findIndex((item) => item.value === selectedOjName.value));
+}
+function toggleOjMenu() {
+  if (ojMenuOpen.value) closeOjMenu();
+  else openOjMenu();
+}
+function closeOjMenu() { ojMenuOpen.value = false; }
+function moveOjActive(direction: 1 | -1) {
+  if (!ojMenuOpen.value) {
+    openOjMenu();
+    return;
+  }
+  activeOjIndex.value = (activeOjIndex.value + direction + ojOptions.length) % ojOptions.length;
+}
+async function chooseActiveOj() {
+  if (!ojMenuOpen.value) {
+    openOjMenu();
+    return;
+  }
+  const option = ojOptions[activeOjIndex.value];
+  if (option) await chooseOj(option.value);
+}
+async function chooseOj(ojName: OjName) {
+  const changed = selectedOjName.value !== ojName;
+  selectedOjName.value = ojName;
+  closeOjMenu();
+  if (changed) await changeOj();
+}
 async function changeRetiredVisibility() { await dashboard.setIncludeRetiredUsers(includeRetiredUsers.value); }
 async function retry(username: string) { await dashboard.retryMultiUserSummary(username); }
 function trainingUserOptionLabel(user: TrainingUser) { return `${user.username} · ${user.nickname || '未设置姓名'}`; }
+function handlePlayerSearchInput() {
+  playerSearchOpen.value = playerSearchQuery.value.trim().length > 0;
+  activePlayerSearchIndex.value = filteredSingleTrainingUsers.value.length ? 0 : -1;
+}
+function focusPlayerSearch(event: { currentTarget: unknown }) {
+  (event.currentTarget as HTMLInputElement | null)?.select();
+  if (!selectedUsername.value && playerSearchQuery.value.trim()) playerSearchOpen.value = true;
+}
+function closePlayerSearch() {
+  playerSearchOpen.value = false;
+  activePlayerSearchIndex.value = -1;
+}
+function movePlayerSearchActive(direction: 1 | -1) {
+  const resultCount = filteredSingleTrainingUsers.value.length;
+  if (!resultCount) return;
+  playerSearchOpen.value = true;
+  if (activePlayerSearchIndex.value < 0) {
+    activePlayerSearchIndex.value = direction > 0 ? 0 : resultCount - 1;
+    return;
+  }
+  activePlayerSearchIndex.value = (activePlayerSearchIndex.value + direction + resultCount) % resultCount;
+}
+async function submitPlayerSearch() {
+  const resultIndex = activePlayerSearchIndex.value >= 0 ? activePlayerSearchIndex.value : 0;
+  const item = filteredSingleTrainingUsers.value[resultIndex];
+  if (item) {
+    await selectPlayer(item);
+    return;
+  }
+  const selected = selectedTrainingUser.value;
+  if (selected && playerSearchQuery.value.trim() === trainingUserOptionLabel(selected)) {
+    closePlayerSearch();
+    await dashboard.chooseUsername(selected.username);
+    return;
+  }
+  playerSearchOpen.value = playerSearchQuery.value.trim().length > 0;
+}
+async function selectPlayer(user: TrainingUser) {
+  playerSearchQuery.value = trainingUserOptionLabel(user);
+  closePlayerSearch();
+  await dashboard.chooseUsername(user.username);
+}
+function playerSearchOptionId(index: number) { return `player-search-option-${index}`; }
+function ojOptionId(index: number) { return `oj-select-option-${index}`; }
 function ratingStart(value: string) { return Number(value.match(/^\d+/)?.[0] ?? Number.NaN); }
 function compareRating(a: string, b: string) { return (Number.isFinite(ratingStart(a)) ? ratingStart(a) : Infinity) - (Number.isFinite(ratingStart(b)) ? ratingStart(b) : Infinity); }
 function ratingLabel(value: string) { return value === 'UNRATED' ? 'UNR' : value; }

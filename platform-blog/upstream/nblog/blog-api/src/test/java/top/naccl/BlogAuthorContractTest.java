@@ -36,6 +36,14 @@ class BlogAuthorContractTest {
 	}
 
 	@Test
+	void publicAndInternalBlogDetailsIncludeArticleDescription() throws IOException {
+		String mapper = new String(getClass().getResourceAsStream("/mapper/BlogMapper.xml").readAllBytes(), StandardCharsets.UTF_8);
+
+		assertTrue(mapper.contains("property=\"description\" column=\"description\""));
+		assertTrue(mapper.contains("b.title, b.first_picture, b.description, b.content"));
+	}
+
+	@Test
 	void normalReadAndWriteQueriesExcludeRecycleBinArticles() throws IOException {
 		String mapper = new String(getClass().getResourceAsStream("/mapper/BlogMapper.xml").readAllBytes(), StandardCharsets.UTF_8);
 

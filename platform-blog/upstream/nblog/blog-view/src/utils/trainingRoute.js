@@ -9,6 +9,7 @@ const allowedPages = new Set([
 	'admin/users',
 	'admin/articles',
 	'admin/categories',
+	'admin/competitions',
 	'admin/training',
 	'admin/appearance',
 ])
@@ -23,5 +24,5 @@ export function buildTrainingFrameSource(rawPath, routeQuery = {}) {
 }
 
 export function isAllowedTrainingRoutePath(path) {
-	return /^\/(?:login|multiple|single|problem|admin(?:\/(?:create-users|users|articles|categories|training|appearance))?)(?:\?|$)/.test(path)
+	return /^\/(?:login|multiple|single|problem|admin(?:\/(?:create-users|users|articles|categories|competitions|training|appearance))?)(?:\?|$)/.test(path)
 }

@@ -1,37 +1,30 @@
 <template>
-	<div>
-		<div class="content-panel article-panel m-padded-tb-large">
+	<div class="article-view">
+		<article class="content-panel article-panel">
 			<div class="featured-corner-mark" v-if="blog.top" aria-label="置顶文章">
 				<AppIcon name="arrow-up-circle" />
 			</div>
-			<!--分类丝带放在正文网格之外，避免参与网格宽度计算并挤偏首图-->
-			<router-link :to="`/category/${blog.category.name}`" class="category-ribbon article-category-ribbon" :style="taxonomyStyle(blog.category.color)" v-if="blog.category">
-				<AppIcon name="folder" /><span class="m-text-500">{{ blog.category.name }}</span>
-			</router-link>
-			<div class="article-layout">
-				<div class="article-grid m-margin-lr">
-					<div class="row m-padded-tb-small">
-						<h2 class="article-title m-center">{{ blog.title }}</h2>
-					</div>
-					<div class="row m-padded-tb-small">
-						<div class="m-center article-meta-list">
-							<div class="item m-common-black" v-if="blog.authorNickname"><AppIcon name="user" /><span>{{ blog.authorNickname }}</span></div>
-							<div class="item m-datetime"><AppIcon name="calendar" /><span>{{ $filters.dateFormat(blog.createTime, 'YYYY-MM-DD') }}</span></div>
-							<div class="item m-common-black"><AppIcon name="edit" /><span>字数≈{{ blog.words }}字</span></div>
-							<div class="item m-common-black"><AppIcon name="clock" /><span>阅读时长≈{{ blog.readTime }}分</span></div>
-							<a class="item m-common-black article-meta-icon-action" aria-label="切换字体大小" title="点击切换字体大小" @click.prevent="bigFontSize=!bigFontSize"><AppIcon name="type" /></a>
-							<a class="item m-common-black article-meta-icon-action" aria-label="切换专注模式" title="专注模式" @click.prevent="changeFocusMode"><AppIcon name="book" /></a>
-							<a v-if="authUser" class="item article-download-link" :class="{disabled: downloading}" aria-label="下载文章与图片压缩包" @click.prevent="downloadArticle">
-								<AppIcon :name="downloading ? 'loader' : 'download'" :spin="downloading" /><span>{{ downloading ? '打包中' : '下载文章包' }}</span>
-							</a>
-							<router-link v-if="isAuthor" :to="`/write/${blog.id}`" class="item article-edit-link"><AppIcon name="edit" /><span>编辑文章</span></router-link>
-						</div>
-					</div>
-					<figure v-if="blog.firstPicture" class="article-cover">
-						<img :src="blog.firstPicture" :alt="`${blog.title} 首图`" decoding="async">
-					</figure>
+			<header class="article-hero article-reading-width">
+				<router-link
+					v-if="blog.category"
+					:to="`/category/${blog.category.name}`"
+					class="article-category"
+					:style="{'--category-color': blog.category.color || '#60758a'}"
+				>
+					{{ blog.category.name }}
+				</router-link>
+				<h1 class="article-title">{{ blog.title }}</h1>
+				<time class="article-date" :datetime="blog.createTime">{{ $filters.dateFormat(blog.createTime, 'YYYY年M月D日') }}</time>
+			</header>
+			<figure v-if="blog.firstPicture" class="article-cover article-reading-width" :class="{'has-summary': blog.description}">
+				<img :src="blog.firstPicture" :alt="`${blog.title} 首图`" decoding="async">
+			</figure>
+			<p v-if="blog.description" class="article-summary article-copy-width" :class="{'without-cover': !blog.firstPicture}">
+				{{ blog.description }}
+			</p>
+			<div class="article-copy">
 					<!--文章Markdown正文-->
-					<div class="typo js-toc-content m-padded-tb-small match-braces rainbow-braces" v-lazy-container="{selector: 'img'}" v-viewer :class="{'m-big-fontsize':bigFontSize}"
+					<div class="typo js-toc-content match-braces rainbow-braces" v-lazy-container="{selector: 'img'}" v-viewer
 					     @click.capture="openManagedImage" @keydown.capture="openManagedImage" v-html="sanitizeHtml(blog.content)"></div>
 					<!--赞赏-->
 					<div style="margin: 2em auto">
@@ -56,11 +49,10 @@
 							<router-link :to="`/tag/${tag.name}`" class="taxonomy-chip m-text-500 m-margin-small" :style="taxonomyStyle(tag.color)" v-for="(tag,index) in blog.tags" :key="index">{{ tag.name }}</router-link>
 						</div>
 					</div>
-				</div>
 			</div>
-		</div>
+		</article>
 		<!--博客信息-->
-		<div class="article-license-message">
+		<div class="article-license-message article-secondary-width">
 			<ul class="list">
 				<li>作者：{{ blog.authorNickname || $store.state.introduction.name }}</li>
 				<li>发表时间：{{ $filters.dateFormat(blog.createTime, 'YYYY-MM-DD HH:mm') }}</li>
@@ -69,7 +61,7 @@
 			</ul>
 		</div>
 		<!--评论-->
-		<div class="content-panel article-comments">
+		<div id="article-comments" class="content-panel article-comments article-secondary-width">
 			<CommentList :blogId="blogId" :internal="Boolean(blog.internal)" v-if="blog.commentEnabled"/>
 			<h3 class="section-heading" v-else>评论已关闭</h3>
 		</div>
@@ -78,20 +70,17 @@
 </template>
 
 <script>
-	import {downloadBlog, getBlogById} from "@/api/blog";
+	import {getBlogById} from "@/api/blog";
 	import {getInternalBlog} from '@/api/player-blog'
 	import CommentList from "@/components/comment/CommentList";
-		import {mapState} from "vuex";
-		import {SET_FOCUS_MODE, SET_IS_BLOG_RENDER_COMPLETE} from '@/store/mutations-types';
-	import {clearSession, readToken, readUser, SESSION_CHANGE_EVENT} from '@/auth/session'
+	import {SET_FOCUS_MODE, SET_IS_BLOG_RENDER_COMPLETE} from '@/store/mutations-types';
+	import {readToken} from '@/auth/session'
 	import getPageTitle from '@/util/get-page-title'
-	import {isArticleAuthor} from '@/util/articleForm'
 	import renderMathInElement from 'katex/contrib/auto-render'
 	import 'katex/dist/katex.css'
 	import ManagedImageViewer from '@/components/article/ManagedImageViewer.vue'
 	import {originalUrlForManagedThumbnail} from '@/util/articleImages'
 	import {sanitizeHtml} from '@/util/sanitizeHtml'
-	import {articleDownloadFilename, retryAfterSeconds, saveArticleDownload} from '@/util/articleDownload'
 
 	export default {
 		name: "Blog",
@@ -100,17 +89,12 @@
 			data() {
 				return {
 					blog: {},
-					bigFontSize: false,
-					authUser: readUser(),
-					downloading: false,
 				}
 			},
 		computed: {
 			blogId() {
 				return parseInt(this.$route.params.id)
 			},
-				isAuthor() { return isArticleAuthor(this.blog, this.authUser) },
-				...mapState(['siteInfo', 'focusMode'])
 		},
 		beforeRouteEnter(to, from, next) {
 			//路由到博客文章页面之前，应将文章的渲染完成状态置为 false
@@ -146,52 +130,9 @@
 			created() {
 				this.getBlog()
 			},
-			mounted() {
-				window.addEventListener('storage', this.refreshUser)
-				window.addEventListener(SESSION_CHANGE_EVENT, this.refreshUser)
-			},
-			beforeUnmount() {
-				window.removeEventListener('storage', this.refreshUser)
-				window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshUser)
-			},
 		methods: {
 			sanitizeHtml,
-			taxonomyStyle(color) { return {backgroundColor: color || '#8B1E3F', color: '#fff'} },
-				refreshUser() { this.authUser = readUser() },
-			async downloadArticle() {
-				if (this.downloading) return
-				const token = readToken()
-				if (!token) {
-					this.refreshUser()
-					this.$router.push({path: '/training/login', query: {returnTo: this.$route.fullPath}})
-					return
-				}
-				this.downloading = true
-				try {
-					const blob = await downloadBlog(token, this.blogId)
-					saveArticleDownload(blob, articleDownloadFilename(this.blog.title, this.blogId))
-					this.msgSuccess('文章下载已开始')
-				} catch (error) {
-					const status = error?.response?.status
-					if (status === 401) {
-						clearSession()
-						this.refreshUser()
-						this.$router.push({path: '/training/login', query: {returnTo: this.$route.fullPath}})
-						return
-					}
-					if (status === 429) {
-						this.msgError(`下载过于频繁，请 ${retryAfterSeconds(error)} 秒后再试`)
-						return
-					}
-					if (status === 503) {
-						this.msgError('下载服务暂时不可用，请稍后重试')
-						return
-					}
-					this.msgError('文章下载失败，请稍后重试')
-				} finally {
-					this.downloading = false
-				}
-			},
+				taxonomyStyle(color) { return {backgroundColor: color || '#8B1E3F', color: '#fff'} },
 			openManagedImage(event) {
 				if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return
 				const image = event.target instanceof HTMLImageElement ? event.target : null
@@ -242,6 +183,8 @@
 					if (res.code === 200) {
 						this.blog = res.data
 						this.$emit('article-author-change', this.blog.authorUsername ? {
+							articleId: this.blog.id,
+							articleTitle: this.blog.title,
 							username: this.blog.authorUsername,
 							nickname: this.blog.authorNickname,
 							avatar: this.blog.authorAvatar,
@@ -270,54 +213,146 @@
 					this.msgError("请求失败")
 				})
 			},
-			changeFocusMode() {
-				this.$store.commit(SET_FOCUS_MODE, !this.focusMode)
-			}
 		}
 	}
 </script>
 
 <style scoped>
-	.article-panel,
+	.article-view {
+		--article-media-radius: 20px;
+		--article-reading-width: 820px;
+		--article-copy-width: 760px;
+		--color-surface: var(--anthropic-ivory-medium);
+		--color-surface-subtle: var(--anthropic-ivory-dark);
+		--color-border: var(--anthropic-cloud-light);
+		--color-border-strong: var(--anthropic-cloud-medium);
+		--color-text: var(--anthropic-slate-dark);
+		--color-text-muted: var(--anthropic-slate-light);
+		--color-text-faint: var(--anthropic-cloud-dark);
+		--color-action: var(--anthropic-clay);
+		background: var(--anthropic-ivory-light);
+		color: var(--anthropic-slate-dark);
+		min-height: 100%;
+		padding: 0 clamp(28px, 5vw, 80px);
+	}
+
+	.article-view > .article-panel {
+		border: 0 !important;
+		border-radius: 0 !important;
+		background: transparent !important;
+		padding: 0 !important;
+		box-shadow: none !important;
+	}
+
 	.article-comments {
 		position: relative;
 	}
 
+	.article-reading-width,
+	.article-copy-width {
+		margin-right: auto;
+		margin-left: auto;
+	}
+
+	.article-reading-width {
+		width: min(100%, var(--article-reading-width));
+	}
+
+	.article-copy-width {
+		width: min(100%, var(--article-copy-width));
+	}
+
+	.article-hero {
+		position: relative;
+		padding: clamp(68px, 8vh, 104px) 0 46px;
+		text-align: center;
+	}
+
+	.article-category {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 20px;
+		color: var(--anthropic-slate-light);
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: .12em;
+		text-transform: uppercase;
+	}
+
+	.article-category::before {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--category-color);
+		content: '';
+	}
+
+	.taxonomy-chip {
+		border: 1px solid transparent !important;
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
+		color: #fff !important;
+		transition: filter 140ms ease, box-shadow 140ms ease;
+	}
+
+	.taxonomy-chip:hover,
+	.taxonomy-chip:focus-visible {
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28);
+		color: #fff !important;
+		filter: brightness(1.08) saturate(1.06);
+		outline: none;
+	}
+
 	.article-title {
-		margin: 0;
-		color: #20272e;
-		font-size: clamp(1.65rem, 2.4vw, 2.25rem);
-		line-height: 1.25;
+		max-width: 900px;
+		margin: 0 auto;
+		color: var(--anthropic-slate-dark);
+		font-size: clamp(2.75rem, 4vw, 4.35rem);
+		font-weight: 760;
+		letter-spacing: -.045em;
+		line-height: 1.05;
+		overflow-wrap: anywhere;
+		text-wrap: balance;
+		word-break: break-word;
+	}
+
+	.article-date {
+		display: block;
+		margin-top: 24px;
+		color: var(--anthropic-slate-light);
+		font-size: 13px;
+		font-variant-numeric: tabular-nums;
+		letter-spacing: .02em;
 	}
 
 	.reward-card {
 		width: 100%;
-		border: 1px solid #d89b47;
+		border: 1px solid var(--anthropic-clay);
 		border-radius: 8px;
-		background: #fffaf2;
+		background: var(--anthropic-ivory-medium);
 		padding: 10px;
 	}
 
 	.reward-image {
 		display: block;
 		width: 100%;
-		border: 1px solid #d9dee3;
+		border: 1px solid var(--anthropic-cloud-light);
 		border-radius: 8px;
 	}
 
 	.reward-button {
-		border-color: #c98542 !important;
+		border-color: var(--anthropic-clay) !important;
 		border-radius: 999px !important;
 		background: transparent !important;
-		color: #9a5b1e !important;
+		color: var(--anthropic-slate-dark) !important;
 	}
 
 	.article-license-message {
-		border: 1px solid #b9d4ba;
-		border-radius: 0 0 var(--radius-card) var(--radius-card);
-		background: #f0f8f0;
+		border: 1px solid var(--anthropic-cloud-light);
+		border-radius: 14px;
+		background: var(--anthropic-ivory-medium);
 		padding: 1rem 1.25rem;
-		color: #315b34;
+		color: var(--anthropic-slate-medium);
 	}
 
 	.article-license-message .list {
@@ -325,89 +360,68 @@
 		padding-left: 1.25rem;
 	}
 
+	.article-license-message a {
+		color: var(--anthropic-slate-dark);
+		text-decoration-color: var(--anthropic-clay);
+	}
+
+	.article-copy,
+	.article-secondary-width {
+		width: min(100%, var(--article-copy-width));
+		margin-right: auto;
+		margin-left: auto;
+	}
+
+	.article-copy {
+		padding-bottom: 16px;
+	}
+
+	.article-secondary-width {
+		width: min(100%, 860px);
+	}
+
 	.article-comments {
-		margin-top: 1rem;
-		padding: 1.25rem;
+		margin-top: 20px;
+		margin-bottom: 96px;
+		border-color: var(--anthropic-cloud-light) !important;
+		background: var(--anthropic-ivory-medium) !important;
+		padding: clamp(22px, 3vw, 34px);
 	}
 
 	.el-divider {
 		margin: 1rem 0 !important;
 	}
 
-	h1::before, h2::before, h3::before, h4::before, h5::before, h6::before {
-		display: block;
-		content: " ";
-		height: 55px;
-		margin-top: -55px;
-		visibility: hidden;
-	}
-
-	.article-edit-link {
-		color: #17324d !important;
-		font-weight: 600;
-	}
-
-	.article-download-link {
-		color: #176b5b !important;
-		font-weight: 600;
-		cursor: pointer;
-	}
-
-	.article-meta-list {
-		display: flex !important;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: center;
-		gap: .65rem 1.15rem;
-		line-height: 1.25;
-	}
-
-	.article-meta-list > .item {
-		display: inline-flex !important;
-		align-items: center;
-		min-height: 1.5rem;
-		margin: 0 !important;
-		padding: 0 !important;
-		font-size: 1rem;
-		line-height: 1.25;
-	}
-
-	.article-meta-list > .item > .app-icon {
-		flex: 0 0 1em;
-		width: 1em !important;
-		height: 1em !important;
-		margin: 0 .38em 0 0 !important;
-		font-size: 1em !important;
-		line-height: 1 !important;
-	}
-
-	.article-meta-list > .item > span {
-		line-height: 1.25;
-	}
-
-	.article-meta-list > .article-meta-icon-action > .app-icon {
-		margin-right: 0 !important;
-	}
-
-	.article-download-link.disabled {
-		cursor: wait;
-		opacity: .58;
-		pointer-events: none;
-	}
-
-	.article-category-ribbon {
-		display: table !important;
-		margin: 0 0 .75rem !important;
-	}
 
 	.article-cover {
-		width: min(100%, 660px);
 		aspect-ratio: 16 / 9;
-		margin: 1.25rem auto 1.75rem;
+		margin-bottom: clamp(52px, 7vw, 82px);
 		overflow: hidden;
-		background: #edf1f4;
-		border: 1px solid #d8e0e6;
-		border-radius: 6px;
+		background: var(--anthropic-ivory-medium);
+		border: 0;
+		border-radius: var(--article-media-radius) !important;
+	}
+
+	.article-cover.has-summary {
+		margin-bottom: 0;
+	}
+
+	.article-summary {
+		margin-top: 18px;
+		margin-bottom: clamp(48px, 6vw, 72px);
+		color: var(--anthropic-slate-light);
+		font-family: "Songti SC", STSong, "Noto Serif CJK SC", "Source Han Serif SC", serif;
+		font-size: 14px;
+		font-weight: 400;
+		letter-spacing: .015em;
+		line-height: 1.75;
+		overflow-wrap: anywhere;
+		text-align: left;
+		word-break: break-word;
+	}
+
+	.article-summary.without-cover {
+		margin-top: 0;
 	}
 
 	.article-cover img {
@@ -417,7 +431,135 @@
 		object-fit: cover;
 	}
 
+	.js-toc-content {
+		color: var(--anthropic-slate-dark);
+		font-size: 17px;
+		text-align: left;
+	}
+
+	.js-toc-content :deep(h1),
+	.js-toc-content :deep(h2),
+	.js-toc-content :deep(h3),
+	.js-toc-content :deep(h4),
+	.js-toc-content :deep(h5),
+	.js-toc-content :deep(h6),
+	.js-toc-content :deep(p),
+	.js-toc-content :deep(li),
+	.js-toc-content :deep(strong) {
+		color: var(--anthropic-slate-dark);
+	}
+
+	.js-toc-content :deep(h1),
+	.js-toc-content :deep(h2),
+	.js-toc-content :deep(h3),
+	.js-toc-content :deep(hr) {
+		border-color: var(--anthropic-cloud-light);
+	}
+
+	.js-toc-content :deep(a) {
+		color: var(--anthropic-slate-dark);
+		text-decoration-color: var(--anthropic-slate-dark);
+	}
+
+	.js-toc-content :deep(a:hover) {
+		color: var(--anthropic-clay);
+	}
+
+	.js-toc-content :deep(a::before) {
+		background-color: var(--anthropic-clay);
+	}
+
+	.js-toc-content :deep(blockquote) {
+		border-left-color: var(--anthropic-clay);
+		color: var(--anthropic-slate-light);
+	}
+
+	.js-toc-content :deep(mark) {
+		border-bottom-color: var(--anthropic-clay);
+		background: #e3dacc;
+	}
+
+	.js-toc-content :deep(:not(pre) > code) {
+		border-color: var(--anthropic-cloud-light);
+		background: var(--anthropic-ivory-medium);
+		color: var(--anthropic-slate-medium);
+	}
+
+	.js-toc-content :deep(pre[class*="language-"]) {
+		border-color: var(--anthropic-cloud-light);
+		background: var(--anthropic-ivory-medium);
+		box-shadow: 0 10px 28px color-mix(in srgb, var(--anthropic-slate-dark) 8%, transparent);
+	}
+
+	.js-toc-content :deep(pre[class*="language-"] code[class*="language-"]) {
+		color: var(--anthropic-slate-dark);
+	}
+
+	.js-toc-content :deep(.token.comment),
+	.js-toc-content :deep(.token.block-comment),
+	.js-toc-content :deep(.token.prolog),
+	.js-toc-content :deep(.token.doctype),
+	.js-toc-content :deep(.token.cdata) { color: var(--anthropic-slate-light); }
+	.js-toc-content :deep(.token.keyword),
+	.js-toc-content :deep(.token.atrule),
+	.js-toc-content :deep(.token.important),
+	.js-toc-content :deep(.token.selector),
+	.js-toc-content :deep(.token.builtin) { color: var(--anthropic-error); }
+	.js-toc-content :deep(.token.string),
+	.js-toc-content :deep(.token.char),
+	.js-toc-content :deep(.token.attr-value),
+	.js-toc-content :deep(.token.regex),
+	.js-toc-content :deep(.token.inserted) { color: #788c5d; }
+	.js-toc-content :deep(.token.number),
+	.js-toc-content :deep(.token.boolean),
+	.js-toc-content :deep(.token.constant),
+	.js-toc-content :deep(.token.symbol) { color: #6a9bcc; }
+	.js-toc-content :deep(.token.function),
+	.js-toc-content :deep(.token.function-name),
+	.js-toc-content :deep(.token.class-name),
+	.js-toc-content :deep(.token.property) { color: #c46686; }
+
+	.js-toc-content :deep(table th),
+	.js-toc-content :deep(table td),
+	.js-toc-content :deep(table caption) {
+		border-color: var(--anthropic-cloud-light);
+		color: var(--anthropic-slate-medium);
+	}
+
+	.js-toc-content :deep(table th) { background: var(--anthropic-ivory-medium); }
+	.js-toc-content :deep(table thead th) { background: var(--anthropic-ivory-dark); }
+
+	.js-toc-content :deep(p) {
+		font-size: 17px;
+		line-height: 1.88;
+		text-align: left;
+	}
+
+	.js-toc-content :deep(img) {
+		border-radius: var(--article-media-radius);
+		clip-path: inset(0 round var(--article-media-radius));
+	}
+
 	.js-toc-content :deep(img[data-managed-preview]) {
 		cursor: zoom-in;
+	}
+
+	@media (max-width: 767px) {
+		.article-view {
+			--article-media-radius: 14px;
+			padding: 0 16px;
+		}
+
+		.article-hero {
+			padding: 48px 0 34px;
+		}
+
+		.article-title {
+			font-size: clamp(2.2rem, 11vw, 3.25rem);
+		}
+
+		.article-comments {
+			margin-bottom: 48px;
+		}
 	}
 </style>

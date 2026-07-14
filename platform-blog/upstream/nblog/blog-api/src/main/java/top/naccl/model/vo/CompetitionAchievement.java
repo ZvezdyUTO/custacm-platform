@@ -11,18 +11,23 @@ public record CompetitionAchievement(
 		Long competitionId,
 		String competitionFullName,
 		Integer year,
+		String category,
+		String categoryLabel,
 		List<CompetitionResponse.Type> types,
 		Long awardId,
+		String awardTier,
+		String awardTierLabel,
 		String awardMode,
 		String awardModeLabel,
 		String teamName,
 		String awardScope,
 		String awardScopeLabel,
 		Integer awardLevel,
-			String awardName,
-			Integer rankPosition,
-			Integer rankTotal,
-			String rank,
-			boolean profileVisible
-	) {
+		String awardName,
+		Integer rankPosition,
+		Integer rankTotal,
+		String rank,
+		boolean profileVisible,
+		Long profileOrder
+) {
 }

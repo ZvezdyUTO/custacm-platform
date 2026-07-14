@@ -19,4 +19,6 @@ public class CompetitionAwardRecipient {
 	private String username;
 	private String displayNameSnapshot;
 	private String displayName;
+	private Boolean profileVisible;
+	private Long profileSortOrder;
 }

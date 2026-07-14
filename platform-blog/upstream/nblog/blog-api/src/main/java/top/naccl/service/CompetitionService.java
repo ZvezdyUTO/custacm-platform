@@ -15,8 +15,10 @@ import top.naccl.entity.CompetitionAwardRecipient;
 import top.naccl.entity.CompetitionParticipant;
 import top.naccl.entity.CompetitionTypeTag;
 import top.naccl.entity.User;
+import top.naccl.enums.CompetitionAwardTier;
 import top.naccl.enums.CompetitionAwardMode;
 import top.naccl.enums.CompetitionAwardScope;
+import top.naccl.enums.CompetitionCategory;
 import top.naccl.enums.CompetitionParticipationMode;
 import top.naccl.enums.CompetitionType;
 import top.naccl.exception.BadRequestException;
@@ -25,6 +27,7 @@ import top.naccl.exception.NotFoundException;
 import top.naccl.exception.PersistenceException;
 import top.naccl.mapper.CompetitionMapper;
 import top.naccl.mapper.UserMapper;
+import top.naccl.model.dto.CompetitionAchievementOrderRequest;
 import top.naccl.model.dto.CompetitionAchievementVisibilityRequest;
 import top.naccl.model.dto.CompetitionAwardCreateRequest;
 import top.naccl.model.dto.CompetitionCreateRequest;
@@ -81,22 +84,22 @@ public class CompetitionService {
 	}
 
 	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
-	public CompetitionPageResponse list(Integer startYear, Integer endYear, String type,
+	public CompetitionPageResponse list(Integer startYear, Integer endYear, String category,
 			Integer pageNum, Integer pageSize) {
-		Query query = query(startYear, endYear, type, pageNum, pageSize);
+		Query query = query(startYear, endYear, category, pageNum, pageSize);
 		PageHelper.startPage(query.pageNum(), query.pageSize());
 		List<Competition> competitions = competitionMapper.findActiveCompetitions(
-				query.startYear(), query.endYear(), query.type());
+				query.startYear(), query.endYear(), query.categoryTypes(), query.categoryTypeCount());
 		return page(new PageInfo<>(competitions), assemble(competitions));
 	}
 
 	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
-	public CompetitionPageResponse listRecycleBin(Integer startYear, Integer endYear, String type,
+	public CompetitionPageResponse listRecycleBin(Integer startYear, Integer endYear, String category,
 			Integer pageNum, Integer pageSize) {
-		Query query = query(startYear, endYear, type, pageNum, pageSize);
+		Query query = query(startYear, endYear, category, pageNum, pageSize);
 		PageHelper.startPage(query.pageNum(), query.pageSize());
 		List<Competition> competitions = competitionMapper.findRecycleBinCompetitions(
-				query.startYear(), query.endYear(), query.type(), cutoff());
+				query.startYear(), query.endYear(), query.categoryTypes(), query.categoryTypeCount(), cutoff());
 		return page(new PageInfo<>(competitions), assemble(competitions));
 	}
 
@@ -116,8 +119,14 @@ public class CompetitionService {
 		}
 		String fullName = normalizeRequiredText(request.fullName(), MAX_FULL_NAME_LENGTH, "比赛全称");
 		Integer year = requireYear(request.year(), "比赛年份");
-		List<CompetitionType> types = normalizeTypes(request.types());
+		CompetitionCategory category = enumValue(request.category(), CompetitionCategory.class, "比赛分类");
+		List<CompetitionType> types = category.types();
 		CompetitionParticipationMode participationMode = participationMode(request.participationMode());
+		if (category.fixedParticipationMode() != null
+				&& category.fixedParticipationMode() != participationMode) {
+			throw new BadRequestException(category.label() + "的参赛形态必须为"
+					+ category.fixedParticipationMode().label());
+		}
 		if (competitionMapper.findActiveCompetitionByFullName(fullName) != null) {
 			throw new BadRequestException("比赛全称已存在");
 		}
@@ -234,8 +243,8 @@ public class CompetitionService {
 
 	@Transactional(rollbackFor = Exception.class)
 	public CompetitionResponse addAward(Long competitionId, CompetitionAwardCreateRequest request) {
-		requireActiveLocked(competitionId);
-		NormalizedAward normalized = normalizeAward(competitionId, request);
+		Competition competition = requireActiveLocked(competitionId);
+		NormalizedAward normalized = normalizeAward(competition, request);
 		List<CompetitionParticipant> recipients = competitionMapper
 				.findParticipantsByCompetitionIdAndUsernames(competitionId, normalized.recipientUsernames());
 		Map<String, CompetitionParticipant> recipientsByUsername = recipients.stream()
@@ -315,17 +324,53 @@ public class CompetitionService {
 			throw new BadRequestException("是否展示不能为空");
 		}
 		requireActiveLocked(competitionId);
-		Boolean current = competitionMapper.findAchievementProfileVisibility(
+		CompetitionAwardRecipient current = competitionMapper.findAchievementProfileStateForUpdate(
 				competitionId, awardId, normalizedUsername);
 		if (current == null) {
 			throw new NotFoundException("本人获奖记录不存在");
 		}
-		if (current.equals(request.visible())) {
+		if (Boolean.valueOf(request.visible()).equals(current.getProfileVisible())
+				&& (!request.visible() || current.getProfileSortOrder() != null)) {
 			return;
 		}
+		Long profileSortOrder = null;
+		if (request.visible()) {
+			profileSortOrder = competitionMapper.findVisibleAchievementOrdersForUpdate(normalizedUsername).stream()
+					.map(CompetitionAwardRecipient::getProfileSortOrder)
+					.filter(java.util.Objects::nonNull)
+					.max(Long::compareTo)
+					.orElse(0L) + 1L;
+		}
 		if (competitionMapper.updateAchievementProfileVisibility(
-				competitionId, awardId, normalizedUsername, request.visible()) != 1) {
+				competitionId, awardId, normalizedUsername, request.visible(), profileSortOrder) != 1) {
 			throw new PersistenceException("奖项展示状态更新失败");
+		}
+	}
+
+	@Transactional(rollbackFor = Exception.class)
+	public void updateAchievementOrder(String username, CompetitionAchievementOrderRequest request) {
+		String normalizedUsername = normalizeUsername(username);
+		if (request == null || request.orderedAwardIds() == null) {
+			throw new BadRequestException("奖项顺序不能为空");
+		}
+		List<Long> orderedAwardIds = request.orderedAwardIds();
+		if (orderedAwardIds.stream().anyMatch(java.util.Objects::isNull)
+				|| new LinkedHashSet<>(orderedAwardIds).size() != orderedAwardIds.size()) {
+			throw new BadRequestException("奖项顺序不能包含空值或重复项");
+		}
+		List<CompetitionAwardRecipient> visible =
+				competitionMapper.findVisibleAchievementOrdersForUpdate(normalizedUsername);
+		Set<Long> currentIds = visible.stream().map(CompetitionAwardRecipient::getAwardId)
+				.collect(Collectors.toCollection(LinkedHashSet::new));
+		if (currentIds.size() != orderedAwardIds.size()
+				|| !currentIds.equals(new LinkedHashSet<>(orderedAwardIds))) {
+			throw new BadRequestException("奖项顺序必须完整包含本人当前全部公开奖项");
+		}
+		for (int index = 0; index < orderedAwardIds.size(); index++) {
+			if (competitionMapper.updateAchievementProfileOrder(
+					normalizedUsername, orderedAwardIds.get(index), (long) index + 1L) != 1) {
+				throw new PersistenceException("奖项顺序更新失败");
+			}
 		}
 	}
 
@@ -354,7 +399,12 @@ public class CompetitionService {
 				accumulator.types.add(row.getCompetitionType());
 			}
 		}
-		return byAward.values().stream().map(AchievementAccumulator::response).toList();
+		return byAward.values().stream().map(AchievementAccumulator::response)
+				.sorted(Comparator
+						.comparing((CompetitionAchievement achievement) -> !achievement.profileVisible())
+						.thenComparing(achievement -> achievement.profileVisible()
+								? nullSafeOrder(achievement.profileOrder()) : Long.MAX_VALUE))
+				.toList();
 	}
 
 	private CompetitionResponse requireActiveResponse(Long id) {
@@ -391,46 +441,49 @@ public class CompetitionService {
 		return participants.getFirst();
 	}
 
-	private NormalizedAward normalizeAward(Long competitionId, CompetitionAwardCreateRequest request) {
+	private NormalizedAward normalizeAward(Competition competition, CompetitionAwardCreateRequest request) {
 		if (request == null) {
 			throw new BadRequestException("请求体不能为空");
 		}
 		CompetitionAwardMode mode = enumValue(request.awardMode(), CompetitionAwardMode.class, "奖项归属形态");
-		CompetitionAwardScope scope = nullableEnumValue(
-				request.awardScope(), CompetitionAwardScope.class, "奖项级别范围");
-		Integer level = request.awardLevel();
-		if (level == null || level < 1 || level > 4) {
-			throw new BadRequestException("奖项等级只能是 1、2、3、4");
+		if (competition.getParticipationMode() != CompetitionParticipationMode.MIXED
+				&& !competition.getParticipationMode().name().equals(mode.name())) {
+			throw new BadRequestException("奖项归属形态必须与比赛参赛形态一致");
+		}
+		CompetitionAwardTier tier = enumValue(request.awardTier(), CompetitionAwardTier.class, "奖项档位");
+		List<CompetitionType> typeTags = competitionMapper
+				.findTypeTagsByCompetitionIds(List.of(competition.getId())).stream()
+				.map(CompetitionTypeTag::getType)
+				.toList();
+		CompetitionCategory category = CompetitionCategory.fromTypes(typeTags);
+		if (category == null) {
+			throw new BadRequestException("比赛缺少规范分类，不能添加奖项");
+		}
+		if (!tier.validFor(category)) {
+			throw new BadRequestException("该奖项档位不适用于" + category.label());
 		}
 		Integer rankPosition = request.rankPosition();
 		Integer rankTotal = request.rankTotal();
-		if (rankPosition == null || rankTotal == null || rankPosition <= 0 || rankTotal <= 0
-				|| rankPosition > rankTotal) {
-			throw new BadRequestException("rank 必须满足 1 <= x <= y");
+		if (category.medalSystem()) {
+			if (rankPosition == null || rankTotal == null || rankPosition <= 0 || rankTotal <= 0
+					|| rankPosition > rankTotal) {
+				throw new BadRequestException("奖牌体系排名必须满足 1 <= x <= y");
+			}
+		} else if (rankPosition != null || rankTotal != null) {
+			throw new BadRequestException("该比赛分类的普通奖项不能填写排名");
 		}
-		List<String> recipients = normalizeUsernames(request.recipientUsernames());
+		List<String> recipients = normalizeAwardRecipients(request.recipientUsernames());
 		if (mode == CompetitionAwardMode.INDIVIDUAL && recipients.size() != 1) {
 			throw new BadRequestException("个人奖项必须且只能绑定一名参赛队员");
 		}
-		if (mode == CompetitionAwardMode.TEAM && recipients.size() < 2) {
-			throw new BadRequestException("团队奖项至少需要绑定两名参赛队员");
+		if (mode == CompetitionAwardMode.TEAM && recipients.isEmpty()) {
+			throw new BadRequestException("团队奖项至少需要绑定一名参赛队员");
 		}
 		String teamName = normalizeOptionalText(request.teamName(), MAX_AWARD_TEXT_LENGTH, "队伍名称");
 		if (mode == CompetitionAwardMode.INDIVIDUAL && teamName != null) {
 			throw new BadRequestException("个人奖项不能填写队伍名称");
 		}
-		String awardName = normalizeOptionalText(request.awardName(), MAX_AWARD_TEXT_LENGTH, "奖项名称");
-
-		Set<CompetitionType> types = competitionMapper.findTypeTagsByCompetitionIds(List.of(competitionId)).stream()
-				.map(CompetitionTypeTag::getType).collect(Collectors.toSet());
-		if (types.contains(CompetitionType.LANQIAO_CUP) && scope != CompetitionAwardScope.NATIONAL) {
-			throw new BadRequestException("蓝桥杯仅记录国家级奖项");
-		}
-		if ((types.contains(CompetitionType.BAIDU_STAR) || types.contains(CompetitionType.GPLT))
-				&& scope == null) {
-			throw new BadRequestException("百度之星和团体程序设计天梯赛奖项必须区分省级或国家级");
-		}
-		return new NormalizedAward(mode, teamName, scope, level, awardName,
+		return new NormalizedAward(mode, teamName, tier.scope(), tier.level(), tier.storedName(),
 				rankPosition, rankTotal, recipients);
 	}
 
@@ -439,11 +492,17 @@ public class CompetitionService {
 			return List.of();
 		}
 		List<Long> competitionIds = competitions.stream().map(Competition::getId).toList();
-		Map<Long, List<CompetitionResponse.Type>> typesByCompetition = competitionMapper
+		Map<Long, List<CompetitionType>> rawTypesByCompetition = competitionMapper
 				.findTypeTagsByCompetitionIds(competitionIds).stream()
 				.sorted(Comparator.comparingInt(tag -> tag.getType().ordinal()))
 				.collect(Collectors.groupingBy(CompetitionTypeTag::getCompetitionId, LinkedHashMap::new,
-						Collectors.mapping(tag -> type(tag.getType()), Collectors.toList())));
+						Collectors.mapping(CompetitionTypeTag::getType, Collectors.toList())));
+		Map<Long, CompetitionCategory> categoryByCompetition = new LinkedHashMap<>();
+		rawTypesByCompetition.forEach((competitionId, types) ->
+				categoryByCompetition.put(competitionId, CompetitionCategory.fromTypes(types)));
+		Map<Long, List<CompetitionResponse.Type>> typesByCompetition = rawTypesByCompetition.entrySet().stream()
+				.collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().stream()
+						.map(CompetitionService::type).toList()));
 
 		List<CompetitionParticipant> participants = competitionMapper.findParticipantsByCompetitionIds(competitionIds);
 		List<Long> participantIds = participants.stream().map(CompetitionParticipant::getId).toList();
@@ -480,23 +539,30 @@ public class CompetitionService {
 				.findAwardsByCompetitionIds(competitionIds).stream()
 				.collect(Collectors.groupingBy(CompetitionAward::getCompetitionId, LinkedHashMap::new,
 						Collectors.mapping(award -> award(award,
+								categoryByCompetition.get(award.getCompetitionId()),
 								recipientsByAward.getOrDefault(award.getId(), List.of())), Collectors.toList())));
 
-		return competitions.stream().map(competition -> new CompetitionResponse(
-				competition.getId(), competition.getFullName(), competition.getCompetitionYear(),
-				competition.getParticipationMode().name(), competition.getParticipationMode().label(),
-				List.copyOf(typesByCompetition.getOrDefault(competition.getId(), List.of())),
-				competition.getCreateTime(), competition.getDeletedAt(),
-				List.copyOf(participantsByCompetition.getOrDefault(competition.getId(), List.of())),
-				List.copyOf(awardsByCompetition.getOrDefault(competition.getId(), List.of()))
-		)).toList();
+		return competitions.stream().map(competition -> {
+			CompetitionCategory category = categoryByCompetition.get(competition.getId());
+			return new CompetitionResponse(
+					competition.getId(), competition.getFullName(), competition.getCompetitionYear(),
+					category == null ? null : category.name(), category == null ? null : category.label(),
+					competition.getParticipationMode().name(), competition.getParticipationMode().label(),
+					List.copyOf(typesByCompetition.getOrDefault(competition.getId(), List.of())),
+					competition.getCreateTime(), competition.getDeletedAt(),
+					List.copyOf(participantsByCompetition.getOrDefault(competition.getId(), List.of())),
+					List.copyOf(awardsByCompetition.getOrDefault(competition.getId(), List.of()))
+			);
+		}).toList();
 	}
 
-	private static CompetitionResponse.Award award(CompetitionAward award,
+	private static CompetitionResponse.Award award(CompetitionAward award, CompetitionCategory category,
 			List<CompetitionResponse.Recipient> recipients) {
 		CompetitionAwardScope scope = award.getAwardScope();
+		CompetitionAwardTier tier = CompetitionAwardTier.fromStored(category, scope, award.getAwardLevel());
 		return new CompetitionResponse.Award(
-				award.getId(), award.getAwardMode().name(), award.getAwardMode().label(), award.getTeamName(),
+				award.getId(), tier == null ? null : tier.name(), tier == null ? null : tier.label(),
+				award.getAwardMode().name(), award.getAwardMode().label(), award.getTeamName(),
 				scope == null ? null : scope.name(), scope == null ? null : scope.label(), award.getAwardLevel(),
 				award.getAwardName(), award.getRankPosition(), award.getRankTotal(),
 				rank(award.getRankPosition(), award.getRankTotal()), List.copyOf(recipients));
@@ -511,7 +577,8 @@ public class CompetitionService {
 				page.getPages(), List.copyOf(list));
 	}
 
-	private static Query query(Integer startYear, Integer endYear, String type, Integer pageNum, Integer pageSize) {
+	private static Query query(Integer startYear, Integer endYear, String category,
+			Integer pageNum, Integer pageSize) {
 		if (startYear != null) {
 			requireYear(startYear, "起始年份");
 		}
@@ -527,23 +594,11 @@ public class CompetitionService {
 		if (pageSize == null || pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
 			throw new BadRequestException("每页数量必须在 1 到 100 之间");
 		}
-		CompetitionType parsedType = type == null || type.isBlank()
-				? null : enumValue(type, CompetitionType.class, "比赛类型");
-		return new Query(startYear, endYear, parsedType, pageNum, pageSize);
-	}
-
-	private static List<CompetitionType> normalizeTypes(List<String> values) {
-		if (values == null || values.isEmpty()) {
-			throw new BadRequestException("比赛类型至少需要选择一项");
-		}
-		LinkedHashSet<CompetitionType> types = values.stream()
-				.map(value -> enumValue(value, CompetitionType.class, "比赛类型"))
-				.collect(Collectors.toCollection(LinkedHashSet::new));
-		if (types.contains(CompetitionType.LANQIAO_CUP)
-				&& types.contains(CompetitionType.PROVINCIAL)) {
-			throw new BadRequestException("蓝桥杯不支持省赛类型");
-		}
-		return List.copyOf(types);
+		CompetitionCategory parsedCategory = category == null || category.isBlank()
+				? null : enumValue(category, CompetitionCategory.class, "比赛分类");
+		List<CompetitionType> categoryTypes = parsedCategory == null ? null : parsedCategory.types();
+		return new Query(startYear, endYear, categoryTypes,
+				categoryTypes == null ? null : categoryTypes.size(), pageNum, pageSize);
 	}
 
 	private static List<String> normalizeUsernames(List<String> values) {
@@ -558,6 +613,19 @@ public class CompetitionService {
 				.collect(Collectors.toCollection(LinkedHashSet::new));
 		if (usernames.size() != values.size()) {
 			throw new BadRequestException("用户列表不能重复");
+		}
+		return List.copyOf(usernames);
+	}
+
+	private static List<String> normalizeAwardRecipients(List<String> values) {
+		if (values == null || values.isEmpty()) {
+			throw new BadRequestException("获奖人列表不能为空");
+		}
+		LinkedHashSet<String> usernames = values.stream()
+				.map(CompetitionService::normalizeUsername)
+				.collect(Collectors.toCollection(LinkedHashSet::new));
+		if (usernames.size() != values.size()) {
+			throw new BadRequestException("获奖人列表不能重复");
 		}
 		return List.copyOf(usernames);
 	}
@@ -581,10 +649,6 @@ public class CompetitionService {
 		} catch (IllegalArgumentException exception) {
 			throw new BadRequestException(field + "不正确");
 		}
-	}
-
-	private static <E extends Enum<E>> E nullableEnumValue(String value, Class<E> type, String field) {
-		return value == null || value.isBlank() ? null : enumValue(value, type, field);
 	}
 
 	private static Integer requireYear(Integer year, String field) {
@@ -623,7 +687,11 @@ public class CompetitionService {
 	}
 
 	private static String rank(Integer position, Integer total) {
-		return "(" + position + "/" + total + ")";
+		return position == null || total == null ? null : "(" + position + "/" + total + ")";
+	}
+
+	private static long nullSafeOrder(Long order) {
+		return order == null ? Long.MAX_VALUE : order;
 	}
 
 	private Date now() {
@@ -634,7 +702,8 @@ public class CompetitionService {
 		return Date.from(clock.instant().minus(RETENTION));
 	}
 
-	private record Query(Integer startYear, Integer endYear, CompetitionType type, int pageNum, int pageSize) {
+	private record Query(Integer startYear, Integer endYear, List<CompetitionType> categoryTypes,
+			Integer categoryTypeCount, int pageNum, int pageSize) {
 	}
 
 	private record NormalizedAward(
@@ -662,14 +731,19 @@ public class CompetitionService {
 					.sorted(Comparator.comparingInt(Enum::ordinal))
 					.map(CompetitionService::type)
 					.toList();
+			CompetitionCategory category = CompetitionCategory.fromTypes(types);
 			CompetitionAwardScope scope = row.getAwardScope();
+			CompetitionAwardTier tier = CompetitionAwardTier.fromStored(
+					category, scope, row.getAwardLevel());
 			return new CompetitionAchievement(
-					row.getCompetitionId(), row.getCompetitionFullName(), row.getCompetitionYear(), responseTypes,
-					row.getAwardId(), row.getAwardMode().name(), row.getAwardMode().label(), row.getTeamName(),
+					row.getCompetitionId(), row.getCompetitionFullName(), row.getCompetitionYear(),
+					category == null ? null : category.name(), category == null ? null : category.label(), responseTypes,
+					row.getAwardId(), tier == null ? null : tier.name(), tier == null ? null : tier.label(),
+					row.getAwardMode().name(), row.getAwardMode().label(), row.getTeamName(),
 					scope == null ? null : scope.name(), scope == null ? null : scope.label(), row.getAwardLevel(),
 					row.getAwardName(), row.getRankPosition(), row.getRankTotal(),
 					rank(row.getRankPosition(), row.getRankTotal()),
-					Boolean.TRUE.equals(row.getProfileVisible()));
+					Boolean.TRUE.equals(row.getProfileVisible()), row.getProfileOrder());
 		}
 	}
 }

@@ -12,6 +12,8 @@ public record CompetitionResponse(
 		Long id,
 		String fullName,
 		Integer year,
+		String category,
+		String categoryLabel,
 		String participationMode,
 		String participationModeLabel,
 		List<Type> types,
@@ -36,6 +38,8 @@ public record CompetitionResponse(
 
 	public record Award(
 			Long id,
+			String awardTier,
+			String awardTierLabel,
 			String awardMode,
 			String awardModeLabel,
 			String teamName,

@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 import top.naccl.entity.Blog;
 import top.naccl.model.vo.BlogDetail;
 import top.naccl.model.vo.BlogInfo;
-import top.naccl.model.vo.RandomBlog;
 import top.naccl.model.vo.SearchBlog;
 
 import java.util.List;
@@ -44,9 +43,6 @@ public interface BlogMapper {
 	List<BlogInfo> getBlogInfoListByTagNameAndIsPublished(@Param("tagName") String tagName,
 			@Param("includeInternal") boolean includeInternal);
 
-	List<RandomBlog> getFeaturedBlogList(@Param("limitNum") Integer limitNum,
-			@Param("includeInternal") boolean includeInternal);
-
 	int deleteBlogById(Long id);
 
 	int moveBlogToRecycleBin(@Param("id") Long id, @Param("deletedAt") Date deletedAt);
@@ -66,8 +62,6 @@ public interface BlogMapper {
 	int saveBlog(top.naccl.model.dto.Blog blog);
 
 	int saveBlogTag(Long blogId, Long tagId);
-
-	int updateBlogRecommendById(Long blogId, Boolean recommend);
 
 	Blog getBlogByIdAndUserId(Long id, Long userId);
 

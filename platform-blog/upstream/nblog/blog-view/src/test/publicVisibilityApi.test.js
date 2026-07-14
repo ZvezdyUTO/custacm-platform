@@ -24,16 +24,19 @@ describe('visibility-aware public Blog reads', () => {
 		expect(request).toHaveBeenCalledWith(expect.objectContaining({url: 'blogs', headers: undefined}))
 	})
 
-	it('explicitly attaches the shared bearer token to every visibility-aware read', () => {
+	it('attaches the shared bearer token only to reads whose visibility changes after login', () => {
 		readToken.mockReturnValue('token-value')
 		getBlogList(1)
 		getBlogListByCategoryName('训练', 1)
 		getBlogListByTagName('动态规划', 1)
 		getSearchBlogList('内部')
-		getSite()
 
 		for (const call of request.mock.calls) {
 			expect(call[0].headers).toEqual({Authorization: 'Bearer token-value'})
 		}
+
+		request.mockClear()
+		getSite()
+		expect(request).toHaveBeenCalledWith({url: 'site', method: 'GET'})
 	})
 })

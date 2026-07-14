@@ -29,7 +29,7 @@ import java.util.Set;
 @Service
 public class PlayerProfileService {
 	static final int MAX_NICKNAME_LENGTH = 30;
-	static final int MAX_SIGNATURE_LENGTH = 160;
+	static final int MAX_SIGNATURE_LENGTH = 40;
 	static final int MAX_LINK_COUNT = 8;
 	static final int MAX_LINK_LABEL_LENGTH = 30;
 	static final int MAX_LINK_URL_LENGTH = 2048;
@@ -138,7 +138,7 @@ public class PlayerProfileService {
 	private static String normalizeSignature(String value) {
 		String signature = value.trim();
 		if (signature.length() > MAX_SIGNATURE_LENGTH) {
-			throw new BadRequestException("个性签名不能超过 160 个字符");
+			throw new BadRequestException("个性签名不能超过 40 个字符");
 		}
 		return signature;
 	}

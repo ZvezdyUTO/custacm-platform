@@ -44,12 +44,18 @@
 
 <style scoped>
 	.site-footer {
+		box-sizing: border-box;
+		min-height: 116px;
 		margin: 0 !important;
-		padding: 12px 0 14px !important;
+		padding: 18px 0 max(24px, env(safe-area-inset-bottom)) !important;
+		flex: 0 0 auto;
+		overflow: visible;
 		background: #17191b !important;
 	}
 
 	.footer-container {
+		box-sizing: border-box;
+		min-height: 74px;
 		padding-right: 16px;
 		padding-left: 16px;
 		text-align: center;
@@ -66,6 +72,7 @@
 
 	.footer-links {
 		display: flex;
+		min-height: 36px;
 		align-items: center;
 		justify-content: center;
 		gap: 8px;

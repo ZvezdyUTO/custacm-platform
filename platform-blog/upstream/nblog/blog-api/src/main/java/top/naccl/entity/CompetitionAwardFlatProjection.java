@@ -29,4 +29,5 @@ public class CompetitionAwardFlatProjection {
 	private Integer rankTotal;
 	private String awardName;
 	private Boolean profileVisible;
+	private Long profileOrder;
 }

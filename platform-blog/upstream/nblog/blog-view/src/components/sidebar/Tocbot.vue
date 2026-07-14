@@ -40,6 +40,8 @@
 					tocSelector: '.js-toc',
 					// Where to grab the headings to build the table of contents.
 					contentSelector: '.js-toc-content',
+					// The article pane owns its scroll position on desktop, like an IDE editor group.
+					scrollContainer: '.article-reading-pane',
 					// Which headings to grab inside of the contentSelector element.
 					headingSelector: 'h1,h2,h3,h4',
 					// Smooth scrolling enabled.
@@ -47,10 +49,10 @@
 					// Smooth scroll duration.
 					scrollSmoothDuration: 420,
 					//到顶部导航条的距离
-					scrollSmoothOffset: -55,
+					scrollSmoothOffset: -28,
 					// Headings offset between the headings and the top of the document (this is meant for minor adjustments).
 					// Can also be used to account for scroll height discrepancies from the use of css scroll-padding-top
-					headingsOffset: -18
+					headingsOffset: -28
 				})
 			}
 		}
@@ -63,7 +65,7 @@
 	}
 
 	.m-toc .toc {
-		overflow-y: auto
+		overflow: visible
 	}
 
 	.m-toc .toc > ul {
@@ -82,18 +84,26 @@
 	}
 
 	.m-toc .toc-list li a {
-		display: block;
+		display: -webkit-box;
+		min-width: 0;
+		overflow: hidden;
 		padding: 4px 0;
 		font-weight: 300;
+		line-height: 1.45;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		overflow-wrap: anywhere;
+		text-overflow: ellipsis;
 	}
 
 	.m-toc .toc-list li a:hover {
-		color: #17324d;
+		color: var(--anthropic-clay);
 	}
 
 	.m-toc a.toc-link {
 		color: currentColor;
-		height: 100%
+		height: auto
 	}
 
 	.m-toc .is-collapsible {
@@ -108,11 +118,11 @@
 
 	.m-toc .is-active-link {
 		font-weight: 700;
-		color: #17324d !important;
+		color: var(--anthropic-slate-dark) !important;
 	}
 
 	.m-toc .toc-link::before {
-		background-color: #EEE;
+		background-color: var(--anthropic-cloud-light);
 		content: ' ';
 		display: inline-block;
 		height: 0;
@@ -123,6 +133,6 @@
 	}
 
 	.m-toc .is-active-link::before {
-		background-color: #17324d
+		background-color: var(--anthropic-clay)
 	}
 </style>

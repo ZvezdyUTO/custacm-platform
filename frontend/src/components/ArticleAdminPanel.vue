@@ -1,17 +1,20 @@
 <template>
-  <section class="article-admin admin-reference-page" aria-label="管理文章">
-    <header class="reference-page-header article-admin-header">
-      <span class="reference-page-icon"><Newspaper :size="22" /></span>
-		<div><h2>管理文章</h2><p>{{ viewMode === 'active' ? '选择公开文章进入首页侧栏“精选文章”；精选按置顶状态和最近更新时间排序，最多展示 5 篇。' : '删除的文章固定保留 7 天，期间作者本人或管理员可以恢复。' }}</p></div>
-			<button class="article-backup-button" type="button" :disabled="backupBusy" @click="pendingBackup = true"><Download :size="17" />{{ backupBusy ? '正在打包…' : '下载全部文章' }}</button>
-    </header>
+	  <section class="article-admin admin-reference-page" aria-label="管理文章">
+	    <header class="reference-page-header article-admin-header">
+	      <span class="reference-page-icon"><Newspaper :size="22" /></span>
+			<div><h2>管理文章</h2><p>{{ headerDescription }}</p></div>
+			<button v-if="viewMode !== 'featured'" class="article-backup-button" type="button" :disabled="backupBusy" @click="pendingBackup = true"><Download :size="17" />{{ backupBusy ? '正在打包…' : '下载全部文章' }}</button>
+	    </header>
 
-	<nav class="article-admin-tabs" aria-label="文章范围">
-		<button type="button" :class="{ 'is-active': viewMode === 'active' }" @click="switchMode('active')">当前文章</button>
-		<button type="button" :class="{ 'is-active': viewMode === 'recycle' }" @click="switchMode('recycle')">回收站</button>
-	</nav>
+		<nav class="article-admin-tabs" aria-label="文章范围">
+			<button type="button" :class="{ 'is-active': viewMode === 'featured' }" @click="switchMode('featured')">首页编排</button>
+			<button type="button" :class="{ 'is-active': viewMode === 'active' }" @click="switchMode('active')">当前文章</button>
+			<button type="button" :class="{ 'is-active': viewMode === 'recycle' }" @click="switchMode('recycle')">回收站</button>
+		</nav>
 
-    <form class="article-admin-filters" @submit.prevent="search">
+		<HomepageFeaturedGroupsPanel v-show="viewMode === 'featured'" :dashboard="dashboard" />
+		<div v-show="viewMode !== 'featured'" class="article-admin-list-view">
+	    <form class="article-admin-filters" @submit.prevent="search">
       <label>标题<input v-model="title" placeholder="输入文章标题"></label>
       <label>分类<select v-model="categoryId"><option value="">全部分类</option><option v-for="category in categories" :key="category.id" :value="String(category.id)">{{ category.name }}</option></select></label>
       <button class="primary-button" type="submit" :disabled="busy"><Search :size="16" />查询</button>
@@ -24,7 +27,7 @@
         <div class="article-admin-cover" :class="{ 'is-empty': !article.firstPicture }"><img v-if="article.firstPicture" :src="article.firstPicture" alt=""><ImageOff v-else :size="22" /></div>
 		<div class="article-admin-info"><div class="article-admin-title"><strong>{{ article.title }}</strong><span v-if="viewMode === 'active' && article.top">置顶</span></div><p v-if="viewMode === 'active'">{{ article.category?.name || '未分类' }} · 更新于 {{ formatDate(article.updateTime) }}</p><p v-else>{{ article.category?.name || '未分类' }} · 作者 {{ article.user?.nickname || article.user?.username || '已注销用户' }} · 删除于 {{ formatDate(article.deletedAt) }} · {{ remainingRetention(article.deletedAt) }}</p></div>
 		<span :class="['article-publish-state', viewMode === 'recycle' ? 'is-recycle' : (article.published ? 'is-published' : '')]">{{ viewMode === 'recycle' ? '回收站' : (article.published ? '已发布' : '草稿') }}</span>
-		<div class="article-admin-actions"><template v-if="viewMode === 'active'"><button class="featured-toggle" :class="{ 'is-featured': article.recommend }" type="button" :disabled="busy || !article.published" :aria-pressed="article.recommend" @click="toggleFeatured(article)"><Star :size="17" :fill="article.recommend ? 'currentColor' : 'none'" />{{ article.recommend ? '已精选' : '设为精选' }}</button><button class="article-delete-button" type="button" :disabled="busy" @click="pendingDelete = article"><Trash2 :size="17" />删除</button></template><button v-else class="article-restore-button" type="button" :disabled="busy" @click="restore(article)"><RotateCcw :size="17" />恢复文章</button></div>
+			<div class="article-admin-actions"><button v-if="viewMode === 'active'" class="article-delete-button" type="button" :disabled="busy" @click="pendingDelete = article"><Trash2 :size="17" />删除</button><button v-else class="article-restore-button" type="button" :disabled="busy" @click="restore(article)"><RotateCcw :size="17" />恢复文章</button></div>
       </article>
 		<p v-if="!busy && !articles.length" class="article-admin-empty">{{ viewMode === 'recycle' ? '回收站中没有符合条件的文章。' : '没有符合条件的文章。' }}</p>
     </div>
@@ -49,16 +52,18 @@
 			icon="backup"
 			tone="warning"
 			@cancel="pendingBackup = false"
-			@confirm="backupAll"
-		/>
-	  </section>
+				@confirm="backupAll"
+			/>
+		</div>
+		  </section>
 </template>
 
 <script setup lang="ts">
 // Author: huangbingrui.awa
-import { computed, onMounted, ref } from 'vue';
-import { Download, ImageOff, Newspaper, RotateCcw, Search, Star, Trash2, TriangleAlert } from '@lucide/vue';
+import { computed, ref } from 'vue';
+import { Download, ImageOff, Newspaper, RotateCcw, Search, Trash2, TriangleAlert } from '@lucide/vue';
 import AdminConfirmDialog from './AdminConfirmDialog.vue';
+import HomepageFeaturedGroupsPanel from './HomepageFeaturedGroupsPanel.vue';
 import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
 import type { AdminArticle } from '../types';
 
@@ -66,19 +71,22 @@ const props = defineProps<{ dashboard: ReturnType<typeof usePlatformDashboard> }
 const title = ref(''); const categoryId = ref(''); const busy = ref(false); const errorMessage = ref('');
 const backupBusy = ref(false); const backupMessage = ref('');
 const pendingBackup = ref(false);
-const viewMode = ref<'active' | 'recycle'>('active');
+const viewMode = ref<'featured' | 'active' | 'recycle'>('featured');
 const pendingDelete = ref<AdminArticle | null>(null);
 const response = computed(() => props.dashboard.adminArticles.value);
 const articles = computed(() => response.value?.blogs.list || []);
 const categories = computed(() => response.value?.categories || []);
 const page = computed(() => response.value?.blogs || { pageNum: 1, pages: 1, total: 0 });
+const headerDescription = computed(() => {
+	if (viewMode.value === 'featured') return '按组编排首页精选内容；每组固定三篇文章，最多展示三组。';
+	if (viewMode.value === 'active') return '查看、筛选和维护当前文章；首页展示请前往“首页编排”。';
+	return '删除的文章固定保留 7 天，期间作者本人或管理员可以恢复。';
+});
 
-onMounted(() => load(1));
 async function load(pageNum: number) { busy.value = true; errorMessage.value = ''; try { await props.dashboard.loadAdminArticles({ title: title.value.trim(), categoryId: categoryId.value ? Number(categoryId.value) : null, pageNum, pageSize: 10 }, viewMode.value === 'recycle'); } catch (error) { errorMessage.value = error instanceof Error ? error.message : '文章列表加载失败。'; } finally { busy.value = false; } }
 function search() { void load(1); }
-function switchMode(mode: 'active' | 'recycle') { if (viewMode.value === mode) return; viewMode.value = mode; pendingDelete.value = null; void load(1); }
+function switchMode(mode: 'featured' | 'active' | 'recycle') { if (viewMode.value === mode) return; viewMode.value = mode; pendingDelete.value = null; if (mode !== 'featured') void load(1); }
 function changePage(pageNum: number) { void load(pageNum); }
-async function toggleFeatured(article: AdminArticle) { busy.value = true; errorMessage.value = ''; try { await props.dashboard.updateArticleFeatured(article.id, !article.recommend); } catch (error) { errorMessage.value = error instanceof Error ? error.message : '精选状态更新失败。'; } finally { busy.value = false; } }
 async function confirmDelete() { if (!pendingDelete.value) return; busy.value = true; errorMessage.value = ''; try { await props.dashboard.deleteArticle(pendingDelete.value.id); pendingDelete.value = null; const nextPage = articles.value.length === 1 && page.value.pageNum > 1 ? page.value.pageNum - 1 : page.value.pageNum; await props.dashboard.loadAdminArticles({ title: title.value.trim(), categoryId: categoryId.value ? Number(categoryId.value) : null, pageNum: nextPage, pageSize: 10 }, false); } catch (error) { errorMessage.value = error instanceof Error ? error.message : '文章移入回收站失败。'; } finally { busy.value = false; } }
 async function restore(article: AdminArticle) { busy.value = true; errorMessage.value = ''; try { await props.dashboard.restoreArticle(article.id); const nextPage = articles.value.length === 1 && page.value.pageNum > 1 ? page.value.pageNum - 1 : page.value.pageNum; await props.dashboard.loadAdminArticles({ title: title.value.trim(), categoryId: categoryId.value ? Number(categoryId.value) : null, pageNum: nextPage, pageSize: 10 }, true); } catch (error) { errorMessage.value = error instanceof Error ? error.message : '文章恢复失败。'; } finally { busy.value = false; } }
 async function backupAll() { if (!pendingBackup.value) return; pendingBackup.value = false; backupBusy.value = true; backupMessage.value = ''; errorMessage.value = ''; try { await props.dashboard.backupAllArticles(); backupMessage.value = '文章、评论、作者资料和托管图片备份已开始下载。'; } catch (error) { errorMessage.value = error instanceof Error ? error.message : '文章备份下载失败。'; } finally { backupBusy.value = false; } }

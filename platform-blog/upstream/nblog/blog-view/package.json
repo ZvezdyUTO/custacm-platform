@@ -16,6 +16,7 @@
     "@codemirror/language": "6.12.4",
     "@codemirror/state": "6.7.1",
     "@codemirror/view": "6.43.6",
+    "@fontsource-variable/jetbrains-mono": "5.2.8",
     "@lezer/markdown": "1.7.1",
     "@lucide/vue": "1.24.0",
     "axios": "1.18.1",

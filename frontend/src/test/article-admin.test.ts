@@ -1,14 +1,13 @@
 // Author: huangbingrui.awa
 import { flushPromises, mount } from '@vue/test-utils';
-import { ref } from 'vue';
+import { defineComponent, ref } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
 import ArticleAdminPanel from '../components/ArticleAdminPanel.vue';
 import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
 
 describe('article admin panel', () => {
-  it('loads articles and allows an administrator to feature a published article', async () => {
+  it('opens homepage composition first and keeps article backup and recycle-bin operations', async () => {
     const loadAdminArticles = vi.fn().mockResolvedValue(undefined);
-    const updateArticleFeatured = vi.fn().mockResolvedValue(undefined);
 	const deleteArticle = vi.fn().mockResolvedValue(undefined);
 	const restoreArticle = vi.fn().mockResolvedValue(undefined);
 	const backupAllArticles = vi.fn().mockResolvedValue(undefined);
@@ -22,13 +21,18 @@ describe('article admin panel', () => {
         }] },
       }),
       loadAdminArticles,
-      updateArticleFeatured,
 		deleteArticle,
 		restoreArticle,
 		backupAllArticles,
     } as unknown as ReturnType<typeof usePlatformDashboard>;
 
-    const wrapper = mount(ArticleAdminPanel, { props: { dashboard } });
+    const wrapper = mount(ArticleAdminPanel, {
+      props: { dashboard },
+      global: { stubs: { HomepageFeaturedGroupsPanel: true } },
+    });
+    expect(wrapper.text()).toContain('每组固定三篇文章，最多展示三组');
+    expect(wrapper.find('.article-backup-button').exists()).toBe(false);
+    await wrapper.findAll('.article-admin-tabs button')[1].trigger('click');
     await vi.waitFor(() => expect(loadAdminArticles).toHaveBeenCalled());
     await flushPromises();
 		await wrapper.get('.article-backup-button').trigger('click');
@@ -39,12 +43,6 @@ describe('article admin panel', () => {
 		await flushPromises();
 	expect(backupAllArticles).toHaveBeenCalledOnce();
 	expect(wrapper.get('[role="status"]').text()).toContain('托管图片备份已开始下载');
-    const toggle = wrapper.get('.featured-toggle');
-    expect(toggle.attributes('aria-pressed')).toBe('false');
-    await toggle.trigger('click');
-    expect(updateArticleFeatured).toHaveBeenCalledWith(7, true);
-    expect(wrapper.find('.operation-toast').exists()).toBe(false);
-
     await wrapper.get('.article-delete-button').trigger('click');
 	expect(wrapper.get('[role="alertdialog"]').text()).toContain('固定保留 7 天');
 	expect(wrapper.get('[role="alertdialog"]').text()).toContain('可以恢复');
@@ -52,10 +50,36 @@ describe('article admin panel', () => {
     await wrapper.get('.confirm-delete-button').trigger('click');
 	expect(deleteArticle).toHaveBeenCalledWith(7);
 
-	await wrapper.findAll('.article-admin-tabs button')[1].trigger('click');
+	await wrapper.findAll('.article-admin-tabs button')[2].trigger('click');
 	await flushPromises();
 	expect(loadAdminArticles).toHaveBeenLastCalledWith(expect.any(Object), true);
 	await wrapper.get('.article-restore-button').trigger('click');
 	expect(restoreArticle).toHaveBeenCalledWith(7);
-	});
+		});
+
+  it('keeps an unsaved homepage-composition draft when switching article subviews', async () => {
+    const dashboard = {
+      adminArticles: ref(null),
+      loadAdminArticles: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ReturnType<typeof usePlatformDashboard>;
+    const FeaturedDraftStub = defineComponent({
+      data: () => ({ title: '' }),
+      template: '<div class="featured-draft-stub"><input v-model="title"></div>',
+    });
+    const wrapper = mount(ArticleAdminPanel, {
+      props: { dashboard },
+      global: { stubs: { HomepageFeaturedGroupsPanel: FeaturedDraftStub } },
+    });
+
+    const input = wrapper.get<HTMLInputElement>('.featured-draft-stub input');
+    await input.setValue('未保存的精选标题');
+    await wrapper.findAll('.article-admin-tabs button')[1].trigger('click');
+    await flushPromises();
+    expect(wrapper.find('.featured-draft-stub').exists()).toBe(true);
+    expect(wrapper.get('.featured-draft-stub').attributes('style')).toContain('display: none');
+
+    await wrapper.findAll('.article-admin-tabs button')[0].trigger('click');
+    expect(wrapper.get<HTMLInputElement>('.featured-draft-stub input').element.value)
+      .toBe('未保存的精选标题');
+  });
 });

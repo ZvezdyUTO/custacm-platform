@@ -39,6 +39,12 @@ const routes = [
 					meta: {title: '发布文章', requiresAuth: true}
 				},
 			{
+				path: '/articles',
+				name: 'articles',
+				component: () => import('@/views/category/Category.vue'),
+				meta: {title: '文章'}
+			},
+			{
 				path: '/tag/:name',
 				name: 'tag',
 				component: () => import('@/views/tag/Tag.vue'),
@@ -49,6 +55,18 @@ const routes = [
 				name: 'category',
 				component: () => import('@/views/category/Category.vue'),
 				meta: {title: '分类'}
+			},
+			{
+				path: '/competitions',
+				name: 'competitions',
+				component: () => import('@/views/competition/CompetitionList.vue'),
+				meta: {title: '赛事荣誉'}
+			},
+			{
+				path: '/competitions/:id(\\d+)',
+				name: 'competition-detail',
+				component: () => import('@/views/competition/CompetitionDetail.vue'),
+				meta: {title: '赛事档案'}
 			},
 			{
 				path: '/profile',

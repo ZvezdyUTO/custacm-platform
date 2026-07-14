@@ -25,7 +25,7 @@
   --radius-pill: 9999px;
 
   --duration-fast: 150ms;
-  --duration-theme: 260ms;
+  --duration-medium: 260ms;
   --duration-slow: 400ms;
   --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
 
@@ -54,37 +54,10 @@
   --floating-shadow: 0 12px 38px rgba(20, 27, 40, 0.12);
 }
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-
-  --color-canvas: #171513;
-  --color-canvas-alternate: #201c19;
-  --color-surface: #25211e;
-  --color-surface-subtle: #2c2723;
-  --color-border: #4b433d;
-  --color-border-strong: #665b52;
-  --color-text: #f2ede7;
-  --color-text-muted: #c5bbb1;
-  --color-text-faint: #a79b90;
-  --color-action: #c98542;
-  --color-action-hover: #dda05f;
-  --color-action-on-dark: #e5aa6c;
-  --color-focus-ring: #d79a5c;
-  --color-on-action: #1b1510;
-
-  --color-success: #55b98a;
-  --color-warning: #dba34d;
-  --color-danger: #e17171;
-
-  --glass-background: rgba(38, 34, 31, 0.68);
-  --glass-border: rgba(255, 244, 232, 0.14);
-  --floating-shadow: 0 14px 42px rgba(0, 0, 0, 0.32);
-}
-
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration-fast: 0ms;
-    --duration-theme: 0ms;
+    --duration-medium: 0ms;
     --duration-slow: 0ms;
   }
 }

@@ -1,20 +1,32 @@
 // Author: huangbingrui.awa
 import { computed, onBeforeUnmount, ref, watch, type Ref } from 'vue';
 import {
+  addCompetitionAward as addCompetitionAwardApi,
+  addCompetitionParticipants as addCompetitionParticipantsApi,
   batchCreateUsers as batchCreateUsersApi,
+  createCompetition as createCompetitionApi,
+  createHomepageFeaturedGroup as createHomepageFeaturedGroupApi,
+  deleteCompetitionAward as deleteCompetitionAwardApi,
+  deleteCompetitionParticipant as deleteCompetitionParticipantApi,
+  deleteHomepageFeaturedImage as deleteHomepageFeaturedImageApi,
   deleteUser as deleteUserApi,
+  deleteHomepageFeaturedGroup as deleteHomepageFeaturedGroupApi,
   getCollectionJob,
-  deleteHomepageBanner as deleteHomepageBannerApi,
   listAdminUsers,
   listAdminArticles,
   listAdminRecycleBinArticles,
+  listCompetitions as listCompetitionsApi,
+  listCompetitionRecycleBin as listCompetitionRecycleBinApi,
   listCollectionJobs,
-  listHomepageBanners as listHomepageBannersApi,
+  listHomepageFeaturedImages as listHomepageFeaturedImagesApi,
+  listHomepageFeaturedGroups as listHomepageFeaturedGroupsApi,
   updateUser as updateUserApi,
-  reorderHomepageBanners as reorderHomepageBannersApi,
+  reorderHomepageFeaturedImages as reorderHomepageFeaturedImagesApi,
+  reorderHomepageFeaturedGroups as reorderHomepageFeaturedGroupsApi,
+  searchHomepageFeaturedArticleCandidates as searchHomepageFeaturedArticleCandidatesApi,
   startCollectionJob,
-  uploadHomepageBanner as uploadHomepageBannerApi,
-  updateArticleFeatured as updateArticleFeaturedApi,
+  uploadHomepageFeaturedImage as uploadHomepageFeaturedImageApi,
+  updateHomepageFeaturedGroup as updateHomepageFeaturedGroupApi,
   deleteArticle as deleteArticleApi,
   restoreArticle as restoreArticleApi,
   downloadAllArticlesBackup as downloadAllArticlesBackupApi,
@@ -23,6 +35,8 @@ import {
   updateCategory as updateCategoryApi,
   deleteCategory as deleteCategoryApi,
   listAdminTags as listAdminTagsApi, createTag as createTagApi, deleteTag as deleteTagApi,
+  moveCompetitionToRecycleBin as moveCompetitionToRecycleBinApi,
+  restoreCompetition as restoreCompetitionApi,
 } from '../api/admin';
 import { ApiError } from '../api/client';
 import {
@@ -45,8 +59,16 @@ import type {
   AdminUserUpdateRequest,
   CollectionJob,
   CollectionJobStartRequest,
+  Competition,
+  CompetitionAwardCreateRequest,
+  CompetitionCreateRequest,
+  CompetitionListQuery,
+  CompetitionPageResponse,
+  CompetitionParticipantsCreateRequest,
   CurrentUser,
-  HomepageBannerImage,
+  HomepageFeaturedImage,
+  HomepageFeaturedGroup,
+  HomepageFeaturedGroupUpsertRequest,
   OjName,
   ProblemFirstAcceptedReport,
   ProblemSubmissionReport,
@@ -151,11 +173,16 @@ export function usePlatformDashboard(options: {
   const problemFirstAcceptedLimit = ref(15);
   const collectionJob = ref<CollectionJob | null>(null);
   const collectionJobs = ref<CollectionJob[]>([]);
-  const homepageBanners = ref<HomepageBannerImage[]>([]);
+  const homepageFeaturedImages = ref<HomepageFeaturedImage[]>([]);
+  const homepageFeaturedGroups = ref<HomepageFeaturedGroup[]>([]);
+  const adminCompetitions = ref<CompetitionPageResponse | null>(null);
+  const adminCompetitionRecycleBin = ref<CompetitionPageResponse | null>(null);
   const adminArticles = ref<AdminArticleListResponse | null>(null);
   const adminCategories = ref<AdminCategoryPage | null>(null);
   const adminTags = ref<AdminTagPage | null>(null);
   let requestSequence = 0;
+  let adminCompetitionsRequestSequence = 0;
+  let adminCompetitionRecycleBinRequestSequence = 0;
   let pollTimer: number | null = null;
 
   const selectedTrainingUser = computed(() => (
@@ -280,7 +307,7 @@ export function usePlatformDashboard(options: {
       }
 
       if (mode === 'multiple' || mode === 'single') {
-        const users = await listTrainingUsers(token, includeRetiredUsers.value);
+        const users = await listTrainingUsers(token, mode === 'single' || includeRetiredUsers.value);
         if (sequence !== requestSequence) return;
         trainingUsers.value = users;
         if (selectedUsername.value && !users.some((item) => item.username === selectedUsername.value)) {
@@ -421,43 +448,185 @@ export function usePlatformDashboard(options: {
     return result;
   }
 
-  async function loadHomepageBanners() {
-    homepageBanners.value = await listHomepageBannersApi(activeToken());
+  async function loadHomepageFeaturedImages() {
+    homepageFeaturedImages.value = await listHomepageFeaturedImagesApi(activeToken());
   }
 
-  async function uploadHomepageBanner(image: Blob) {
-    const created = await uploadHomepageBannerApi(activeToken(), image);
-    homepageBanners.value = [...homepageBanners.value, created]
+  async function uploadHomepageFeaturedImage(image: Blob) {
+    const created = await uploadHomepageFeaturedImageApi(activeToken(), image);
+    homepageFeaturedImages.value = [...homepageFeaturedImages.value, created]
       .sort((left, right) => left.sortOrder - right.sortOrder);
     return created;
   }
 
-  async function reorderHomepageBanners(ids: number[]) {
-    homepageBanners.value = await reorderHomepageBannersApi(activeToken(), ids);
+  async function reorderHomepageFeaturedImages(ids: number[]) {
+    homepageFeaturedImages.value = await reorderHomepageFeaturedImagesApi(activeToken(), ids);
   }
 
-  async function deleteHomepageBanner(id: number) {
-    homepageBanners.value = await deleteHomepageBannerApi(activeToken(), id);
+  async function deleteHomepageFeaturedImage(id: number) {
+    homepageFeaturedImages.value = await deleteHomepageFeaturedImageApi(activeToken(), id);
+  }
+
+  async function runHomepageFeaturedGroupRequest<T>(request: () => Promise<T>) {
+    try {
+      return await request();
+    } catch (error) {
+      handleError(error);
+      throw error;
+    }
+  }
+
+  async function loadHomepageFeaturedGroups() {
+    homepageFeaturedGroups.value = await runHomepageFeaturedGroupRequest(
+      () => listHomepageFeaturedGroupsApi(activeToken()),
+    );
+    return homepageFeaturedGroups.value;
+  }
+
+  function searchHomepageFeaturedArticleCandidates(query = '') {
+    return runHomepageFeaturedGroupRequest(
+      () => searchHomepageFeaturedArticleCandidatesApi(activeToken(), query),
+    );
+  }
+
+  async function createHomepageFeaturedGroup(request: HomepageFeaturedGroupUpsertRequest) {
+    homepageFeaturedGroups.value = await runHomepageFeaturedGroupRequest(
+      () => createHomepageFeaturedGroupApi(activeToken(), request),
+    );
+    return homepageFeaturedGroups.value;
+  }
+
+  async function updateHomepageFeaturedGroup(
+    id: number,
+    request: HomepageFeaturedGroupUpsertRequest,
+  ) {
+    homepageFeaturedGroups.value = await runHomepageFeaturedGroupRequest(
+      () => updateHomepageFeaturedGroupApi(activeToken(), id, request),
+    );
+    return homepageFeaturedGroups.value;
+  }
+
+  async function reorderHomepageFeaturedGroups(ids: number[]) {
+    homepageFeaturedGroups.value = await runHomepageFeaturedGroupRequest(
+      () => reorderHomepageFeaturedGroupsApi(activeToken(), ids),
+    );
+    return homepageFeaturedGroups.value;
+  }
+
+  async function deleteHomepageFeaturedGroup(id: number) {
+    homepageFeaturedGroups.value = await runHomepageFeaturedGroupRequest(
+      () => deleteHomepageFeaturedGroupApi(activeToken(), id),
+    );
+    return homepageFeaturedGroups.value;
+  }
+
+  async function loadAdminCompetitions(query: CompetitionListQuery = {}) {
+    const sequence = ++adminCompetitionsRequestSequence;
+    const page = await listCompetitionsApi(query);
+    if (sequence === adminCompetitionsRequestSequence) {
+      adminCompetitions.value = page;
+    }
+    return page;
+  }
+
+  async function runCompetitionAdminRequest<T>(request: () => Promise<T>) {
+    try {
+      return await request();
+    } catch (error) {
+      handleError(error);
+      throw error;
+    }
+  }
+
+  async function loadAdminCompetitionRecycleBin(query: CompetitionListQuery = {}) {
+    const sequence = ++adminCompetitionRecycleBinRequestSequence;
+    try {
+      const page = await listCompetitionRecycleBinApi(activeToken(), query);
+      if (sequence === adminCompetitionRecycleBinRequestSequence) {
+        adminCompetitionRecycleBin.value = page;
+      }
+      return page;
+    } catch (error) {
+      if (sequence === adminCompetitionRecycleBinRequestSequence || isUnauthorized(error)) {
+        handleError(error);
+      }
+      throw error;
+    }
+  }
+
+  async function createCompetition(request: CompetitionCreateRequest) {
+    return runCompetitionAdminRequest(() => createCompetitionApi(activeToken(), request));
+  }
+
+  function replaceActiveCompetition(competition: Competition) {
+    if (!adminCompetitions.value) return;
+    adminCompetitions.value = {
+      ...adminCompetitions.value,
+      list: adminCompetitions.value.list.map((item) => (
+        item.id === competition.id ? competition : item
+      )),
+    };
+  }
+
+  async function addCompetitionParticipants(
+    competitionId: number,
+    request: CompetitionParticipantsCreateRequest,
+  ) {
+    const competition = await runCompetitionAdminRequest(
+      () => addCompetitionParticipantsApi(activeToken(), competitionId, request),
+    );
+    replaceActiveCompetition(competition);
+    return competition;
+  }
+
+  async function deleteCompetitionParticipant(competitionId: number, participantId: number) {
+    await runCompetitionAdminRequest(
+      () => deleteCompetitionParticipantApi(activeToken(), competitionId, participantId),
+    );
+    const competition = adminCompetitions.value?.list.find((item) => item.id === competitionId);
+    if (competition) {
+      replaceActiveCompetition({
+        ...competition,
+        participants: competition.participants.filter((item) => item.id !== participantId),
+      });
+    }
+  }
+
+  async function addCompetitionAward(
+    competitionId: number,
+    request: CompetitionAwardCreateRequest,
+  ) {
+    const competition = await runCompetitionAdminRequest(
+      () => addCompetitionAwardApi(activeToken(), competitionId, request),
+    );
+    replaceActiveCompetition(competition);
+    return competition;
+  }
+
+  async function deleteCompetitionAward(competitionId: number, awardId: number) {
+    await runCompetitionAdminRequest(
+      () => deleteCompetitionAwardApi(activeToken(), competitionId, awardId),
+    );
+    const competition = adminCompetitions.value?.list.find((item) => item.id === competitionId);
+    if (competition) {
+      replaceActiveCompetition({
+        ...competition,
+        awards: competition.awards.filter((item) => item.id !== awardId),
+      });
+    }
+  }
+
+  async function moveCompetitionToRecycleBin(id: number) {
+    await runCompetitionAdminRequest(() => moveCompetitionToRecycleBinApi(activeToken(), id));
+  }
+
+  async function restoreCompetition(id: number) {
+    return runCompetitionAdminRequest(() => restoreCompetitionApi(activeToken(), id));
   }
 
   async function loadAdminArticles(query: { title?: string; categoryId?: number | null; pageNum?: number; pageSize?: number } = {}, recycleBin = false) {
 	adminArticles.value = await (recycleBin ? listAdminRecycleBinArticles : listAdminArticles)(activeToken(), query);
     return adminArticles.value;
-  }
-
-  async function updateArticleFeatured(id: number, featured: boolean) {
-    await updateArticleFeaturedApi(activeToken(), id, featured);
-    if (adminArticles.value) {
-      adminArticles.value = {
-        ...adminArticles.value,
-        blogs: {
-          ...adminArticles.value.blogs,
-          list: adminArticles.value.blogs.list.map((article) => article.id === id
-            ? { ...article, recommend: featured }
-            : article),
-        },
-      };
-    }
   }
 
   async function deleteArticle(id: number) {
@@ -528,6 +697,8 @@ export function usePlatformDashboard(options: {
 
   onBeforeUnmount(() => {
     requestSequence += 1;
+    adminCompetitionsRequestSequence += 1;
+    adminCompetitionRecycleBinRequestSequence += 1;
     if (pollTimer !== null) window.clearTimeout(pollTimer);
   });
 
@@ -538,14 +709,24 @@ export function usePlatformDashboard(options: {
     problemFirstAccepted, submissionPage, submissionLimit, firstAcceptedPage,
     firstAcceptedLimit, problemSubmissionPage, problemSubmissionLimit,
     problemFirstAcceptedPage, problemFirstAcceptedLimit, collectionJob, collectionJobs,
-    homepageBanners, adminArticles, adminCategories, adminTags,
+    homepageFeaturedImages, homepageFeaturedGroups,
+    adminCompetitions, adminCompetitionRecycleBin,
+    adminArticles, adminCategories, adminTags,
     refreshDashboard, applyTrainingQuery, chooseUsername, setIncludeRetiredUsers, chooseOjName,
     retryMultiUserSummary, changeSubmissionPage, changeFirstAcceptedPage,
     changeProblemSubmissionPage, changeProblemFirstAcceptedPage,
     batchCreateUsers, updateUser, deleteUser,
     batchCollectSubmissions,
-    loadHomepageBanners, uploadHomepageBanner, reorderHomepageBanners, deleteHomepageBanner,
-    loadAdminArticles, updateArticleFeatured, deleteArticle, restoreArticle, backupAllArticles,
+    loadHomepageFeaturedImages, uploadHomepageFeaturedImage,
+    reorderHomepageFeaturedImages, deleteHomepageFeaturedImage,
+    loadHomepageFeaturedGroups, searchHomepageFeaturedArticleCandidates,
+    createHomepageFeaturedGroup, updateHomepageFeaturedGroup,
+    reorderHomepageFeaturedGroups, deleteHomepageFeaturedGroup,
+    loadAdminCompetitions, loadAdminCompetitionRecycleBin,
+    createCompetition, addCompetitionParticipants, deleteCompetitionParticipant,
+    addCompetitionAward, deleteCompetitionAward,
+    moveCompetitionToRecycleBin, restoreCompetition,
+    loadAdminArticles, deleteArticle, restoreArticle, backupAllArticles,
     loadAdminCategories, createCategory, updateCategory, deleteCategory,
     loadAdminTags, createTag, deleteTag,
   };

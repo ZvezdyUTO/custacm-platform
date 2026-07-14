@@ -11,25 +11,26 @@
 - 登录用户可下载包含标题、简介、Markdown 正文和本地托管图片的文章 ZIP。普通用户跨全部文章共享 30 秒下载窗口，管理员不限频。
 - 管理员可下载覆盖公开文章、内部文章、草稿、回收站文章、去敏评论、作者资料和托管图片的全量备份。
 - 文章删除改为固定七天回收站：删除后立即从正常读取中隐藏，七天内作者本人或管理员可恢复，到期任务才物理清理文章、评论、标签关系和托管图片。
-- Blog 与训练中心共享日间/深夜主题；管理文章页增加当前文章/回收站切换，分类、标签、首页图片和批量创建用户使用统一确认框。
+- Blog 与训练中心固定使用共享浅色语义 token；管理文章页增加“首页编排”/当前文章/回收站切换。首页最多三组、每组固定三篇且全首页文章不重复，管理员可编辑组标题、选择公开文章和调整组顺序；分类、标签、首页图片和批量创建用户使用统一确认框。
 - 公开 Blog 收敛为首页、文章、分类、标签、搜索、个人主页与评论；About、全站友链、动态、游客评论身份链路、阅读数、旧统计日志后台、Quartz 管理及旧通知/上传能力不再兼容。
 
 ### 2. 前端发布
 
 - 生产环境仍只有一个 `frontend` Nginx 服务：Vue Blog 位于 `/`，训练中心位于 `/training/**`，浏览器 API 统一使用 `/api/**`。
-- 两份 Vue 构建继续共享 `custacm.accessToken`、`custacm.user`，并新增共享 `custacm.theme`；公开 Blog 请求不会全局附加 JWT。
+- 两份 Vue 构建继续共享 `custacm.accessToken`、`custacm.user`；不再读取或写入 `custacm.theme`，公开 Blog 请求不会全局附加 JWT。
 - 发布前分别完成训练中心的 lint、测试、类型检查和生产构建，以及 Vue Blog 的测试和生产构建，具体命令见下方“更新前检查”。
-- 发布后重点验收 `/`、`/profile`、文章详情、`/training/multiple`、管理员文章与用户页面、跨应用登录连续性、主题同步、文章下载、回收站恢复和两套 history fallback。
+- 发布后重点验收 `/` 的多组精选布局、16:9 首图完整显示和作者信息，`/articles` 的固定深色目录，`/training/admin/articles` 的首页编排/当前文章/回收站切换，以及 `/profile`、文章详情、`/training/multiple`、管理员用户页面、跨应用登录连续性、文章下载、回收站恢复和两套 history fallback。
 - 正式验收范围为 1280～2560 px 桌面端，重点检查 1440×900 与 1920×1080；移动端不属于当前发布范围。
 
 ### 3. 后端发布
 
 - Blog API 继续是唯一 Spring Boot 后端；Redis 内容缓存统一使用 `BLOG_CACHE_TTL`，默认 `10m`，内容缓存故障时回退数据库。文章下载限流不可降级，普通用户无法检查限流状态时返回 503。
-- `V033` 移除文章阅读数，`V034` 将旧 OJ JSON 账号规范化为 `training_member` 与 `oj_handle_binding`，`V035` 删除已退役功能的独占表，`V036` 增加文章回收站字段和索引。
+- `V033` 移除文章阅读数，`V034` 将旧 OJ JSON 账号规范化为 `training_member` 与 `oj_handle_binding`，`V035` 删除已退役功能的独占表，`V036` 增加文章回收站字段和索引，`V037` 增加比赛与获奖记录聚合，`V038` 增加 `homepage_featured_group` 与 `homepage_featured_group_article`。
+- V038 升级回填只按旧 `is_top desc, is_recommend desc, update_time desc, id desc` 选取当前公开、已发布且未回收的前三篇；满三篇才创建默认“精选文章”组，不足三篇保持无组。升级后 `is_recommend` 仅保留历史存储/备份兼容，不再影响首页，旧 `/admin/blog/recommend` 不再可用。
 - 升级前必须完成下方 V034 JSON/重复 handle 只读预检，两个查询均返回 0 行后才能启动新后端。发布本身不会重建 ODS/DWD/DWM/DWS；只有管理员后续更换或解绑 handle 时才会清理对应用户、对应 OJ 的训练数据。
 - 在 `deploy/.env` 中补充 `BLOG_CACHE_TTL`、`BLOG_DAILY_COLLECTION_LOOKBACK=100h`、`BLOG_INTRADAY_COLLECTION_LOOKBACK=0h` 以及 Codeforces/AtCoder 自动采集开关。旧 `.env` 未补回看变量时 Compose 也会注入新默认；自动采集、AtCoder 题目定时采集和启动补采默认全部关闭，管理员手动采集不受影响。
 - 完整更新不会改写服务器已有的 `deploy/.env`，也不会清空数据库中的 `last_collected_at`。缺少新增回看变量时只替换旧镜像内的 120 小时/1 小时默认值；下一次自动任务会基于原有成功游标按 100 小时/0 小时计算窗口。
-- Flyway 成功迁移到 V036 后，检查四个 Compose 服务、登录与 player/admin 权限、文章下载 429/503、回收站恢复、托管图片读写和应用日志。
+- Flyway 成功迁移到 V038 后，检查四个 Compose 服务、登录与 player/admin 权限、V038 回填结果、`GET /site` 的 `featuredGroups`、后台首页编排、文章下载 429/503、回收站恢复、托管图片读写和应用日志。
 - `V035` 会删除旧功能表，不能只回滚应用镜像。需要回滚时应停止写入，恢复发布前的 MySQL 与 `uploads/` 备份，再切回与备份匹配的前后端版本。
 
 ## 更新前检查

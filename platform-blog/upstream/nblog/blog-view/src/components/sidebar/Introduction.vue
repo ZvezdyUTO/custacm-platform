@@ -14,14 +14,17 @@
 				</button>
 				<input ref="fileInput" class="visually-hidden" type="file" accept="image/png,image/jpeg" @change="selectAvatar">
 			</div>
-			<div class="content profile-identity" align="center">
-				<div class="header">{{ displayProfile.nickname || displayProfile.username }}</div>
-				<div class="profile-username">@{{ displayProfile.username }}</div>
-				<div v-if="displayProfile.email" class="profile-username profile-email">{{ displayProfile.email }}</div>
-				<p class="profile-signature" :class="{'is-empty': !displayProfile.signature}">
-					{{ displayProfile.signature || '还没有个性签名' }}
-				</p>
+			<div class="profile-meta-row">
+				<div class="content profile-identity" align="center">
+					<div class="header">{{ displayProfile.nickname || displayProfile.username }}</div>
+					<div class="profile-username">@{{ displayProfile.username }}</div>
+					<div v-if="displayProfile.email" class="profile-username profile-email">{{ displayProfile.email }}</div>
+				</div>
+				<slot name="article-actions" />
 			</div>
+			<p class="profile-signature" :class="{'is-empty': !profileSignature}">
+				{{ profileSignature || '还没有个性签名' }}
+			</p>
 		</div>
 		<div v-else class="profile-summary-card guest-card">
 			<div class="content" align="center">
@@ -32,27 +35,42 @@
 			</div>
 		</div>
 		<div v-if="displayProfile" class="sidebar-panel-body profile-notes">
-			<div class="profile-links-heading">
-				<span>友情链接</span>
-				<small>{{ profileLinks.length }}/8</small>
-			</div>
-			<nav v-if="profileLinks.length" class="profile-links" aria-label="个人友情链接">
-				<a v-for="link in profileLinks" :key="link.id || link.url" :href="link.url" target="_blank" rel="external nofollow noopener">
-					<span class="profile-link-icon" aria-hidden="true">
-						<img
-							v-if="faviconUrl(link.url) && !faviconFailures[link.url]"
-							:src="faviconUrl(link.url)"
-							alt=""
-							loading="lazy"
-							@error="faviconFailures[link.url] = true"
-						>
-						<AppIcon v-else name="globe" />
+			<AchievementsPanel
+				v-if="authorUsername && publicAchievements.length"
+				class="article-author-achievements"
+				:achievements="publicAchievements"
+				compact
+			/>
+			<details class="profile-links-disclosure">
+				<summary class="profile-links-heading">
+					<span>友情链接</span>
+					<span class="profile-links-meta">
+						<small>{{ profileLinks.length }}/8</small>
+						<AppIcon name="chevron-down" class="profile-links-chevron" />
 					</span>
-					<span>{{ link.label }}</span>
-					<AppIcon name="external" class="external-mark" />
-				</a>
-			</nav>
-			<div v-else class="empty-profile-links">还没有友情链接</div>
+				</summary>
+				<div class="profile-links-content">
+					<div class="profile-links-content-inner">
+						<nav v-if="profileLinks.length" class="profile-links" aria-label="个人友情链接">
+							<a v-for="link in profileLinks" :key="link.id || link.url" :href="link.url" target="_blank" rel="external nofollow noopener">
+								<span class="profile-link-icon" aria-hidden="true">
+									<img
+										v-if="faviconUrl(link.url) && !faviconFailures[link.url]"
+										:src="faviconUrl(link.url)"
+										alt=""
+										loading="lazy"
+										@error="faviconFailures[link.url] = true"
+									>
+									<AppIcon v-else name="globe" />
+								</span>
+								<span>{{ link.label }}</span>
+								<AppIcon name="external" class="external-mark" />
+							</a>
+						</nav>
+						<div v-else class="empty-profile-links">还没有友情链接</div>
+					</div>
+				</div>
+			</details>
 		</div>
 		<AvatarCropDialog ref="cropDialog" :saving="saving" :error-message="errorMessage" @save="saveAvatar"/>
 	</div>
@@ -61,20 +79,29 @@
 <script>
 	// Author: huangbingrui.awa
 	import AvatarCropDialog from '@/components/profile/AvatarCropDialog.vue'
+	import AchievementsPanel from '@/components/profile/AchievementsPanel.vue'
 	import {getCurrentProfile, getPublicProfile, updateCurrentAvatar} from '@/api/profile'
 	import {readToken, readUser, SESSION_CHANGE_EVENT, writeUser} from '@/auth/session'
 
 	export default {
 		name: 'Introduction',
-		components: {AvatarCropDialog},
+		components: {AchievementsPanel, AvatarCropDialog},
 		props: {
 			authorUsername: {type: String, default: ''},
 			authorSummary: {type: Object, default: null},
 		},
 		data() {
+			const authUser = readUser()
+			const sessionToken = authUser ? readToken() : null
 			return {
-				authUser: readUser(),
+				authUser,
 				authorProfile: null,
+				sessionToken: sessionToken || '',
+				sessionUsername: authUser?.username || '',
+				sessionGeneration: 0,
+				currentProfileRequestId: 0,
+				authorProfileRequestId: 0,
+				avatarMutationId: 0,
 				saving: false,
 				errorMessage: '',
 				faviconFailures: {},
@@ -93,6 +120,12 @@
 			profileLinks() {
 				return Array.isArray(this.displayProfile?.links) ? this.displayProfile.links : []
 			},
+			profileSignature() {
+				return Array.from(this.displayProfile?.signature || '').slice(0, 40).join('')
+			},
+			publicAchievements() {
+				return Array.isArray(this.authorProfile?.achievements) ? this.authorProfile.achievements : []
+			},
 		},
 		watch: {
 			authorUsername: {
@@ -108,8 +141,18 @@
 		beforeUnmount() {
 			window.removeEventListener('storage', this.refreshUser)
 			window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshUser)
+			this.sessionGeneration += 1
+			this.currentProfileRequestId += 1
+			this.authorProfileRequestId += 1
+			this.avatarMutationId += 1
 		},
 		methods: {
+			isSessionCurrent(token, username, generation) {
+				const user = readUser()
+				return generation === this.sessionGeneration
+					&& readToken() === token
+					&& user?.username === username
+			},
 			faviconUrl(url) {
 				try {
 					return `${new URL(url, window.location.origin).origin}/favicon.ico`
@@ -119,20 +162,30 @@
 			},
 			async loadAuthorProfile() {
 				const username = this.authorUsername
+				const requestId = ++this.authorProfileRequestId
 				this.authorProfile = null
 				if (!username) return
 				try {
 					const profile = await getPublicProfile(username)
-					if (this.authorUsername === username) this.authorProfile = profile
+					if (requestId === this.authorProfileRequestId && this.authorUsername === username) {
+						this.authorProfile = profile
+					}
 				} catch {
 					// The article remains readable if its author profile is temporarily unavailable.
 				}
 			},
 			async loadProfile() {
-				const token = readToken()
-				if (!token) return
+				const user = readUser()
+				const token = user ? readToken() : null
+				const username = user?.username || ''
+				const generation = this.sessionGeneration
+				const requestId = ++this.currentProfileRequestId
+				if (!token || !username) return
 				try {
 					const profile = await getCurrentProfile(token)
+					if (requestId !== this.currentProfileRequestId
+						|| !this.isSessionCurrent(token, username, generation)
+						|| profile?.username !== username) return
 					writeUser(profile)
 					this.authUser = readUser()
 				} catch {
@@ -140,7 +193,21 @@
 				}
 			},
 			refreshUser() {
-				this.authUser = readUser()
+				const user = readUser()
+				const token = user ? readToken() : null
+				const username = user?.username || ''
+				const normalizedToken = token || ''
+				const identityChanged = normalizedToken !== this.sessionToken || username !== this.sessionUsername
+				this.authUser = user
+				if (!identityChanged) return
+				this.sessionToken = normalizedToken
+				this.sessionUsername = username
+				this.sessionGeneration += 1
+				this.currentProfileRequestId += 1
+				this.avatarMutationId += 1
+				this.saving = false
+				this.errorMessage = ''
+				if (token && user) this.loadProfile()
 			},
 			handleAvatarClick() {
 				if (this.authorUsername) return
@@ -159,25 +226,34 @@
 				}
 			},
 			async saveAvatar(blob) {
-				const token = readToken()
-				if (!token) {
+				const user = readUser()
+				const token = user ? readToken() : null
+				if (!token || !user?.username) {
 					this.errorMessage = '登录状态已失效，请重新登录。'
 					return
 				}
+				const username = user.username
+				const generation = this.sessionGeneration
+				const mutationId = ++this.avatarMutationId
 				this.saving = true
 				this.errorMessage = ''
 				let saved = false
 				try {
 					const profile = await updateCurrentAvatar(token, blob)
+					if (mutationId !== this.avatarMutationId
+						|| !this.isSessionCurrent(token, username, generation)
+						|| profile?.username !== username) return
 					writeUser(profile)
 					this.authUser = readUser()
 					saved = true
 					this.msgSuccess('头像已更新')
 				} catch (error) {
-					this.errorMessage = error?.response?.data?.msg || '头像上传失败，请稍后重试。'
+					if (mutationId === this.avatarMutationId && this.isSessionCurrent(token, username, generation)) {
+						this.errorMessage = error?.response?.data?.msg || '头像上传失败，请稍后重试。'
+					}
 				} finally {
-					this.saving = false
-					if (saved) {
+					if (mutationId === this.avatarMutationId) this.saving = false
+					if (saved && mutationId === this.avatarMutationId) {
 						await this.$nextTick()
 						this.$refs.cropDialog.close()
 					}
@@ -199,18 +275,44 @@
 		border-top: 1px solid #e0e5ea !important;
 		border-radius: 0 0 4px 4px !important;
 		box-shadow: none !important;
-		padding: 16px !important;
+		padding: 10px 16px !important;
 		font-family: inherit;
+	}
+
+	.article-author-achievements + .profile-links-disclosure {
+		display: block;
+		margin-top: 9px;
+		border-top: 1px solid var(--color-border);
+		padding-top: 8px;
 	}
 
 	.profile-links-heading {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		min-height: 24px;
 		color: #5f6b76;
+		cursor: pointer;
 		font-size: 11px;
 		font-weight: 700;
 		letter-spacing: .08em;
+		list-style: none;
+	}
+
+	.profile-links-heading::-webkit-details-marker {
+		display: none;
+	}
+
+	.profile-links-heading:focus-visible {
+		border-radius: 4px;
+		outline: 2px solid #17324d;
+		outline-offset: 3px;
+	}
+
+	.profile-links-meta {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
 	}
 
 	.profile-signature {
@@ -232,6 +334,35 @@
 		font-size: 10px;
 		font-weight: 500;
 		letter-spacing: normal;
+	}
+
+	.profile-links-chevron {
+		width: 13px;
+		height: 13px;
+		color: #7f8992;
+		transition: transform 150ms ease;
+	}
+
+	.profile-links-disclosure[open] .profile-links-chevron {
+		transform: rotate(180deg);
+	}
+
+	.profile-links-content,
+	.profile-links-disclosure:not([open]) > .profile-links-content {
+		display: grid;
+		grid-template-rows: 0fr;
+		opacity: 0;
+		transition: grid-template-rows 180ms ease, opacity 140ms ease;
+	}
+
+	.profile-links-disclosure[open] .profile-links-content {
+		grid-template-rows: 1fr;
+		opacity: 1;
+	}
+
+	.profile-links-content-inner {
+		min-height: 0;
+		overflow: hidden;
 	}
 
 	.profile-links {
@@ -310,6 +441,13 @@
 		text-align: center;
 	}
 
+	@media (prefers-reduced-motion: reduce) {
+		.profile-links-content,
+		.profile-links-chevron {
+			transition: none;
+		}
+	}
+
 	.visually-hidden {
 		position: absolute;
 		width: 1px;
@@ -330,6 +468,14 @@
 		aspect-ratio: 1;
 		overflow: hidden;
 		background: #e8edf2;
+	}
+
+	.profile-meta-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: start;
+		gap: 10px;
+		min-width: 0;
 	}
 
 	.profile-avatar-button {
