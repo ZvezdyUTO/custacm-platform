@@ -1,10 +1,10 @@
 <template>
 	<!--文章目录-->
-	<div class="ui segments m-toc toc-wrapper m-box">
-		<div class="ui secondary segment">
-			<i class="list ul icon"></i>本文目录
+	<div class="sidebar-panel m-toc toc-wrapper m-box">
+		<div class="sidebar-panel-heading">
+			<AppIcon name="list" />本文目录
 		</div>
-		<div class="ui segment sidebar-accent">
+		<div class="sidebar-panel-body sidebar-accent">
 			<div class="js-toc"></div>
 		</div>
 	</div>

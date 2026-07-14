@@ -5,4 +5,5 @@
 - `dev.sh` stops the production Nginx frontend while it owns ports 4180/5173 in the foreground; Ctrl-C stops both Vite processes but leaves backend containers running. `deploy.sh` switches back to the Nginx production frontend.
 - Do not add module-only deployment scripts, a wrapper under `deploy/`, a third startup mode, or scripts that pull Git implicitly.
 - `check-doc-sync.sh` and `check-test-policy.sh` enforce documentation and Java test/report policy.
+- `sync-design-tokens.sh` only synchronizes or checks repository-local CSS token copies; it is not a startup or deployment entrypoint and must not access the network.
 - Deployment changes require synchronized `deploy/README.md`, `deploy/UPDATE.md` and `docs/server-deployment.md` updates.

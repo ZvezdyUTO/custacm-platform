@@ -40,7 +40,8 @@ src/test/        API、会话、路由和关键交互回归测试
 
 ## 依赖与边界
 
-- 使用 Vue 3、Vite、Vue Router 4、Vuex 4、Axios、Element Plus 和 Semantic UI CSS；组件继续允许 Options API。
+- 使用 Vue 3、Vite、Vue Router 4、Vuex 4、Axios、Element Plus 和 Lucide；组件继续允许 Options API。阶段 6 已退出 Semantic UI，页面结构只使用项目自有布局 class，业务模板通过全局 `AppIcon` 使用集中维护的 Lucide 语义映射。
+- 共享视觉 token 的唯一源位于仓库根 `frontend-design-tokens/tokens.css`；`src/assets/css/tokens.css` 是脚本生成副本，由 `main.js` 在基础样式前加载。`blog-redesign.css` 统一日间与 Element Plus 视觉角色，`night.css` 继续最后加载暗色覆盖。
 - 日间模式的文章代码块和 Markdown 实时预览使用浅灰白底、深墨文字及蓝紫绿语法色；深夜主题恢复高对比度代码色，并使用暖炭黑/深咖黑表面、暖灰白文字和低饱和琥珀/铜橙交互色。状态语义色及分类/标签业务色保持原义。文章图片、头像、横幅和背景图仅以 260ms 过渡到 `brightness(.84) saturate(.95)`，不得反色；减少动态效果偏好下立即切换。
 - Axios 默认 `baseURL` 为 `/api/`。公开请求不得全局附加 `Authorization`，也不再保存或发送游客评论 `identification`；需要登录的 adapter 显式携带 Bearer token。
 - 共享登录键只有 `custacm.accessToken` 和 `custacm.user`。用户摘要只用于展示，权限始终由 Blog API 校验。
@@ -58,27 +59,31 @@ src/test/        API、会话、路由和关键交互回归测试
 - `/profile` 直接读取本人资料和 OJ handle。OJ handle 请求失败显示错误与重试按钮，不得把失败伪装成“未绑定”。
 - 个人主页同页编辑 nickname、签名、最多八条 HTTP(S) 友情链接和密码，并展示本人文章。
 - 登录评论表单提交期间禁用重复提交；401 清理共享会话并携带当前页面回到登录页。
-- 首页文章、分类文章和标签文章均使用服务端分页；文章标签由后端批量装配。
+- 分类文章和标签文章使用服务端分页；首页暂不渲染普通文章分页，只展示精选文章，文章标签仍由后端批量装配。
 - `/site` 只消费 Blog 首页需要的站点信息、分类、标签和精选文章，不依赖已删除页面字段。
 - 首页横幅接口失败时回退到构建内置 `public/img/homepage-banner-default.png`；空头像回退到 `public/img/default-avatar.jpg`。
 - 文章包打包期间按钮不可重复点击；401 清理共享会话并带当前文章路径跳转登录，429 显示剩余冷却秒数，503 显示下载服务暂不可用。
 - “我的文章”使用克制的当前文章/回收站切换；回收站显示删除时间与剩余保留期，只提供恢复操作，不提供提前永久删除。
 - 主题切换持久化明确的日间或深夜选择；无选择时响应系统主题变化。存储或系统主题 API 不可用时仍须安全启动并允许当前页面切换，减少动态效果偏好下关闭主题过渡。
-- 桌面三栏中的作者/本人头像框与右侧目录、精选文章、标签云在滚动到固定顶栏下方后整列吸附；侧栏高于可视区时只在自身区域滚动，并在主内容结束、接近页脚时停止。文章页目录排在右栏首位；移动端继续隐藏两侧栏。
+- 首页只展示带页边距的精选区，不渲染普通文章列表、个人介绍或标签云；首页使用暖米色画布，精选区由第一篇横向大卡及下方并排的第二、三篇组成，三张卡统一使用低饱和浅奶油棕；黑夜模式连同页面背景一起切换为统一暖炭灰卡片。卡片仅突出大标题、三行简介及右下角日期和分类。文章详情页保留作者介绍、正文和右侧目录三栏；移动端继续隐藏侧栏。
 
 ## 文件与路径职责
 
 | 文件/路径 | 职责 |
 | --- | --- |
-| `src/main.js` | 注册 Vue、Router、Vuex 和全局样式 |
+| `src/main.js` | 注册 Vue、Router、Vuex、Element Plus、全局 `AppIcon` 和项目样式；不得重新导入 Semantic UI 或旧图标字体 |
+| `src/components/common/AppIcon.vue` | 将稳定的业务图标名称映射到 Lucide，并统一尺寸、加载旋转与 reduced-motion 降级 |
 | `src/theme.js` | 共享主题解析、根节点应用、持久化、系统偏好和跨文档事件 |
 | `src/router/index.js` | Blog 页面、训练外壳和 `/login` 转交；不包含 About/Friends/Moments |
 | `src/utils/trainingRoute.js` | 训练 frame 路径白名单和内部 `/training-app/**` 地址构造 |
-| `src/views/Index.vue` | Blog 门户三栏与桌面吸附侧栏；训练路由保留唯一 `Nav.vue` 并隐藏 Blog 侧栏 |
-| `src/views/training/TrainingHost.vue` | 同源嵌入训练运行时并同步公开 `/training/**` URL |
+| `src/views/Index.vue` | Blog 门户单栏/三栏响应式布局与桌面吸附侧栏；训练路由保留唯一 `Nav.vue` 并隐藏 Blog 侧栏 |
+| `src/views/training/TrainingHost.vue` | 同源嵌入训练运行时并同步公开 `/training/**` URL；使用 border-box 在单视口内预留顶栏高度，并标记外层 Training 状态以使用中性圆头滚动条 |
 | `src/assets/css/typo.css` | 文章 Markdown 排版、日间浅色 Prism 语法主题与横向滚动行为 |
-| `src/assets/css/night.css` | 最后加载的 Semantic UI、Element Plus、业务页面暖黑橙覆盖及图片渐暗过渡 |
-| `src/views/home/Home.vue` | 首页文章分页 |
+| `src/assets/css/base.css` | 项目自有的基础重置、导航/网格/内容表面、侧栏与通用控件布局基础 |
+| `src/assets/css/night.css` | 最后加载的项目布局、Element Plus、业务页面暖黑橙覆盖及图片渐暗过渡 |
+| `src/assets/css/tokens.css` | 从仓库根共享源生成并由 `main.js` 首先加载的视觉 token 副本；禁止手工编辑 |
+| `src/assets/css/blog-redesign.css` | Blog 日间语义映射、Element Plus 变量、有限玻璃、现代圆角和实体内容表面覆盖 |
+| `src/views/home/Home.vue` | 保留的首页文章分页组件；当前首页外壳暂不渲染 |
 | `src/views/blog/Blog.vue` | 文章详情、分类/标签、正文、登录用户文章图片归档下载和评论 |
 | `src/views/category/Category.vue`、`src/views/tag/Tag.vue` | 分类和标签文章分页 |
 | `src/views/profile/Profile.vue` | 个人主页、OJ handle 错误重试、资料/密码/友情链接编辑和本人文章 |
@@ -88,11 +93,13 @@ src/test/        API、会话、路由和关键交互回归测试
 | `src/plugins/articleImagePreview.js` | 正文图片原子替换区、源码编辑切换、异步图片高度复测与点击映射 |
 | `src/components/article/ArticleCoverUpload.vue` | 1920×1080 首图裁剪 |
 | `src/components/article/ManagedImageViewer.vue` | 默认展示缩略图，明确操作后加载高清图 |
+| `src/views/blog/Blog.vue` | 为托管正文缩略图增加键盘可聚焦与 Enter/空格预览入口，并承载文章详情、归档和评论区域 |
+| `src/util/dialogFocus.js` | Blog 弹层共享的焦点进入、Tab 循环和关闭后焦点归还工具 |
 | `src/components/index/Nav.vue` | Blog/训练导航、标题搜索、发布入口和账号菜单 |
 | `src/components/index/Header.vue` | 首页横幅展示和默认图回退 |
 | `src/components/sidebar/Introduction.vue` | 当前用户或文章作者公开名片 |
-| `src/components/blog/BlogItem.vue` | 首页、分类和标签页的文章卡片，展示作者身份、发布时间、字数与首图；作者 name 优先占用身份条空间 |
-| `src/components/sidebar/Tags.vue`、`FeaturedBlog.vue` | 标签云与管理员选择的精选文章 |
+| `src/components/blog/BlogItem.vue` | 分类和标签页的文章卡片，展示作者身份、发布时间、字数与首图；作者 name 优先占用身份条空间 |
+| `src/components/sidebar/Tags.vue`、`FeaturedBlog.vue` | 保留的标签组件与首页层级式三卡片精选区域；当前外壳不展示标签云，精选按置顶、管理员精选、最新补足排序 |
 | `src/components/sidebar/Tocbot.vue` | 文章目录生成、标题激活与平滑锚点滚动；定位由 `Index.vue` 的统一吸附容器负责 |
 | `src/components/comment/CommentForm.vue` | 登录评论输入、表情与提交状态 |
 | `src/plugins/notoEmoji.js`、`src/util/commentContent.js` | Noto emoji 分类/同源 sprite URL、Unicode 渲染、HTML 转义与历史短码兼容 |
@@ -110,6 +117,10 @@ src/test/        API、会话、路由和关键交互回归测试
 | `src/test/trainingRoute.test.js` | 训练 frame 路由白名单回归测试 |
 | `src/test/theme.test.js`、`trainingThemeBridge.test.js` | 主题容错、切换持久化和同源 frame 同步测试 |
 | `src/test/nightThemeStyle.test.js` | Blog 主题关键表面及代码块日间/深夜语法配色契约测试 |
+| `src/test/blogRedesignStyle.test.js` | 共享 token、Element Plus 映射、有限玻璃和 reduced-motion 样式契约测试 |
+| `src/test/semanticUiExit.test.js` | 禁止生产代码重新引入 Semantic UI class、旧 `<i>` 图标、全局 CSS 或 npm 依赖 |
+| `src/test/avatarCropDialog.test.js` | 头像裁剪弹层的焦点进入、Esc 和焦点归还回归测试 |
+| `src/test/managedArticleImageUi.test.js` | 正文托管缩略图的可聚焦标记和键盘打开预览回归测试 |
 | `src/test/sidebarStickyStyle.test.js` | 左右侧栏吸附、文章目录优先级及 Tocbot 单一定位职责测试 |
 | `src/test/commentApi.test.js`、`commentFormState.test.js` | 登录评论请求体、Bearer 和防重复提交测试 |
 | `src/test/notoEmoji.test.js`、`commentFormEmoji.test.js` | 本地 sprite 覆盖、Unicode 安全渲染、选择器可访问性与光标插入测试 |

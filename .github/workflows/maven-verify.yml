@@ -27,5 +27,8 @@ jobs:
       - name: Check documentation sync
         run: ./scripts/check-doc-sync.sh
 
+      - name: Check shared frontend design tokens
+        run: ./scripts/sync-design-tokens.sh --check
+
       - name: Verify
         run: mvn clean test

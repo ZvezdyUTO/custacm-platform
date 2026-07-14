@@ -18,7 +18,7 @@ This repository is expected to be developed by agents. Documentation is part of 
 | Root rules | [../AGENTS.md](../AGENTS.md), [../CONTRIBUTING.md](../CONTRIBUTING.md) | Mandatory rules for agents and contributors. |
 | Planning | [../TODO.md](../TODO.md), [../CHANGELOG.md](../CHANGELOG.md) | Human-readable todo list and MR outcome history. |
 | Agent map | [agent/README.md](agent/README.md), [agent/context-map.md](agent/context-map.md), [agent/doc-sync.md](agent/doc-sync.md), [agent/changelog.md](agent/changelog.md), [agent/quality-gates.md](agent/quality-gates.md) | Fast context, update rules, changelog format, and verification commands. |
-| Architecture | [architecture.md](architecture.md), [authorization.md](authorization.md), [adr/](adr/) | Current architecture, HTTP authorization tiers, and durable decisions. |
+| Architecture | [architecture.md](architecture.md), [authorization.md](authorization.md), [frontend-design-system.md](frontend-design-system.md), [frontend-redesign-prototype.html](frontend-redesign-prototype.html), [adr/](adr/) | Current architecture, HTTP authorization tiers, shared frontend visual tokens and prototype, and durable decisions. |
 | API | [api.md](api.md) | Implemented Blog API, user-management, and training-data HTTP contracts. |
 | Operations | [logging.md](logging.md), [server-deployment.md](server-deployment.md), [../deploy/README.md](../deploy/README.md), [../deploy/UPDATE.md](../deploy/UPDATE.md) | Runtime, logging, deployment, and update workflows. |
 | Module docs | `*/README.md`, `*/AGENTS.md`, `*/TESTING.md` | Local module boundaries, file responsibilities, and test notes. |

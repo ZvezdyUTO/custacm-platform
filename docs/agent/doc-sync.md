@@ -34,6 +34,7 @@ If a changed file matches the pattern, at least one listed required doc must als
 - Runnable service status changed: update [README.md](../../README.md), [../architecture.md](../architecture.md), [context-map.md](context-map.md), and [README.md](README.md).
 - Tests changed materially: update the module `TESTING.md`.
 - Deployment or scripts changed: update `deploy/` docs, [../server-deployment.md](../server-deployment.md), and [../../scripts/AGENTS.md](../../scripts/AGENTS.md) when the runnable container set, one-click deploy flow, module update flow, or seed scripts change.
+- Shared visual tokens changed: update [../frontend-design-system.md](../frontend-design-system.md), run `./scripts/sync-design-tokens.sh`, and verify both generated frontend-local copies with `--check`.
 - Logging changed: read and update [../logging.md](../logging.md) if the logging contract changes.
 - PR outcome changed: update [../../CHANGELOG.md](../../CHANGELOG.md) using [changelog.md](changelog.md).
 - New module slice added: add a module `AGENTS.md`, add tests or explain why not, update [context-map.md](context-map.md), [../architecture.md](../architecture.md), and [../doc-sync-map.tsv](../doc-sync-map.tsv).

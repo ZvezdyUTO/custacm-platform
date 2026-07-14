@@ -1,18 +1,18 @@
 <template>
 	<div>
-		<div class="ui padded attached segment m-padded-tb-large m-margin-bottom-big m-box blog-list-card" v-for="item in blogList" :key="item.id">
-			<div class="ui large red right corner label" v-if="item.top">
-				<i class="arrow alternate circle up icon"></i>
+		<div class="content-panel m-padded-tb-large m-margin-bottom-big m-box blog-list-card" v-for="item in blogList" :key="item.id">
+			<div class="featured-corner-mark" v-if="item.top" aria-label="置顶文章">
+				<AppIcon name="arrow-up-circle" />
 			</div>
-			<div class="ui middle aligned mobile reversed stackable">
-				<div class="ui grid m-margin-lr">
+			<div class="blog-list-content">
+				<div class="blog-list-grid m-margin-lr">
 					<div class="list-card-layout">
 						<div class="list-card-main">
-							<h2 class="ui header list-card-title m-scaleup">
+							<h2 class="list-card-title m-scaleup">
 								<a href="javascript:;" :title="item.title" @click.prevent="toBlog(item)" class="m-black">{{ item.title }}</a>
 							</h2>
-							<router-link :to="`/category/${item.category.name}`" class="ui large ribbon label list-card-category" :style="taxonomyStyle(item.category.color)">
-								<i class="small folder open icon"></i><span class="m-text-500">{{ item.category.name }}</span>
+							<router-link :to="`/category/${item.category.name}`" class="category-ribbon list-card-category" :style="taxonomyStyle(item.category.color)">
+								<AppIcon name="folder" /><span class="m-text-500">{{ item.category.name }}</span>
 							</router-link>
 							<div class="typo line-numbers match-braces rainbow-braces list-card-description" v-lazy-container="{selector: 'img'}" v-viewer v-html="sanitizeHtml(item.description)"></div>
 							<div class="list-card-action">
@@ -29,9 +29,9 @@
 									</div>
 								</div>
 								<div class="list-article-meta" aria-label="文章信息">
-									<span class="list-article-date"><i class="calendar outline icon"></i>{{ $filters.dateFormat(item.createTime, 'YYYY-MM-DD')}}</span>
+									<span class="list-article-date"><AppIcon name="calendar" />{{ $filters.dateFormat(item.createTime, 'YYYY-MM-DD')}}</span>
 									<span class="list-article-stats">
-										<span><i class="file alternate outline icon"></i>{{ item.words }} 字</span>
+										<span><AppIcon name="file" />{{ item.words }} 字</span>
 									</span>
 								</div>
 							</div>
@@ -41,11 +41,11 @@
 						</aside>
 					</div>
 					<!--横线-->
-					<div class="ui section divider m-margin-lr-no"></div>
+					<div class="section-divider m-margin-lr-no"></div>
 					<!--标签-->
 					<div class="row m-padded-tb-no">
 						<div class="column m-padding-left-no">
-							<router-link :to="`/tag/${tag.name}`" class="ui tag label m-text-500 m-margin-small" :style="taxonomyStyle(tag.color)" v-for="(tag,index) in item.tags" :key="index">{{ tag.name }}</router-link>
+							<router-link :to="`/tag/${tag.name}`" class="taxonomy-chip m-text-500 m-margin-small" :style="taxonomyStyle(tag.color)" v-for="(tag,index) in item.tags" :key="index">{{ tag.name }}</router-link>
 						</div>
 					</div>
 				</div>
@@ -135,10 +135,12 @@
 		min-width: 0;
 		gap: 0.75rem;
 		padding: 0.9rem 0.75rem 0.9rem 1rem;
-		background: transparent;
-		border: 2px solid #17324d;
+		background: rgba(255, 255, 255, 0.68);
+		border: 1px solid rgba(23, 50, 77, 0.16);
 		border-radius: 14px;
-		box-shadow: none;
+		box-shadow: 0 10px 28px rgba(23, 50, 77, 0.06);
+		-webkit-backdrop-filter: blur(10px);
+		backdrop-filter: blur(10px);
 	}
 
 	.list-author-identity {
@@ -154,9 +156,9 @@
 		height: 72px;
 		flex: 0 0 72px;
 		object-fit: cover;
-		border: 3px solid #fff;
+		border: 2px solid rgba(255, 255, 255, 0.86);
 		border-radius: 50%;
-		box-shadow: 0 0 0 1px #d5e0e9, 0 6px 16px rgba(23, 50, 77, 0.16);
+		box-shadow: 0 0 0 1px rgba(23, 50, 77, 0.1), 0 6px 18px rgba(23, 50, 77, 0.1);
 	}
 
 	.list-author-copy {
@@ -223,7 +225,7 @@
 		white-space: nowrap;
 	}
 
-	.list-article-meta i {
+	.list-article-meta .app-icon {
 		display: inline-flex !important;
 		width: 1em;
 		height: 1em;

@@ -1,17 +1,17 @@
 <template>
-	<div ref="nav" class="ui fixed inverted stackable pointing menu" :class="{'transparent':$route.name==='home' && clientSize.clientWidth>768}">
-		<div class="ui container">
-			<router-link to="/" class="item nav-brand" aria-label="CUSTACM 首页">
+	<div ref="nav" class="site-nav" :class="{'transparent':$route.name==='home' && clientSize.clientWidth>768}">
+		<div class="site-container nav-container">
+			<router-link to="/" class="nav-item nav-brand" aria-label="CUSTACM 首页">
 				<span class="nav-brand-plate">
 					<img src="/img/custacm-wordmark.png" alt="CUSTACM">
 				</span>
 			</router-link>
-			<router-link to="/home" class="item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='home'}">
-				<i class="home icon"></i>首页
+			<router-link to="/home" class="nav-item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='home'}">
+				<AppIcon name="home" />首页
 			</router-link>
 			<el-dropdown trigger="click" @command="categoryRoute">
-				<span class="el-dropdown-link item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='category'}">
-					<i class="idea icon"></i>分类<i class="caret down icon"></i>
+				<span class="el-dropdown-link nav-item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='category'}">
+					<AppIcon name="lightbulb" />分类<AppIcon name="chevron-down" />
 				</span>
 				<template #dropdown>
 					<el-dropdown-menu>
@@ -20,8 +20,8 @@
 				</template>
 			</el-dropdown>
 			<el-dropdown class="nav-training-dropdown" trigger="click" :class="{'m-mobile-hide': mobileHide}" @command="trainingRoute">
-				<button type="button" class="el-dropdown-link item nav-training-trigger" :class="{'active':trainingNavigationActive}">
-					<i class="chart bar icon"></i>训练中心<i class="caret down icon"></i>
+				<button type="button" class="el-dropdown-link nav-item nav-training-trigger" :class="{'active':trainingNavigationActive}">
+					<AppIcon name="bar-chart" />训练中心<AppIcon name="chevron-down" />
 				</button>
 				<template #dropdown>
 					<el-dropdown-menu>
@@ -31,14 +31,14 @@
 					</el-dropdown-menu>
 				</template>
 				</el-dropdown>
-				<router-link v-if="authUser" to="/write" class="item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='write'}">
-					<i class="pencil alternate icon"></i>发布文章
+				<router-link v-if="authUser" to="/write" class="nav-item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='write'}">
+					<AppIcon name="edit" />发布文章
 				</router-link>
-			<div class="right item m-search" :class="{'m-mobile-hide': mobileHide}">
+			<div class="nav-item m-search" :class="{'m-mobile-hide': mobileHide}">
 				<el-input v-model="queryString" placeholder="搜索文章" aria-label="搜索文章"
 				          @input="handleSearchInput" @keyup.enter="submitSearch" @blur="closeSearchResults">
 					<template #suffix>
-						<i :class="[searchLoading ? 'spinner loading' : 'search', 'icon', 'el-input__icon']"></i>
+						<AppIcon :name="searchLoading ? 'loader' : 'search'" :spin="searchLoading" class="el-input__icon" />
 					</template>
 				</el-input>
 				<div v-if="searchOpen" class="m-search-item m-search-panel">
@@ -51,7 +51,7 @@
 			</div>
 			<button
 				type="button"
-				class="item nav-theme-toggle"
+				class="nav-item nav-theme-toggle"
 				:class="{'m-mobile-hide': mobileHide}"
 				role="switch"
 				:aria-label="themeToggleLabel"
@@ -61,19 +61,19 @@
 			>
 				<span class="nav-theme-track" :class="{'is-dark': darkTheme}" aria-hidden="true">
 					<span class="nav-theme-thumb">
-						<i :class="[darkTheme ? 'moon' : 'sun', 'outline', 'icon']"></i>
+						<AppIcon :name="darkTheme ? 'moon' : 'sun'" :size="12" />
 					</span>
 				</span>
 				<span class="nav-theme-status">{{ darkTheme ? '深夜模式' : '日间模式' }}</span>
 			</button>
-			<router-link v-if="!authUser" :to="loginTarget" class="item" :class="{'m-mobile-hide': mobileHide}">
-				<i class="user outline icon"></i>登录
+			<router-link v-if="!authUser" :to="loginTarget" class="nav-item" :class="{'m-mobile-hide': mobileHide}">
+				<AppIcon name="user" />登录
 			</router-link>
 			<el-dropdown v-else trigger="click" :class="{'m-mobile-hide': mobileHide}" @command="accountCommand">
-				<button type="button" class="item nav-auth-trigger">
-					<i class="user circle icon"></i>
+				<button type="button" class="nav-item nav-auth-trigger">
+					<AppIcon name="user-circle" />
 					<span>{{ authUser.nickname || authUser.username }}</span>
-					<i class="caret down icon"></i>
+					<AppIcon name="chevron-down" />
 				</button>
 				<template #dropdown>
 					<el-dropdown-menu>
@@ -83,13 +83,13 @@
 							:command="item.command"
 							:divided="item.divided"
 						>
-							<i :class="`${item.icon} icon`"></i>{{ item.label }}
+							<AppIcon :name="item.icon" />{{ item.label }}
 						</el-dropdown-item>
 					</el-dropdown-menu>
 				</template>
 			</el-dropdown>
-			<button class="ui menu black icon button m-right-top m-mobile-show" @click="toggle">
-				<i class="sidebar icon"></i>
+			<button class="mobile-menu-button m-right-top m-mobile-show" aria-label="展开或收起导航" @click="toggle">
+				<AppIcon name="menu" />
 			</button>
 		</div>
 	</div>
@@ -264,7 +264,7 @@
 </script>
 
 <style>
-	.ui.fixed.menu .container {
+	.site-nav .nav-container {
 		box-sizing: border-box;
 		width: 100% !important;
 		max-width: 1400px !important;
@@ -273,11 +273,52 @@
 		margin-right: auto !important;
 	}
 
-	.ui.fixed.menu {
+	.site-nav {
+		position: fixed;
+		top: 0;
+		right: 0;
+		left: 0;
+		z-index: 2000;
+		display: flex;
+		min-height: 51px;
+		border-bottom: 1px solid rgba(255, 255, 255, .12);
+		background: #17191b;
+		color: rgba(255, 255, 255, .9);
 		transition: .3s ease-out;
 	}
 
-	.ui.menu .nav-brand.item {
+	.site-nav .nav-container {
+		display: flex;
+		min-height: 51px;
+		align-items: stretch;
+	}
+
+	.site-nav .nav-item {
+		position: relative;
+		display: flex;
+		min-height: 51px;
+		align-items: center;
+		gap: 7px;
+		border: 0;
+		background: transparent;
+		padding: 0 14px;
+		color: inherit;
+		font: inherit;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.site-nav .nav-item.active::after {
+		position: absolute;
+		right: 12px;
+		bottom: 0;
+		left: 12px;
+		height: 3px;
+		background: #48dbfb;
+		content: "";
+	}
+
+	.site-nav .nav-brand {
 		align-self: stretch;
 		padding: 5px 8px 5px 0 !important;
 		background: transparent !important;
@@ -302,28 +343,27 @@
 	}
 
 	.nav-brand:focus-visible .nav-brand-plate {
-		outline: 2px solid #48dbfb;
-		outline-offset: 2px;
+		outline: none;
 	}
 
-	.ui.inverted.pointing.menu.transparent {
+	.site-nav.transparent {
 		background: transparent !important;
 	}
 
-	.ui.inverted.pointing.menu.transparent .ui.container > .item:not(.nav-brand):not(.m-search),
-	.ui.inverted.pointing.menu.transparent .el-dropdown-link.item,
-	.ui.inverted.pointing.menu.transparent .nav-auth-trigger {
+	.site-nav.transparent .nav-container > .nav-item:not(.nav-brand):not(.m-search),
+	.site-nav.transparent .el-dropdown-link,
+	.site-nav.transparent .nav-auth-trigger {
 		-webkit-text-stroke: .35px rgba(13, 20, 26, .9);
 		paint-order: stroke fill;
 		text-shadow: 0 1px 2px rgba(13, 20, 26, .72), 0 0 1px rgba(13, 20, 26, .9);
 	}
 
-	.ui.inverted.pointing.menu.transparent .active.item:after {
+	.site-nav.transparent .active.nav-item::after {
 		background: transparent !important;
 		transition: .3s ease-out;
 	}
 
-	.ui.inverted.pointing.menu.transparent .active.item:hover:after {
+	.site-nav.transparent .active.nav-item:hover::after {
 		background: transparent !important;
 	}
 
@@ -339,6 +379,17 @@
 		background: transparent;
 		color: inherit;
 		font: inherit;
+	}
+
+	.mobile-menu-button {
+		display: grid;
+		width: 48px;
+		height: 51px;
+		place-items: center;
+		border: 0;
+		background: #17191b;
+		color: #fff;
+		cursor: pointer;
 	}
 
 	.nav-theme-toggle {
@@ -389,15 +440,14 @@
 		transform: translateX(24px);
 	}
 
-	.nav-theme-thumb > i.icon {
+	.nav-theme-thumb > .app-icon {
 		width: 1em;
 		margin: 0 !important;
 		font-size: 12px;
 	}
 
 	.nav-theme-toggle:focus-visible {
-		outline: 2px solid #d9944a;
-		outline-offset: -4px;
+		outline: none;
 	}
 
 	.nav-theme-status {
@@ -435,7 +485,7 @@
 		color: #25a9c4 !important;
 	}
 
-	.el-dropdown-menu__item > i.icon {
+	.el-dropdown-menu__item > .app-icon {
 		display: inline-flex !important;
 		width: 20px;
 		height: 20px;
@@ -449,12 +499,7 @@
 		text-align: center;
 	}
 
-	.el-dropdown-menu__item > i.icon::before {
-		display: block;
-		line-height: 1 !important;
-	}
-
-	.el-dropdown-menu__item:hover > i.icon {
+	.el-dropdown-menu__item:hover > .app-icon {
 		color: #25a9c4;
 	}
 
@@ -490,7 +535,7 @@
 	.m-search input {
 		color: #1f2933 !important;
 		border: 0px !important;
-		background-color: #fff;
+		background-color: transparent;
 		padding: .67857143em .25em .67857143em .85em;
 	}
 
@@ -499,7 +544,7 @@
 		font-size: 13px;
 	}
 
-	.m-search i {
+	.m-search .app-icon {
 		color: #606266 !important;
 	}
 
@@ -572,14 +617,13 @@
 	}
 
 	@media screen and (min-width: 769px) and (max-width: 1600px) {
-		.ui.fixed.menu .container {
+		.site-nav .nav-container {
 			padding: 0 8px;
 		}
 
-		.ui.fixed.menu .container > .item:not(.m-search),
-		.ui.fixed.menu .container > a > .item,
-		.ui.fixed.menu .container .el-dropdown-link,
-		.ui.fixed.menu .container .nav-auth-trigger {
+		.site-nav .nav-container > .nav-item:not(.m-search),
+		.site-nav .nav-container .el-dropdown-link,
+		.site-nav .nav-container .nav-auth-trigger {
 			padding-left: .7em !important;
 			padding-right: .7em !important;
 		}
@@ -592,6 +636,22 @@
 			.nav-auth-trigger,
 			.nav-auth-trigger > span {
 				max-width: 180px;
+		}
+	}
+
+	@media screen and (max-width: 767px) {
+		.site-nav .nav-container {
+			display: block;
+			padding: 0 52px 0 8px;
+		}
+
+		.site-nav .nav-item:not(.nav-brand) {
+			width: 100%;
+			justify-content: flex-start;
+		}
+
+		.site-nav .nav-brand {
+			height: 51px;
 		}
 	}
 </style>

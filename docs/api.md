@@ -45,7 +45,7 @@ Blog API 是项目唯一后端。默认本地直连地址为 `http://localhost:8
 | GET | `/admin/blogs/backup` | Admin | 下载全部文章状态、评论、作者资料和托管图片的去敏 ZIP 备份 |
 | DELETE | `/admin/blog?id={id}` | Admin | 将任意正常文章移入固定保留七天的回收站 |
 | PUT | `/admin/blog/restore?id={id}` | Admin | 在七天保留期内恢复任意回收站文章 |
-| PUT | `/admin/blog/recommend?id={id}&recommend={boolean}` | Admin | 设置或取消首页侧栏精选文章 |
+| PUT | `/admin/blog/recommend?id={id}&recommend={boolean}` | Admin | 设置或取消首页精选文章优先展示状态 |
 | GET | `/health` | Guest | 进程健康检查 |
 
 JWT 的 `sub` 是 `username`，角色只允许 `ROLE_admin` 和 `ROLE_player`。
@@ -195,7 +195,7 @@ GET /api/player/training-data/users?includeRetired=true
 - `GET /admin/training-data/submission-collection-jobs`
 - `GET /admin/training-data/submission-collection-jobs/{jobId}`
 
-训练中心管理区提供“创建用户”“管理用户”“管理文章”“分类与标签”“数据采集”“首页图片”六个独立页面；管理文章页控制公开侧栏精选状态，可切换当前文章/回收站、恢复文章并下载全量去敏 ZIP 备份；数据采集页调用采集任务接口，并始终请求在采集完成后刷新数仓。未被前端使用的同步采集、原始 ODS 写入和独立 warehouse 刷新 HTTP 入口已删除，应用服务仍由采集任务内部复用。
+训练中心管理区提供“创建用户”“管理用户”“管理文章”“分类与标签”“数据采集”“首页图片”六个独立页面；管理文章页控制首页精选优先状态，可切换当前文章/回收站、恢复文章并下载全量去敏 ZIP 备份；数据采集页调用采集任务接口，并始终请求在采集完成后刷新数仓。未被前端使用的同步采集、原始 ODS 写入和独立 warehouse 刷新 HTTP 入口已删除，应用服务仍由采集任务内部复用。
 
 ## 首页图片
 
@@ -215,7 +215,7 @@ GET /api/player/training-data/users?includeRetired=true
 
 文章、分类、标签、比赛与获奖记录、首页图片、作者资料及评论列表等公开 GET 请求不要求登录。About、全站友链和动态页面及其 API 已删除。评论列表仅在评论仍关联现存账号时返回只读 `username`；历史游客评论或账号删除后的匿名评论不返回该身份。新评论中的表情以标准 Unicode 原样存储，Google Noto Emoji 只由 Blog 展示层通过同源 SVG sprite 渲染；历史短码继续只读兼容。没有公开 OJ handle map、guest 训练查询、独立 handle 管理 API 或独立用户训练数据删除 API；删除用户时由用户服务在内部编排清理。
 
-`GET /site` 只返回 Blog 外壳初始化仍使用的数据：`siteInfo.reward`、`siteInfo.commentAdminFlag`、`introduction.avatar`、`introduction.name`、`categoryList`、`tagList` 和 `featuredBlogList`。它不再查询或返回未展示的 `newBlogList`，也不再返回旧 `badges`、社交链接、滚动文字和收藏配置。未被当前管理前端使用的站点设置管理 API 已删除。
+`GET /site` 只返回 Blog 外壳初始化仍使用的数据：`siteInfo.reward`、`siteInfo.commentAdminFlag`、文章详情作者兜底所需的 `introduction`、`categoryList`、`tagList` 和 `featuredBlogList`。`featuredBlogList` 固定最多三篇，包含标题、简介、日期、分类和置顶状态，按置顶、管理员精选、更新时间排序并以最新文章补足；未手填简介时自动使用正文前 280 个字符生成摘要，正文也为空时返回“暂无简介”。它不再返回旧 `badges`、社交链接、滚动文字和收藏配置。
 
 `GET /searchBlog?query={keyword}` 只对已发布文章标题做大小写不敏感的子串匹配，按更新时间倒序返回最多十条包含 `id`、`title` 和文章 `description` 的候选。游客只获得公开文章；登录用户显式携带 Bearer 时也获得内部文章。正文不参与搜索。空关键词、特殊通配字符或超过 20 个字符的关键词会返回参数错误。
 

@@ -2,17 +2,17 @@
 	<!--评论列表-->
 	<div>
 		<CommentForm v-if="isLoggedIn && parentCommentId===-1"/>
-		<div class="ui info message" v-if="!isLoggedIn">登录后的队员可以发表评论。<router-link :to="{path: '/training/login', query: {returnTo: $route.fullPath}}">去登录</router-link></div>
-		<h3 class="ui dividing header">Comments | 共 {{ allComment }} 条评论<span v-if="closeComment!==0">（{{ closeComment }} 条评论被隐藏）</span></h3>
-		<h3 class="ui header" v-if="allComment===0">快来抢沙发！</h3>
+		<div class="comment-login-message" v-if="!isLoggedIn">登录后的队员可以发表评论。<router-link :to="{path: '/training/login', query: {returnTo: $route.fullPath}}">去登录</router-link></div>
+		<h3 class="comment-section-heading">Comments | 共 {{ allComment }} 条评论<span v-if="closeComment!==0">（{{ closeComment }} 条评论被隐藏）</span></h3>
+		<h3 class="section-heading" v-if="allComment===0">快来抢沙发！</h3>
 		<div class="comment" v-for="comment in comments" :key="comment.id">
 			<span class="anchor" :id="`comment-${comment.id}`"></span>
-			<a class="ui circular image avatar">
+			<span class="comment-avatar">
 				<img :src="comment.avatar">
-			</a>
+			</span>
 			<div class="content">
 				<span class="comment-author"><a class="nickname" :href="comment.website!=''&&comment.website!=null?comment.website:null" target="_blank" rel="external nofollow noopener">{{ comment.nickname }}</a><small v-if="comment.username" class="comment-username">{{ comment.username }}</small></span>
-				<div class="ui black left pointing label" v-if="comment.adminComment">{{ $store.state.siteInfo.commentAdminFlag }}</div>
+				<div class="admin-comment-label" v-if="comment.adminComment">{{ $store.state.siteInfo.commentAdminFlag }}</div>
 				<div class="metadata">
 					<strong class="date">{{ $filters.dateFormat(comment.createTime, 'YYYY-MM-DD HH:mm') }}</strong>
 				</div>
@@ -22,12 +22,12 @@
 			<div class="comments" v-if="comment.replyComments.length>0">
 				<div class="comment" v-for="reply in comment.replyComments" :key="reply.id">
 					<span class="anchor" :id="`comment-${reply.id}`"></span>
-					<a class="ui circular image avatar">
+					<span class="comment-avatar">
 						<img :src="reply.avatar">
-					</a>
+					</span>
 					<div class="content">
 						<span class="comment-author"><a class="nickname" :href="reply.website!=''&&reply.website!=null?reply.website:null" target="_blank" rel="external nofollow noopener">{{ reply.nickname }}</a><small v-if="reply.username" class="comment-username">{{ reply.username }}</small></span>
-						<div class="ui black left pointing label" v-if="reply.adminComment">{{ $store.state.siteInfo.commentAdminFlag }}</div>
+						<div class="admin-comment-label" v-if="reply.adminComment">{{ $store.state.siteInfo.commentAdminFlag }}</div>
 						<div class="metadata">
 							<strong class="date">{{ $filters.dateFormat(reply.createTime, 'YYYY-MM-DD HH:mm') }}</strong>
 						</div>
@@ -104,14 +104,23 @@
 		border-color: #e0e0e0;
 	}
 
-	.ui.threaded.comments .comment .comments {
+	.comment .comments {
 		box-shadow: none;
-		margin-top: -2em;
+		margin: 1.25rem 0 0 2.5rem;
 	}
 
-	.ui.info.message > a { margin-left: 8px; color: #17324d; font-weight: 700; }
+	.comment-login-message > a { margin-left: 8px; color: #17324d; font-weight: 700; }
+
+	.comment-section-heading {
+		border-bottom: 1px solid var(--color-border);
+		margin: 1.5rem 0 1rem;
+		padding-bottom: .75rem;
+	}
 
 	.comment {
+		position: relative;
+		min-height: 72px;
+		margin: 1rem 0;
 		padding-right: 1em !important;
 		padding-left: 1em !important;
 	}
@@ -163,24 +172,35 @@
 		top: -55px;
 	}
 
-	.ui.comments .comment .avatar {
+	.comment .comment-avatar {
+		display: block;
+		float: left;
 		width: 56px !important;
 		height: 56px !important;
+		overflow: hidden;
+		border-radius: 50%;
 		margin: 0;
 	}
 
-	.ui.comments .comment > .content {
+	.comment .comment-avatar img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.comment > .content {
 		margin-left: 72px !important;
 		min-height: 56px;
 	}
 
-	.ui.comments .comment .text {
+	.comment .text {
 		white-space: pre-wrap !important;
 		line-height: 1.5;
 	}
 
-	.ui.comments .comment .text :deep(.noto-emoji),
-	.ui.comments .comment .text :deep(.legacy-comment-emoji) {
+	.comment .text :deep(.noto-emoji),
+	.comment .text :deep(.legacy-comment-emoji) {
 		display: inline-block;
 		width: 1.45em;
 		height: 1.45em;
@@ -189,18 +209,22 @@
 		object-fit: contain;
 	}
 
-	.ui.comments .comment .text a {
+	.comment .text a {
 		cursor: pointer;
 		margin-right: 8px;
 		font-weight: bolder;
 		color: rgba(0, 0, 0, .87);
 	}
 
-	.ui.comments .comment .text div {
+	.comment .text div {
 		display: inline;
 	}
 
-	.label {
+	.admin-comment-label {
+		display: inline-block;
+		border-radius: 4px;
+		background: #1f2933;
+		color: #fff;
 		cursor: default;
 		padding: 4px 6px !important;
 		font-weight: 500 !important;

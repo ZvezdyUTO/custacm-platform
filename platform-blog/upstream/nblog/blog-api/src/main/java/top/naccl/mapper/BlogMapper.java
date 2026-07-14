@@ -44,7 +44,7 @@ public interface BlogMapper {
 	List<BlogInfo> getBlogInfoListByTagNameAndIsPublished(@Param("tagName") String tagName,
 			@Param("includeInternal") boolean includeInternal);
 
-	List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(@Param("limitNum") Integer limitNum,
+	List<RandomBlog> getFeaturedBlogList(@Param("limitNum") Integer limitNum,
 			@Param("includeInternal") boolean includeInternal);
 
 	int deleteBlogById(Long id);

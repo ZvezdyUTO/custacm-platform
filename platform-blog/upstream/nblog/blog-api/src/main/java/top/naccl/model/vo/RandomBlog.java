@@ -19,6 +19,9 @@ import java.util.Date;
 public class RandomBlog {
 	private Long id;
 	private String title;//文章标题
+	private String description;//文章简介
 	private String firstPicture;//文章首图，用于随机文章展示
 	private Date createTime;//创建时间
+	private String categoryName;//文章分类
+	private Boolean top;//是否由管理员置顶
 }

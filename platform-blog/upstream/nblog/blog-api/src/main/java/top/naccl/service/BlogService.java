@@ -23,7 +23,7 @@ public interface BlogService {
 	PageResult<BlogInfo> getBlogInfoListByTagNameAndIsPublished(String tagName, Integer pageNum,
 			boolean includeInternal);
 
-	List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(boolean includeInternal);
+	List<RandomBlog> getFeaturedBlogList(boolean includeInternal);
 
 	void deleteBlogTagByBlogId(Long blogId);
 

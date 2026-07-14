@@ -34,4 +34,22 @@ describe('ManagedImageViewer', () => {
 		expect(document.body.textContent).toContain('正在查看原图')
 		wrapper.unmount()
 	})
+
+	it('moves focus into the viewer, closes with Escape and restores focus', async () => {
+		const trigger = document.createElement('button')
+		document.body.appendChild(trigger)
+		trigger.focus()
+		const wrapper = mount(ManagedImageViewer, {attachTo: document.body})
+
+		wrapper.vm.open('/thumbnail.jpg', '/original.jpg', '示意图')
+		await wrapper.vm.$nextTick()
+
+		expect(document.activeElement).toBe(document.body.querySelector('.viewer-close'))
+		document.body.querySelector('.managed-viewer').dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))
+		await wrapper.vm.$nextTick()
+
+		expect(document.body.querySelector('.managed-viewer')).toBeNull()
+		expect(document.activeElement).toBe(trigger)
+		wrapper.unmount()
+	})
 })

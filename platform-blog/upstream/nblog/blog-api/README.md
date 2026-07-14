@@ -121,7 +121,7 @@ DELETE /admin/competitions/{id}/awards/{awardId}
 - `GET /categories` 只返回分类名称/颜色列表，供独立训练开发外壳导航使用。
 - `GET /category` 与 `GET /tag` 按名称分页返回文章；存在认证时显式 Bearer 读取可包含内部文章。
 - 管理端 `GET /admin/categories` 与 `GET /admin/tags` 分别分页，避免一次加载全部分类和标签。
-- `/site` 只组装 Blog 首页仍消费的站点配置、分类、标签和精选文章；不返回旧动态、友链、徽章、收藏或最新文章侧栏数据。
+- `/site` 只组装 Blog 首页仍消费的站点配置、分类、标签和三篇精选文章；精选按置顶、管理员精选、更新时间排序，并以最新文章补足，未手填简介时使用正文前 280 个字符生成摘要。
 
 ## 调度与缓存默认值
 

@@ -35,8 +35,8 @@ public class BlogServiceImpl implements BlogService {
 	TagService tagService;
 	@Autowired
 	RedisService redisService;
-	//随机博客显示5条
-	private static final int randomBlogLimitNum = 5;
+	//首页精选区固定展示三篇：置顶和精选优先，最新文章补足。
+	private static final int featuredBlogLimitNum = 3;
 	//每页显示5条博客简介
 	private static final int pageSize = 5;
 	//博客简介列表排序方式
@@ -104,8 +104,11 @@ public class BlogServiceImpl implements BlogService {
 	}
 
 	@Override
-	public List<RandomBlog> getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(boolean includeInternal) {
-		return blogMapper.getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(randomBlogLimitNum, includeInternal);
+	public List<RandomBlog> getFeaturedBlogList(boolean includeInternal) {
+		List<RandomBlog> blogs = blogMapper.getFeaturedBlogList(featuredBlogLimitNum, includeInternal);
+		blogs.forEach(blog -> blog.setDescription(MarkdownUtils.markdownToHtmlExtensions(
+				blog.getDescription() == null ? "" : blog.getDescription())));
+		return blogs;
 	}
 
 	@Transactional(rollbackFor = Exception.class)

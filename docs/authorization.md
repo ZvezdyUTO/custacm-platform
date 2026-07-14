@@ -39,7 +39,7 @@ all remaining requests      -> denied
 
 `PUT /player/competitions/{competitionId}/awards/{awardId}/profile-visibility` 同样要求 `ROLE_player` 或 `ROLE_admin`，并以当前 JWT username 校验其确实是该奖项获奖人；只能修改本人获奖关系上的名片展示偏好。团队奖成员互不影响，管理员没有代替其他获奖人设置的额外权限。
 
-Player 文章接口从 JWT 身份选择作者，并以 `blog.user_id` 校验查看、修改、移入回收站和恢复所有权；管理员也通过这些 `/player/blog` 写接口发布自己的文章。管理员可通过 `/admin/**` 管理全部文章、恢复任意仍在七天保留期内的文章，通过 `/admin/blog/recommend` 控制公开侧栏精选状态，并通过 `GET /admin/blogs/backup` 下载包含全部文章状态、去敏评论、作者资料和托管图片的备份。不存在提前物理删除接口。
+Player 文章接口从 JWT 身份选择作者，并以 `blog.user_id` 校验查看、修改、移入回收站和恢复所有权；管理员也通过这些 `/player/blog` 写接口发布自己的文章。管理员可通过 `/admin/**` 管理全部文章、恢复任意仍在七天保留期内的文章，通过 `/admin/blog/recommend` 控制首页精选优先状态，并通过 `GET /admin/blogs/backup` 下载包含全部文章状态、去敏评论、作者资料和托管图片的备份。不存在提前物理删除接口。
 
 `GET /player/blog/download?id={id}` 只归档已发布文章，ZIP 的 `article.md` 包含标题、简介和原始正文，本地托管图片使用扁平语义化文件名；公开文章和内部文章均要求登录，草稿不进入下载查询。`ROLE_player` 按当前 username 在全部文章下载间共享 30 秒窗口，下载不同文章也使用同一个窗口；`ROLE_admin` 豁免，游客由 `/player/**` 规则返回 401。限流命中返回 429 和 `Retry-After`，限流状态不可用时普通用户返回 503。
 

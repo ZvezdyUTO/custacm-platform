@@ -16,7 +16,7 @@
 				<div class="emoji-mask" v-show="emojiShow" @click="hideEmojiBox"></div>
 				<transition name="emoji-popover">
 					<section ref="emojiBox" class="emoji-box" v-if="emojiShow" role="dialog" aria-label="Noto emoji 选择器"
-					         tabindex="-1" @keydown.esc.stop="hideEmojiBox">
+					         tabindex="-1" @keydown.esc.stop="hideEmojiBox" @keydown.tab="trapEmojiTab">
 						<header class="emoji-title">
 							<div><strong>Noto emoji</strong><small>Google 圆形表情</small></div>
 							<button type="button" aria-label="关闭表情选择器" @click="hideEmojiBox">×</button>
@@ -48,6 +48,7 @@
 	import {readToken} from "@/auth/session";
 	import {SET_PARENT_COMMENT_ID} from "@/store/mutations-types";
 	import {notoEmojiCategories, notoEmojiUrl} from '@/plugins/notoEmoji'
+	import {trapDialogTab} from '@/util/dialogFocus'
 
 	export default {
 		name: "CommentForm",
@@ -92,6 +93,9 @@
 				this.captureSelection()
 				this.emojiShow = !this.emojiShow
 				if (this.emojiShow) this.$nextTick(() => this.$refs.emojiBox?.focus())
+			},
+			trapEmojiTab(event) {
+				trapDialogTab(event, this.$refs.emojiBox)
 			},
 			insertEmoji(unicode) {
 				let str = this.commentForm.content

@@ -1,7 +1,8 @@
 <template>
 	<Teleport to="body">
 		<div v-if="visible" class="crop-backdrop" @mousedown.self="close">
-			<section class="crop-dialog" role="dialog" aria-modal="true" aria-labelledby="avatar-crop-title">
+			<section ref="dialog" class="crop-dialog" role="dialog" aria-modal="true" aria-labelledby="avatar-crop-title" tabindex="-1"
+			         @keydown.esc.stop="close" @keydown.tab="trapTab">
 				<header>
 					<div>
 						<p class="crop-eyebrow">个人头像</p>
@@ -42,6 +43,8 @@
 
 <script>
 	// Author: huangbingrui.awa
+	import {focusDialog, restoreDialogFocus, trapDialogTab} from '@/util/dialogFocus'
+
 	const PREVIEW_SIZE = 360
 	const OUTPUT_SIZE = 512
 
@@ -65,22 +68,27 @@
 				lastX: 0,
 				lastY: 0,
 				localError: '',
+				returnFocus: null,
 			}
 		},
 		beforeUnmount() {
 			this.releaseObjectUrl()
+			restoreDialogFocus(this.returnFocus)
 		},
 		methods: {
 			open(file) {
+				this.returnFocus = document.activeElement
 				this.localError = ''
 				if (!['image/png', 'image/jpeg'].includes(file.type)) {
 					this.visible = true
 					this.localError = '请选择 PNG 或 JPEG 图片。'
+					this.$nextTick(() => focusDialog(this.$refs.dialog, '.crop-close'))
 					return
 				}
 				if (file.size > 10 * 1024 * 1024) {
 					this.visible = true
 					this.localError = '原始图片不能超过 10MB。'
+					this.$nextTick(() => focusDialog(this.$refs.dialog, '.crop-close'))
 					return
 				}
 				this.releaseObjectUrl()
@@ -94,11 +102,15 @@
 					this.offsetX = (PREVIEW_SIZE - image.naturalWidth * this.baseScale) / 2
 					this.offsetY = (PREVIEW_SIZE - image.naturalHeight * this.baseScale) / 2
 					this.visible = true
-					this.$nextTick(this.draw)
+					this.$nextTick(() => {
+						this.draw()
+						focusDialog(this.$refs.dialog, '.crop-close')
+					})
 				}
 				image.onerror = () => {
 					this.visible = true
 					this.localError = '无法读取这张图片。'
+					this.$nextTick(() => focusDialog(this.$refs.dialog, '.crop-close'))
 				}
 				image.src = this.objectUrl
 			},
@@ -108,6 +120,10 @@
 				this.image = null
 				this.localError = ''
 				this.releaseObjectUrl()
+				this.$nextTick(() => restoreDialogFocus(this.returnFocus))
+			},
+			trapTab(event) {
+				trapDialogTab(event, this.$refs.dialog)
 			},
 			releaseObjectUrl() {
 				if (this.objectUrl) URL.revokeObjectURL(this.objectUrl)

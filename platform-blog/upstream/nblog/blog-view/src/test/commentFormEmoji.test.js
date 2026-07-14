@@ -38,4 +38,30 @@ describe('Noto emoji picker', () => {
 		await wrapper.get('.emoji-list').trigger('click')
 		expect(store.state.commentForm.content).toBe('A😀B')
 	})
+
+	it('keeps keyboard focus inside the picker and returns it to the textarea on Escape', async () => {
+		const store = createStore({state: {parentCommentId: -1, commentForm: {content: ''}, commentQuery: {}}})
+		const wrapper = mount(CommentForm, {
+			attachTo: document.body,
+			global: {
+				plugins: [store],
+				stubs: {ElInput, ElForm, ElFormItem, ElButton},
+				directives: {throttle: () => {}},
+				mocks: {$notify: vi.fn()},
+			},
+		})
+		const textarea = wrapper.get('textarea').element
+		textarea.focus()
+		await wrapper.get('.emoji-trigger').trigger('click')
+		const box = wrapper.get('.emoji-box')
+		const lastEmoji = wrapper.findAll('.emoji-list').at(-1)
+		lastEmoji.element.focus()
+		await lastEmoji.trigger('keydown', {key: 'Tab'})
+		expect(document.activeElement).toBe(box.find('button').element)
+
+		await box.trigger('keydown', {key: 'Escape'})
+		expect(wrapper.find('.emoji-box').exists()).toBe(false)
+		expect(document.activeElement).toBe(textarea)
+		wrapper.unmount()
+	})
 })

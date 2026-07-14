@@ -1,5 +1,5 @@
 <template>
-	<section class="article-editor-page ui segment" aria-labelledby="editor-title">
+	<section class="article-editor-page content-panel" aria-labelledby="editor-title">
 		<header class="editor-page-heading">
 			<div>
 				<p>ACM NOTEBOOK</p>
@@ -35,7 +35,7 @@
 			<section class="markdown-import" aria-label="Markdown 文件导入">
 				<div><strong>从 Markdown 开始</strong><span>读取本地 .md/.markdown 文件，内容只会填入下方编辑器。</span></div>
 				<input ref="markdownInput" class="visually-hidden" type="file" accept=".md,.markdown,text/markdown" @change="importMarkdown">
-				<button type="button" @click="$refs.markdownInput.click()"><i class="file alternate outline icon"></i>{{ importedFilename || '选择 Markdown' }}</button>
+				<button type="button" @click="$refs.markdownInput.click()"><AppIcon name="file" />{{ importedFilename || '选择 Markdown' }}</button>
 			</section>
 
 			<div class="content-field" role="group" aria-labelledby="article-content-label"><span id="article-content-label">正文</span><LiveMarkdownEditor v-model="form.content" :upload-image="uploadContentImage" @dirty="markDirty"/><small :class="{limitWarning: contentLength > limits.content}">{{ contentLength }}/{{ limits.content }} 字 · 预计 {{ readMinutes }} 分钟</small></div>

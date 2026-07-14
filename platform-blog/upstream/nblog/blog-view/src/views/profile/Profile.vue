@@ -1,5 +1,5 @@
 <template>
-	<section class="profile-page ui segment">
+	<section class="profile-page content-panel">
 		<template v-if="authUser">
 			<header class="profile-heading">
 				<div>
@@ -8,7 +8,7 @@
 					<p class="profile-handle">@{{ authUser.username }}</p>
 				</div>
 				<button v-if="!editing" type="button" class="edit-profile-button" @click="startEditing">
-					<i class="edit outline icon"></i>编辑资料
+					<AppIcon name="edit" />编辑资料
 				</button>
 			</header>
 
@@ -62,7 +62,7 @@
 				<div class="links-editor">
 					<div class="links-heading">
 						<div><strong>友情链接</strong><span>最多 8 条，仅支持 HTTP 或 HTTPS 地址</span></div>
-						<button type="button" :disabled="draft.links.length >= 8" @click="addLink"><i class="plus icon"></i>添加链接</button>
+						<button type="button" :disabled="draft.links.length >= 8" @click="addLink"><AppIcon name="plus" />添加链接</button>
 					</div>
 					<div v-if="draft.links.length" class="link-rows">
 						<div v-for="(link, index) in draft.links" :key="link.key" class="link-row">
@@ -70,13 +70,13 @@
 							<input v-model="link.label" maxlength="30" required :aria-label="`第 ${index + 1} 条链接名称`" placeholder="名称，例如 GitHub">
 							<input v-model="link.url" maxlength="2048" required type="url" :aria-label="`第 ${index + 1} 条链接地址`" placeholder="https://example.com">
 							<div class="link-actions">
-								<button type="button" :disabled="index === 0" aria-label="上移" @click="moveLink(index, -1)"><i class="arrow up icon"></i></button>
-								<button type="button" :disabled="index === draft.links.length - 1" aria-label="下移" @click="moveLink(index, 1)"><i class="arrow down icon"></i></button>
-								<button type="button" class="remove-link" aria-label="删除" @click="removeLink(index)"><i class="trash alternate outline icon"></i></button>
+								<button type="button" :disabled="index === 0" aria-label="上移" @click="moveLink(index, -1)"><AppIcon name="arrow-up" /></button>
+								<button type="button" :disabled="index === draft.links.length - 1" aria-label="下移" @click="moveLink(index, 1)"><AppIcon name="arrow-down" /></button>
+								<button type="button" class="remove-link" aria-label="删除" @click="removeLink(index)"><AppIcon name="trash" /></button>
 							</div>
 						</div>
 					</div>
-					<button v-else type="button" class="empty-links" @click="addLink"><i class="linkify icon"></i>添加第一条友情链接</button>
+					<button v-else type="button" class="empty-links" @click="addLink"><AppIcon name="link" />添加第一条友情链接</button>
 				</div>
 
 				<section class="password-editor" aria-labelledby="password-editor-title">
@@ -104,7 +104,7 @@
 				<p class="profile-eyebrow">MY HOMEPAGE</p>
 				<h1>登录后查看我的主页</h1>
 				<p>你的个人资料、OJ 账号和已发布内容会集中在这里。</p>
-			<router-link to="/training/login?returnTo=/profile" class="ui button">登录训练中心</router-link>
+			<router-link to="/training/login?returnTo=/profile" class="secondary-button profile-login-link">登录训练中心</router-link>
 		</div>
 	</section>
 </template>
@@ -302,7 +302,7 @@
 	.editor-actions { justify-content: flex-end; margin-top: 22px; }
 	.editor-actions .primary { border-color: #17324d; background: #17324d; color: #fff; min-width: 106px; }
 	.editor-actions button:disabled { cursor: wait; opacity: .6; }
-	.profile-empty .ui.button { margin-top: 18px; background: #17324d; color: #fff; }
+	.profile-empty .profile-login-link { margin-top: 18px; background: #17324d; color: #fff; }
 
 	@media (max-width: 1280px) {
 		.profile-page { padding: 34px 36px !important; }

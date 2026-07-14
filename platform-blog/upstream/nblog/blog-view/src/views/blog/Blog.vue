@@ -1,49 +1,50 @@
 <template>
 	<div>
-		<div class="ui padded attached segment m-padded-tb-large">
-			<div class="ui large red right corner label" v-if="blog.top">
-				<i class="arrow alternate circle up icon"></i>
+		<div class="content-panel article-panel m-padded-tb-large">
+			<div class="featured-corner-mark" v-if="blog.top" aria-label="置顶文章">
+				<AppIcon name="arrow-up-circle" />
 			</div>
 			<!--分类丝带放在正文网格之外，避免参与网格宽度计算并挤偏首图-->
-			<router-link :to="`/category/${blog.category.name}`" class="ui large ribbon label article-category-ribbon" :style="taxonomyStyle(blog.category.color)" v-if="blog.category">
-				<i class="small folder open icon"></i><span class="m-text-500">{{ blog.category.name }}</span>
+			<router-link :to="`/category/${blog.category.name}`" class="category-ribbon article-category-ribbon" :style="taxonomyStyle(blog.category.color)" v-if="blog.category">
+				<AppIcon name="folder" /><span class="m-text-500">{{ blog.category.name }}</span>
 			</router-link>
-			<div class="ui middle aligned mobile reversed stackable">
-				<div class="ui grid m-margin-lr">
+			<div class="article-layout">
+				<div class="article-grid m-margin-lr">
 					<div class="row m-padded-tb-small">
-						<h2 class="ui header m-center">{{ blog.title }}</h2>
+						<h2 class="article-title m-center">{{ blog.title }}</h2>
 					</div>
 					<div class="row m-padded-tb-small">
-						<div class="ui horizontal link list m-center article-meta-list">
-							<div class="item m-common-black" v-if="blog.authorNickname"><i class="small user icon"></i><span>{{ blog.authorNickname }}</span></div>
-							<div class="item m-datetime"><i class="small calendar icon"></i><span>{{ $filters.dateFormat(blog.createTime, 'YYYY-MM-DD') }}</span></div>
-							<div class="item m-common-black"><i class="small pencil alternate icon"></i><span>字数≈{{ blog.words }}字</span></div>
-							<div class="item m-common-black"><i class="small clock icon"></i><span>阅读时长≈{{ blog.readTime }}分</span></div>
-							<a class="item m-common-black article-meta-icon-action" aria-label="切换字体大小" data-inverted="" data-tooltip="点击切换字体大小" data-position="top center" @click.prevent="bigFontSize=!bigFontSize"><i class="font icon"></i></a>
-							<a class="item m-common-black article-meta-icon-action" aria-label="切换专注模式" data-inverted="" data-tooltip="专注模式" data-position="top center" @click.prevent="changeFocusMode"><i class="book icon"></i></a>
+						<div class="m-center article-meta-list">
+							<div class="item m-common-black" v-if="blog.authorNickname"><AppIcon name="user" /><span>{{ blog.authorNickname }}</span></div>
+							<div class="item m-datetime"><AppIcon name="calendar" /><span>{{ $filters.dateFormat(blog.createTime, 'YYYY-MM-DD') }}</span></div>
+							<div class="item m-common-black"><AppIcon name="edit" /><span>字数≈{{ blog.words }}字</span></div>
+							<div class="item m-common-black"><AppIcon name="clock" /><span>阅读时长≈{{ blog.readTime }}分</span></div>
+							<a class="item m-common-black article-meta-icon-action" aria-label="切换字体大小" title="点击切换字体大小" @click.prevent="bigFontSize=!bigFontSize"><AppIcon name="type" /></a>
+							<a class="item m-common-black article-meta-icon-action" aria-label="切换专注模式" title="专注模式" @click.prevent="changeFocusMode"><AppIcon name="book" /></a>
 							<a v-if="authUser" class="item article-download-link" :class="{disabled: downloading}" aria-label="下载文章与图片压缩包" @click.prevent="downloadArticle">
-								<i :class="downloading ? 'spinner loading icon' : 'download icon'"></i><span>{{ downloading ? '打包中' : '下载文章包' }}</span>
+								<AppIcon :name="downloading ? 'loader' : 'download'" :spin="downloading" /><span>{{ downloading ? '打包中' : '下载文章包' }}</span>
 							</a>
-							<router-link v-if="isAuthor" :to="`/write/${blog.id}`" class="item article-edit-link"><i class="edit outline icon"></i><span>编辑文章</span></router-link>
+							<router-link v-if="isAuthor" :to="`/write/${blog.id}`" class="item article-edit-link"><AppIcon name="edit" /><span>编辑文章</span></router-link>
 						</div>
 					</div>
 					<figure v-if="blog.firstPicture" class="article-cover">
 						<img :src="blog.firstPicture" :alt="`${blog.title} 首图`" decoding="async">
 					</figure>
 					<!--文章Markdown正文-->
-					<div class="typo js-toc-content m-padded-tb-small match-braces rainbow-braces" v-lazy-container="{selector: 'img'}" v-viewer :class="{'m-big-fontsize':bigFontSize}" @click.capture="openManagedImage" v-html="sanitizeHtml(blog.content)"></div>
+					<div class="typo js-toc-content m-padded-tb-small match-braces rainbow-braces" v-lazy-container="{selector: 'img'}" v-viewer :class="{'m-big-fontsize':bigFontSize}"
+					     @click.capture="openManagedImage" @keydown.capture="openManagedImage" v-html="sanitizeHtml(blog.content)"></div>
 					<!--赞赏-->
 					<div style="margin: 2em auto">
 						<el-popover placement="top" :width="220" trigger="click" v-if="blog.appreciation">
-							<div class="ui orange basic label" style="width: 100%">
+							<div class="reward-card">
 								<div class="image">
 									<div style="font-size: 12px;text-align: center;margin-bottom: 5px;">一毛是鼓励</div>
-									<img :src="$store.state.siteInfo.reward" alt="" class="ui rounded bordered image" style="width: 100%">
+									<img :src="$store.state.siteInfo.reward" alt="" class="reward-image">
 									<div style="font-size: 12px;text-align: center;margin-top: 5px;">一块是真爱</div>
 								</div>
 							</div>
 							<template #reference>
-								<el-button class="ui orange inverted circular button m-text-500">赞赏</el-button>
+								<el-button class="reward-button m-text-500">赞赏</el-button>
 							</template>
 						</el-popover>
 					</div>
@@ -52,14 +53,14 @@
 					<!--标签-->
 					<div class="row m-padded-tb-no">
 						<div class="column m-padding-left-no">
-							<router-link :to="`/tag/${tag.name}`" class="ui tag label m-text-500 m-margin-small" :style="taxonomyStyle(tag.color)" v-for="(tag,index) in blog.tags" :key="index">{{ tag.name }}</router-link>
+							<router-link :to="`/tag/${tag.name}`" class="taxonomy-chip m-text-500 m-margin-small" :style="taxonomyStyle(tag.color)" v-for="(tag,index) in blog.tags" :key="index">{{ tag.name }}</router-link>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
 		<!--博客信息-->
-		<div class="ui attached positive message">
+		<div class="article-license-message">
 			<ul class="list">
 				<li>作者：{{ blog.authorNickname || $store.state.introduction.name }}</li>
 				<li>发表时间：{{ $filters.dateFormat(blog.createTime, 'YYYY-MM-DD HH:mm') }}</li>
@@ -68,9 +69,9 @@
 			</ul>
 		</div>
 		<!--评论-->
-		<div class="ui bottom teal attached segment threaded comments">
+		<div class="content-panel article-comments">
 			<CommentList :blogId="blogId" :internal="Boolean(blog.internal)" v-if="blog.commentEnabled"/>
-			<h3 class="ui header" v-else>评论已关闭</h3>
+			<h3 class="section-heading" v-else>评论已关闭</h3>
 		</div>
 		<ManagedImageViewer ref="managedImageViewer"/>
 	</div>
@@ -192,6 +193,7 @@
 				}
 			},
 			openManagedImage(event) {
+				if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return
 				const image = event.target instanceof HTMLImageElement ? event.target : null
 				const link = image?.closest('a')
 				if (!image) return
@@ -206,6 +208,17 @@
 				event.preventDefault()
 				event.stopImmediatePropagation()
 				this.$refs.managedImageViewer.open(thumbnail, original, image.alt || '')
+			},
+			prepareManagedImages(article) {
+				article?.querySelectorAll('img').forEach(image => {
+					image.loading = 'lazy'
+					image.decoding = 'async'
+					if (!/\/api\/image\/assets\/[0-9a-f-]{36}\/thumbnail\.(?:jpg|png)/i.test(image.getAttribute('src') || '')) return
+					image.tabIndex = 0
+					image.setAttribute('role', 'button')
+					image.setAttribute('data-managed-preview', '')
+					image.setAttribute('aria-label', `查看大图：${image.alt || '文章图片'}`)
+				})
 			},
 			async getBlog(id = this.blogId) {
 				let res
@@ -237,10 +250,7 @@
 						//v-html渲染完毕后，渲染代码块样式
 						this.$nextTick(() => {
 							const article = this.$el.querySelector('.js-toc-content')
-							article?.querySelectorAll('img').forEach(image => {
-								image.loading = 'lazy'
-								image.decoding = 'async'
-							})
+							this.prepareManagedImages(article)
 							if (article) renderMathInElement(article, {
 								delimiters: [
 									{left: '$$', right: '$$', display: true},
@@ -268,6 +278,58 @@
 </script>
 
 <style scoped>
+	.article-panel,
+	.article-comments {
+		position: relative;
+	}
+
+	.article-title {
+		margin: 0;
+		color: #20272e;
+		font-size: clamp(1.65rem, 2.4vw, 2.25rem);
+		line-height: 1.25;
+	}
+
+	.reward-card {
+		width: 100%;
+		border: 1px solid #d89b47;
+		border-radius: 8px;
+		background: #fffaf2;
+		padding: 10px;
+	}
+
+	.reward-image {
+		display: block;
+		width: 100%;
+		border: 1px solid #d9dee3;
+		border-radius: 8px;
+	}
+
+	.reward-button {
+		border-color: #c98542 !important;
+		border-radius: 999px !important;
+		background: transparent !important;
+		color: #9a5b1e !important;
+	}
+
+	.article-license-message {
+		border: 1px solid #b9d4ba;
+		border-radius: 0 0 var(--radius-card) var(--radius-card);
+		background: #f0f8f0;
+		padding: 1rem 1.25rem;
+		color: #315b34;
+	}
+
+	.article-license-message .list {
+		margin: 0;
+		padding-left: 1.25rem;
+	}
+
+	.article-comments {
+		margin-top: 1rem;
+		padding: 1.25rem;
+	}
+
 	.el-divider {
 		margin: 1rem 0 !important;
 	}
@@ -291,7 +353,7 @@
 		cursor: pointer;
 	}
 
-	.article-meta-list.ui.horizontal.list {
+	.article-meta-list {
 		display: flex !important;
 		flex-wrap: wrap;
 		align-items: center;
@@ -300,7 +362,7 @@
 		line-height: 1.25;
 	}
 
-	.article-meta-list.ui.horizontal.list > .item {
+	.article-meta-list > .item {
 		display: inline-flex !important;
 		align-items: center;
 		min-height: 1.5rem;
@@ -310,7 +372,7 @@
 		line-height: 1.25;
 	}
 
-	.article-meta-list.ui.horizontal.list > .item > i.icon {
+	.article-meta-list > .item > .app-icon {
 		flex: 0 0 1em;
 		width: 1em !important;
 		height: 1em !important;
@@ -319,11 +381,11 @@
 		line-height: 1 !important;
 	}
 
-	.article-meta-list.ui.horizontal.list > .item > span {
+	.article-meta-list > .item > span {
 		line-height: 1.25;
 	}
 
-	.article-meta-list.ui.horizontal.list > .article-meta-icon-action > i.icon {
+	.article-meta-list > .article-meta-icon-action > .app-icon {
 		margin-right: 0 !important;
 	}
 
@@ -353,5 +415,9 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+	}
+
+	.js-toc-content :deep(img[data-managed-preview]) {
+		cursor: zoom-in;
 	}
 </style>

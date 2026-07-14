@@ -31,7 +31,7 @@ class IndexControllerTest {
 		)));
 		when(controller.categoryService.getCategoryNameList()).thenReturn(java.util.List.of());
 		when(controller.tagService.getTagListNotId()).thenReturn(java.util.List.of());
-		when(controller.blogService.getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(false))
+		when(controller.blogService.getFeaturedBlogList(false))
 				.thenReturn(java.util.List.of());
 
 		Result result = controller.site(null);

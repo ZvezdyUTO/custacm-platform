@@ -10,7 +10,8 @@
 
 		<Teleport to="body">
 			<div v-if="cropSource" class="cover-crop-backdrop" @mousedown.self="closeCrop">
-				<section class="cover-crop-dialog" role="dialog" aria-modal="true" aria-labelledby="article-cover-crop-title">
+				<section ref="cropDialog" class="cover-crop-dialog" role="dialog" aria-modal="true" aria-labelledby="article-cover-crop-title"
+				         tabindex="-1" @keydown.esc.stop="closeCrop" @keydown.tab="trapCropTab">
 					<header><div><p>ARTICLE COVER</p><h2 id="article-cover-crop-title">裁剪文章首图</h2></div><button type="button" :disabled="uploading" @click="closeCrop">×</button></header>
 					<div class="cover-crop-stage"><img ref="cropImage" :src="cropSource" alt="待裁剪首图" @load="initializeCropper"></div>
 					<footer><button type="button" :disabled="uploading" @click="closeCrop">取消</button><button class="primary" type="button" :disabled="uploading" @click="uploadCrop">{{ uploading ? '正在上传…' : '裁剪并上传' }}</button></footer>
@@ -25,6 +26,7 @@
 	import Cropper from 'cropperjs'
 	import 'cropperjs/dist/cropper.css'
 	import {ARTICLE_COVER_MAX_BYTES, validateArticleImage} from '@/util/articleImages'
+	import {focusDialog, restoreDialogFocus, trapDialogTab} from '@/util/dialogFocus'
 
 	export default {
 		name: 'ArticleCoverUpload',
@@ -34,11 +36,12 @@
 			uploadCover: {type: Function, required: true},
 		},
 		emits: ['uploaded', 'clear'],
-		data() { return {cropSource: '', cropper: null, uploading: false, errorMessage: ''} },
+		data() { return {cropSource: '', cropper: null, uploading: false, errorMessage: '', returnFocus: null} },
 		computed: { previewUrl() { return this.cover?.thumbnailUrl || this.legacyUrl || '' } },
-		beforeUnmount() { this.destroyCropper(); this.releaseSource() },
+		beforeUnmount() { this.destroyCropper(); this.releaseSource(); restoreDialogFocus(this.returnFocus) },
 		methods: {
 			selectFile(event) {
+				this.returnFocus = document.activeElement
 				const file = event.target.files?.[0]
 				event.target.value = ''
 				if (!file) return
@@ -47,6 +50,7 @@
 				this.errorMessage = ''
 				this.releaseSource()
 				this.cropSource = URL.createObjectURL(file)
+				this.$nextTick(() => focusDialog(this.$refs.cropDialog, 'header button'))
 			},
 			initializeCropper() {
 				this.destroyCropper()
@@ -69,7 +73,13 @@
 					if (uploaded) this.closeCrop()
 				}
 			},
-			closeCrop() { if (this.uploading) return; this.destroyCropper(); this.releaseSource() },
+			closeCrop() {
+				if (this.uploading) return
+				this.destroyCropper()
+				this.releaseSource()
+				this.$nextTick(() => restoreDialogFocus(this.returnFocus))
+			},
+			trapCropTab(event) { trapDialogTab(event, this.$refs.cropDialog) },
 			destroyCropper() { this.cropper?.destroy(); this.cropper = null },
 			releaseSource() { if (this.cropSource) URL.revokeObjectURL(this.cropSource); this.cropSource = '' },
 		},

@@ -3,13 +3,10 @@ import App from './App.vue'
 import router from './router'
 import store from './store'
 //自定义css
+import './assets/css/tokens.css'
 import './assets/css/base.css'
-//阿里icon
-import './assets/css/icon/iconfont.css'
 //typo.css
 import "./assets/css/typo.css";
-//semantic-ui
-import 'semantic-ui-css/semantic.min.css'
 //Element Plus
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
@@ -25,7 +22,9 @@ import directives from './util/directive'
 import VueLazyload from 'vue-lazyload'
 import loadingImage from './assets/img/loading.gif'
 import {initializeTheme} from './theme'
+import AppIcon from './components/common/AppIcon.vue'
 // Load theme overrides after every vendor stylesheet.
+import './assets/css/blog-redesign.css'
 import './assets/css/night.css'
 
 console.log(
@@ -39,6 +38,7 @@ initializeTheme()
 
 const app = createApp(App)
 
+app.component('AppIcon', AppIcon)
 app.use(ElementPlus)
 app.use(Viewer)
 app.use(VueLazyload, {

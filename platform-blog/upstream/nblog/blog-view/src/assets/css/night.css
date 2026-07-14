@@ -1,34 +1,34 @@
 /* Author: huangbingrui.awa */
 
 :root {
-	--theme-duration: 160ms;
-	--theme-image-duration: 260ms;
+	--theme-duration: var(--duration-fast);
+	--theme-image-duration: var(--duration-theme);
 }
 
 html.dark {
-	--theme-canvas: #15120f;
-	--theme-surface: #1f1915;
-	--theme-surface-raised: #28211b;
-	--theme-surface-muted: #241d18;
-	--theme-surface-soft: #30271f;
-	--theme-border: #44362b;
-	--theme-border-strong: #5b4636;
-	--theme-text: #f2e8dc;
-	--theme-text-soft: #dfd0c1;
-	--theme-muted: #b9a99a;
-	--theme-muted-dim: #958578;
-	--theme-accent: #d9944a;
-	--theme-accent-hover: #e3a55f;
-	--theme-accent-deep: #b96e3d;
+	--theme-canvas: var(--color-canvas);
+	--theme-surface: var(--color-surface);
+	--theme-surface-raised: var(--color-surface-subtle);
+	--theme-surface-muted: var(--color-surface-subtle);
+	--theme-surface-soft: var(--color-canvas-alternate);
+	--theme-border: var(--color-border);
+	--theme-border-strong: var(--color-border-strong);
+	--theme-text: var(--color-text);
+	--theme-text-soft: var(--color-text-muted);
+	--theme-muted: var(--color-text-muted);
+	--theme-muted-dim: var(--color-text-faint);
+	--theme-accent: var(--color-action);
+	--theme-accent-hover: var(--color-action-hover);
+	--theme-accent-deep: var(--color-action);
 	--theme-accent-soft: rgba(217, 148, 74, .14);
-	--theme-on-accent: #24160d;
-	--theme-success: #91be91;
+	--theme-on-accent: var(--color-on-action);
+	--theme-success: var(--color-success);
 	--theme-success-soft: rgba(82, 132, 88, .18);
-	--theme-warning: #d2a667;
+	--theme-warning: var(--color-warning);
 	--theme-warning-soft: rgba(170, 119, 53, .2);
-	--theme-danger: #df8c83;
+	--theme-danger: var(--color-danger);
 	--theme-danger-soft: rgba(165, 71, 65, .2);
-	--theme-shadow: 0 18px 48px rgba(8, 5, 3, .42);
+	--theme-shadow: var(--floating-shadow);
 	--blog-fog: var(--theme-canvas);
 	color-scheme: dark;
 	background: var(--theme-canvas);
@@ -82,18 +82,34 @@ html.dark ::selection {
 
 html.dark body::-webkit-scrollbar-thumb,
 html.dark #app ::-webkit-scrollbar-thumb {
-	background-color: #765136;
-	box-shadow: inset 0 0 4px rgba(227, 165, 95, .18);
+	border: 2px solid transparent;
+	border-radius: 999px;
+	background: #706861;
+	background-clip: padding-box;
+	box-shadow: none;
 }
 
 html.dark body::-webkit-scrollbar-thumb:hover,
 html.dark #app ::-webkit-scrollbar-thumb:hover {
-	background-color: #8b5e3c;
+	background: #8a817a;
+	background-clip: padding-box;
 }
 
 html.dark body::-webkit-scrollbar-track,
 html.dark #app ::-webkit-scrollbar-track {
-	background: var(--theme-canvas);
+	background: transparent;
+}
+
+html.dark.training-host-active {
+	scrollbar-color: #706861 transparent;
+}
+
+html.dark.training-host-active body::-webkit-scrollbar-thumb {
+	border: 2px solid transparent;
+	border-radius: 999px;
+	background: #706861;
+	background-clip: padding-box;
+	box-shadow: none;
 }
 
 html.dark a {
@@ -101,7 +117,7 @@ html.dark a {
 }
 
 html[data-theme] img,
-html[data-theme] .ui.divided.items .m-item .img {
+html[data-theme] .featured-items .m-item .img {
 	transition: filter var(--theme-image-duration) ease;
 }
 
@@ -111,7 +127,7 @@ html[data-theme] .background-layer {
 
 html.dark img,
 html.dark .background-layer,
-html.dark .ui.divided.items .m-item .img {
+html.dark .featured-items .m-item .img {
 	filter: brightness(.84) saturate(.95);
 }
 
@@ -128,83 +144,78 @@ html.dark textarea::placeholder {
 	color: var(--theme-muted-dim);
 }
 
-/* Semantic UI surfaces */
-html.dark .ui.segment:not(.inverted),
-html.dark .ui.segments:not(.inverted),
-html.dark .ui.card:not(.inverted),
-html.dark .ui.card:not(.inverted) > .content,
-html.dark .ui.comments,
-html.dark .ui.form {
+/* Project-owned surfaces */
+html.dark .content-panel,
+html.dark .sidebar-panel,
+html.dark .profile-summary-card,
+html.dark .profile-summary-card > .content,
+html.dark .article-comments,
+html.dark .form {
 	border-color: var(--theme-border) !important;
 	background: var(--theme-surface) !important;
 	color: var(--theme-text) !important;
 	box-shadow: 0 1px 2px rgba(8, 5, 3, .28) !important;
 }
 
-html.dark .ui.secondary.segment:not(.inverted),
-html.dark .ui.secondary.segments .segment {
+html.dark .sidebar-panel-heading {
 	background: var(--theme-surface-raised) !important;
 	color: var(--theme-text-soft) !important;
 }
 
-html.dark .ui.header,
-html.dark .ui.card > .content > .header,
-html.dark .ui.items > .item > .content > .header,
-html.dark .ui.list,
-html.dark .ui.comments .comment .author,
-html.dark .ui.comments .comment .text,
-html.dark .ui.comments .comment .metadata {
+html.dark .section-heading,
+html.dark .article-title,
+html.dark .profile-summary-card > .content > .header,
+html.dark .comment .comment-author,
+html.dark .comment .text,
+html.dark .comment .metadata {
 	color: var(--theme-text) !important;
 }
 
-html.dark .ui.header .sub.header,
-html.dark .ui.card > .content > .description,
-html.dark .ui.items > .item > .content > .description {
+html.dark .profile-summary-card > .content > .description {
 	color: var(--theme-muted) !important;
 }
 
-html.dark .ui.divider,
-html.dark .ui.divided.items > .item,
-html.dark .ui.divided.list > .item {
+html.dark .section-divider,
+html.dark .featured-items > .m-item {
 	border-color: var(--theme-border) !important;
 }
 
-html.dark .ui.attached.positive.message {
+html.dark .article-license-message {
 	border-color: #4e684d !important;
 	background: var(--theme-success-soft) !important;
 	color: #c5ddc3 !important;
 	box-shadow: none !important;
 }
 
-html.dark .ui.attached.positive.message a {
+html.dark .article-license-message a {
 	color: #e0bc87 !important;
 }
 
-html.dark .ui.info.message {
+html.dark .comment-login-message {
 	border-color: #685039 !important;
 	background: var(--theme-accent-soft) !important;
 	color: var(--theme-text-soft) !important;
 }
 
-html.dark .ui.black.label {
+html.dark .admin-comment-label {
 	background: #30251d !important;
 	color: var(--theme-text) !important;
 }
 
-html.dark .ui.button:not(.inverted):not(.primary) {
+html.dark .secondary-button {
 	border-color: var(--theme-border) !important;
 	background: var(--theme-surface-raised) !important;
 	color: var(--theme-text-soft) !important;
 }
 
-html.dark .ui.button:not(.inverted):not(.primary):hover,
-html.dark .ui.button:not(.inverted):not(.primary):focus-visible {
+html.dark .secondary-button:hover,
+html.dark .secondary-button:focus-visible {
 	border-color: var(--theme-accent-deep) !important;
 	background: var(--theme-surface-soft) !important;
 	color: var(--theme-accent-hover) !important;
 }
 
-html.dark .ui.segment.sidebar-accent {
+html.dark .sidebar-accent {
 	border-top-color: var(--theme-accent-deep) !important;
 }
 
@@ -227,13 +238,13 @@ html.dark .el-dropdown-menu__item {
 	color: var(--theme-text-soft) !important;
 }
 
-html.dark .el-dropdown-menu__item > i.icon {
+html.dark .el-dropdown-menu__item > .app-icon {
 	color: var(--theme-muted) !important;
 }
 
 html.dark .el-dropdown-menu__item:hover,
 html.dark .el-dropdown-menu__item:focus,
-html.dark .el-dropdown-menu__item:hover > i.icon {
+html.dark .el-dropdown-menu__item:hover > .app-icon {
 	background: var(--theme-accent-soft) !important;
 	color: var(--theme-accent-hover) !important;
 }
@@ -268,13 +279,15 @@ html.dark .el-pagination.is-background .el-pager li:hover {
 }
 
 /* Navigation, search and account controls */
-html.dark .ui.inverted.pointing.menu:not(.transparent) {
-	border-color: #34271f !important;
-	background: rgba(27, 21, 17, .98) !important;
-	box-shadow: 0 7px 24px rgba(8, 5, 3, .28) !important;
+html.dark .site-nav:not(.transparent) {
+	border-color: var(--glass-border) !important;
+	background: var(--glass-background) !important;
+	box-shadow: none !important;
+	-webkit-backdrop-filter: var(--glass-filter);
+	backdrop-filter: var(--glass-filter);
 }
 
-html.dark .ui.inverted.pointing.menu .active.item::after {
+html.dark .site-nav .active.nav-item::after {
 	background: var(--theme-accent-deep) !important;
 }
 
@@ -284,24 +297,22 @@ html.dark .nav-brand-plate {
 	box-shadow: 0 3px 12px rgba(8, 5, 3, .34);
 }
 
-html.dark .nav-brand:focus-visible .nav-brand-plate,
-html.dark .nav-theme-toggle:focus-visible {
-	outline-color: var(--theme-accent-hover);
-}
-
-html.dark .nav-theme-toggle:hover .nav-theme-track,
-html.dark .nav-theme-toggle:focus-visible .nav-theme-track {
+html.dark .nav-theme-toggle:hover .nav-theme-track {
 	border-color: rgba(227, 165, 95, .7);
 	background: rgba(217, 148, 74, .18);
 }
 
-html.dark .m-search input {
+html.dark .m-search .el-input__wrapper {
 	background: var(--theme-surface-raised) !important;
+}
+
+html.dark .m-search input {
+	background: transparent !important;
 	color: var(--theme-text) !important;
 }
 
 html.dark .m-search input::placeholder,
-html.dark .m-search i {
+html.dark .m-search .app-icon {
 	color: var(--theme-muted) !important;
 }
 
@@ -343,13 +354,14 @@ html.dark .article-cover {
 }
 
 html.dark .list-author-card {
-	border-color: var(--theme-accent-deep);
-	background: var(--theme-surface-muted);
+	border-color: var(--theme-border);
+	background: color-mix(in srgb, var(--theme-surface-muted) 78%, transparent);
+	box-shadow: 0 10px 28px rgba(8, 5, 3, .18);
 }
 
 html.dark .list-author-avatar {
-	border-color: var(--theme-surface-raised);
-	box-shadow: 0 0 0 1px var(--theme-border-strong), 0 7px 18px rgba(8, 5, 3, .32);
+	border-color: color-mix(in srgb, var(--theme-surface-raised) 82%, transparent);
+	box-shadow: 0 0 0 1px var(--theme-border), 0 7px 18px rgba(8, 5, 3, .22);
 }
 
 html.dark .list-author-copy span,
@@ -361,15 +373,15 @@ html.dark .list-article-meta {
 	border-color: var(--theme-border-strong);
 }
 
-html.dark .list-article-meta i,
+html.dark .list-article-meta .app-icon,
 html.dark .article-edit-link,
 html.dark .article-download-link {
 	color: var(--theme-accent) !important;
 }
 
-html.dark .article-meta-list .article-meta-icon-action > i.icon,
-html.dark .article-edit-link > i.icon,
-html.dark .article-download-link > i.icon {
+html.dark .article-meta-list .article-meta-icon-action > .app-icon,
+html.dark .article-edit-link > .app-icon,
+html.dark .article-download-link > .app-icon {
 	color: inherit !important;
 	opacity: 1 !important;
 }
@@ -399,7 +411,7 @@ html.dark .profile-signature,
 html.dark .profile-links-heading,
 html.dark .profile-links a,
 html.dark .empty-profile-links,
-html.dark .profile-card > .ui.card {
+html.dark .profile-card > .profile-summary-card {
 	border-color: var(--theme-border) !important;
 	color: var(--theme-text-soft);
 }
@@ -423,7 +435,7 @@ html.dark .profile-avatar-shell {
 
 html.dark .profile-links-heading,
 html.dark .profile-signature,
-html.dark .profile-links a i,
+html.dark .profile-links a .app-icon,
 html.dark .profile-username,
 html.dark .profile-email,
 html.dark .guest-card p,
@@ -643,7 +655,7 @@ html.dark .form {
 html.dark .el-form textarea,
 html.dark .el-form input,
 html.dark .nickname,
-html.dark .ui.comments .comment .text a {
+html.dark .comment .text a {
 	color: var(--theme-text) !important;
 }
 
@@ -1226,10 +1238,10 @@ html.dark .footer-link:focus-visible {
 /* Restrained theme transition; business images only lower brightness and saturation. */
 html[data-theme] body,
 html[data-theme] #app,
-html[data-theme] .ui.segment,
-html[data-theme] .ui.segments,
-html[data-theme] .ui.card,
-html[data-theme] .ui.menu,
+html[data-theme] .content-panel,
+html[data-theme] .sidebar-panel,
+html[data-theme] .profile-summary-card,
+html[data-theme] .site-nav,
 html[data-theme] .m-search-panel,
 html[data-theme] .blog-list-card,
 html[data-theme] .profile-page,
@@ -1247,10 +1259,10 @@ html[data-theme] a {
 @media (prefers-reduced-motion: reduce) {
 	html[data-theme] body,
 	html[data-theme] #app,
-	html[data-theme] .ui.segment,
-	html[data-theme] .ui.segments,
-	html[data-theme] .ui.card,
-	html[data-theme] .ui.menu,
+	html[data-theme] .content-panel,
+	html[data-theme] .sidebar-panel,
+	html[data-theme] .profile-summary-card,
+	html[data-theme] .site-nav,
 	html[data-theme] .m-search-panel,
 	html[data-theme] .blog-list-card,
 	html[data-theme] .profile-page,
@@ -1264,7 +1276,7 @@ html[data-theme] a {
 		html[data-theme] a,
 		html[data-theme] img,
 		html[data-theme] .background-layer,
-		html[data-theme] .ui.divided.items .m-item .img,
+		html[data-theme] .featured-items .m-item .img,
 		html[data-theme] .nav-theme-track,
 		html[data-theme] .nav-theme-thumb {
 			transition: none !important;

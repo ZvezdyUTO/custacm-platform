@@ -1,5 +1,5 @@
 <template>
-	<div class="site">
+		<div class="site" :class="{'is-home': $route.name === 'home'}">
 		<!--顶部导航-->
 		<Nav :categoryList="categoryList"/>
 		<!--首页大图：桌面整屏显示，移动端使用紧凑高度-->
@@ -8,29 +8,27 @@
 
 		<div v-else class="main">
 			<div class="m-padded-tb-big">
-				<div class="ui container">
-					<div class="ui stackable grid main-grid">
+				<div class="site-container">
+					<div class="main-grid" :class="{'has-author-sidebar': $route.name === 'blog'}">
 						<!--左侧-->
-						<div class="three wide column m-mobile-hide sidebar-column">
+						<div v-if="$route.name === 'blog'" class="m-mobile-hide sidebar-column">
 							<aside class="sticky-sidebar sticky-sidebar-left" aria-label="个人资料">
 								<Introduction :author-username="articleAuthor?.username || ''" :author-summary="articleAuthor" :class="{'m-display-none':focusMode}"/>
 							</aside>
 						</div>
 						<!--中间-->
-						<div class="ten wide column">
-							<router-view v-slot="{ Component }">
+						<div class="main-content-column">
+							<FeaturedBlog v-if="$route.name === 'home'" :featuredBlogList="featuredBlogList" :class="{'m-display-none':focusMode}"/>
+							<router-view v-if="$route.name !== 'home'" v-slot="{ Component }">
 								<keep-alive include="Home">
 									<component :is="Component" @article-author-change="articleAuthor = $event"/>
 								</keep-alive>
 							</router-view>
 						</div>
 						<!--右侧-->
-						<div class="three wide column m-mobile-hide sidebar-column">
-							<aside class="sticky-sidebar sticky-sidebar-right" aria-label="内容导航">
-								<!--文章页优先展示目录；其它侧栏内容跟随同一吸附容器。-->
-								<Tocbot v-if="$route.name==='blog'"/>
-								<FeaturedBlog :featuredBlogList="featuredBlogList" :class="{'m-display-none':focusMode}"/>
-								<Tags :tagList="tagList" :class="{'m-display-none':focusMode}"/>
+						<div v-if="$route.name === 'blog'" class="m-mobile-hide sidebar-column">
+							<aside class="sticky-sidebar sticky-sidebar-right" aria-label="文章目录">
+								<Tocbot/>
 							</aside>
 						</div>
 					</div>
@@ -53,7 +51,6 @@
 	import Header from "@/components/index/Header";
 	import Footer from "@/components/index/Footer";
 	import Introduction from "@/components/sidebar/Introduction";
-	import Tags from "@/components/sidebar/Tags";
 	import FeaturedBlog from "@/components/sidebar/FeaturedBlog";
 	import Tocbot from "@/components/sidebar/Tocbot";
 	import {mapState} from 'vuex'
@@ -63,7 +60,7 @@
 
 	export default {
 		name: "Index",
-		components: {Header, Tocbot, FeaturedBlog, Tags, Nav, Footer, Introduction},
+		components: {Header, Tocbot, FeaturedBlog, Nav, Footer, Introduction},
 		data() {
 			return {
 				siteInfo: {
@@ -82,7 +79,7 @@
 				if (this.$route.name !== 'training') return true
 				const value = this.$route.params.trainingPath
 				const trainingPath = Array.isArray(value) ? value.join('/') : (value || '')
-				return !trainingPath.startsWith('admin')
+				return trainingPath !== 'login' && !trainingPath.startsWith('admin')
 			}
 		},
 		watch: {
@@ -141,6 +138,24 @@
 		overflow-x: clip;
 	}
 
+	.site.is-home {
+		--home-canvas: #f2ede3;
+		background: var(--home-canvas);
+	}
+
+	.site.is-home .main {
+		background: var(--home-canvas);
+	}
+
+	:global(html[data-theme="dark"] .site.is-home) {
+		--home-canvas: #171513;
+		background: var(--home-canvas);
+	}
+
+	:global(html[data-theme="dark"] .site.is-home .main) {
+		background: var(--home-canvas);
+	}
+
 	.main {
 		--sidebar-sticky-top: 64px;
 		width: 100%;
@@ -149,20 +164,28 @@
 		flex: 1;
 	}
 
-	.main .ui.container {
+	.main .site-container {
 		box-sizing: border-box;
 		width: min(1400px, 100%) !important;
 		max-width: 100% !important;
 		margin-left: auto !important;
 		margin-right: auto !important;
+		padding-inline: 2rem;
 	}
 
-	.main .ui.grid > .column {
+	.main .main-grid > :is(.sidebar-column, .main-content-column) {
 		min-width: 0;
 	}
 
 	.main-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
 		align-items: stretch;
+		gap: 2rem;
+	}
+
+	.main-grid.has-author-sidebar {
+		grid-template-columns: minmax(0, 3fr) minmax(0, 10fr) minmax(0, 3fr);
 	}
 
 	.sidebar-column {
@@ -193,11 +216,11 @@
 		background: rgba(86, 96, 106, .56);
 	}
 
-	.ui.grid .three.column {
+	.main-grid .sidebar-column {
 		padding: 0;
 	}
 
-	.ui.grid .ten.column {
+	.main-grid .main-content-column {
 		padding-top: 0;
 	}
 
@@ -206,6 +229,15 @@
 	}
 
 	@media screen and (max-width: 767px) {
+		.main .site-container {
+			padding-inline: 1rem;
+		}
+
+		.main-grid {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 0;
+		}
+
 		.sticky-sidebar {
 			position: static;
 			max-height: none;

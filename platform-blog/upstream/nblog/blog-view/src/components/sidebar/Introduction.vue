@@ -1,6 +1,6 @@
 <template>
-	<div class="ui segments m-box profile-card">
-		<div v-if="displayProfile" class="ui card">
+	<div class="sidebar-panel m-box profile-card">
+		<div v-if="displayProfile" class="profile-summary-card">
 			<div class="profile-avatar-shell">
 				<button
 					type="button"
@@ -23,15 +23,15 @@
 				</p>
 			</div>
 		</div>
-		<div v-else class="ui card guest-card">
+		<div v-else class="profile-summary-card guest-card">
 			<div class="content" align="center">
 				<div class="guest-mark" aria-hidden="true">C</div>
 				<div class="header">尚未登录</div>
 				<p>登录后显示你的头像和个人资料。</p>
-				<router-link to="/training/login?returnTo=/profile" class="ui button profile-login">登录训练中心</router-link>
+				<router-link to="/training/login?returnTo=/profile" class="secondary-button profile-login">登录训练中心</router-link>
 			</div>
 		</div>
-		<div v-if="displayProfile" class="ui segment profile-notes">
+		<div v-if="displayProfile" class="sidebar-panel-body profile-notes">
 			<div class="profile-links-heading">
 				<span>友情链接</span>
 				<small>{{ profileLinks.length }}/8</small>
@@ -46,10 +46,10 @@
 							loading="lazy"
 							@error="faviconFailures[link.url] = true"
 						>
-						<i v-else class="globe icon"></i>
+						<AppIcon v-else name="globe" />
 					</span>
 					<span>{{ link.label }}</span>
-					<i class="external alternate icon external-mark" aria-hidden="true"></i>
+					<AppIcon name="external" class="external-mark" />
 				</a>
 			</nav>
 			<div v-else class="empty-profile-links">还没有友情链接</div>
@@ -189,7 +189,7 @@
 
 <style scoped>
 	.profile-card,
-	.profile-card > .ui.card {
+	.profile-card > .profile-summary-card {
 		width: 100%;
 	}
 
@@ -267,7 +267,7 @@
 		white-space: nowrap;
 	}
 
-	.profile-links a i {
+	.profile-links a .app-icon {
 		margin: 0 !important;
 		color: #687785;
 	}
@@ -290,7 +290,7 @@
 		object-fit: contain;
 	}
 
-	.profile-link-icon i {
+	.profile-link-icon .app-icon {
 		width: auto !important;
 		font-size: 11px;
 	}
@@ -319,7 +319,7 @@
 		white-space: nowrap;
 	}
 
-	.profile-card > .ui.card {
+	.profile-card > .profile-summary-card {
 		margin: 0;
 		border: 0;
 		border-radius: 4px;

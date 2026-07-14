@@ -29,6 +29,10 @@ function mountNav(route = {name: 'training', path: '/training/multiple', fullPat
 		props: {categoryList: []},
 		global: {
 			stubs: {
+				AppIcon: {
+					props: ['name'],
+					template: '<span class="app-icon" :data-icon="name"></span>',
+				},
 				'router-link': {template: '<a><slot /></a>'},
 				'el-dropdown': {template: '<div><slot /><slot name="dropdown" /></div>'},
 				'el-dropdown-menu': {template: '<div><slot /></div>'},
@@ -88,7 +92,7 @@ describe('theme navigation control', () => {
 		expect(toggle.attributes('role')).toBe('switch')
 		expect(toggle.attributes('aria-checked')).toBe('false')
 		expect(toggle.attributes('aria-label')).toBe('当前日间模式，切换到深夜模式')
-		expect(toggle.get('.nav-theme-thumb i').classes()).toContain('sun')
+		expect(toggle.get('.nav-theme-thumb .app-icon').attributes('data-icon')).toBe('sun')
 		expect(toggle.text()).toContain('日间模式')
 
 		await toggle.trigger('click')
@@ -98,7 +102,7 @@ describe('theme navigation control', () => {
 		expect(document.documentElement.classList.contains('dark')).toBe(true)
 		expect(toggle.attributes('aria-checked')).toBe('true')
 		expect(toggle.attributes('aria-label')).toBe('当前深夜模式，切换到日间模式')
-		expect(toggle.get('.nav-theme-thumb i').classes()).toContain('moon')
+		expect(toggle.get('.nav-theme-thumb .app-icon').attributes('data-icon')).toBe('moon')
 		expect(push).not.toHaveBeenCalled()
 		wrapper.unmount()
 	})

@@ -41,6 +41,7 @@
 - 不跨应用复制业务组件，不合并两套 Router；Blog Router 持有公开 `/training/**`，Training Router 只在 `/training-app/**` 运行。
 - 独立开发的 `AppShell` 只读 `/categories` 构建分类菜单；嵌入 Blog 时隐藏调试顶栏并跳过该请求，不能为导航加载完整 `/site`。
 - `index.html` 必须在样式与 Vue 挂载前应用共享主题；主题同步只接受同源父窗口、合法消息类型和合法 `light`/`dark` 值，不能因为 localStorage 或系统主题 API 不可用而阻断页面启动。
+- `src/styles/tokens.css` 是由根 `frontend-design-tokens/tokens.css` 通过 `scripts/sync-design-tokens.sh` 生成的副本，禁止手工编辑；它必须在样式入口最先加载，`training-redesign.css` 承载 Training 试点覆盖，`dark.css` 继续最后加载。
 
 ## 文件职责
 
@@ -73,8 +74,11 @@
 | `src/components/TrainingDataOpsPanel.vue` | 手动采集任务、详情和数仓刷新 |
 | `src/components/HomepageBannerAdminPanel.vue` | 横幅裁剪、排序和删除 |
 | `src/styles/dark.css` | 最后加载的暖黑橙深夜 token、业务图片轻度压暗过渡与组件/vendor 覆盖 |
+| `src/styles/tokens.css` | 共享设计 token 的生成副本；后续视觉试点接入，禁止手工编辑 |
+| `src/styles/training-redesign.css` | Training 阶段 2 的统一颜色角色、圆角、玻璃、字号和路由动效覆盖 |
 | `src/test/theme.test.ts` | 主题解析、首屏应用、持久化、系统/存储/frame 同步与容错测试 |
 | `src/test/dark-theme-style.test.js` | 深夜关键表面、状态和实心铜橙按钮对比度合同测试 |
+| `src/test/training-redesign-style.test.js`、`admin-confirm-dialog.test.ts` | token/玻璃/动效加载边界与确认弹层焦点生命周期测试 |
 | `src/test/platform-dashboard-batch.test.ts` | 多人页面单次批量请求测试 |
 | `src/test/admin-users-vue.test.ts` | 用户原子保存和危险确认测试 |
 | `src/test/category-admin.test.ts` | 分类/标签独立分页测试 |

@@ -206,19 +206,24 @@
     <resultMap id="randomBlog" type="top.naccl.model.vo.RandomBlog">
         <id property="id" column="id"/>
         <result property="title" column="title"/>
+		<result property="description" column="description"/>
         <result property="createTime" column="create_time"/>
         <result property="firstPicture" column="first_picture"/>
+		<result property="categoryName" column="category_name"/>
+		<result property="top" column="is_top"/>
     </resultMap>
 
-    <!--查询公开且由管理员选中的精选文章-->
-    <select id="getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend" resultMap="randomBlog">
-        select id, title, create_time, first_picture
-        from blog
-		where is_published=true and is_recommend=true and deleted_at is null
+	<!--首页精选区：置顶优先、管理员精选其次，再以最新文章补足三篇。-->
+	<select id="getFeaturedBlogList" resultMap="randomBlog">
+		select b.id, b.title,
+		       coalesce(nullif(trim(b.description), ''), nullif(trim(left(b.content, 280)), ''), '暂无简介') as description,
+		       b.create_time, b.first_picture, b.is_top, c.category_name
+		from blog as b left join category as c on b.category_id=c.id
+		where b.is_published=true and b.deleted_at is null
         <if test="includeInternal == false">
-          and is_internal=false
+		  and b.is_internal=false
         </if>
-        order by is_top desc, update_time desc, id desc limit #{limitNum}
+		order by b.is_top desc, b.is_recommend desc, b.update_time desc, b.id desc limit #{limitNum}
     </select>
 
     <!--按id删除博客-->

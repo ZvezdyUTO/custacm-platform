@@ -7,6 +7,8 @@ vi.mock('vue-router', () => ({
 }))
 
 import TrainingHost from '@/views/training/TrainingHost.vue'
+import trainingHostSource from '@/views/training/TrainingHost.vue?raw'
+import indexSource from '@/views/Index.vue?raw'
 import {applyTheme, THEME_CHANGE_EVENT} from '@/theme'
 
 let wrapper
@@ -22,6 +24,19 @@ afterEach(() => {
 })
 
 describe('training iframe theme bridge', () => {
+	it('removes the login footer and scopes a fallback outer scrollbar style', () => {
+		expect(indexSource).toContain("trainingPath !== 'login' && !trainingPath.startsWith('admin')")
+		expect(document.documentElement.classList.contains('training-host-active')).toBe(true)
+		wrapper.unmount()
+		wrapper = null
+		expect(document.documentElement.classList.contains('training-host-active')).toBe(false)
+	})
+
+	it('keeps the outer host within one viewport after reserving navigation space', () => {
+		expect(trainingHostSource).toMatch(/\.training-host[\s\S]*box-sizing: border-box;[\s\S]*height: 100vh;[\s\S]*padding-top: 51px;/)
+		expect(trainingHostSource).toContain('height: calc(100vh - 51px);')
+	})
+
 	it('sends the effective theme on iframe load with the same-origin target', async () => {
 		const frame = wrapper.get('iframe')
 		const postMessage = vi.fn()

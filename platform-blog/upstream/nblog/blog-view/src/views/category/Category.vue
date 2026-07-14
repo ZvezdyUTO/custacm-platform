@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<div class="ui top segment" style="text-align: center">
+		<div class="content-panel taxonomy-page-heading">
 			<h2 class="m-text-500">分类 {{ categoryName }} 下的文章</h2>
 		</div>
 		<BlogList :getBlogList="getBlogList" :blogList="blogList" :totalPage="totalPage"/>
@@ -71,5 +71,7 @@
 </script>
 
 <style scoped>
-
+	.taxonomy-page-heading {
+		margin-bottom: 1.5rem;
+	}
 </style>

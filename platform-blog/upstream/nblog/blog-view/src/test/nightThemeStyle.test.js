@@ -6,19 +6,20 @@ import {resolve} from 'node:path'
 const indexHtml = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
 const mainSource = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8')
 const nightCss = readFileSync(resolve(process.cwd(), 'src/assets/css/night.css'), 'utf8')
+const tokensCss = readFileSync(resolve(process.cwd(), 'src/assets/css/tokens.css'), 'utf8')
 const typoCss = readFileSync(resolve(process.cwd(), 'src/assets/css/typo.css'), 'utf8')
 const headerSource = readFileSync(resolve(process.cwd(), 'src/components/index/Header.vue'), 'utf8')
 const liveEditorSource = readFileSync(resolve(process.cwd(), 'src/components/article/LiveMarkdownEditor.vue'), 'utf8')
 
 describe('night theme stylesheet contract', () => {
 	it('uses the warm charcoal and copper palette across critical surfaces', () => {
-		expect(nightCss).toContain('--theme-canvas: #15120f')
-		expect(nightCss).toContain('--theme-surface: #1f1915')
-		expect(nightCss).toContain('--theme-surface-raised: #28211b')
-		expect(nightCss).toContain('--theme-text: #f2e8dc')
-		expect(nightCss).toContain('--theme-muted: #b9a99a')
-		expect(nightCss).toContain('--theme-accent: #d9944a')
-		expect(nightCss).toContain('--theme-accent-deep: #b96e3d')
+		expect(tokensCss).toContain('--color-canvas: #171513')
+		expect(tokensCss).toContain('--color-surface: #25211e')
+		expect(tokensCss).toContain('--color-text: #f2ede7')
+		expect(tokensCss).toContain('--color-text-muted: #c5bbb1')
+		expect(tokensCss).toContain('--color-action: #c98542')
+		expect(nightCss).toContain('--theme-canvas: var(--color-canvas)')
+		expect(nightCss).toContain('--theme-accent: var(--color-action)')
 	})
 
 	it('uses a light syntax theme by day and restores the high-contrast palette at night', () => {
@@ -34,7 +35,7 @@ describe('night theme stylesheet contract', () => {
 
 	it('covers vendor, content, editor, profile, comments, pagination and iframe surfaces', () => {
 		for (const selector of [
-			'.ui.segment:not(.inverted)',
+			'.content-panel',
 			'.el-dropdown-menu',
 			'.blog-list-card',
 			'.profile-page',
@@ -54,12 +55,16 @@ describe('night theme stylesheet contract', () => {
 		expect(nightCss).toContain('background-image: none !important')
 		expect(nightCss).toContain("mask-image: url('/img/header/wave1.png')")
 		expect(nightCss).toContain("mask-image: url('/img/header/wave2.png')")
+		expect(headerSource).toContain('background-color: color-mix(in srgb, var(--home-canvas, var(--color-canvas-alternate)) 72%, transparent)')
+		expect(headerSource).toContain('background-color: var(--home-canvas, var(--color-canvas-alternate))')
+		expect(headerSource).toContain("mask-image: url('/img/header/wave1.png')")
+		expect(headerSource).toContain("mask-image: url('/img/header/wave2.png')")
 		expect(nightCss).toContain('html.dark img')
 		expect(nightCss).toContain('filter: brightness(.84) saturate(.95)')
 		expect(nightCss).toContain('transition: filter var(--theme-image-duration) ease')
 		expect(headerSource).toContain('transition: opacity .2s ease-in, filter var(--theme-image-duration, 260ms) ease')
-		expect(nightCss).toContain('.article-download-link > i.icon')
-		expect(nightCss).toContain('--theme-duration: 160ms')
+		expect(nightCss).toContain('.article-download-link > .app-icon')
+		expect(nightCss).toContain('--theme-duration: var(--duration-fast)')
 		expect(nightCss).toContain('@media (prefers-reduced-motion: reduce)')
 		expect(nightCss).toContain('transition: none !important')
 	})
@@ -70,6 +75,9 @@ describe('night theme stylesheet contract', () => {
 		expect(indexHtml).toContain("root.classList.toggle('dark', theme === 'dark')")
 		expect(indexHtml).toContain('root.style.colorScheme = theme')
 		expect(mainSource).toContain("element-plus/theme-chalk/dark/css-vars.css")
+		expect(mainSource).toContain("./assets/css/tokens.css")
+		expect(mainSource.indexOf("./assets/css/tokens.css")).toBeLessThan(mainSource.indexOf("./assets/css/base.css"))
+		expect(mainSource.indexOf("./assets/css/blog-redesign.css")).toBeLessThan(mainSource.indexOf("./assets/css/night.css"))
 		expect(mainSource.indexOf("element-plus/theme-chalk/dark/css-vars.css")).toBeLessThan(mainSource.indexOf("./assets/css/night.css"))
 	})
 })

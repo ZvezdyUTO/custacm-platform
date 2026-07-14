@@ -65,7 +65,7 @@
 }
 
 .training-site img {
-  transition: filter 260ms ease;
+  transition: filter var(--duration-theme) var(--ease-standard);
 }
 
 html.dark .training-site img {
@@ -158,6 +158,31 @@ html.dark .training-admin-tabs {
   border-color: var(--night-divider);
   background: var(--night-panel);
   color: var(--night-text);
+}
+
+html.dark .training-site.is-login-page .login-card {
+  border: 0;
+  background: transparent;
+}
+
+html.dark .training-site.is-login-page .login-field input {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+html.dark .login-brand-mark img {
+  filter: brightness(1.1) saturate(1.04) contrast(1.02);
+}
+
+html.dark .login-brand-mark {
+  --login-mark-accent: color-mix(in srgb, var(--color-action) 68%, var(--color-border));
+  box-shadow:
+    0 0 14px 3px color-mix(in srgb, var(--login-mark-accent) 58%, transparent),
+    0 0 42px 12px color-mix(in srgb, var(--login-mark-accent) 38%, transparent),
+    0 0 88px 28px color-mix(in srgb, var(--login-mark-accent) 23%, transparent),
+    0 0 148px 50px color-mix(in srgb, var(--login-mark-accent) 12%, transparent),
+    0 0 220px 82px color-mix(in srgb, var(--login-mark-accent) 5%, transparent);
 }
 
 html.dark .blog-nav-search input,
@@ -781,6 +806,20 @@ html.dark .admin-confirm-dialog.is-danger .admin-confirm-primary {
   border-color: #a85a51;
   background: #8f4943;
   color: #fff0ed;
+}
+
+/* Stage 2 keeps approved floating surfaces translucent in the warm dark theme. */
+html.dark .blog-topbar,
+html.dark .top-nav-dropdown,
+html.dark .top-training-dropdown,
+html.dark .blog-search-results,
+html.dark .blog-account-menu,
+html.dark .admin-confirm-dialog {
+  border-color: var(--glass-border);
+  background: var(--glass-background);
+  box-shadow: var(--floating-shadow);
+  backdrop-filter: var(--glass-filter);
+  -webkit-backdrop-filter: var(--glass-filter);
 }
 
 html.dark .user-delete-dialog-actions .confirm-user-delete-button,

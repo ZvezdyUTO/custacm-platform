@@ -10,7 +10,7 @@
 | `platform-training-data/training-data-atcoder/` | AtCoder source、metadata、ODS、warehouse SQL 与 adapter |
 | `platform-common/common-core/` | 公共 SQL task 等后端基础能力 |
 | `deploy/` | `blog-db` + `blog-redis` + `blog-api` + `frontend` 的本地/单机 Compose 配置 |
-| `scripts/` | `dev.sh` 本机双 Vite/HMR 开发入口、`deploy.sh` 四服务稳定构建入口，以及测试策略、文档同步和日志 MCP 安装等辅助工具 |
+| `scripts/` | `dev.sh` 本机双 Vite/HMR 开发入口、`deploy.sh` 四服务稳定构建入口，以及测试策略、文档同步、设计 token 同步和日志 MCP 安装等辅助工具 |
 | `docs/` | 架构、API、鉴权、日志、部署和 agent 上下文文档 |
 
 运行拓扑：一个 Nginx `frontend` 服务托管 Vue 3 Blog `/` 与其训练外壳 `/training/**`，外壳同源嵌入 Vue 3 Training `/training-app/**`；Nginx `/api/**` 转发唯一 Blog API。Blog `Nav.vue` 在页面切换时保持挂载；两份 Vue 构建通过 `custacm.theme`、存储事件与受校验的同源消息保持日间/暖黑橙深夜主题一致，Blog 文章及实时编辑器代码块同步切换浅色/高对比度深色语法主题，太阳/月亮拨杆切换时业务图片同步轻度渐暗。比赛功能本期只增加 Blog API 合同，不新增前端路由。Blog API 在进程内组装训练模块并访问统一 MySQL。业务身份统一为 `username`，比赛参赛关系随改名级联并在删号后保留昵称快照和历史奖项；角色只允许 `ROLE_admin` 与 `ROLE_player`，`root` 是不可删除且不参与 OJ/队员状态的固定系统管理员。

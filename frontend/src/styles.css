@@ -1,3 +1,4 @@
+@import "./styles/tokens.css";
 @import "./styles/foundation.css";
 @import "./styles/theme.css";
 @import "./styles/shell.css";
@@ -7,4 +8,5 @@
 @import "./styles/homepage-banner-admin.css";
 @import "./styles/article-admin.css";
 @import "./styles/category-admin.css";
+@import "./styles/training-redesign.css";
 @import "./styles/dark.css";

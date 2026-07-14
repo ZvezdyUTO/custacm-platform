@@ -7,6 +7,7 @@ pom.xml	docs/architecture.md,docs/agent/quality-gates.md	Root Maven build change
 platform-common/*	platform-common/AGENTS.md,docs/architecture.md,docs/agent/context-map.md	Shared module boundary changed.
 deploy/*	deploy/AGENTS.md,deploy/README.md,deploy/UPDATE.md,docs/server-deployment.md	Deployment configuration changed.
 scripts/*	scripts/AGENTS.md,docs/agent/doc-sync.md,docs/agent/quality-gates.md,deploy/UPDATE.md,docs/server-deployment.md	Repository script behavior changed.
+frontend-design-tokens/*	docs/frontend-design-system.md,docs/agent/context-map.md,frontend/README.md,platform-blog/upstream/nblog/blog-view/README.md	Shared frontend visual token source changed.
 platform-training-data/*	platform-training-data/README.md,platform-training-data/AGENTS.md,docs/authorization.md,docs/architecture.md,docs/api.md,docs/agent/context-map.md	Training data library or integrated API changed.
 platform-training-data/*/src/main/resources/logback-spring.xml	docs/logging.md	Logging config changed.
 platform-blog/*	platform-blog/README.md,platform-blog/AGENTS.md,platform-blog/upstream/nblog/blog-api/README.md,docs/architecture.md,docs/api.md,docs/authorization.md,docs/agent/context-map.md	Blog monolith changed.

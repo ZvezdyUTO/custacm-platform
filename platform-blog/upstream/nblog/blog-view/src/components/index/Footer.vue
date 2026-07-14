@@ -1,6 +1,6 @@
 <template>
-	<footer class="ui inverted vertical segment site-footer" aria-label="站点信息与友情链接">
-		<div class="ui center aligned container">
+	<footer class="site-footer" aria-label="站点信息与友情链接">
+		<div class="site-container footer-container">
 			<p class="footer-greeting">Welcome back to custacm-platform</p>
 			<div class="footer-links" aria-label="项目与竞赛平台链接">
 				<a
@@ -47,6 +47,12 @@
 		margin: 0 !important;
 		padding: 12px 0 14px !important;
 		background: #17191b !important;
+	}
+
+	.footer-container {
+		padding-right: 16px;
+		padding-left: 16px;
+		text-align: center;
 	}
 
 	.footer-greeting {

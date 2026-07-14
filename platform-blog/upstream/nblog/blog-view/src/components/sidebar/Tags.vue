@@ -1,9 +1,9 @@
 <template>
 	<!--标签云-->
-	<div class="ui segments m-box">
-		<div class="ui secondary segment"><i class="tags icon"></i>标签云</div>
-		<div class="ui segment sidebar-accent m-padding-small">
-			<router-link :to="`/tag/${tag.name}`" class="ui label m-text-500" :style="{backgroundColor: tagColor(tag), color: '#fff'}" v-for="tag in displayedTagList" :key="tag.name">
+	<div class="sidebar-panel m-box">
+		<div class="sidebar-panel-heading"><AppIcon name="tags" />标签云</div>
+		<div class="sidebar-panel-body sidebar-accent m-padding-small">
+			<router-link :to="`/tag/${tag.name}`" class="taxonomy-chip m-text-500" :style="{backgroundColor: tagColor(tag), color: '#fff'}" v-for="tag in displayedTagList" :key="tag.name">
 				{{ tag.name }}
 			</router-link>
 		</div>
@@ -45,7 +45,7 @@
 </script>
 
 <style scoped>
-	.secondary.segment {
+	.sidebar-panel-heading {
 		padding: 10px;
 	}
 
@@ -53,7 +53,7 @@
 		padding: 7px;
 	}
 
-	.label {
+	.taxonomy-chip {
 		margin: 3px !important;
 	}
 </style>

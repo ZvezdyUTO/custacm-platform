@@ -1,5 +1,5 @@
 <template>
-	<div class="ui bottom" style="text-align:center">
+	<div class="pagination-shell">
 		<el-pagination @current-change="handleCurrentChange" :current-page="pageNum" :page-count="totalPage"
 		               layout="prev, pager, next" background hide-on-single-page>
 		</el-pagination>

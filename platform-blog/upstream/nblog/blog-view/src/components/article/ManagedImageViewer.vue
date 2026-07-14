@@ -1,6 +1,7 @@
 <template>
 	<Teleport to="body">
-		<div v-if="visible" class="managed-viewer" role="dialog" aria-modal="true" aria-label="文章图片预览" @mousedown.self="close">
+		<div v-if="visible" ref="viewer" class="managed-viewer" role="dialog" aria-modal="true" aria-label="文章图片预览"
+		     tabindex="-1" @mousedown.self="close" @keydown.esc.stop="close" @keydown.tab="trapTab">
 			<button class="viewer-close" type="button" aria-label="关闭图片预览" @click="close">×</button>
 			<div class="viewer-stage"><img :src="displayUrl" :alt="alt"></div>
 			<div class="viewer-toolbar">
@@ -14,11 +15,15 @@
 
 <script>
 	// Author: huangbingrui.awa
+	import {focusDialog, restoreDialogFocus, trapDialogTab} from '@/util/dialogFocus'
+
 	export default {
 		name: 'ManagedImageViewer',
-		data() { return {visible: false, thumbnailUrl: '', originalUrl: '', displayUrl: '', alt: '', loading: false, originalLoaded: false, errorMessage: ''} },
+		data() { return {visible: false, thumbnailUrl: '', originalUrl: '', displayUrl: '', alt: '', loading: false, originalLoaded: false, errorMessage: '', returnFocus: null} },
+		beforeUnmount() { restoreDialogFocus(this.returnFocus) },
 		methods: {
 			open(thumbnailUrl, originalUrl, alt = '') {
+				this.returnFocus = document.activeElement
 				this.thumbnailUrl = thumbnailUrl
 				this.originalUrl = originalUrl
 				this.displayUrl = thumbnailUrl
@@ -27,8 +32,14 @@
 				this.originalLoaded = false
 				this.errorMessage = ''
 				this.visible = true
+				this.$nextTick(() => focusDialog(this.$refs.viewer, '.viewer-close'))
 			},
-			close() { if (!this.loading) this.visible = false },
+			close() {
+				if (this.loading) return
+				this.visible = false
+				this.$nextTick(() => restoreDialogFocus(this.returnFocus))
+			},
+			trapTab(event) { trapDialogTab(event, this.$refs.viewer) },
 			loadOriginal() {
 				if (!this.originalUrl || this.loading) return
 				this.loading = true

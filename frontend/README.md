@@ -100,6 +100,7 @@ frontend/
     routing.ts
     theme.ts
     types.ts
+  public/img/custacm-training-logo.jpg
 ```
 
 ## 依赖与边界
@@ -108,6 +109,7 @@ frontend/
 - `src/api/` 按 auth、training、admin 拆分正式 HTTP contract，组件不自行拼接业务请求。
 - `src/composables/useAuthSession.ts` 管理认证生命周期，`usePlatformDashboard.ts` 管理页面数据与操作状态。
 - Vue Blog 负责公开内容与唯一顶栏，本应用只负责训练中心；不跨应用复制业务组件或合并 Router。
+- 共享视觉 token 的唯一源位于 `../frontend-design-tokens/tokens.css`；`src/styles/tokens.css` 由仓库脚本生成并已接入 Training，阶段 2 覆盖集中在 `src/styles/training-redesign.css`，Blog 使用同一源文件的生成副本。阶段 5 已确认本应用继续使用原生 Vue 控件，不引入 Element Plus 或 ant-design-vue；Blog 则保留 Element Plus、使用 Lucide 并已退出 Semantic UI。只有复杂控件范围显著增长时才按设计规范的触发条件重新评估。
 - 原始 ODS 写入仍是后端能力，当前 UI 不提供上传入口。
 
 ## 文件与路径职责
@@ -133,7 +135,9 @@ frontend/
 | `src/utils/adminUsers.ts` | 创建用户文本导入、角色与 handle 行转换 |
 | `src/utils/adminTraining.ts` | 固定携带数仓刷新的采集请求构造 |
 | `src/components/AppShell.vue` | 独立开发调试顶栏；只读分类目录，嵌入 Blog 时隐藏顶栏且不重复加载 |
-| `src/components/LoginPanel.vue` | 登录表单、五秒冷却倒计时和安全回跳 |
+| `src/components/LoginPanel.vue` | 统一顶栏下的居中账户式登录表单、五秒冷却倒计时和安全回跳 |
+| `public/img/custacm-training-logo.jpg` | Training 登录页中央使用的 CUST ACM 圆形徽章原图 |
+| `src/components/LoginFooter.vue` | 在 Training iframe 内复现 Blog 项目与竞赛平台页脚，使登录页无需外层滚动即可访问链接 |
 | `src/components/TrainingQueryPanel.vue`、`src/styles/dashboard.css`、`src/styles/dark.css` | 多人/单人自动筛选、题目显式查询，以及日夜一致的个人 rating 彩色难度条 |
 | `src/components/TrainingAdminPanel.vue` | 六个管理员页面的统一导航 |
 | `src/components/AdminConfirmDialog.vue` | 创建用户、全量文章下载及删除操作共用的主题化确认框 |
@@ -145,6 +149,8 @@ frontend/
 | `src/components/HomepageBannerAdminPanel.vue` | 横幅裁剪、队列、排序和删除 |
 | `src/components/CreateUsersPanel.vue` | 批量创建用户输入与编辑 |
 | `src/styles.css`、`src/styles/*.css` | 桌面外壳、管理员确认框、表格、分页，以及含图片渐暗过渡的暖黑橙深夜覆盖 |
+| `src/styles/tokens.css` | 从根共享源生成并在样式入口首先加载的视觉 token 副本；禁止手工编辑 |
+| `src/styles/training-redesign.css` | Training 阶段 2 的 Action Blue/暖橙角色、现代圆角、有限玻璃、分级字号和路由动效覆盖 |
 | `src/test/platform-dashboard-batch.test.ts` | 多人页面只调用一次批量汇总 API 的回归测试 |
 | `src/test/admin-users-vue.test.ts` | 管理员用户单 PUT 与高危确认交互测试 |
 | `src/test/category-admin.test.ts` | 分类/标签独立分页测试 |
@@ -152,6 +158,7 @@ frontend/
 | `src/test/platform-api.test.ts` | Training/Admin API 路径和请求合同测试 |
 | `src/test/login-panel-vue.test.ts` | 登录提交与服务端冷却倒计时测试 |
 | `src/test/dark-theme-style.test.js` | 深夜模式关键表面、状态和实心铜橙按钮前景回归测试 |
+| `src/test/training-redesign-style.test.js`、`admin-confirm-dialog.test.ts` | 共享 token 加载顺序、玻璃范围、路由动效和确认弹层焦点行为测试 |
 | `src/test/` | 会话、路由、API、composable 和关键页面回归测试 |
 
 ## 本地开发

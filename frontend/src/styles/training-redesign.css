@@ -1,0 +1,545 @@
+/* Stage 2: Training-only visual adoption of the shared design tokens. */
+:root {
+  --bg: var(--color-canvas-alternate);
+  --surface: var(--color-surface);
+  --surface-subtle: var(--color-surface-subtle);
+  --surface-muted: var(--color-canvas-alternate);
+  --border: var(--color-border);
+  --border-strong: var(--color-border-strong);
+  --text: var(--color-text);
+  --muted: var(--color-text-muted);
+  --faint: var(--color-text-faint);
+  --green: var(--color-success);
+  --amber: var(--color-warning);
+  --red: var(--color-danger);
+}
+
+.training-site {
+  background: var(--color-canvas-alternate);
+  color: var(--color-text);
+  font-size: var(--font-size-body-compact);
+}
+
+.blog-topbar {
+  min-height: 58px;
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-background);
+  box-shadow: var(--floating-shadow);
+  backdrop-filter: var(--glass-filter);
+  -webkit-backdrop-filter: var(--glass-filter);
+}
+
+.blog-topbar-inner {
+  min-height: 58px;
+  padding: 0 var(--space-5);
+}
+
+.site-name {
+  color: var(--color-text);
+  font-size: 19px;
+  font-weight: var(--font-weight-title);
+  letter-spacing: .035em;
+}
+
+.top-nav-trigger,
+.top-training-trigger,
+.blog-topbar-inner > nav a,
+.blog-account-link,
+.blog-account-summary {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  font-weight: 500;
+  transition: color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
+}
+
+.top-nav-trigger:hover,
+.top-nav-trigger:focus-visible,
+.top-training-trigger:hover,
+.top-training-trigger:focus-visible,
+.blog-topbar-inner > nav a:hover,
+.blog-topbar-inner > nav a:focus-visible,
+.blog-account-link:hover,
+.blog-account-summary:hover,
+.blog-account-summary[aria-expanded="true"] {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--color-action) 8%, transparent);
+  color: var(--color-action);
+}
+
+.top-nav-trigger.is-active,
+.top-training-trigger.is-active {
+  background: color-mix(in srgb, var(--color-action) 9%, transparent);
+  color: var(--color-action);
+}
+
+.top-nav-trigger.is-active::after,
+.top-training-trigger.is-active::after {
+  bottom: 0;
+  width: 24px;
+  height: 2px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-action);
+}
+
+.top-nav-dropdown,
+.top-training-dropdown,
+.blog-search-results,
+.blog-account-menu {
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  background: var(--glass-background);
+  box-shadow: var(--floating-shadow);
+  backdrop-filter: var(--glass-filter);
+  -webkit-backdrop-filter: var(--glass-filter);
+}
+
+.top-nav-dropdown,
+.top-training-dropdown {
+  top: calc(100% + 8px);
+  padding: var(--space-2);
+}
+
+.blog-topbar-inner > nav .top-nav-dropdown a,
+.blog-topbar-inner > nav .top-training-dropdown a,
+.top-nav-empty,
+.account-menu-button {
+  border-radius: var(--radius-control);
+}
+
+.blog-topbar-inner > nav .top-nav-dropdown a:hover,
+.blog-topbar-inner > nav .top-training-dropdown a:hover,
+.account-menu-button:hover {
+  background: color-mix(in srgb, var(--color-action) 9%, transparent);
+  color: var(--color-action);
+}
+
+.blog-nav-search {
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+.blog-nav-search:focus-within {
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 16%, transparent);
+}
+
+.blog-nav-search input,
+.blog-search-results a,
+.account-menu-button,
+.password-change-form label {
+  color: var(--color-text);
+}
+
+.blog-theme-toggle,
+.blog-account-link,
+.blog-account-summary,
+.password-change-form input,
+.login-card input {
+  border-radius: var(--radius-control);
+}
+
+.theme-switch-track {
+  border-color: color-mix(in srgb, var(--color-action) 28%, var(--color-border));
+  background: color-mix(in srgb, var(--color-action) 12%, var(--color-surface));
+  transition: border-color var(--duration-theme) var(--ease-standard), background-color var(--duration-theme) var(--ease-standard);
+}
+
+.theme-switch-thumb {
+  background: var(--color-surface);
+  color: var(--color-action);
+  transition: transform var(--duration-theme) var(--ease-standard), background-color var(--duration-theme) var(--ease-standard), color var(--duration-theme) var(--ease-standard);
+}
+
+.theme-switch-track.is-dark .theme-switch-thumb {
+  background: var(--color-action);
+  color: var(--color-on-action);
+}
+
+.blog-avatar {
+  border-color: color-mix(in srgb, var(--color-action) 34%, transparent);
+  background: color-mix(in srgb, var(--color-action) 10%, transparent);
+  color: var(--color-action);
+}
+
+.training-main {
+  padding-top: var(--space-6);
+}
+
+.route-view {
+  min-width: 0;
+}
+
+.route-fade-enter-active,
+.route-fade-leave-active {
+  transition: opacity var(--duration-theme) var(--ease-standard), transform var(--duration-theme) var(--ease-standard);
+}
+
+.route-fade-enter-from,
+.route-fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.login-card,
+.route-status,
+.admin-gate,
+.query-form,
+.query-summary,
+.training-stat-card,
+.rating-panel,
+.recent-submission-panel,
+.multi-summary-panel,
+.table-panel,
+.side-section,
+.admin-user-table-shell,
+.admin-workspace,
+.training-admin-tabs,
+.article-admin-filters,
+.article-admin-list,
+.category-admin-card,
+.tag-admin-card,
+.homepage-banner-card {
+  border-color: var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+.login-card {
+  border-top: 1px solid var(--color-border);
+  border-radius: var(--radius-card-large);
+  padding: var(--space-6);
+}
+
+/* Account-style sign-in shown below the Blog-owned navigation. */
+html.login-scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html.login-scrollbar-hidden::-webkit-scrollbar,
+html.login-scrollbar-hidden body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.training-site.is-login-page,
+.training-site.is-login-page .training-main,
+.training-site.is-login-page .route-view,
+.training-site.is-login-page .login-page {
+  background: var(--color-canvas);
+}
+
+.training-site.is-login-page {
+  height: 100vh;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.training-site.is-login-page::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.training-site.is-login-page .training-main {
+  width: 100%;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.training-site.is-login-page .login-page {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  min-height: calc(100vh + 220px);
+  place-items: start center;
+  padding: clamp(64px, 10vh, 108px) var(--space-5) 0;
+}
+
+.training-site.is-login-page .login-card {
+  display: grid;
+  width: min(380px, 100%);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  text-align: center;
+}
+
+.training-site.is-login-page .login-card header {
+  display: grid;
+  justify-items: center;
+  margin-bottom: 52px;
+}
+
+.login-brand-mark {
+  --login-mark-accent: color-mix(in srgb, var(--color-action) 24%, var(--color-border));
+  position: relative;
+  display: grid;
+  width: 184px;
+  height: 184px;
+  place-items: center;
+  margin-bottom: var(--space-6);
+  overflow: hidden;
+  border: 1px solid var(--login-mark-accent);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 10px 32px color-mix(in srgb, var(--color-text) 8%, transparent);
+  transform-origin: center;
+  will-change: transform;
+}
+
+.login-brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.training-site.is-login-page .login-card h1 {
+  margin: 0;
+  font-size: clamp(34px, 3vw, 44px);
+  font-weight: 600;
+  line-height: 1.12;
+}
+
+.training-site.is-login-page .login-card header p {
+  margin-top: var(--space-3);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.training-site.is-login-page .login-card form {
+  gap: var(--space-3);
+}
+
+.training-site.is-login-page .login-field {
+  position: relative;
+  display: block;
+}
+
+.training-site.is-login-page .login-field > svg {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 18px;
+  color: var(--color-text-faint);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.training-site.is-login-page .login-field input {
+  min-height: 46px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  padding: 0 16px 0 44px;
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.training-site.is-login-page .login-field input:hover {
+  border-color: color-mix(in srgb, var(--color-text) 44%, var(--color-border));
+}
+
+.training-site.is-login-page .login-field input:focus {
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-focus-ring) 14%, transparent);
+}
+
+.login-submit-row {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  min-height: 76px;
+  margin-top: var(--space-3);
+}
+
+.training-site.is-login-page .login-submit {
+  display: grid;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  place-items: center;
+  margin: 0;
+  border-radius: 50%;
+  padding: 0;
+}
+
+.login-submit-status {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
+
+.training-site.is-login-page .login-card .form-error {
+  margin: var(--space-4) 0 0;
+  text-align: center;
+}
+
+.login-card h1,
+.route-status h1,
+.query-header h1,
+.admin-gate h1,
+.dashboard-main h1,
+.training-site h2,
+.training-site h3 {
+  color: var(--color-text);
+  font-weight: var(--font-weight-title);
+  letter-spacing: 0;
+}
+
+.login-card header p,
+.route-status p,
+.query-header p,
+.admin-gate p {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+}
+
+.admin-workspace {
+  --admin-wine: var(--color-action);
+  --admin-wine-strong: var(--color-action-hover);
+  --admin-wine-muted: var(--color-text-muted);
+  --admin-wine-soft: color-mix(in srgb, var(--color-action) 10%, var(--color-surface));
+  --admin-wine-softer: color-mix(in srgb, var(--color-action) 5%, var(--color-surface));
+  --admin-clay: var(--color-action);
+  --navy: var(--color-action);
+  --navy-strong: var(--color-action-hover);
+  --navy-muted: var(--color-text-muted);
+  --navy-soft: color-mix(in srgb, var(--color-action) 10%, var(--color-surface));
+  --navy-softer: color-mix(in srgb, var(--color-action) 5%, var(--color-surface));
+  --navy-border: color-mix(in srgb, var(--color-action) 32%, var(--color-border));
+  --navy-ring: var(--color-focus-ring);
+  --admin-border: var(--color-border);
+  --admin-border-strong: var(--color-border-strong);
+  --admin-divider: var(--color-border);
+  --admin-divider-soft: color-mix(in srgb, var(--color-border) 58%, transparent);
+  background: var(--color-canvas-alternate);
+  padding: var(--space-4);
+}
+
+.workspace-mode-tabs,
+.query-mode-tabs {
+  border-radius: var(--radius-card);
+  background: var(--color-canvas-alternate);
+}
+
+.workspace-mode-tabs button,
+.query-mode-tabs button,
+.training-site :is(button, input, select, textarea) {
+  transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+
+.workspace-mode-tabs button.is-active,
+.query-mode-tabs button.is-active {
+  background: var(--color-surface);
+  color: var(--color-action);
+  box-shadow: none;
+}
+
+.training-site :is(input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, textarea) {
+  border-color: var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-label);
+}
+
+.training-site :is(.primary-button, .login-submit, .article-backup-button) {
+  border-color: var(--color-action);
+  background: var(--color-action);
+  color: var(--color-on-action);
+}
+
+.training-site :is(.primary-button, .login-submit, .article-backup-button):hover,
+.training-site :is(.primary-button, .login-submit, .article-backup-button):focus-visible {
+  border-color: var(--color-action-hover);
+  background: var(--color-action-hover);
+}
+
+html:not(.dark) .training-site.is-login-page .login-submit {
+  border-color: #c9962e;
+  background: #c9962e;
+  color: #1d1d1f;
+}
+
+html:not(.dark) .training-site.is-login-page .login-submit:hover:not(:disabled),
+html:not(.dark) .training-site.is-login-page .login-submit:focus-visible:not(:disabled) {
+  border-color: #a87a1f;
+  background: #a87a1f;
+  color: #1d1d1f;
+}
+
+.training-site :is(.login-submit, .query-problem-apply-button, .article-backup-button) {
+  border-radius: var(--radius-pill);
+}
+
+.training-site :is(.login-submit, .query-problem-apply-button, .article-backup-button):active:not(:disabled) {
+  transform: scale(.97);
+}
+
+.task-table,
+.submission-table,
+.auto-summary-table,
+.admin-user-table,
+.collection-result-table {
+  font-size: var(--font-size-meta);
+}
+
+.task-table th,
+.submission-table th,
+.auto-summary-table th,
+.admin-user-table th,
+.collection-result-table th {
+  background: var(--color-canvas-alternate);
+  color: var(--color-text-muted);
+}
+
+.admin-confirm-backdrop {
+  background: rgb(20 24 32 / 44%);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.admin-confirm-dialog {
+  border-color: var(--glass-border);
+  border-radius: var(--radius-card-large);
+  background: var(--glass-background);
+  box-shadow: var(--floating-shadow);
+  backdrop-filter: var(--glass-filter);
+  -webkit-backdrop-filter: var(--glass-filter);
+}
+
+.admin-confirm-copy h3 { color: var(--color-text); font-weight: var(--font-weight-title); }
+.admin-confirm-copy p { color: var(--color-text-muted); }
+.admin-confirm-actions button { border-radius: var(--radius-control); }
+.admin-confirm-actions .admin-confirm-primary { border-color: var(--color-action); background: var(--color-action); color: var(--color-on-action); }
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .blog-topbar,
+  .top-nav-dropdown,
+  .top-training-dropdown,
+  .blog-search-results,
+  .blog-account-menu,
+  .admin-confirm-dialog {
+    background: var(--color-surface);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-brand-mark {
+    transform: scale(1) !important;
+  }
+}

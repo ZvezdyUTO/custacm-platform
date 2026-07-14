@@ -9,6 +9,7 @@ Use the smallest check that proves the changed surface, then run broader checks 
 | Backend Dockerfile or package/image behavior | `mvn clean package -DskipTests` |
 | Compose or env example changes | `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config` |
 | Frontend runtime changes | `cd frontend && pnpm lint && pnpm test && pnpm typecheck && pnpm build`, `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config`, and rendered browser smoke testing |
+| Shared frontend design tokens | `./scripts/sync-design-tokens.sh --check`, then run both frontend production builds |
 | Deployment entrypoint changes | Run `./scripts/dev.sh <safe-local-env-file>` and verify Vite 4180/5173 plus API 8090; then run `./scripts/deploy.sh <safe-local-env-file>` and verify all four Compose services and production URLs |
 | Local sample-data seed script changes | Run `./scripts/seed-local-codeforces-data.sh` against local auth/training-data services when they are available |
 | Documentation sync rules | `./scripts/check-doc-sync.sh origin/main WORKTREE` |
@@ -22,6 +23,7 @@ GitHub Actions runs:
 
 ```bash
 ./scripts/check-doc-sync.sh
+./scripts/sync-design-tokens.sh --check
 mvn clean test
 ```
 

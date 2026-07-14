@@ -6,7 +6,7 @@
 				<h2 id="my-articles-title">我的文章</h2>
 				<p>在这里查看已发布内容，或继续完成草稿。</p>
 			</div>
-			<router-link to="/write" class="new-article-button"><i class="plus icon"></i>发布文章</router-link>
+			<router-link to="/write" class="new-article-button"><AppIcon name="plus" />发布文章</router-link>
 		</header>
 
 		<nav class="article-view-tabs" aria-label="文章范围">

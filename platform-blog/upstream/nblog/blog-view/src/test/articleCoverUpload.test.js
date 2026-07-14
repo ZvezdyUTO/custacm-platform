@@ -47,4 +47,25 @@ describe('ArticleCoverUpload', () => {
 		expect(wrapper.vm.errorMessage).toBe('上传失败')
 		wrapper.unmount()
 	})
+
+	it('traps focus in the crop dialog and restores it after Escape', async () => {
+		const trigger = document.createElement('button')
+		document.body.appendChild(trigger)
+		trigger.focus()
+		const wrapper = mount(ArticleCoverUpload, {
+			attachTo: document.body,
+			props: {uploadCover: vi.fn()},
+		})
+		wrapper.vm.returnFocus = trigger
+		wrapper.vm.cropSource = 'blob:cover'
+		await wrapper.vm.$nextTick()
+		const dialog = document.body.querySelector('.cover-crop-dialog')
+		dialog.querySelector('header button').focus()
+		dialog.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.cropSource).toBe('')
+		expect(document.activeElement).toBe(trigger)
+		wrapper.unmount()
+	})
 })

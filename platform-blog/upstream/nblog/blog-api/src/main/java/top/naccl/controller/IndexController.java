@@ -45,7 +45,7 @@ public class IndexController {
 		boolean includeInternal = authentication != null && !(authentication instanceof AnonymousAuthenticationToken);
 		List<Category> categoryList = categoryService.getCategoryNameList();
 		List<Tag> tagList = tagService.getTagListNotId();
-		List<RandomBlog> featuredBlogList = blogService.getRandomBlogListByLimitNumAndIsPublishedAndIsRecommend(includeInternal);
+		List<RandomBlog> featuredBlogList = blogService.getFeaturedBlogList(includeInternal);
 		map.put("categoryList", categoryList);
 		map.put("tagList", tagList);
 		map.put("featuredBlogList", featuredBlogList);

@@ -22,7 +22,7 @@ describe('training dark theme stylesheet contract', () => {
   it('dims training images gradually while preserving reduced-motion preferences', () => {
     expect(darkCss).toContain('html.dark .training-site img');
     expect(darkCss).toContain('filter: brightness(.84) saturate(.95)');
-    expect(darkCss).toContain('transition: filter 260ms ease');
+    expect(darkCss).toContain('transition: filter var(--duration-theme) var(--ease-standard)');
     expect(darkCss).toMatch(/prefers-reduced-motion: reduce[\s\S]*\.training-site img/);
   });
 

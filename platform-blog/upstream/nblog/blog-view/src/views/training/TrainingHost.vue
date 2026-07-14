@@ -38,10 +38,12 @@ function syncThemeToFrame(event) {
 }
 
 onMounted(() => {
+	document.documentElement.classList.add('training-host-active')
 	window.addEventListener('message', syncTrainingUrl)
 	window.addEventListener(THEME_CHANGE_EVENT, syncThemeToFrame)
 })
 onBeforeUnmount(() => {
+	document.documentElement.classList.remove('training-host-active')
 	window.removeEventListener('message', syncTrainingUrl)
 	window.removeEventListener(THEME_CHANGE_EVENT, syncThemeToFrame)
 })
@@ -49,6 +51,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .training-host {
+	box-sizing: border-box;
 	width: 100%;
 	height: 100vh;
 	overflow: hidden;

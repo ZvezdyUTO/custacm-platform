@@ -13,8 +13,8 @@
 
 ## 模块职责
 
-- `upstream/nblog/blog-api`：唯一 Spring Boot 后端，统一提供 Blog、评论、比赛与获奖记录、首页图片、认证、账号/OJ handle 和训练数据 HTTP API。
-- `upstream/nblog/blog-view`：公开 Blog，页面范围为首页、文章、分类、标签、个人主页和写作页；About、Friends、Moments 页面及其后端链路已移除。
+- `upstream/nblog/blog-api`：唯一 Spring Boot 后端，统一提供 Blog、评论、首页图片、认证、账号/OJ handle 和训练数据 HTTP API。
+- `upstream/nblog/blog-view`：公开 Blog，页面范围为首页、文章、分类、标签、个人主页和写作页；保留 Element Plus、使用 Lucide 和项目自有布局，Semantic UI 已退出；About、Friends、Moments 页面及其后端链路已移除。
 - `../frontend`：训练查询与账号、文章、分类/标签、采集和首页图片管理。
 
 Blog API 负责 BCrypt 密码、HS512 JWT、`ROLE_admin`/`ROLE_player`、`sub=username`，并在进程内组装训练模块。管理员账号编辑统一使用 `PUT /admin/users/{username}`：账号字段、改名、角色、密码、完整 handle 集合和采集状态在同一事务内更新；移除或更换 handle 前先清理对应 OJ 数据。
@@ -67,7 +67,7 @@ platform-blog/
 | `upstream/nblog/blog-api/src/main/resources/db/migration/V037__create_competition_records.sql` | 比赛、类型、参赛用户、奖项/获奖人和文章关联 schema |
 | `upstream/nblog/blog-api/src/main/resources/db/migration/` | Blog 与训练 schema 的统一 Flyway 迁移 |
 | `upstream/nblog/blog-view/src/router/index.js` | Blog 路由、训练外壳路由和登录转交 |
-| `upstream/nblog/blog-view/src/views/Index.vue` | Blog 三栏外壳；桌面左右侧栏在顶栏下吸附并在页脚前结束 |
+| `upstream/nblog/blog-view/src/views/Index.vue` | Blog 响应式外壳；首页只渲染带页边距的三篇精选文章且不展示普通文章列表或标签云，文章详情使用带作者介绍与目录的三栏 |
 | `upstream/nblog/blog-view/src/views/profile/Profile.vue` | 个人主页、OJ handle 展示、资料/密码/友情链接编辑和本人文章/回收站入口 |
 | `upstream/nblog/blog-view/src/views/article/ArticleEditor.vue` | Markdown 发布/编辑与托管图片上传 |
 | `upstream/nblog/blog-view/src/assets/css/typo.css`、`src/components/article/LiveMarkdownEditor.vue`、`src/plugins/articleImagePreview.js` | 文章阅读区与实时编辑器的代码主题、视觉行光标移动及正文图片原子预览/高度复测 |

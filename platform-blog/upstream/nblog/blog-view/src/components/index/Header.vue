@@ -21,7 +21,7 @@
 			<div class="welcome-brand-mark" aria-hidden="true">CUSTACM</div>
 		</div>
 		<div class="wrapper">
-			<i class="ali-iconfont icon-down" @click="scrollToMain"></i>
+			<button type="button" class="header-scroll-button" aria-label="向下滚动到文章列表" @click="scrollToMain"><AppIcon name="arrow-down" :size="30" /></button>
 		</div>
 		<div class="wave1"></div>
 		<div class="wave2"></div>
@@ -245,7 +245,8 @@
 	@media (prefers-reduced-motion: reduce) {
 		.welcome-title,
 		.welcome-letter,
-		.welcome-brand-mark {
+		.welcome-brand-mark,
+		.header-scroll-button {
 			animation: none;
 		}
 	}
@@ -261,8 +262,11 @@
 		z-index: 100;
 	}
 
-	.wrapper i {
-		font-size: 60px;
+	.header-scroll-button {
+		border: 0;
+		background: transparent;
+		color: #fff;
+		padding: 0;
 		opacity: 0.5;
 		cursor: pointer;
 		position: absolute;
@@ -272,7 +276,7 @@
 		transition: opacity .2s ease-in-out, transform .5s ease-in-out .2s;
 	}
 
-	.wrapper i:hover {
+	.header-scroll-button:hover {
 		opacity: 1;
 	}
 
@@ -285,18 +289,29 @@
 	.wave1, .wave2 {
 		position: absolute;
 		bottom: 0;
+		background-image: none;
+		-webkit-mask-repeat: repeat-x;
+		-webkit-mask-position: left bottom;
+		-webkit-mask-size: auto 100%;
+		mask-repeat: repeat-x;
+		mask-position: left bottom;
+		mask-size: auto 100%;
 		transition-duration: .4s, .4s;
 		z-index: 80;
 	}
 
 	.wave1 {
-		background: url('/img/header/wave1.png') repeat-x;
+		background-color: color-mix(in srgb, var(--home-canvas, var(--color-canvas-alternate)) 72%, transparent);
+		-webkit-mask-image: url('/img/header/wave1.png');
+		mask-image: url('/img/header/wave1.png');
 		height: 75px;
 		width: 100%;
 	}
 
 	.wave2 {
-		background: url('/img/header/wave2.png') repeat-x;
+		background-color: var(--home-canvas, var(--color-canvas-alternate));
+		-webkit-mask-image: url('/img/header/wave2.png');
+		mask-image: url('/img/header/wave2.png');
 		height: 90px;
 		width: calc(100% + 100px);
 		left: -100px;

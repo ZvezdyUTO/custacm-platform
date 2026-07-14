@@ -1,32 +1,36 @@
 <template>
   <AppShell :current-user="currentUser" :change-password="auth.changePassword" @sign-out="signOut">
-    <p v-if="navigationNotice" class="admin-notice navigation-guard-notice" role="status">{{ navigationNotice }}</p>
-    <LoginPanel v-if="page === 'login' || auth.status.value === 'anonymous'" :sign-in="signIn" />
-    <section v-else-if="auth.status.value === 'restoring'" class="route-status" aria-live="polite">
-      <h1>正在恢复登录状态</h1><p>正在通过 Blog API 校验当前账号。</p>
-    </section>
-    <section v-else-if="page === 'admin' && currentUser?.role !== 'ROLE_admin'" class="admin-gate">
-      <h1>需要管理员权限</h1><p>当前账号可以访问训练查询，但不能进入管理员操作页面。</p>
-    </section>
-    <div v-else class="dashboard-main">
-      <TrainingQueryPanel
-        v-if="page !== 'admin'"
-        :dashboard="dashboard"
-        :mode="mode"
-      />
-      <TrainingAdminPanel
-        v-else
-        :dashboard="dashboard"
-        :section="adminSection"
-        :current-username="currentUser?.username ?? null"
-        @guard-change="navigationGuarded = $event"
-        @section-change="changeAdminSection"
-        @sign-out="auth.signOut"
-      />
-      <p v-if="dashboard.errorMessage.value" class="form-error" role="alert">
-        接口提示：{{ dashboard.errorMessage.value }}
-      </p>
-    </div>
+    <Transition name="route-fade" mode="out-in">
+      <div :key="routeAnimationKey" class="route-view">
+        <p v-if="navigationNotice" class="admin-notice navigation-guard-notice" role="status">{{ navigationNotice }}</p>
+        <LoginPanel v-if="page === 'login' || auth.status.value === 'anonymous'" :sign-in="signIn" />
+        <section v-else-if="auth.status.value === 'restoring'" class="route-status" aria-live="polite">
+          <h1>正在恢复登录状态</h1><p>正在通过 Blog API 校验当前账号。</p>
+        </section>
+        <section v-else-if="page === 'admin' && currentUser?.role !== 'ROLE_admin'" class="admin-gate">
+          <h1>需要管理员权限</h1><p>当前账号可以访问训练查询，但不能进入管理员操作页面。</p>
+        </section>
+        <div v-else class="dashboard-main">
+          <TrainingQueryPanel
+            v-if="page !== 'admin'"
+            :dashboard="dashboard"
+            :mode="mode"
+          />
+          <TrainingAdminPanel
+            v-else
+            :dashboard="dashboard"
+            :section="adminSection"
+            :current-username="currentUser?.username ?? null"
+            @guard-change="navigationGuarded = $event"
+            @section-change="changeAdminSection"
+            @sign-out="auth.signOut"
+          />
+          <p v-if="dashboard.errorMessage.value" class="form-error" role="alert">
+            接口提示：{{ dashboard.errorMessage.value }}
+          </p>
+        </div>
+      </div>
+    </Transition>
   </AppShell>
 </template>
 
@@ -53,6 +57,7 @@ const mode = computed<TrainingQueryMode>(() => page.value === 'single' || page.v
 const adminSection = computed<AdminSection>(() => (route.meta.adminSection as AdminSection | undefined) ?? 'users');
 const currentUser = computed(() => auth.status.value === 'anonymous' ? null : auth.user.value);
 const activeAdminSection = computed<AdminSection | null>(() => page.value === 'admin' ? adminSection.value : null);
+const routeAnimationKey = computed(() => `${page.value}:${page.value === 'admin' ? adminSection.value : mode.value}`);
 const dashboard = usePlatformDashboard({
   token: auth.token,
   user: auth.user,
