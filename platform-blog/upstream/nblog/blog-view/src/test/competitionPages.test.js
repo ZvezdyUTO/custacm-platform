@@ -142,7 +142,7 @@ describe('public competition pages', () => {
 		expect(wrapper.get('.competition-type-select').attributes('placeholder')).toBe('全部类型')
 	})
 
-	it('uses the requested intro copy and labels empty year bounds as unlimited', async () => {
+	it('keeps the masthead concise and labels empty year bounds as unlimited', async () => {
 		api.getCompetitions.mockResolvedValue({pageNum: 1, pageSize: 10, total: 0, totalPages: 0, list: []})
 
 		const wrapper = listMount()
@@ -150,8 +150,8 @@ describe('public competition pages', () => {
 		const yearInputs = wrapper.findAll('.archive-filter input[type="number"]')
 
 		expect(wrapper.get('.archive-kicker').text()).toBe('CUSTACM · COMPETITION ARCHIVE')
-		expect(wrapper.get('.archive-intro').text()).toBe('勇攀高峰')
-		expect(competitionListSource).toContain('margin: 18px 0 0 16px;')
+		expect(wrapper.find('.archive-intro').exists()).toBe(false)
+		expect(competitionListSource).not.toContain('.archive-intro {')
 		expect(yearInputs).toHaveLength(2)
 		expect(yearInputs.map(input => input.attributes('placeholder'))).toEqual(['不限', '不限'])
 		expect(wrapper.vm.routeQuery()).toEqual({})

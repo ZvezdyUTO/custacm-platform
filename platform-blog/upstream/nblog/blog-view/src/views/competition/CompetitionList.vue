@@ -5,7 +5,6 @@
 			<div class="archive-copy">
 				<p class="archive-kicker">CUSTACM · COMPETITION ARCHIVE</p>
 				<h1>赛事荣誉</h1>
-				<p class="archive-intro">勇攀高峰</p>
 			</div>
 			<div class="archive-scene" aria-hidden="true">
 				<img src="/img/competition-archive-contest-hall.jpg" alt="">
@@ -356,14 +355,6 @@
 		font-weight: 700;
 		letter-spacing: .08em;
 		line-height: 1.05;
-	}
-
-	.archive-intro {
-		max-width: 680px;
-		margin: 18px 0 0 16px;
-		color: var(--archive-muted);
-		font-size: 15px;
-		line-height: 1.8;
 	}
 
 	.archive-scene {

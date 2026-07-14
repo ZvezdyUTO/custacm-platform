@@ -89,7 +89,7 @@ src/test/        API、会话、路由和关键交互回归测试
 | `src/views/home/Home.vue` | 保留的首页文章分页组件；当前首页外壳暂不渲染 |
 | `src/views/blog/Blog.vue` | 文章详情的完整换行大标题/日期/可选首图、首图下完整换行的浅色衬线简介、统一圆角正文图片、按持久化业务色展示的分类圆点/彩色标签和完整评论；文章操作由 `Index.vue` 的左侧作者名片承载，本组件不展示字体或阅读模式控件 |
 | `src/views/category/Category.vue`、`src/views/tag/Tag.vue` | `/articles` 文章总览及分类/标签分页；共享 Claude 参考页式暖黑目录、分类侧栏、随机标签、显式提交的全站标题搜索和网格/列表视图 |
-| `src/views/competition/CompetitionList.vue`、`CompetitionDetail.vue` | 公开赛事紧凑规范分类筛选分页与参赛者、文章、奖项完整详情；列表页头说明文案“勇攀高峰”相对主标题右移 16px 对齐视觉引导线，并使用右贴边、满高低对比的比赛会场全景图，空起止年份均明确显示“不限” |
+| `src/views/competition/CompetitionList.vue`、`CompetitionDetail.vue` | 公开赛事紧凑规范分类筛选分页与参赛者、文章、奖项完整详情；列表页头只保留英文题签与“赛事荣誉”主标题，并使用右贴边、满高低对比的比赛会场全景图，空起止年份均明确显示“不限” |
 | `src/utils/competitionTypes.js` | 十个规范赛事分类、旧类型标签只读兼容与公开分类标签折叠 |
 | `src/views/profile/Profile.vue` | 个人主页头像身份头部与裁剪上传、奖项加载错误重试、跨会话请求隔离、资料/密码/友情链接编辑、奖项公开偏好/顺序和本人文章 |
 | `src/components/profile/AchievementsPanel.vue` | 本人全部奖项、逐项公开开关与公开顺序；紧凑模式在文章作者名片折叠渲染可点击荣誉条 |
