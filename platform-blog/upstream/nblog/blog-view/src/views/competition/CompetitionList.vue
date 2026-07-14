@@ -360,7 +360,7 @@
 
 	.archive-intro {
 		max-width: 680px;
-		margin: 18px 0 0 clamp(32px, 3vw, 52px);
+		margin: 18px 0 0 16px;
 		color: var(--archive-muted);
 		font-size: 15px;
 		line-height: 1.8;

@@ -151,7 +151,7 @@ describe('public competition pages', () => {
 
 		expect(wrapper.get('.archive-kicker').text()).toBe('CUSTACM · COMPETITION ARCHIVE')
 		expect(wrapper.get('.archive-intro').text()).toBe('勇攀高峰')
-		expect(competitionListSource).toContain('margin: 18px 0 0 clamp(32px, 3vw, 52px);')
+		expect(competitionListSource).toContain('margin: 18px 0 0 16px;')
 		expect(yearInputs).toHaveLength(2)
 		expect(yearInputs.map(input => input.attributes('placeholder'))).toEqual(['不限', '不限'])
 		expect(wrapper.vm.routeQuery()).toEqual({})
