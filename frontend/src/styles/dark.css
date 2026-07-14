@@ -300,6 +300,11 @@ html.dark .loading-bars span {
   background: #332b24;
 }
 
+html.dark .rating-bar-row i {
+  background: var(--rating-color);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rating-color) 68%, #f2e8dc 32%);
+}
+
 html.dark .loading-bars span::after {
   background: #695545;
 }

@@ -5,6 +5,7 @@ import { cwd } from 'node:process';
 import { describe, expect, it } from 'vitest';
 
 const darkCss = readFileSync(resolve(cwd(), 'src/styles/dark.css'), 'utf8');
+const dashboardCss = readFileSync(resolve(cwd(), 'src/styles/dashboard.css'), 'utf8');
 
 describe('training dark theme stylesheet contract', () => {
   it('covers collection empty states, expanded tables and partial-success jobs', () => {
@@ -29,5 +30,10 @@ describe('training dark theme stylesheet contract', () => {
     expect(darkCss).toContain('.admin-confirm-backdrop');
     expect(darkCss).toContain('.admin-confirm-dialog');
     expect(darkCss).toContain('.admin-confirm-actions button');
+  });
+
+  it('keeps personal rating bars colorful with a thin dark-mode outline', () => {
+    expect(dashboardCss).toMatch(/\.rating-bar-row i \{[^}]*background: var\(--rating-color, var\(--navy\)\);/s);
+    expect(darkCss).toMatch(/html\.dark \.rating-bar-row i \{[^}]*background: var\(--rating-color\);[^}]*box-shadow: inset 0 0 0 1px/s);
   });
 });

@@ -12,7 +12,7 @@
 
 两份 Vue Router 彼此独立。训练运行时通过同源 frame 嵌入 Blog 外壳；进入训练中心时继续使用已挂载的同一个 `Nav.vue`，不会渲染第二条顶栏。
 
-两份构建还共享 `custacm.theme` 主题协议。值只允许 `light` 或 `dark`，没有显式值时跟随浏览器系统偏好；Blog 唯一顶栏以太阳/月亮拨杆提供正式切换入口，Training 独立开发外壳提供同款调试入口。主题在应用样式加载前写入根节点，并通过同源存储事件及受校验的 frame 消息同步，避免刷新白闪或 Blog/Training 明暗不一致。进入深夜主题时业务图片统一以 260ms 轻度降低亮度与饱和度，减少动态效果偏好下立即切换。
+两份构建还共享 `custacm.theme` 主题协议。值只允许 `light` 或 `dark`，没有显式值时跟随浏览器系统偏好；Blog 唯一顶栏以太阳/月亮拨杆提供正式切换入口，Training 独立开发外壳提供同款调试入口。主题在应用样式加载前写入根节点，并通过同源存储事件及受校验的 frame 消息同步，避免刷新白闪或 Blog/Training 明暗不一致。进入深夜主题时业务图片统一以 260ms 轻度降低亮度与饱和度，减少动态效果偏好下立即切换；个人训练难度分布继续使用与日间一致的 rating 色阶，并用细内描边和深色轨道保持边界可辨。
 
 ## 页面与权限
 
@@ -134,7 +134,7 @@ frontend/
 | `src/utils/adminTraining.ts` | 固定携带数仓刷新的采集请求构造 |
 | `src/components/AppShell.vue` | 独立开发调试顶栏；只读分类目录，嵌入 Blog 时隐藏顶栏且不重复加载 |
 | `src/components/LoginPanel.vue` | 登录表单、五秒冷却倒计时和安全回跳 |
-| `src/components/TrainingQueryPanel.vue` | 多人/单人自动筛选、批量错误状态和题目显式查询 |
+| `src/components/TrainingQueryPanel.vue`、`src/styles/dashboard.css`、`src/styles/dark.css` | 多人/单人自动筛选、题目显式查询，以及日夜一致的个人 rating 彩色难度条 |
 | `src/components/TrainingAdminPanel.vue` | 六个管理员页面的统一导航 |
 | `src/components/AdminConfirmDialog.vue` | 创建用户、全量文章下载及删除操作共用的主题化确认框 |
 | `src/components/AdminUserManagementPanel.vue` | 一个 PUT 保存用户完整编辑，并在 handle 变化前高危确认 |
