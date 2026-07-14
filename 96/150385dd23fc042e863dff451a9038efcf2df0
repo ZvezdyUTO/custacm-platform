@@ -1,0 +1,123 @@
+docs/agent/context-map.md
+  s_ddcbe363eea699::t_9e600ef1c777d5 5,16
+docs/api.md
+  s_ddcbe363eea699::t_a9e4a1e3e17944 25-28,30,61,63,69-130,140,216
+docs/architecture.md
+  s_ddcbe363eea699::t_b95421f6f52c34 21-22,36-37,66-77,89,119,121
+docs/authorization.md
+  s_ddcbe363eea699::t_ff9850ec935d22 32-40,52-53,77
+platform-blog/AGENTS.md
+  s_ddcbe363eea699::t_b19b6447444de4 3,12-15,18-19,23
+platform-blog/README.md
+  s_ddcbe363eea699::t_d3f1c83e486426 16,22-23,36-38,65-67
+platform-blog/upstream/nblog/blog-api/README.md
+  s_ddcbe363eea699::t_8ade6ac417f287 9,17,47-93,102,168-174,194-196
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/CompetitionController.java
+  s_1957dca7ccbcad::t_844aa60a939bce 1-40
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/CompetitionAdminController.java
+  s_1957dca7ccbcad::t_c0ea63eb1d81d2 1-82
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/player/PlayerCompetitionController.java
+  s_ddcbe363eea699::t_bd90880e8beec5 1-51
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/Competition.java
+  s_cdae8f6d79c2f7::t_e09034ea101b24 1-26
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/CompetitionArticle.java
+  s_ddcbe363eea699::t_c0095a9b9f6d94 1-23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/CompetitionAward.java
+  s_cdae8f6d79c2f7::t_8c112a4d47349d 1-30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/CompetitionAwardFlatProjection.java
+  s_ddcbe363eea699::t_204b9030b0ce47 1-32
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/CompetitionAwardRecipient.java
+  s_cdae8f6d79c2f7::t_c018606335f636 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/CompetitionParticipant.java
+  s_cdae8f6d79c2f7::t_d1e7d53e8bd70c 1-24
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/CompetitionTypeTag.java
+  s_cdae8f6d79c2f7::t_8c87da2a2bbaff 1-19
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/enums/CompetitionAwardMode.java
+  s_cdae8f6d79c2f7::t_618780edb1256f 1-21
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/enums/CompetitionAwardScope.java
+  s_cdae8f6d79c2f7::t_fbc9d368f9d0aa 1-21
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/enums/CompetitionParticipationMode.java
+  s_cdae8f6d79c2f7::t_aaf554b3418eaf 1-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/enums/CompetitionType.java
+  s_cdae8f6d79c2f7::t_e43cb5f7640fce 1-32
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/CompetitionMapper.java
+  s_ddcbe363eea699::t_ff317aea30c3db 1-101
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/UserMapper.java
+  s_ddcbe363eea699::t_ef7cf694b78fd6 8,21-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/CompetitionAchievementVisibilityRequest.java
+  s_ddcbe363eea699::t_dec4ac025a4de8 1-7
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/CompetitionAwardCreateRequest.java
+  s_1957dca7ccbcad::t_d1b8fda0787bf0 1-18
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/CompetitionCreateRequest.java
+  s_1957dca7ccbcad::t_ef0f5aae7d4973 1-14
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/CompetitionParticipantsCreateRequest.java
+  s_1957dca7ccbcad::t_0f0f9ccdee5928 1-9
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/CompetitionAchievement.java
+  s_ddcbe363eea699::t_e5ee86b473fc1a 1-28
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/CompetitionPageResponse.java
+  s_1957dca7ccbcad::t_dc90c70f979392 1-15
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/CompetitionResponse.java
+  s_1957dca7ccbcad::t_49d9cae79fad0d 1-55
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/PlayerProfile.java
+  s_1957dca7ccbcad::t_619d696e1a29bc 21,32-36,45
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/PublicProfile.java
+  s_1957dca7ccbcad::t_6afc9dd6b34974 19,22-26,33
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/CompetitionRecycleBinCleanupJob.java
+  s_ddcbe363eea699::t_88aa672ee618bc 1-23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/CompetitionService.java
+  s_ddcbe363eea699::t_d296d872bf2c6a 1-675
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/PlayerAvatarService.java
+  s_ddcbe363eea699::t_b4b1f999fb6a81 25,28,33,53
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/PlayerProfileService.java
+  s_ddcbe363eea699::t_a33189e1c4fbd7 41,44,49,61-62,112-113
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V037__create_competition_records.sql
+  s_ddcbe363eea699::t_0e8dc1a8517ecd 1-125
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/CompetitionMapper.xml
+  s_ddcbe363eea699::t_becf849a776369 1-396
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/UserMapper.xml
+  s_ddcbe363eea699::t_3135598bd9d460 9-17
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/UnifiedSchemaMigrationTest.java
+  s_ddcbe363eea699::t_a2cfcee58f7ca0 98-129
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/CompetitionControllerTest.java
+  s_ddcbe363eea699::t_4c3daa567ad04b 1-116
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/CompetitionServiceTest.java
+  s_ddcbe363eea699::t_5346059906e35b 1-475
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/PlayerAvatarServiceTest.java
+  s_ddcbe363eea699::t_37d7a2644dfe17 13-14,17-18,33,46-48,54,66,85-105
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/PlayerProfileServiceTest.java
+  s_ddcbe363eea699::t_7be2697f6fe24b 18-19,44-45,52-53,68,71,78,85,88,96,187-207
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "96150385dd23fc042e863dff451a9038efcf2df0",
+  "prompts": {},
+  "sessions": {
+    "s_1957dca7ccbcad": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5fda-8174-7192-a606-dcc88d36801a",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_cdae8f6d79c2f7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5fda-97bf-7af3-b762-685f7331184f",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_ddcbe363eea699": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5fda-0421-7392-85b0-15204e58da07",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
