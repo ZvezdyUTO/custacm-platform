@@ -62,7 +62,7 @@ platform-blog/
 | `upstream/nblog/blog-view/src/views/Index.vue` | Blog 三栏外壳；桌面左右侧栏在顶栏下吸附并在页脚前结束 |
 | `upstream/nblog/blog-view/src/views/profile/Profile.vue` | 个人主页、OJ handle 展示、资料/密码/友情链接编辑和本人文章/回收站入口 |
 | `upstream/nblog/blog-view/src/views/article/ArticleEditor.vue` | Markdown 发布/编辑与托管图片上传 |
-| `upstream/nblog/blog-view/src/assets/css/typo.css`、`src/components/article/LiveMarkdownEditor.vue` | 文章阅读区与实时编辑器的日间浅色/深夜高对比度代码语法主题 |
+| `upstream/nblog/blog-view/src/assets/css/typo.css`、`src/components/article/LiveMarkdownEditor.vue`、`src/plugins/articleImagePreview.js` | 文章阅读区与实时编辑器的代码主题、视觉行光标移动及正文图片原子预览/高度复测 |
 | `upstream/nblog/blog-view/src/views/blog/Blog.vue` | 文章详情、登录用户下载按钮与错误反馈 |
 | `upstream/nblog/blog-view/src/components/comment/CommentForm.vue`、`src/plugins/notoEmoji.js` | 本地 Noto emoji 选择、Unicode 插入与评论展示映射 |
 | `upstream/nblog/blog-view/src/auth/session.js` | 两份 Vue 构建共享的登录摘要/JWT 管理 |

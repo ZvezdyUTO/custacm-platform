@@ -50,7 +50,7 @@ src/test/        API、会话、路由和关键交互回归测试
 - 文章列表、分类、标签、搜索和精选读取在存在会话时显式发送 Bearer，因此登录用户可看到内部文章；游客只看到公开文章。
 - 文章详情只为登录用户显示文章包下载动作；ZIP 的 `article.md` 包含标题、简介和原始正文，本地托管首图/正文图使用扁平语义化文件名，请求显式携带 Bearer，普通用户跨文章重复下载时展示服务端 `Retry-After`，管理员不受 30 秒限制。
 - 所有 `v-html` 内容先经过 `src/util/sanitizeHtml.js` 清洗。
-- 头像、文章首图和正文图片只使用 Blog API 的本地托管资产接口，不引入旧 GitHub/又拍云上传。
+- 头像、文章首图和正文图片只使用 Blog API 的本地托管资产接口，不引入旧 GitHub/又拍云上传。正文图片预览作为 CodeMirror 原子块参与光标移动，异步加载后主动触发布局复测；块级预览不得使用不计入编辑器高度模型的垂直外边距。
 - 不在本模块复制 Training 组件、服务端授权逻辑或后端业务代码。
 
 ## 关键行为
@@ -84,7 +84,8 @@ src/test/        API、会话、路由和关键交互回归测试
 | `src/views/profile/Profile.vue` | 个人主页、OJ handle 错误重试、资料/密码/友情链接编辑和本人文章 |
 | `src/components/profile/MyArticles.vue` | 本人当前文章/回收站分页、继续编辑、移入回收站和恢复 |
 | `src/views/article/ArticleEditor.vue` | Markdown 发布/编辑、首图裁剪、正文图片上传和未保存离开保护 |
-| `src/components/article/LiveMarkdownEditor.vue` | CodeMirror 6 编辑、日间浅色代码高亮、公式与托管图片实时预览 |
+| `src/components/article/LiveMarkdownEditor.vue` | CodeMirror 6 编辑、按视觉行移动光标、日间浅色代码高亮、公式与托管图片实时预览 |
+| `src/plugins/articleImagePreview.js` | 正文图片原子替换区、源码编辑切换、异步图片高度复测与点击映射 |
 | `src/components/article/ArticleCoverUpload.vue` | 1920×1080 首图裁剪 |
 | `src/components/article/ManagedImageViewer.vue` | 默认展示缩略图，明确操作后加载高清图 |
 | `src/components/index/Nav.vue` | Blog/训练导航、标题搜索、发布入口和账号菜单 |
@@ -115,6 +116,7 @@ src/test/        API、会话、路由和关键交互回归测试
 | `src/test/profileApi.test.js` | 本人资料、handle 和友情链接 API 测试 |
 | `src/test/publicVisibilityApi.test.js` | 聚合读取仅在有会话时显式附加 Bearer 的测试 |
 | `src/test/articleDownloadApi.test.js`、`articleDownload.test.js` | 下载请求、文件名、浏览器保存和 `Retry-After` 测试 |
+| `src/test/liveMarkdownEditor.test.js` | 编辑器工具栏、代码块点击、视觉行方向键、图片原子区与预览/源码边界测试 |
 | `src/test/articleRecycleBinUi.test.js`、`playerBlogApi.test.js` | 本人回收站文案、删除/恢复交互和受保护路径测试 |
 | `package.json`、`package-lock.json` | 固定依赖、脚本和可复现 npm 安装 |
 

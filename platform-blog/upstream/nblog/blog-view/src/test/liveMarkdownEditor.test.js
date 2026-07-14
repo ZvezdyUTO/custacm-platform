@@ -1,5 +1,6 @@
 // Author: huangbingrui.awa
 import {flushPromises, mount} from '@vue/test-utils'
+import {EditorView} from '@codemirror/view'
 import {afterAll, afterEach, beforeAll, describe, expect, it, vi} from 'vitest'
 import LiveMarkdownEditor from '@/components/article/LiveMarkdownEditor.vue'
 import ArticleEditor from '@/views/article/ArticleEditor.vue'
@@ -106,13 +107,48 @@ describe('LiveMarkdownEditor', () => {
 	})
 
 	it('renders standard Markdown images as live preview widgets', async () => {
-		const wrapper = mount(LiveMarkdownEditor, {props: {modelValue: '![流程图](/api/image/assets/123e4567-e89b-12d3-a456-426614174000/thumbnail.jpg)\n\n正文'}})
+		const image = '![流程图](/api/image/assets/123e4567-e89b-12d3-a456-426614174000/thumbnail.jpg)'
+		const wrapper = mount(LiveMarkdownEditor, {props: {modelValue: `${image}\n\n正文`}})
 		await flushPromises()
 		wrapper.vm.view.dispatch({selection: {anchor: wrapper.vm.view.state.doc.length}})
 		await new Promise(resolve => requestAnimationFrame(resolve))
 
 		expect(wrapper.find('.cm-image-widget').exists()).toBe(true)
 		expect(wrapper.text()).not.toContain('/api/image/assets/123e4567-e89b-12d3-a456-426614174000/thumbnail.jpg')
+		expect(getComputedStyle(wrapper.get('.cm-image-widget').element).marginTop).toMatch(/^0(?:px)?$/)
+		expect(getComputedStyle(wrapper.get('.cm-image-widget').element).marginBottom).toMatch(/^0(?:px)?$/)
+
+		const atomicRanges = wrapper.vm.view.state.facet(EditorView.atomicRanges)
+		const imageRanges = []
+		for (const source of atomicRanges) source(wrapper.vm.view).between(0, image.length, (from, to) => imageRanges.push({from, to}))
+		expect(imageRanges).toContainEqual({from: 0, to: image.length})
+
+		wrapper.vm.view.dispatch({selection: {anchor: image.length}})
+		await new Promise(resolve => requestAnimationFrame(resolve))
+		expect(wrapper.find('.cm-image-widget').exists()).toBe(true)
+
+		await wrapper.get('.cm-image-widget').trigger('mousedown')
+		expect(wrapper.vm.view.state.selection.main.head).toBe(1)
+		wrapper.vm.onMouseUp()
+		await new Promise(resolve => requestAnimationFrame(resolve))
+		expect(wrapper.find('.cm-image-source').exists()).toBe(true)
+
+		wrapper.vm.view.dispatch({selection: {anchor: image.length}})
+		wrapper.vm.view.dispatch({selection: {anchor: 1}})
+		await new Promise(resolve => requestAnimationFrame(resolve))
+		expect(wrapper.find('.cm-image-widget').exists()).toBe(false)
+		expect(wrapper.find('.cm-image-source').exists()).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('routes arrow keys through CodeMirror visual-line movement', async () => {
+		const wrapper = mount(LiveMarkdownEditor, {props: {modelValue: '这是一段会在窄编辑器中折行的长文本，用来验证上下键按视觉行移动，而不是直接跳到上一个或下一个自然段。\n\n下一段'}})
+		await flushPromises()
+		const moveVertically = vi.spyOn(wrapper.vm.view, 'moveVertically')
+
+		wrapper.vm.view.contentDOM.dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowDown', code: 'ArrowDown', keyCode: 40, bubbles: true}))
+
+		expect(moveVertically).toHaveBeenCalledWith(expect.anything(), true)
 		wrapper.unmount()
 	})
 
