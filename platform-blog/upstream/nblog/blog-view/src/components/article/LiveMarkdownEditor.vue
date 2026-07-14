@@ -26,9 +26,10 @@
 	import {Table} from '@lezer/markdown'
 	import {
 		codeBlockField, collapseOnSelectionFacet, editorTheme, initHighlighter, linkPlugin,
-		imageField, livePreviewPlugin, markdownStylePlugin, mouseSelectingField, setMouseSelecting, tableEditorPlugin,
+		livePreviewPlugin, markdownStylePlugin, mouseSelectingField, setMouseSelecting, tableEditorPlugin,
 	} from 'codemirror-live-markdown'
 	import 'katex/dist/katex.css'
+	import {articleImagePreview} from '@/plugins/articleImagePreview'
 	import {standardMathPreview, tableMathPreview} from '@/plugins/standardMathPreview'
 	import {markdownInsertion} from '@/util/markdownEditor'
 	import {deleteManagedImageBackward, imageAltFromFilename, markdownForImage, validateArticleImage} from '@/util/articleImages'
@@ -72,7 +73,7 @@
 					highlightActiveLine(), EditorView.lineWrapping,
 					collapseOnSelectionFacet.of(true), mouseSelectingField, livePreviewPlugin, markdownStylePlugin, editorTheme,
 					tableEditorPlugin(), codeBlockField({lineNumbers: true, copyButton: true, defaultLanguage: 'text'}),
-					imageField({maxWidth: '100%', showAlt: true, showLoading: true, errorPlaceholder: '图片加载失败'}),
+					articleImagePreview({maxWidth: '100%', showAlt: true, showLoading: true, errorPlaceholder: '图片加载失败'}),
 					linkPlugin({openInNewTab: true, showPreview: true}), standardMathPreview, tableMathPreview, updateListener,
 				]}),
 				parent: this.$refs.editorHost,
@@ -209,11 +210,11 @@
 	:deep(.cm-content)::selection, :deep(.cm-content *)::selection { background-color: #315a7d !important; color: #fff !important; text-shadow: none !important; }
 	:deep(.cm-focused) { outline: none; }
 	:deep(.cm-activeLine) { background: rgba(23, 50, 77, .035); }
-	:deep(.cm-standard-math-block) { overflow-x: auto; margin: 12px 0; padding: 14px; background: #f7f9fa; text-align: center; }
+	:deep(.cm-standard-math-block) { overflow-x: auto; margin: 0; padding: 14px; background: #f7f9fa; text-align: center; }
 	:deep(.cm-standard-math-inline) { color: #17324d; }
 	:deep(.cm-standard-math-source), :deep(.cm-standard-math-source-block) { background: rgba(23, 50, 77, .06); }
 	:deep(.cm-table-editor), :deep(.cm-table-widget table) { width: 100%; }
-	:deep(.cm-codeblock-widget) { overflow: hidden; margin: 12px 0; border: 1px solid #d0d7de; border-radius: 5px; background: #f6f8fa !important; color: #24292f; box-shadow: 0 8px 22px rgba(31, 35, 40, .08); }
+	:deep(.cm-codeblock-widget) { overflow: hidden; box-sizing: border-box; margin: 0; border: 1px solid #d0d7de; border-radius: 5px; background: #f6f8fa !important; color: #24292f; padding: 10px 0; box-shadow: 0 8px 22px rgba(31, 35, 40, .08); }
 	:deep(.cm-codeblock-widget pre) { background: transparent; color: #24292f; }
 	:deep(.cm-codeblock-widget code) { background: transparent; color: inherit; font-size: 11px; }
 	:deep(.cm-codeblock-line) { min-height: 18px; padding: 0 12px; font-size: 11px !important; line-height: 1.55; }
@@ -226,7 +227,7 @@
 	:deep(.cm-codeblock-widget .hljs-number), :deep(.cm-codeblock-widget .hljs-built_in), :deep(.cm-codeblock-widget .hljs-builtin-name), :deep(.cm-codeblock-widget .hljs-meta), :deep(.cm-codeblock-widget .hljs-variable), :deep(.cm-codeblock-widget .hljs-template-variable) { color: #0550ae; }
 	:deep(.cm-codeblock-widget .hljs-function), :deep(.cm-codeblock-widget .hljs-title.function_), :deep(.cm-codeblock-widget .hljs-params), :deep(.cm-codeblock-widget .hljs-property), :deep(.cm-codeblock-widget .hljs-attr) { color: #8250df; }
 	:deep(.cm-codeblock-widget .hljs-operator), :deep(.cm-codeblock-widget .hljs-punctuation) { color: #24292f; }
-	:deep(.cm-image-widget) { overflow: hidden; margin: 12px 0; border: 1px solid #d8e0e6; background: #f7f9fa; padding: 10px; }
+	:deep(.cm-image-widget) { overflow: hidden; box-sizing: border-box; margin: 0; border: 1px solid #d8e0e6; background: #f7f9fa; padding: 10px; }
 	:deep(.cm-image-widget img) { display: block; max-width: 100%; max-height: 520px; margin: 0 auto; object-fit: contain; }
 	:deep(.cm-image-alt) { margin-top: 7px; color: #7b8792; font-size: 11px; text-align: center; }
 	@media (max-width: 900px) { .toolbar-status { display: none; } :deep(.cm-content) { padding-inline: 12px; } }

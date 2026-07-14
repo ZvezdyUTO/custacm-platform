@@ -526,7 +526,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--navy);
+  background: var(--rating-color, var(--navy));
 }
 
 .rating-bar-row strong {
