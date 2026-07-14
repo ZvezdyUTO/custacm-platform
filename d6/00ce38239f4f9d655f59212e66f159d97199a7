@@ -1,0 +1,467 @@
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/admin/HomepageFeaturedImageAdminControllerTest.java
+  s_8d1c22a847d10e::t_09d31a16b5451e 10-11,18,21,29,31,37,41-49,52,54-59,63-64,66
+platform-blog/upstream/nblog/blog-view/src/test/articleCompetitionBindings.test.js
+  s_10fbd1209108db::t_f145b3317fd5da 1-362
+platform-blog/upstream/nblog/blog-view/src/components/article/LiveMarkdownEditor.vue
+  s_c39eafdd002d5f::t_0331cd8aaf7780 207,233-259
+platform-blog/upstream/nblog/blog-view/src/components/article/ManagedImageViewer.vue
+  s_4f69ab48629acd::t_3b08d94b53ff90 3,32,57,60-62,64
+platform-blog/upstream/nblog/blog-view/src/assets/css/tokens.css
+  s_10fbd1209108db::t_bee8c803132d49 29,61
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/HomepageFeaturedImageControllerTest.java
+  s_8d1c22a847d10e::t_99d8713b362fd8 1,4-8,11-12,18,20-25,27,29-30
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/HomepageFeaturedGroupAdminController.java
+  s_2d682f027b7a09::t_ee3cbd907a469f 1-16,18,22-28,31-39,41-59
+platform-blog/upstream/nblog/blog-view/src/components/index/Nav.vue
+  s_abb5bfb8079444::t_bb51a51b6801fb 2,9,12-19,21-22,32,35,38,77-82,198-222,350-351,378,402-405
+frontend/src/styles/article-admin.css
+  s_1ec2e5b7c16081::t_657d17d2537cf8 44-108
+frontend/src/components/ArticleAdminPanel.vue
+  s_2a0c4aeb5af665::t_10a7a61475a529 2-7,9-13,15-17,30,55-58,63-64,66,74,80-84,88
+frontend/src/types.ts
+  s_c39eafdd002d5f::t_2cf313ffbbf602 135,138,142-323
+platform-blog/upstream/nblog/blog-view/src/test/articleRecycleBinUi.test.js
+  s_2a0c4aeb5af665::t_fb525e88a8f724 9,19
+frontend/src/styles/tokens.css
+  s_10fbd1209108db::t_736c008e862006 29,61
+frontend/src/test/competition-admin-api.test.ts
+  s_c39eafdd002d5f::t_6e11c83844af00 2,4-28,31-39,42-43,45-46,50-69,72-73,75,77-80,83-128,131-150,153-168
+platform-blog/upstream/nblog/blog-view/index.html
+  s_10fbd1209108db::t_d22e80d7d30c57 6
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/IntegratedControllerCoverageTest.java
+  s_8d1c22a847d10e::t_3a857d6ff73c7b 13,78,80,83
+platform-blog/upstream/nblog/blog-view/src/components/profile/AchievementsPanel.vue
+  s_c39eafdd002d5f::t_c5508823f5e323 1-366
+frontend/src/components/HomepageFeaturedGroupsPanel.vue
+  s_2a0c4aeb5af665::t_73ed007ddafb7d 1-522
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V041__normalize_competition_awards_and_profile_order.sql
+  s_6f64b750bc2ffd::t_030b727b1519ba 1-38
+platform-blog/upstream/nblog/blog-view/src/api/competition.js
+  s_1ec2e5b7c16081::t_eddfd9a3416e40 1-28
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/BlogAuthorContractTest.java
+  s_f24978774aa20f::t_187fbfecf989ff 38-45
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/HomepageFeaturedImageServiceTest.java
+  s_8d1c22a847d10e::t_7774e4b9cb645a 14-15,26,33,41,43,48,54,59-69,72-73,75,80-93,97-100,103,106,111-128,130-137,141-149,153,160-162,168,178-200,221
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/admin/HomepageFeaturedGroupAdminControllerTest.java
+  s_1ec2e5b7c16081::t_fc7e873c5f16b4 1,3,5-10,16-37,40-75
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/HomepageFeaturedGroupServiceTest.java
+  s_abb5bfb8079444::t_b86d4a285f344f 1-159
+platform-blog/upstream/nblog/blog-view/src/components/index/FeaturedImageMarquee.vue
+  s_10fbd1209108db::t_1759bba453422c 1-374
+frontend-redesign-plan.md
+  s_10fbd1209108db::t_3664791a79b0f6 31-32,48,50,52,98,111,115,138
+platform-blog/upstream/nblog/blog-view/src/test/competitionNavigation.test.js
+  s_8d1c22a847d10e::t_5fa4a5f5ed7ff6 1,3-6,8-16,19-20,22-26,29-31
+frontend/src/test/platform-api.test.ts
+  s_8d1c22a847d10e::t_f0d8bf7d35bf05 4,8-9,18-19,24-26,29-30,489,493-496,498,501,503,505-528
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/CompetitionServiceTest.java
+  s_6f64b750bc2ffd::t_4e4edb9049ea82 13,19-20,29,39,75-124,139,146-147,171,173,175,177-180,182-195,197-198,308-312,315,317,323-325,327,330,332,337-418,421-422,424,429,485,496-512,517-522,527-542,549-550,556,563,571-588,609-613,619,656-657,659-670,687
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/CompetitionResponse.java
+  s_4f69ab48629acd::t_da9cded9d12a38 15-16,41-42
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/PlayerProfileServiceTest.java
+  s_c39eafdd002d5f::t_aeb10a329e6d0a 125-138,207-208,211-212,220-224
+frontend/src/components/AppShell.vue
+  s_10fbd1209108db::t_9550343e5114ac 69
+frontend/src/styles/competition-admin.css
+  s_abb5bfb8079444::t_1e4f004bb01442 2-50,52,54-132,134-138,141-148,151-154,157-163,166-173,176-181,184-188,191-195,198-201,204-209,212-213,216-222,225-229,232-235,238-241,244-249,252-258,261-262,265-267,270-271,274-280,283-287,290-292,295-304,307-310,313-317,320-323,326-330,333-335,338-339,342-343,346-348,351-353,356-359,362-366,369-372,375-376,379-384,387-395,398-402,405-409,412-416,419-424,427-430,433-440,443-446,449-451,454-459,462-469,471-472,475-482,485-488,491-492,495-501,504-513,516-518,521-523,526-530,533-536,539-544,547-553,556-561,564-568,571-573,576-579,582-586,589-595,598-600,603-605,608-612,615-620,622-624,626-627,632
+docs/agent/README.md
+  s_abb5bfb8079444::t_4df2dea688e576 8-9,12,14-16,21-23
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/IndexController.java
+  s_2d682f027b7a09::t_e53d4143b203a8 10,28,35,40,46
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/HomepageFeaturedImageController.java
+  s_2d682f027b7a09::t_7ca77861ee72ed 6,9,14-15,17,21
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/CompetitionController.java
+  s_6f64b750bc2ffd::t_db12d91ebf0754 29,33
+platform-blog/upstream/nblog/blog-view/src/test/publicVisibilityApi.test.js
+  s_1ec2e5b7c16081::t_cc7f43f0f5bf69 27,37-40
+platform-blog/upstream/nblog/blog-view/src/components/common/AppIcon.vue
+  s_4f69ab48629acd::t_cdf1beeda08c19 32,40,45,49,77,85,90,94
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/CompetitionAwardCreateRequest.java
+  s_6f64b750bc2ffd::t_018b7eae575dab 11
+docs/authorization.md
+  s_356ea7a21046cc::t_08452e724f2c76 28-30,34,36,44-46,79,81,85,88-89
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/CompetitionService.java
+  s_356ea7a21046cc::t_3d96d83c7fd767 18,21,30,87,89,92,97,99,102,122-123,125-129,246-247,327,332-333,336-343,345,350-376,402-407,444,449-463,467-473,475,479-480,486,495,499-505,542,545-556,559,562,564-565,580-581,597-601,620-632,690-694,705-706,734,736-737,739-742,746
+frontend/src/components/CompetitionAdminPanel.vue
+  s_abb5bfb8079444::t_fe8319c7625d1f 1-673
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/HomepageFeaturedImageService.java
+  s_8d1c22a847d10e::t_4c733880cffab5 3,14-15,19-20,23,35,40-44,46-50,53,56-59,64-65,69,71,74-78,80-88,90-91,95,100-104,106-110,113,117-119,121,123-129,131,140,150,152,157-200,203,206,209,214,217,222-225,227-231,233,236,244,265,272,278,282-283
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/BlogDetail.java
+  s_f24978774aa20f::t_2b652153fd21b8 30
+deploy/UPDATE.md
+  s_10fbd1209108db::t_76df39236e4850 14,20,22,28-29,33
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/PlayerProfileService.java
+  s_c39eafdd002d5f::t_7572d8df57eed0 32,141
+platform-blog/upstream/nblog/blog-view/src/components/article/ArticleCoverUpload.vue
+  s_4f69ab48629acd::t_60e3481298b2c5 112-124
+platform-blog/upstream/nblog/blog-view/src/test/blogRedesignStyle.test.js
+  s_cf1c0abd9bfd43::t_c90e9d7c094c31 7-14,23-71,73,93-95,98-104,107-128
+frontend/src/test/app-shell-vue.test.ts
+  s_10fbd1209108db::t_35326815e86af4 4,7,86,98-99,102
+frontend/src/test/article-admin.test.ts
+  s_2a0c4aeb5af665::t_de05460819b65a 3,9,29-35,53,58-84
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/enums/CompetitionAwardTier.java
+  s_6f64b750bc2ffd::t_8e3393c6aef0aa 1-93
+platform-blog/upstream/nblog/blog-view/src/test/introduction.test.js
+  s_c39eafdd002d5f::t_f048bfbb28bf0a 2,22-29,58-64,80-154,164-166,178-202
+platform-blog/AGENTS.md
+  s_c39eafdd002d5f::t_11109ba8305b85 3,5-7,9,12,14,16-17,23,27-28,32
+platform-blog/upstream/nblog/blog-view/src/components/comment/Comment.vue
+  s_4f69ab48629acd::t_28be3ece702ac1 6,14-22,33-41,104-107,110-118,121-127,129-130,135-142,145-148,151-159,162-166,169-172,175-179,182-184,187-189,192-195,198-200,203-207,210-237,241-244,246,261-263,271-292,295-326
+platform-blog/upstream/nblog/blog-view/src/views/category/Category.vue
+  s_abb5bfb8079444::t_c98c749497e3cf 2-85,87,92,94-95,99,101-104,108-117,123-124,127-131,137-145,148-159,162,166-211,213-217,244-771
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/BlogMapper.xml
+  s_f24978774aa20f::t_84c908f0d8ced1 275,299,310
+frontend-design-tokens/tokens.css
+  s_10fbd1209108db::t_f1a2674b113ce3 28,60
+platform-blog/upstream/nblog/blog-view/src/components/sidebar/FeaturedBlog.vue
+  s_abb5bfb8079444::t_3431304643dbad 2-66,75,77-82,85-93,99-102,108,110,112-113,115-144
+frontend/src/test/training-redesign-style.test.js
+  s_10fbd1209108db::t_9a46e3856fc7d9 14,16,30,56
+frontend/src/test/homepage-featured-images-admin.test.ts
+  s_8d1c22a847d10e::t_548b5622af5c3f 5,8-19,21-23,26-27,29-32,35,37-38,41,43-44,47-48,50-52,54,56-58,61
+frontend/src/styles.css
+  s_10fbd1209108db::t_5f66710472b38f 8,11
+platform-blog/upstream/nblog/blog-view/src/utils/competitionTypes.js
+  s_a8f29859443dbc::t_baa702c5f4f5c0 1-78
+platform-blog/upstream/nblog/blog-view/src/test/competitionApi.test.js
+  s_6f64b750bc2ffd::t_a8e0c59bf56128 1-46
+frontend/src/test/routing.test.ts
+  s_356ea7a21046cc::t_4e810b77c8d8a4 2,19,33-34,37-42,57-59
+frontend/README.md
+  s_abb5bfb8079444::t_93eab144580243 15,28,34-35,38,40,42,50,54,75,79-82,132,137,139,146-148,151-153,156-158,160,166-169
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/PlayerAvatarServiceTest.java
+  s_6f64b750bc2ffd::t_e10922b6c8d406 91-92,95-96,104-108
+platform-blog/upstream/nblog/blog-view/src/views/profile/Profile.vue
+  s_c39eafdd002d5f::t_cdeb40c41e6d3a 5-13,15-17,24-36,55-56,99-100,105,113-117,121,125,128,132-143,151-155,161-162,172-176,179-213,215-228,230-248,250-302,307,324-325,327-329,334-340,343-349,370-415,417-479,481-520,529-530,533-540
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/repository/HomepageFeaturedGroupRepository.java
+  s_23ba5968f5b583::t_e4de720e21a652 1-252
+platform-blog/upstream/nblog/blog-view/public/img/home-logos/icpc-foundation.svg
+  s_8d1c22a847d10e::t_a1345ecd6fcfbf 1-36
+platform-blog/upstream/nblog/blog-view/src/router/index.js
+  s_4f69ab48629acd::t_a9e789ec043d6b 41-46,59-70
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/CompetitionAdminController.java
+  s_6f64b750bc2ffd::t_424a5893874edb 41,46
+platform-blog/upstream/nblog/blog-view/src/test/achievementsPanel.test.js
+  s_c39eafdd002d5f::t_3a0e98334bd99f 1-215
+platform-blog/upstream/nblog/blog-view/package.json
+  s_c39eafdd002d5f::t_52aff6d9af388c 19
+platform-blog/upstream/nblog/blog-view/src/components/index/Footer.vue
+  s_23ba5968f5b583::t_d1e88a11033e02 47-48,50-52,57-58,75
+docs/frontend-redesign-prototype.html
+  s_10fbd1209108db::t_5b89be77a586e3 113
+platform-blog/upstream/nblog/blog-view/src/components/profile/MyArticles.vue
+  s_10fbd1209108db::t_88d083fd01f9ef 12-13,30,33,39-41,43-87,99,101-102,108,111-115,118-133,135-201,203-217,221-223,227-231,234,255-325,327,329,364,373-395
+platform-blog/upstream/nblog/blog-view/src/utils/trainingRoute.js
+  s_6d4e337dfba5fc::t_7111b4776b7edb 12,27
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/UnifiedSchemaMigrationTest.java
+  s_6f64b750bc2ffd::t_a26c118fec9473 129-197
+platform-blog/upstream/nblog/blog-view/src/assets/css/typo.css
+  s_c39eafdd002d5f::t_3e0fc31c62a2a9 191,194,263-264,270-273,323
+platform-blog/upstream/nblog/blog-view/src/test/articleDownloadUi.test.js
+  s_4f69ab48629acd::t_4abd3e7fb40be2 2,4-14,17-22,25-41,43-49
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/CompetitionCreateRequest.java
+  s_6f64b750bc2ffd::t_c42fb2b517bec1 9
+platform-blog/upstream/nblog/blog-view/src/api/player-competition.js
+  s_a8f29859443dbc::t_dfb38d21d9ffaa 2,4-6,8-16,18-25,27-34,36-42,44-50
+frontend/AGENTS.md
+  s_abb5bfb8079444::t_8ea0772fbee5ef 7-8,11-14,19-20,38-39,44-45,58,63,65,68-70,73-75,77-79,86-88
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V039__create_homepage_featured_images.sql
+  s_6fccc63cdec3ee::t_715b2fd4be3928 1-9
+platform-blog/upstream/nblog/blog-view/src/views/competition/CompetitionDetail.vue
+  s_a8f29859443dbc::t_1aa5ed5f35575f 1-720
+frontend/src/api/admin.ts
+  s_c39eafdd002d5f::t_13a5faee964cf3 11-20,44-58,116-117,120-123,125-126,133-271,274-275,281-287
+frontend/src/styles/training-redesign.css
+  s_10fbd1209108db::t_99ef25c45b9640 160,187,454,460-461
+platform-blog/upstream/nblog/blog-view/src/utils/achievementPresentation.js
+  s_a8f29859443dbc::t_04b60ea916d4ef 2-52,54-55,57-112
+platform-blog/upstream/nblog/blog-view/src/test/trainingRoute.test.js
+  s_10fbd1209108db::t_b183ce2a52faef 3-4,7-8,12,17,20-27
+platform-blog/upstream/nblog/blog-view/src/views/article/ArticleEditor.vue
+  s_4f69ab48629acd::t_1c24529ab46701 285-333
+platform-blog/upstream/nblog/blog-view/src/test/commentIdentity.test.js
+  s_4f69ab48629acd::t_1a0645b939cb05 6-7,23-33
+platform-blog/upstream/nblog/blog-view/src/test/categoryArticleGrid.test.js
+  s_abb5bfb8079444::t_3b12dd363514b3 2-52,54-59,62-71,74,76-83,85-100,103-107,109-113,115-139,142-146,148,150-152,155-157,159-160,162-163,166-169,171-172,174-199,202-205,207-221
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/CompetitionAwardFlatProjection.java
+  s_4f69ab48629acd::t_3ddec496b8427f 32
+platform-blog/upstream/nblog/blog-view/src/views/Index.vue
+  s_c39eafdd002d5f::t_baf1a63f198054 2,4,7,11,13,15-35,38-40,43,46,54,58,64,67,74-75,80,89,91-92,96-116,127-131,152-158,160-161,165-193,200,222-231,233-261,268-270,273-283,303-338,350-352,383-651,665-682,687-690,701-705
+frontend/src/views/TrainingView.vue
+  s_356ea7a21046cc::t_6333a8d3a29882 110-119
+docs/architecture.md
+  s_abb5bfb8079444::t_b25dab953262d9 36,38,40,44,46,52,54,60,62,64-66,72,74,78,105,124-126
+platform-blog/upstream/nblog/blog-view/src/components/comment/CommentForm.vue
+  s_4f69ab48629acd::t_8b8fcc8634c536 8,40,138,142-145,153-166,192,194-195,198,200,207-208,214,220-236,244,246-248,258,263,271,277,289,296-297,308,323
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/HomepageFeaturedGroupService.java
+  s_abb5bfb8079444::t_e4366b722bb41a 1-212
+platform-blog/upstream/nblog/blog-view/src/test/navTrainingMenu.test.js
+  s_4f69ab48629acd::t_2e0ee18743c835 70,73-74,76,78-79,82-83
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/HomepageFeaturedGroupOrderRequest.java
+  s_2d682f027b7a09::t_a89c541489e55e 1-11
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V040__retire_homepage_banners_and_add_featured_thumbnails.sql
+  s_8d1c22a847d10e::t_c1700149502e85 1-5
+frontend/src/components/TrainingQueryPanel.vue
+  s_5874d6e353a63a::t_a91aeebb8462f6 3-107,119,190,193,206-210,224-227,231-237,241-244,266-295,299-342
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/CompetitionControllerTest.java
+  s_6f64b750bc2ffd::t_cf834a0deb4c2c 10,40,44,47,55,59,63,69,78,93-94,99,104,112-113
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/admin/HomepageFeaturedImageAdminController.java
+  s_2d682f027b7a09::t_3dbedfba62f367 15,20,25-27,29
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/enums/CompetitionCategory.java
+  s_356ea7a21046cc::t_acb39f2cbdc40e 1-68
+platform-blog/upstream/nblog/blog-view/src/components/blog/BlogList.vue
+  s_9dea0c02708788::t_bcfd7c24bd8601 4,18-22
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/repository/HomepageFeaturedImageRepository.java
+  s_8d1c22a847d10e::t_5c3662a60fbecc 7,15,20,23,27,29-30,33,36,40,42-43,46,49,53,55,59,62-63,68,70-77,81,83-86,91,96
+platform-blog/upstream/nblog/blog-view/src/test/featuredBlog.test.js
+  s_abb5bfb8079444::t_316b4407434a9c 10-30,37-39,41-55,57-121,123-128,131-136,139
+frontend/src/test/homepage-featured-groups-admin.test.ts
+  s_2a0c4aeb5af665::t_e573cb67c6980c 1-311
+platform-blog/README.md
+  s_c39eafdd002d5f::t_270873fa481d88 9,12,16-18,22,26,34-35,40,42,69-71,74-77,79-80
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/HomepageFeaturedGroup.java
+  s_2d682f027b7a09::t_bfaec4ae98435d 1-17
+platform-blog/upstream/nblog/blog-view/src/test/homepageFeaturedImages.test.js
+  s_8d1c22a847d10e::t_33488a47ce9b36 1-4,8,10-35,38-43,46-51,54-58,61-63
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/ImageAssetCleanupJob.java
+  s_8d1c22a847d10e::t_27e36bdb7ffc52 12,16,19,25
+frontend/src/routing.ts
+  s_356ea7a21046cc::t_3c9a4d0ffdd5f7 2,10,19,32,34
+frontend/src/test/platform-dashboard-batch.test.ts
+  s_5874d6e353a63a::t_66ae5a3cfc162b 5-6,18-22,28,37,39,44,49,53-61,92-103
+platform-blog/upstream/nblog/blog-view/src/components/index/Header.vue
+  s_10fbd1209108db::t_2e2c6c8e2c562f 2-4,6-18,20-37,44,46,51,55-56,59-61,66,68,70-72,76-79,82-97,100-102,105-107,110-112,115-117,120-121,123-148,151-155,158-163,166-169,172-178,181-184,187-191,194-201,204-213,217-218,223-226,228-232,234-235,238,240-251,253-256
+platform-blog/upstream/nblog/blog-view/src/components/sidebar/Introduction.vue
+  s_c39eafdd002d5f::t_238d2ec57251fc 17-23,25-27,38-49,51-73,82,88,94-95,97,99-104,123-128,144-147,150-155,165,170-172,178-183,186-188,196-210,229-231,235-237,243-245,251-253,255-256,278,282-288,293,295,299-315,339-367,444-450,473-480
+platform-blog/upstream/nblog/blog-view/src/test/markdownContentStyle.test.js
+  s_c39eafdd002d5f::t_4cd15654979718 3-7,29-35
+frontend/src/components/HomepageFeaturedImagesAdminPanel.vue
+  s_8d1c22a847d10e::t_460e5c9e444cb3 2-4,6-7,9,15-19,21-40,43-47,52-55,58-60,69,72-75,78-79,82-85,95-102,109,120,124,126,143-144,146,150-152,172,186-187,199,204,212-213,218-219,221,234-235,237
+platform-blog/upstream/nblog/blog-view/src/views/blog/Blog.vue
+  s_abb5bfb8079444::t_3f5740da1994e4 2-3,7-25,27,53,55,64,73,76-77,135,186-187,221-246,251-305,307-325,330,332,339,344,347,351-353,355,363-382,384-388,395-427,429-431,434-437,440-449,452-456,459-461,464-465,468-469,472-474,477-479,482-485,488-491,494-540,546-564
+platform-blog/upstream/nblog/blog-view/src/main.js
+  s_c39eafdd002d5f::t_00fbf54f4d06e0 5
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/HomepageFeaturedImage.java
+  s_8d1c22a847d10e::t_4739e73a3a9f7a 4,8
+frontend/src/composables/usePlatformDashboard.ts
+  s_5874d6e353a63a::t_460539e99d28da 4-5,7-11,13,18-19,21-22,24-26,28-29,38-39,62-67,69-71,176-179,184-185,310,451-452,455-457,462-463,466-467,470-476,479-527,529-629,700-701,712-714,720-729
+platform-blog/upstream/nblog/blog-view/src/components/sidebar/Tocbot.vue
+  s_c39eafdd002d5f::t_1bafc896e9084e 43-44,52,55,68,87-89,92-97,101,106,121,125,136
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/mapper/CompetitionMapper.java
+  s_6f64b750bc2ffd::t_b089a6cf1f9a05 28-30,33-35,97,102-107
+platform-blog/upstream/nblog/blog-api/src/main/resources/db/migration/V038__create_homepage_featured_groups.sql
+  s_2d682f027b7a09::t_9a63800ac99885 1-54
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/CompetitionMapper.xml
+  s_6f64b750bc2ffd::t_5df434df42c34d 50-51,75-76,94-102,117-125,372-374,381,388,394-416,421-422,429-431
+frontend/src/styles/dashboard.css
+  s_5874d6e353a63a::t_ebdc159c8a5960 175-189,307-467
+platform-blog/upstream/nblog/blog-view/src/test/playerCompetitionApi.test.js
+  s_a8f29859443dbc::t_a1b54e7a73465f 2,4-5,7-12,14-15,17-18,20-25,28-29,31-37,39-41,43-47,50-55,57-62
+platform-blog/upstream/nblog/blog-view/src/views/tag/Tag.vue
+  s_4f69ab48629acd::t_04299a3b725a99 2,6,9-13
+frontend/src/test/competition-admin.test.ts
+  s_abb5bfb8079444::t_e6874bfcddf124 1-526
+docs/frontend-design-system.md
+  s_abb5bfb8079444::t_672ea720433c1a 3,12,43-52,87,100,124-125,157-163,166,171,176,178,185,187-188,190-191,196,200,216,230
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/HomepageFeaturedCandidate.java
+  s_2d682f027b7a09::t_023bc0081e90ab 1-24
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/controller/IndexControllerTest.java
+  s_23ba5968f5b583::t_0160ca61194f0f 6,26,34,36,41-42
+platform-blog/upstream/nblog/blog-api/README.md
+  s_c39eafdd002d5f::t_fde2e2fdd06c83 9,15,19,49,51,53-66,81,85,87,106-107,118-142,148,194-195,198-199,204-206,211-215,222,225-230
+frontend/src/styles/homepage-featured-images-admin.css
+  s_23ba5968f5b583::t_fd59739faf4c05 2-20,23,25-26,30,39,41,46-47,53,55-57,59,61-64,67,70-71,74,77-78,83-84,87,92-93,95-104,107-110,113-115,118-120,123-124,126,129-133,136-139,142-143,146-149,153
+platform-blog/upstream/nblog/blog-view/src/assets/css/blog-redesign.css
+  s_cf1c0abd9bfd43::t_b15cf5873e72ea 3-17,123,131-133,281,287,302
+platform-blog/upstream/nblog/blog-view/src/test/sidebarStickyStyle.test.js
+  s_cf1c0abd9bfd43::t_8ae93ca2c15ce0 10-23,28,31-43,47-60,68-83
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/HomepageFeaturedGroupUpsertRequest.java
+  s_2d682f027b7a09::t_b5165d56e1bd35 1-11
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/controller/player/PlayerCompetitionController.java
+  s_6f64b750bc2ffd::t_46271b36ac6b01 11,52-58
+frontend/src/test/training-query-panel.test.ts
+  s_5874d6e353a63a::t_dfdad62a94ba91 32,37-40,44,52-56,58-96,99,109-110,163
+platform-blog/upstream/nblog/blog-view/src/test/profileAchievements.test.js
+  s_c39eafdd002d5f::t_23985b6e6de79e 1-368
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/entity/CompetitionAwardRecipient.java
+  s_4f69ab48629acd::t_b03e4acf801777 22-23
+docs/agent/context-map.md
+  s_abb5bfb8079444::t_93c30de6e88a85 5-7,16
+frontend/src/router/index.ts
+  s_356ea7a21046cc::t_7df608a18963aa 18
+frontend/src/components/TrainingAdminPanel.vue
+  s_8d1c22a847d10e::t_f050e8c170998b 3,8,10,15
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/HomepageFeaturedArticle.java
+  s_abb5bfb8079444::t_6818749e4172f0 3,6,9-11,13-26
+platform-blog/upstream/nblog/blog-view/src/components/blog/BlogItem.vue
+  s_4f69ab48629acd::t_cb3e3f3a6570ab 2-4,19,32-35,46-48,51-58,60,63,69-85,92-96,101-129,131,138-151,157-164,169-215,324,430-593,607
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/dto/CompetitionAchievementOrderRequest.java
+  s_6f64b750bc2ffd::t_46946137e12e9f 1-9
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/model/vo/CompetitionAchievement.java
+  s_356ea7a21046cc::t_48b138fcfb0fd4 14-15,18-19,26-32
+platform-blog/upstream/nblog/blog-view/public/img/home-logos/README.md
+  s_8d1c22a847d10e::t_5d763a1960bab1 1-13
+docs/api.md
+  s_c39eafdd002d5f::t_dba4852697da78 27,48-53,74-90,97,110,112,114-129,137,142,152,159-163,165-167,171,240,244,248-252,254,260-290,296,298
+platform-blog/upstream/nblog/blog-view/src/api/index.js
+  s_8d1c22a847d10e::t_a1b0a2fc3c61aa 10,12
+platform-blog/upstream/nblog/blog-view/src/assets/css/base.css
+  s_c39eafdd002d5f::t_faa7c90ff0321e 4
+CHANGELOG.md
+  s_cf1c0abd9bfd43::t_e708d82af4cb70 7-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d600ce38239f4f9d655f59212e66f159d97199a7",
+  "prompts": {},
+  "sessions": {
+    "s_10fbd1209108db": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6166-78ed-7713-80e7-fda1034d7610",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_1ec2e5b7c16081": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6107-dd8d-7093-8ab0-af58549b7c81",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_23ba5968f5b583": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6111-30d6-73c3-934e-8edb354710af",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_2a0c4aeb5af665": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6108-43e3-7f01-b6cb-ef4cfcda0782",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_2d682f027b7a09": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6108-3185-7aa3-b463-7dfa8aff1f82",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_356ea7a21046cc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f611d-8664-7ee1-9bd0-d7a4831dbfae",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_4f69ab48629acd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6144-d8b2-7342-8fef-cadc3718aced",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_5874d6e353a63a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f617b-9294-70b3-b5ec-a6cd1b12ed4f",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_6d4e337dfba5fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f611d-7676-7a01-bd3d-fb84a3cd6fe2",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_6f64b750bc2ffd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6158-37fa-71f3-b086-0cef23f2a8cd",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_6fccc63cdec3ee": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f610f-798d-7f02-bade-b8f5b8fa9363",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_8d1c22a847d10e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f60d8-426c-7da2-8ced-c313632fc83b",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_9dea0c02708788": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f60fd-20eb-73c2-ade3-111ce2f11c54",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_a8f29859443dbc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6158-4ae9-72c3-879e-e9d9a42781a6",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_abb5bfb8079444": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f617c-cd66-7583-ad30-003257d1affb",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_c39eafdd002d5f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f611c-dd07-7df0-917c-22b823053ad6",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_cf1c0abd9bfd43": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f61c0-3235-7052-b34f-338dbea5e4d2",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_f24978774aa20f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f60df-d515-7140-bf30-da3fb53cb3a8",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
