@@ -1,0 +1,31 @@
+CHANGELOG.md
+  s_28cf66cfc5b7d8::t_7ef6ce23520666 7-12
+platform-blog/README.md
+  s_28cf66cfc5b7d8::t_8e8639b3c1ab54 65
+platform-blog/upstream/nblog/blog-view/README.md
+  s_28cf66cfc5b7d8::t_2f2ee75366cd03 53,87-88,119
+platform-blog/upstream/nblog/blog-view/src/components/article/LiveMarkdownEditor.vue
+  s_28cf66cfc5b7d8::t_bdb8563b283563 29,32,76,213,217,230
+platform-blog/upstream/nblog/blog-view/src/plugins/articleImagePreview.js
+  s_28cf66cfc5b7d8::t_7d7f4d5fa6a410 1-165
+platform-blog/upstream/nblog/blog-view/src/test/liveMarkdownEditor.test.js
+  s_28cf66cfc5b7d8::t_49297c2e7f5238 3,110-111,118-151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "cf9ce398d23e4d045a0aab7945d6f8d8d6e9fe29",
+  "prompts": {},
+  "sessions": {
+    "s_28cf66cfc5b7d8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5f0c-271d-7d32-bddb-24112c61bee9",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
