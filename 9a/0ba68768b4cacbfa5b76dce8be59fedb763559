@@ -1,0 +1,29 @@
+CHANGELOG.md
+  s_28cf66cfc5b7d8::t_be465b9882621b 7-12
+frontend/README.md
+  s_28cf66cfc5b7d8::t_9d2a0de5e0647f 15,137
+frontend/src/styles/dark.css
+  s_28cf66cfc5b7d8::t_beed53b8244c74 303-307
+frontend/src/styles/dashboard.css
+  s_28cf66cfc5b7d8::t_b735c68f1d30b1 529
+frontend/src/test/dark-theme-style.test.js
+  s_28cf66cfc5b7d8::t_86c79a385def44 8,34-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9a0ba68768b4cacbfa5b76dce8be59fedb763559",
+  "prompts": {},
+  "sessions": {
+    "s_28cf66cfc5b7d8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f5f0c-271d-7d32-bddb-24112c61bee9",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
