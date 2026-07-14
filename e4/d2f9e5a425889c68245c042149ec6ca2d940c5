@@ -1,0 +1,23 @@
+platform-blog/upstream/nblog/blog-view/README.md
+  s_abb5bfb8079444::t_770b443e23938b 92
+platform-blog/upstream/nblog/blog-view/src/test/competitionPages.test.js
+  s_abb5bfb8079444::t_8ca0c4d98f5609 145,153-154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "e4d2f9e5a425889c68245c042149ec6ca2d940c5",
+  "prompts": {},
+  "sessions": {
+    "s_abb5bfb8079444": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f617c-cd66-7583-ad30-003257d1affb",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
