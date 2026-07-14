@@ -31,6 +31,12 @@
 - 影响：移除图片、代码块和块公式预览不参与编辑器高度模型的垂直外边距，避免多张图片后鼠标定位误差累积，并保持上下键按视觉行移动而非跨自然段跳转。
 - 验证：已运行 Blog `npm ci`、`npm test`（103 项）、`npm run build`、`./scripts/check-doc-sync.sh origin/main WORKTREE` 和 `git diff --check`。
 
+### 2026-07-14 - 收紧托管图片防盗链配置
+
+- 成果：Nginx 的 HTTP 与 HTTPS 配置改为在容器启动时按 `FRONTEND_IMAGE_REFERER_HOSTS` 和 `FRONTEND_ALLOW_LOCAL_REFERERS` 生成 `/api/image/**` Referer 白名单，拒绝缺失、被剥离或显式配置为 `none`/`blocked` 的 Referer。
+- 影响：本地环境可通过 `FRONTEND_ALLOW_LOCAL_REFERERS=true` 允许 `localhost` 与 `127.0.0.1`，服务器部署可只保留真实站点 host；无 Referer 的直接访问不再绕过防盗链策略。
+- 验证：已运行 `corepack pnpm test src/test/nginx-config.test.js`。
+
 ### 2026-07-14 - 调整自动采集回看窗口
 
 - 成果：Codeforces 与 AtCoder 自动采集继续按各用户、各 OJ 的 `lastCollectedAt` 计算窗口；每日任务默认回看 100 小时，日内半小时任务默认使用零回看从上次成功游标直接续爬，首次无游标仍抓取全部历史。

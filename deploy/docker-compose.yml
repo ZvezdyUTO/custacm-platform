@@ -75,6 +75,8 @@ services:
       dockerfile: frontend/Dockerfile
     environment:
       TLS_ENABLED: ${TLS_ENABLED:-false}
+      FRONTEND_IMAGE_REFERER_HOSTS: ${FRONTEND_IMAGE_REFERER_HOSTS:-custacm.top}
+      FRONTEND_ALLOW_LOCAL_REFERERS: ${FRONTEND_ALLOW_LOCAL_REFERERS:-false}
     ports:
       - "${FRONTEND_PORT}:80"
       - "${FRONTEND_HTTPS_PORT}:443"

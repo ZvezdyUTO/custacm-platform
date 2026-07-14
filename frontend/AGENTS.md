@@ -26,7 +26,7 @@
 - 启动时调用 `/player/me` 恢复会话。只有 401 清理会话；403 与网络错误保留会话并展示错误。
 - 登录失败后的五秒冷却由 Blog API 按 username 强制；首次错误 401 和窗口内 429 都通过 `Retry-After` 告知剩余秒数。`ApiError` 必须保留该字段，`LoginPanel` 在倒计时结束前禁用提交；不得以纯前端计时替代服务端窗口。
 - `src/api/client.ts` 不全局附加 JWT；受保护 adapter 显式传入 `Authorization: Bearer <token>`。
-- 浏览器请求统一使用 `/api/**`；`/api/image/**` 由 Nginx 从只读上传目录直接返回。
+- 浏览器请求统一使用 `/api/**`；`/api/image/**` 由 Nginx 从只读上传目录直接返回，Referer 白名单由 `FRONTEND_IMAGE_REFERER_HOSTS` 和 `FRONTEND_ALLOW_LOCAL_REFERERS` 在容器启动时生成。
 - `safeReturnPath` 必须使用显式白名单，Blog 回跳导航顶层窗口，禁止在训练 frame 中再加载 Blog 外壳。
 - 不在源码、文档、日志或测试夹具中写真实密码、JWT 或签名密钥。
 
@@ -49,7 +49,8 @@
 | 文件 | 职责 |
 | --- | --- |
 | `Dockerfile` | 构建 Blog 与 Training 两份 Vue 静态产物并复制进同一个 Nginx 镜像 |
-| `nginx.conf`、`nginx-https.conf` | Blog/Training fallback、`/api/**` 代理、托管图片与 HTTP/TLS 入口 |
+| `docker-entrypoint.d/10-select-nginx-config.sh` | 按 TLS 与环境变量选择并渲染 Nginx 配置 |
+| `nginx.conf`、`nginx-https.conf` | Blog/Training fallback、`/api/**` 代理、托管图片 Referer 保护模板与 HTTP/TLS 入口 |
 | `vite.config.ts` | `/training-app/` base、5173 开发端口与 `/api` 代理 |
 | `src/main.ts`、`src/App.vue` | Vue/Router 入口、认证和页面组合 |
 | `src/router/index.ts` | 内部 `/training-app/**` 路由 |
@@ -88,6 +89,7 @@
 | `src/test/homepage-featured-groups-admin.test.ts` | 精选组固定三篇保存、完整组排序和删除确认交互测试 |
 | `src/test/app-shell-vue.test.ts` | 独立/嵌入外壳的加载边界测试 |
 | `src/test/platform-api.test.ts` | Training/Admin API contract 测试 |
+| `src/test/nginx-config.test.js` | Nginx 托管图片 Referer 白名单渲染回归测试 |
 
 ## 验证与文档同步
 

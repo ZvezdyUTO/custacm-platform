@@ -73,6 +73,8 @@ Nginx 路由规则：
 | `FRONTEND_HTTPS_PORT` | host 映射到 Nginx 443 的端口；本地默认使用 3443，服务器通常使用 443 |
 | `TLS_ENABLED` | `true` 时前端 Nginx 将 80 重定向到 HTTPS，并从 `TLS_CERT_DIR` 读取 `origin.pem`、`origin.key` |
 | `TLS_CERT_DIR` | 宿主机证书目录；仅以只读方式挂载到容器，私钥不得提交到仓库 |
+| `FRONTEND_IMAGE_REFERER_HOSTS` | `/api/image/**` 允许的可信 Referer host，逗号或空格分隔；不要包含 `none` 或 `blocked` |
+| `FRONTEND_ALLOW_LOCAL_REFERERS` | `true` 时额外允许 `localhost` 与 `127.0.0.1`，用于本地调试；服务器部署通常设为 `false` |
 | `BLOG_DB_NAME` | 统一数据库名 |
 | `BLOG_DB_USERNAME`、`BLOG_DB_PASSWORD` | 应用数据库账号与密码 |
 | `BLOG_DB_ROOT_PASSWORD` | MySQL root 密码 |
@@ -126,7 +128,7 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 ## 数据与挂载
 
 - MySQL 与 Redis 数据存放在显式命名卷中，容器重建不会自动删除。
-- 应用日志 bind mount 到仓库 `logs/`。`uploads/` 以读写方式挂载给 Blog API、以只读方式挂载给 Nginx；Nginx 直接服务 `/api/image/**` 并缓存 UUID 图片，其他 API 仍代理 Blog API。
+- 应用日志 bind mount 到仓库 `logs/`。`uploads/` 以读写方式挂载给 Blog API、以只读方式挂载给 Nginx；Nginx 直接服务 `/api/image/**` 并缓存 UUID 图片，Referer 白名单由 `FRONTEND_IMAGE_REFERER_HOSTS` 与 `FRONTEND_ALLOW_LOCAL_REFERERS` 生成，其他 API 仍代理 Blog API。
 - HTTPS 是可选模式：准备好 Cloudflare Origin CA 或公信 CA 的 PEM 证书后，将 `TLS_ENABLED=true`、`FRONTEND_HTTPS_PORT=443`，并把 `origin.pem`、`origin.key` 放入 `TLS_CERT_DIR`。启用后只通过 HTTPS 访问站点；`deploy.sh` 会改用 HTTPS 入口验证，`-k` 仅用于本机验证 Origin CA（浏览器不应使用该方式）。
 - 新卷与旧部署卷相互独立；没有单独批准前不要删除旧卷。
 - 普通更新禁止使用 `down --volumes`。

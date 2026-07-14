@@ -80,7 +80,7 @@ Blog 文章详情的标题/简介/正文与扁平图片 ZIP 下载同样通过 `
 
 比赛管理读取匿名 `/api/competitions` 完整聚合树，并通过 `/api/admin/competitions/**` 显式携带管理员 Bearer 完成创建、参赛用户/奖项增删、移入回收站和恢复。当前比赛、回收站、规范 `category` 筛选和分页请求均只允许最后一次交互回写列表与加载状态；前端维护与后端一致的十个规范分类和分类限定奖档，创建表单不展示参赛形态控件，提交时由分类映射自动生成（省赛沿用团队默认），不允许操作底层兼容类型标签，比赛、参赛用户和奖项没有普通编辑接口。
 
-生产 Nginx 直接从只读挂载提供 `/api/image/**` 托管文件，其他 `/api/**` 请求去前缀后代理 Blog API。
+生产 Nginx 直接从只读挂载提供 `/api/image/**` 托管文件，其他 `/api/**` 请求去前缀后代理 Blog API。托管图片 Referer 白名单由容器启动环境生成：`FRONTEND_IMAGE_REFERER_HOSTS` 声明可信站点，`FRONTEND_ALLOW_LOCAL_REFERERS=true` 时追加 `localhost` 和 `127.0.0.1`；缺失、被剥离或显式配置为 `none`/`blocked` 的 Referer 不会放行。
 
 ## 目录结构
 
@@ -123,7 +123,8 @@ frontend/
 | 文件/路径 | 职责 |
 | --- | --- |
 | `Dockerfile` | 分别构建 Blog 与 Training 两份 Vue 产物，并复制进同一个 Nginx 镜像 |
-| `nginx.conf`、`nginx-https.conf` | Blog/Training history fallback、`/api/**` 代理、托管图片和 HTTP/TLS 入口 |
+| `nginx.conf`、`nginx-https.conf` | Blog/Training history fallback、`/api/**` 代理、托管图片 Referer 保护和 HTTP/TLS 入口 |
+| `src/test/nginx-config.test.js` | 校验两份 Nginx 配置和启动脚本生成的托管图片 Referer 白名单 |
 | `vite.config.ts` | `/training-app/` base、5173 开发服务与 `/api` proxy |
 | `src/main.ts`、`src/App.vue` | Vue/Router 挂载、会话恢复、权限分流和页面组合 |
 | `src/router/index.ts` | 内部 `/training-app/**` 路由表；公开 `/training/**` 由 Blog Router 持有 |

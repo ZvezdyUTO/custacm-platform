@@ -25,7 +25,7 @@ Backend health: http://localhost:8090/health
 Gateway health: http://localhost:3000/api/health
 ```
 
-实际 host 端口分别取自 `FRONTEND_PORT`、`FRONTEND_HTTPS_PORT` 和 `BACKEND_PORT`。Nginx 为 `/` 与 `/training/**` 提供 Vue Blog history fallback，使训练路由继续使用原 Blog 顶栏；内部 `/training-app/**` 提供独立训练运行时，并将 `/api/**` 去前缀后转发到 `blog-api:8090`。
+实际 host 端口分别取自 `FRONTEND_PORT`、`FRONTEND_HTTPS_PORT` 和 `BACKEND_PORT`。Nginx 为 `/` 与 `/training/**` 提供 Vue Blog history fallback，使训练路由继续使用原 Blog 顶栏；内部 `/training-app/**` 提供独立训练运行时，并将 `/api/**` 去前缀后转发到 `blog-api:8090`。`/api/image/**` 由 Nginx 直接读取只读上传目录，可信 Referer host 从 `FRONTEND_IMAGE_REFERER_HOSTS` 生成；需要本地调试时才将 `FRONTEND_ALLOW_LOCAL_REFERERS=true`。
 
 ## HTTPS（可选）
 
@@ -35,7 +35,7 @@ Gateway health: http://localhost:3000/api/health
 
 - 后端镜像打包 `platform-blog/upstream/nblog/blog-api` 及其 reactor 依赖。
 - 前端镜像在 Node 20.19 stage 内分别构建 Vue 3 Training/pnpm 与 Vue 3 Blog/npm 产物，再由 Nginx 1.27 Alpine 提供静态文件。
-- 应用日志 bind mount 到 `logs/combined.log`、`logs/error.log`。上传目录对 Blog API 为读写挂载、对前端 Nginx 为只读挂载；托管图片由 Nginx 从 `/api/image/**` 直接返回。
+- 应用日志 bind mount 到 `logs/combined.log`、`logs/error.log`。上传目录对 Blog API 为读写挂载、对前端 Nginx 为只读挂载；托管图片由 Nginx 从 `/api/image/**` 直接返回，并按环境生成 Referer 白名单，禁止把 `none` 或 `blocked` 当成可信来源。
 - MySQL 与 Redis 使用 `BLOG_DB_VOLUME_NAME`、`BLOG_REDIS_VOLUME_NAME` 命名卷，容器重建后继续保留。
 - 从旧 JSON OJ 账号升级前，必须执行 [deploy/UPDATE.md](../deploy/UPDATE.md) 的 V034 JSON/重复 handle 预检；V034 成功后生产代码只读写关系化表，旧表暂留一个迁移窗口。
 

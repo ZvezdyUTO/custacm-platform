@@ -4,7 +4,7 @@
 - `username` 同时是 JWT subject 与训练业务身份；角色严格为 `ROLE_admin`、`ROLE_player`，guest 表示未认证。
 - Blog API 负责 BCrypt 密码、HS512 JWT、账号、角色、OJ handle、Blog HTTP 与训练 HTTP adapter。
 - 训练模块只保留采集、ODS/DWD/DWM/DWS、查询、调度、刷新和清理能力；没有独立 Web runtime。提交采集按用户和 OJ 保存最近成功窗口结束时间；自动采集和 AtCoder 题目补采默认关闭，必须由部署变量显式启用。自动提交采集启用后，每日默认回看 100 小时，日内默认以零回看从上次游标续爬。
-- 对外只有一个 Nginx `frontend` 服务；其中构建 Vue 3 Blog `/`（并持有保留原顶栏的 `/training/**` 外壳）和内部 Vue 3 Training `/training-app/**` 两份静态产物。浏览器 API 统一使用 `/api/**`。
+- 对外只有一个 Nginx `frontend` 服务；其中构建 Vue 3 Blog `/`（并持有保留原顶栏的 `/training/**` 外壳）和内部 Vue 3 Training `/training-app/**` 两份静态产物。浏览器 API 统一使用 `/api/**`，托管图片 `/api/image/**` 由 Nginx 直出，Referer 白名单从 `FRONTEND_IMAGE_REFERER_HOSTS` 与 `FRONTEND_ALLOW_LOCAL_REFERERS` 生成。
 - 训练中心管理区分为“创建用户”“管理用户”“管理文章”“管理分类”“比赛与奖项”“数据采集”“首页图片”七个独立页面，并使用勃艮第酒红、陶土当前页标记和暖雾灰背景；比赛页以十个规范赛事分类单选创建比赛，按分类动态提供奖档与排名字段，并维护参赛用户、个人/团队奖项和七天回收站，只提供添加、删除与恢复；`/training/admin/articles` 内含“首页编排”、当前文章和回收站子视图，首页编排最多三组、每组固定三篇且全首页不重复，只能选择当前公开已发布且未回收的文章；分类页维护 Blog 顶栏和文章编辑器使用的分类；首页图片页只管理最多十二张 3:2 滚动精选图片，支持多选裁剪、缩略图预览、有序管理和确认删除；所有手动采集完成后固定刷新数仓。正式验收为 1280–2560 px 桌面端，重点 1440×900 与 1920×1080，移动端不在当前范围。
 - Vue Blog 构建内置唯一静态首页首图 `public/img/homepage-banner-default.png`，不再通过后端动态横幅接口读取或管理。
 - 两份 Vue 3 构建共享 `custacm.accessToken`、`custacm.user`；公开 Blog 请求不全局带 JWT，受保护评论提交显式使用共享 Bearer。
