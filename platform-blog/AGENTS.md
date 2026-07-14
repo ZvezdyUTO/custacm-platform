@@ -1,6 +1,6 @@
 # platform-blog Agent Notes
 
-- `upstream/nblog/blog-api` 是根 Maven reactor 中唯一可运行后端，负责 Blog、评论、首页图片、BCrypt 账号、HS512 JWT、`username`、`ROLE_admin`/`ROLE_player`、OJ handle 和训练数据 HTTP adapter。
+- `upstream/nblog/blog-api` 是根 Maven reactor 中唯一可运行后端，负责 Blog、评论、比赛与获奖记录、首页图片、BCrypt 账号、HS512 JWT、`username`、`ROLE_admin`/`ROLE_player`、OJ handle 和训练数据 HTTP adapter。
 - 对外只有一个 Nginx `frontend` 服务和一个站点；源码中仍有 Blog 与 Training 两份 Vue 3 构建。Blog 位于 `/`，并持有 `/training/**` 外层路由和唯一 `Nav.vue`；Training 运行时内部挂载在 `/training-app/**`。不要合并两个 Router，也不要显示第二条顶栏。
 - 两份 Vue 构建共享 `custacm.theme=light|dark`；无显式值时跟随系统偏好。Blog 顶栏以太阳/月亮拨杆作为生产环境唯一主题入口，Training 通过同源存储事件和受校验的 frame 消息同步；Blog 文章与实时编辑器的代码块在日间使用浅色语法主题、深夜恢复高对比度深色主题。深夜模式仅以 260ms 统一轻度降低业务图片亮度/饱和度，不得反色或覆盖成功/警告/危险语义，减少动态效果偏好下立即切换。
 - Blog 桌面三栏布局的左右侧栏在到达固定顶栏下方后整列吸附，并受主内容网格和页脚边界约束；侧栏高于可视区时允许自身纵向滚动。文章页右栏必须优先展示目录，首页、个人页及列表页继续吸附头像、精选文章与标签云。移动端仍隐藏两侧栏。
@@ -9,12 +9,18 @@
 - Blog 页面只保留首页、文章、分类、标签、个人主页和写作。不得恢复 About、Friends、Moments 页面或其 Controller/Service/Mapper/表，也不得恢复旧访问统计、日志管理、Quartz、邮件/Telegram 通知、QQ 查询、GitHub/又拍云上传链路。
 - 普通用户文章写操作必须按当前用户校验 `blog.user_id`；管理员可管理全部文章，但新建文章的作者必须来自当前认证管理员，不能硬编码 user id 或信任请求体作者。
 - 作者或管理员删除文章都只能写入 `deleted_at` 并固定保留七天；期间仅作者本人或管理员可恢复，不得提供提前物理删除入口。到期清理必须在事务中删除评论、标签关联和文章，并在提交后回收托管图片。
+- 公开比赛只通过 `GET /competitions` 与 `GET /competitions/{id}` 读取；列表以 `startYear`/`endYear` 闭区间和可选单个 `type` 标签分页。比赛类型是可多选标签，不得把 ICPC/CCPC、赛事层级和专项赛事压成单选层级；`LANQIAO_CUP` 不得与 `PROVINCIAL` 共存，`BAIDU_STAR` 可以与 `PROVINCIAL` 共存。比赛根参赛形态只允许 `INDIVIDUAL`、`TEAM`、`MIXED`。
+- 管理员对比赛、参赛用户和奖项只提供 POST/DELETE，比赛恢复是管理员比赛管理的唯一 PUT，不得新增普通 PUT/PATCH 编辑入口；获奖人修改本人名片展示偏好不属于管理员修改奖项。奖项只允许 1–4 级、合法 `(x/y)` 和当前比赛参赛用户；`INDIVIDUAL` 必须且只能绑定一人且不能填队名，`TEAM` 至少绑定两人。蓝桥杯只允许 `NATIONAL`，百度之星与团体程序设计天梯赛必须在 `PROVINCIAL`/`NATIONAL` 中选择一项。
+- 比赛删除后只把比赛根放入七天回收站并从公开端隐藏聚合，参赛用户、奖项、获奖人和文章绑定不得提前删除；管理员回收站树仍显示当前公开已发布文章，恢复后公开端重现，到期才级联物理清理。同名正常比赛唯一，但回收站不占用名称；恢复遇到同名正常比赛必须拒绝。
+- `POST /player/competitions/{competitionId}/articles/{blogId}` 只允许比赛参赛用户绑定本人公开且已发布文章；对应 DELETE 可解绑本人已存在的绑定。草稿、内部或回收站文章只从公开比赛响应隐藏，不删除绑定，重新公开或恢复后自动重现。
 - 单篇文章归档下载只允许登录用户读取已发布文章，ZIP 内 `article.md` 依次包含标题、简介和原始正文，托管首图/正文图使用扁平语义化文件名；普通用户按 username 在全部文章间共享 30 秒 Redis 原子窗口，管理员豁免，限流存储故障时普通用户失败关闭。管理员可从文章管理页下载包含全部文章状态、评论、作者资料和托管图片的全量 ZIP，备份不得包含密码、token 或评论 IP。
 - 管理员用户编辑统一走一个 `PUT /admin/users/{username}`。账号字段、改名、角色、密码、完整 OJ handle 集合和 `needCollect` 必须在同一事务内处理；更换或移除 handle 前先清理对应 OJ 训练数据。不得恢复拆分的 patch/replace-handle 接口。
+- 比赛参赛关系使用 `username` 外键并随用户改名级联；删除用户只把关系中的 username 置空，必须保留昵称快照、比赛参与和历史奖项。公开名片、`/player/me`、资料修改和头像更新响应均包含仍可见比赛的 `achievements`。
+- 新获奖关系默认不在个人公开名片展示；`/player/me` 等本人资料响应必须返回全部本人奖项及 `profileVisible`，公开 `/profiles/{username}` 只返回本人已开启展示的项目。展示偏好只能由该获奖人通过 player 路径修改，团队成员独立选择，不能影响比赛详情中的获奖事实。
 - 固定系统管理员 `root` 不得删除、改名、降权、绑定 OJ handle 或设置队员采集状态。
 - 多人训练汇总使用一次 `GET /player/training-data/accepted-summaries` 批量读取，不能在前端按用户制造 N+1 请求；单人查询继续使用单用户接口。
 - 分类与标签后台列表分别分页；公开独立训练外壳只读取 `/categories`，不为导航加载完整 `/site` 响应。
-- Vue Blog 的个人主页位于 `src/views/profile/Profile.vue`，同页展示资料、OJ handle、友情链接和本人文章；OJ handle 读取失败必须显示可重试错误，不能伪装成“未绑定”。
+- Vue Blog 的个人主页位于 `src/views/profile/Profile.vue`，同页展示资料、OJ handle、友情链接和本人文章；后端资料 DTO 同时提供 `achievements`，本次不新增比赛前端页面。OJ handle 读取失败必须显示可重试错误，不能伪装成“未绑定”。
 - 评论只允许登录账号提交，创建请求只接受 `content`、`blogId` 和 `parentCommentId`；公开评论树按根评论分页并批量装配回复，不得恢复游客身份表单、评论通知或后台评论管理链路。
 - 新评论表情以标准 Unicode 存储；Blog 展示层使用同源 Google Noto Emoji SVG sprite 渲染选择器及受支持表情，禁止把表情 HTML 或第三方 CDN URL 写入评论。历史 tv/阿鲁/泡泡短码只保留只读渲染兼容。
 - 文章列表的标签应批量读取，Redis 缓存必须有 TTL 且失败时降级到数据库；事务内的缓存失效在提交后执行。

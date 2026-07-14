@@ -6,6 +6,15 @@
         select * from user where username=#{username} limit 1
     </select>
 
+	<select id="findByUsernames" resultType="top.naccl.entity.User">
+		select * from user
+		where username in
+		<foreach collection="usernames" item="username" open="(" separator="," close=")">
+			#{username}
+		</foreach>
+		order by username
+	</select>
+
     <select id="findAll" resultType="top.naccl.entity.User">
         select * from user order by id
     </select>

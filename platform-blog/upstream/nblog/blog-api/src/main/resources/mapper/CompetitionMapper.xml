@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.naccl.mapper.CompetitionMapper">
+
+	<resultMap id="competition" type="top.naccl.entity.Competition">
+		<id property="id" column="id"/>
+		<result property="fullName" column="full_name"/>
+		<result property="activeFullName" column="active_full_name"/>
+		<result property="competitionYear" column="competition_year"/>
+		<result property="participationMode" column="participation_mode"/>
+		<result property="createTime" column="create_time"/>
+		<result property="deletedAt" column="deleted_at"/>
+	</resultMap>
+
+	<resultMap id="typeTag" type="top.naccl.entity.CompetitionTypeTag">
+		<id property="competitionId" column="competition_id"/>
+		<id property="type" column="type"/>
+	</resultMap>
+
+	<resultMap id="participant" type="top.naccl.entity.CompetitionParticipant">
+		<id property="id" column="id"/>
+		<result property="competitionId" column="competition_id"/>
+		<result property="username" column="username"/>
+		<result property="displayNameSnapshot" column="display_name_snapshot"/>
+		<result property="displayName" column="display_name"/>
+		<result property="createTime" column="create_time"/>
+	</resultMap>
+
+	<resultMap id="award" type="top.naccl.entity.CompetitionAward">
+		<id property="id" column="id"/>
+		<result property="competitionId" column="competition_id"/>
+		<result property="awardMode" column="award_mode"/>
+		<result property="teamName" column="team_name"/>
+		<result property="awardScope" column="award_scope"/>
+		<result property="awardLevel" column="award_level"/>
+		<result property="rankPosition" column="rank_position"/>
+		<result property="rankTotal" column="rank_total"/>
+		<result property="awardName" column="award_name"/>
+		<result property="profileVisible" column="profile_visible"/>
+		<result property="createTime" column="create_time"/>
+	</resultMap>
+
+	<resultMap id="recipient" type="top.naccl.entity.CompetitionAwardRecipient">
+		<id property="awardId" column="award_id"/>
+		<id property="participantId" column="participant_id"/>
+		<result property="competitionId" column="competition_id"/>
+		<result property="username" column="username"/>
+		<result property="displayNameSnapshot" column="display_name_snapshot"/>
+		<result property="displayName" column="display_name"/>
+	</resultMap>
+
+	<resultMap id="article" type="top.naccl.entity.CompetitionArticle">
+		<id property="participantId" column="participant_id"/>
+		<id property="blogId" column="blog_id"/>
+		<result property="competitionId" column="competition_id"/>
+		<result property="title" column="title"/>
+		<result property="createTime" column="create_time"/>
+	</resultMap>
+
+	<resultMap id="awardFlat" type="top.naccl.entity.CompetitionAwardFlatProjection">
+		<id property="awardId" column="award_id"/>
+		<id property="competitionType" column="competition_type"/>
+		<result property="competitionId" column="competition_id"/>
+		<result property="competitionFullName" column="competition_full_name"/>
+		<result property="competitionYear" column="competition_year"/>
+		<result property="awardMode" column="award_mode"/>
+		<result property="teamName" column="team_name"/>
+		<result property="awardScope" column="award_scope"/>
+		<result property="awardLevel" column="award_level"/>
+		<result property="rankPosition" column="rank_position"/>
+		<result property="rankTotal" column="rank_total"/>
+		<result property="awardName" column="award_name"/>
+	</resultMap>
+
+	<sql id="competitionColumns">
+		c.id, c.full_name, c.active_full_name, c.competition_year,
+		c.participation_mode, c.create_time, c.deleted_at
+	</sql>
+
+	<select id="findActiveCompetitions" resultMap="competition">
+		select <include refid="competitionColumns"/>
+		from competition c
+		where c.deleted_at is null
+		<if test="yearFrom != null">
+			and c.competition_year &gt;= #{yearFrom}
+		</if>
+		<if test="yearTo != null">
+			and c.competition_year &lt;= #{yearTo}
+		</if>
+		<if test="type != null">
+			and exists (
+				select 1
+				from competition_type_tag ctt
+				where ctt.competition_id = c.id and ctt.type = #{type}
+			)
+		</if>
+		order by c.competition_year desc, c.id desc
+	</select>
+
+	<select id="findRecycleBinCompetitions" resultMap="competition">
+		select <include refid="competitionColumns"/>
+		from competition c
+		where c.deleted_at is not null and c.deleted_at &gt; #{cutoff}
+		<if test="yearFrom != null">
+			and c.competition_year &gt;= #{yearFrom}
+		</if>
+		<if test="yearTo != null">
+			and c.competition_year &lt;= #{yearTo}
+		</if>
+		<if test="type != null">
+			and exists (
+				select 1
+				from competition_type_tag ctt
+				where ctt.competition_id = c.id and ctt.type = #{type}
+			)
+		</if>
+		order by c.deleted_at desc, c.id desc
+	</select>
+
+	<select id="findActiveCompetitionById" resultMap="competition">
+		select <include refid="competitionColumns"/>
+		from competition c
+		where c.id = #{id} and c.deleted_at is null
+	</select>
+
+	<select id="findCompetitionByIdForUpdate" resultMap="competition">
+		select <include refid="competitionColumns"/>
+		from competition c
+		where c.id = #{id}
+		for update
+	</select>
+
+	<select id="findActiveCompetitionByFullName" resultMap="competition">
+		select <include refid="competitionColumns"/>
+		from competition c
+		where c.active_full_name = #{fullName}
+	</select>
+
+	<insert id="insertCompetition" parameterType="top.naccl.entity.Competition"
+			useGeneratedKeys="true" keyProperty="id">
+		insert into competition
+		(full_name, active_full_name, competition_year, participation_mode, create_time, deleted_at)
+		values
+		(#{fullName}, #{fullName}, #{competitionYear}, #{participationMode},
+		 coalesce(#{createTime}, now()), null)
+	</insert>
+
+	<insert id="insertTypeTags">
+		insert into competition_type_tag (competition_id, type) values
+		<foreach collection="types" item="type" separator=",">
+			(#{competitionId}, #{type})
+		</foreach>
+	</insert>
+
+	<update id="moveCompetitionToRecycleBin">
+		update competition
+		set deleted_at = #{deletedAt}, active_full_name = null
+		where id = #{id} and deleted_at is null
+	</update>
+
+	<update id="restoreCompetition">
+		update competition
+		set active_full_name = full_name, deleted_at = null
+		where id = #{id} and deleted_at is not null and deleted_at &gt; #{cutoff}
+	</update>
+
+	<select id="findExpiredCompetitionIdsForUpdate" resultType="java.lang.Long">
+		select id
+		from competition
+		where deleted_at is not null and deleted_at &lt;= #{cutoff}
+		order by deleted_at, id
+		for update
+	</select>
+
+	<delete id="deleteCompetitionById">
+		delete from competition where id = #{id} and deleted_at is not null
+	</delete>
+
+	<select id="findTypeTagsByCompetitionIds" resultMap="typeTag">
+		select competition_id, type
+		from competition_type_tag
+		<choose>
+			<when test="competitionIds != null and !competitionIds.isEmpty()">
+				where competition_id in
+				<foreach collection="competitionIds" item="competitionId" open="(" separator="," close=")">
+					#{competitionId}
+				</foreach>
+			</when>
+			<otherwise>where 1 = 0</otherwise>
+		</choose>
+		order by competition_id, type
+	</select>
+
+	<select id="findParticipantsByCompetitionIds" resultMap="participant">
+		select p.id, p.competition_id, p.username, p.display_name_snapshot,
+		coalesce(u.nickname, p.display_name_snapshot) as display_name, p.create_time
+		from competition_participant p
+		left join `user` u on u.username = p.username
+		<choose>
+			<when test="competitionIds != null and !competitionIds.isEmpty()">
+				where p.competition_id in
+				<foreach collection="competitionIds" item="competitionId" open="(" separator="," close=")">
+					#{competitionId}
+				</foreach>
+			</when>
+			<otherwise>where 1 = 0</otherwise>
+		</choose>
+		order by p.competition_id, p.id
+	</select>
+
+	<select id="findAwardsByCompetitionIds" resultMap="award">
+		select a.id, a.competition_id, a.award_mode, a.team_name, a.award_scope,
+		a.award_level, a.rank_position, a.rank_total, a.award_name, a.create_time
+		from competition_award a
+		<choose>
+			<when test="competitionIds != null and !competitionIds.isEmpty()">
+				where a.competition_id in
+				<foreach collection="competitionIds" item="competitionId" open="(" separator="," close=")">
+					#{competitionId}
+				</foreach>
+			</when>
+			<otherwise>where 1 = 0</otherwise>
+		</choose>
+		order by a.competition_id, a.id
+	</select>
+
+	<select id="findAwardRecipientsByCompetitionIds" resultMap="recipient">
+		select car.competition_id, car.award_id, car.participant_id, p.username,
+		p.display_name_snapshot, coalesce(u.nickname, p.display_name_snapshot) as display_name
+		from competition_award_recipient car
+		join competition_participant p on p.id = car.participant_id
+		left join `user` u on u.username = p.username
+		<choose>
+			<when test="competitionIds != null and !competitionIds.isEmpty()">
+				where car.competition_id in
+				<foreach collection="competitionIds" item="competitionId" open="(" separator="," close=")">
+					#{competitionId}
+				</foreach>
+			</when>
+			<otherwise>where 1 = 0</otherwise>
+		</choose>
+		order by car.competition_id, car.award_id, car.participant_id
+	</select>
+
+	<select id="findPublicArticlesByCompetitionIds" resultMap="article">
+		select p.competition_id, ca.participant_id, ca.blog_id, b.title, ca.create_time
+		from competition_article ca
+		join competition_participant p on p.id = ca.participant_id
+		join blog b on b.id = ca.blog_id
+			and b.deleted_at is null and b.is_published = true and b.is_internal = false
+		<choose>
+			<when test="competitionIds != null and !competitionIds.isEmpty()">
+				where p.competition_id in
+				<foreach collection="competitionIds" item="competitionId" open="(" separator="," close=")">
+					#{competitionId}
+				</foreach>
+			</when>
+			<otherwise>where 1 = 0</otherwise>
+		</choose>
+		order by p.competition_id, ca.participant_id, ca.blog_id
+	</select>
+
+	<select id="findParticipantsByCompetitionIdAndUsernames" resultMap="participant">
+		select p.id, p.competition_id, p.username, p.display_name_snapshot,
+		coalesce(u.nickname, p.display_name_snapshot) as display_name, p.create_time
+		from competition_participant p
+		left join `user` u on u.username = p.username
+		where p.competition_id = #{competitionId}
+		<choose>
+			<when test="usernames != null and !usernames.isEmpty()">
+				and p.username in
+				<foreach collection="usernames" item="username" open="(" separator="," close=")">
+					#{username}
+				</foreach>
+			</when>
+			<otherwise>and 1 = 0</otherwise>
+		</choose>
+		order by p.id
+	</select>
+
+	<select id="findParticipantByIdForUpdate" resultMap="participant">
+		select p.id, p.competition_id, p.username, p.display_name_snapshot,
+		p.display_name_snapshot as display_name, p.create_time
+		from competition_participant p
+		where p.id = #{id}
+		for update
+	</select>
+
+	<insert id="insertParticipants" useGeneratedKeys="true" keyProperty="participants.id">
+		insert into competition_participant
+		(competition_id, username, display_name_snapshot, create_time)
+		values
+		<foreach collection="participants" item="participant" separator=",">
+			(#{participant.competitionId}, #{participant.username},
+			 #{participant.displayNameSnapshot}, coalesce(#{participant.createTime}, now()))
+		</foreach>
+	</insert>
+
+	<delete id="deleteParticipant">
+		delete from competition_participant
+		where competition_id = #{competitionId} and id = #{participantId}
+	</delete>
+
+	<select id="countAwardReferencesByParticipantId" resultType="int">
+		select count(*) from competition_award_recipient where participant_id = #{participantId}
+	</select>
+
+	<select id="findAwardByIdForUpdate" resultMap="award">
+		select id, competition_id, award_mode, team_name, award_scope,
+		award_level, rank_position, rank_total, award_name, create_time
+		from competition_award
+		where id = #{id}
+		for update
+	</select>
+
+	<insert id="insertAward" parameterType="top.naccl.entity.CompetitionAward"
+			useGeneratedKeys="true" keyProperty="id">
+		insert into competition_award
+		(competition_id, award_mode, team_name, award_scope, award_level,
+		 rank_position, rank_total, award_name, create_time)
+		values
+		(#{competitionId}, #{awardMode}, #{teamName}, #{awardScope}, #{awardLevel},
+		 #{rankPosition}, #{rankTotal}, #{awardName}, coalesce(#{createTime}, now()))
+	</insert>
+
+	<delete id="deleteAward">
+		delete from competition_award
+		where competition_id = #{competitionId} and id = #{awardId}
+	</delete>
+
+	<insert id="insertAwardRecipients">
+		insert into competition_award_recipient (competition_id, award_id, participant_id)
+		values
+		<foreach collection="recipients" item="recipient" separator=",">
+			(#{recipient.competitionId}, #{recipient.awardId}, #{recipient.participantId})
+		</foreach>
+	</insert>
+
+	<insert id="bindOwnedPublicArticle">
+		insert into competition_article (participant_id, blog_id, create_time)
+		select p.id, b.id, now()
+		from competition_participant p
+		join competition c on c.id = p.competition_id and c.deleted_at is null
+		join `user` u on u.username = p.username
+		join blog b on b.id = #{blogId} and b.user_id = u.id
+			and b.deleted_at is null and b.is_published = true and b.is_internal = false
+		where p.id = #{participantId} and p.username = #{username}
+	</insert>
+
+	<delete id="unbindOwnedArticle">
+		delete ca
+		from competition_article ca
+		join competition_participant p on p.id = ca.participant_id
+		join competition c on c.id = p.competition_id and c.deleted_at is null
+		join `user` u on u.username = p.username
+		join blog b on b.id = ca.blog_id and b.user_id = u.id
+		where ca.participant_id = #{participantId}
+			and ca.blog_id = #{blogId}
+			and p.username = #{username}
+	</delete>
+
+	<select id="findAchievementProfileVisibility" resultType="java.lang.Boolean">
+		select car.profile_visible
+		from competition_award_recipient car
+		join competition_participant p
+			on p.id = car.participant_id and p.competition_id = car.competition_id
+		where car.competition_id = #{competitionId}
+			and car.award_id = #{awardId}
+			and p.username = #{username}
+	</select>
+
+	<update id="updateAchievementProfileVisibility">
+		update competition_award_recipient car
+		join competition_participant p
+			on p.id = car.participant_id and p.competition_id = car.competition_id
+		set car.profile_visible = #{visible}
+		where car.competition_id = #{competitionId}
+			and car.award_id = #{awardId}
+			and p.username = #{username}
+	</update>
+
+	<select id="findActiveAwardProjectionsByUsername" resultMap="awardFlat">
+		select c.id as competition_id, c.full_name as competition_full_name,
+		c.competition_year, ctt.type as competition_type,
+		a.id as award_id, a.award_mode, a.team_name, a.award_scope,
+		a.award_level, a.rank_position, a.rank_total, a.award_name, car.profile_visible
+		from competition_participant p
+		join competition_award_recipient car on car.participant_id = p.id
+		join competition_award a on a.id = car.award_id
+		join competition c on c.id = a.competition_id and c.deleted_at is null
+		left join competition_type_tag ctt on ctt.competition_id = c.id
+		where p.username = #{username}
+		order by c.competition_year desc, c.id desc, a.id, ctt.type
+	</select>
+
+</mapper>

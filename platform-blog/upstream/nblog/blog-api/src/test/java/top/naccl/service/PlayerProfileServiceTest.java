@@ -15,6 +15,8 @@ import top.naccl.mapper.UserProfileLinkMapper;
 import top.naccl.model.dto.PlayerProfileUpdateRequest;
 import top.naccl.model.dto.ProfileLinkInput;
 import top.naccl.model.dto.ProfileLinksReplaceRequest;
+import top.naccl.model.vo.CompetitionAchievement;
+import top.naccl.model.vo.CompetitionResponse;
 import top.naccl.model.vo.PlayerProfile;
 import top.naccl.model.vo.PublicProfile;
 
@@ -39,13 +41,16 @@ class PlayerProfileServiceTest {
 	private RedisService redisService;
 	@Mock
 	private ImageAssetService imageAssetService;
+	@Mock
+	private CompetitionService competitionService;
 
 	private PlayerProfileService service;
 	private User player;
 
 	@BeforeEach
 	void setUp() {
-		service = new PlayerProfileService(userMapper, linkMapper, redisService, imageAssetService);
+		service = new PlayerProfileService(userMapper, linkMapper, redisService, imageAssetService,
+				competitionService);
 		player = new User();
 		player.setId(7L);
 		player.setUsername("player1");
@@ -60,22 +65,27 @@ class PlayerProfileServiceTest {
 	void returnsCurrentProfileWithOrderedLinks() {
 		UserProfileLink link = link("GitHub", "https://github.com/example", 0);
 		link.setId(12L);
+		CompetitionAchievement achievement = achievement();
 		when(userMapper.findByUsername("player1")).thenReturn(player);
 		when(linkMapper.findByUserId(7L)).thenReturn(List.of(link));
+		when(competitionService.achievements("player1")).thenReturn(List.of(achievement));
 
 		PlayerProfile profile = service.get("player1");
 
 		assertEquals("player1", profile.getUsername());
 		assertEquals("player1@example.com", profile.getEmail());
 		assertEquals("GitHub", profile.getLinks().getFirst().label());
+		assertEquals(List.of(achievement), profile.getAchievements());
 	}
 
 	@Test
 	void returnsPublicProfileWithoutAccountRole() {
 		player.setSignature("保持好奇");
 		UserProfileLink link = link("主页", "https://example.com", 0);
+		CompetitionAchievement achievement = achievement();
 		when(userMapper.findByUsername("player1")).thenReturn(player);
 		when(linkMapper.findByUserId(7L)).thenReturn(List.of(link));
+		when(competitionService.publicAchievements("player1")).thenReturn(List.of(achievement));
 
 		PublicProfile profile = service.getPublic("player1");
 
@@ -83,6 +93,7 @@ class PlayerProfileServiceTest {
 		assertEquals("player1@example.com", profile.getEmail());
 		assertEquals("保持好奇", profile.getSignature());
 		assertEquals("主页", profile.getLinks().getFirst().label());
+		assertEquals(List.of(achievement), profile.getAchievements());
 	}
 
 	@Test
@@ -172,5 +183,26 @@ class PlayerProfileServiceTest {
 		link.setUrl(url);
 		link.setSortOrder(sortOrder);
 		return link;
+	}
+
+	private static CompetitionAchievement achievement() {
+		return new CompetitionAchievement(
+				31L,
+				"2025 年中国高校计算机大赛-团体程序设计天梯赛",
+				2025,
+				List.of(new CompetitionResponse.Type("GPLT", "团体程序设计天梯赛")),
+				41L,
+				"INDIVIDUAL",
+				"个人",
+				null,
+				"NATIONAL",
+				"国家级",
+				1,
+				"一等奖",
+				3,
+				120,
+				"(3/120)",
+				true
+		);
 	}
 }

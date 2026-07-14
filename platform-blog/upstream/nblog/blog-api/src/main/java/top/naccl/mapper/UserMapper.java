@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 import top.naccl.entity.User;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -16,6 +17,8 @@ import java.util.List;
 @Repository
 public interface UserMapper {
 	User findByUsername(String username);
+
+	List<User> findByUsernames(@Param("usernames") Collection<String> usernames);
 
 	List<User> findAll();
 

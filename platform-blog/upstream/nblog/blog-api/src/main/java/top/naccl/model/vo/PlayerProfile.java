@@ -18,6 +18,7 @@ public class PlayerProfile {
 	private final String signature;
 	private final String role;
 	private final List<ProfileLinkResponse> links;
+	private final List<CompetitionAchievement> achievements;
 
 	public PlayerProfile(User user) {
 		this(user, List.of(), user.getAvatar());
@@ -28,6 +29,11 @@ public class PlayerProfile {
 	}
 
 	public PlayerProfile(User user, List<ProfileLinkResponse> links, String avatarOriginalUrl) {
+		this(user, links, avatarOriginalUrl, List.of());
+	}
+
+	public PlayerProfile(User user, List<ProfileLinkResponse> links, String avatarOriginalUrl,
+			List<CompetitionAchievement> achievements) {
 		this.username = user.getUsername();
 		this.nickname = user.getNickname();
 		this.email = user.getEmail();
@@ -36,5 +42,6 @@ public class PlayerProfile {
 		this.signature = user.getSignature();
 		this.role = user.getRole();
 		this.links = List.copyOf(links);
+		this.achievements = List.copyOf(achievements);
 	}
 }

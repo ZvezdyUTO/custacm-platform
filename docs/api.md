@@ -22,12 +22,12 @@ Blog API 是项目唯一后端。默认本地直连地址为 `http://localhost:8
 | Method | 后端路径 | Access | Description |
 | --- | --- | --- | --- |
 | POST | `/login` | Guest | 使用 `username`/password 登录，返回 user 与 bearer token；失败后按 username 冷却五秒 |
-| GET | `/profiles/{username}` | Guest | 返回文章作者公开名片：username、nickname、avatar、signature、links |
-| GET | `/player/me` | Player/Admin | 返回数据库中的当前用户摘要 |
-| PATCH | `/player/me/profile` | Player/Admin | 修改本人 nickname 和/或个性签名，返回完整资料；nickname 1–30 字符，签名最多 160 字符 |
-| PUT | `/player/me/profile-links` | Player/Admin | 整体替换本人个人友情链接，按数组顺序保存，最多 8 条且仅允许 HTTP(S) 绝对地址 |
+| GET | `/profiles/{username}` | Guest | 返回文章作者公开名片及其主动开启展示的 `achievements` |
+| GET | `/player/me` | Player/Admin | 返回当前用户资料及全部本人 `achievements`，每项带 `profileVisible` |
+| PATCH | `/player/me/profile` | Player/Admin | 修改本人 nickname 和/或个性签名，返回含 `achievements` 的完整资料；nickname 1–30 字符，签名最多 160 字符 |
+| PUT | `/player/me/profile-links` | Player/Admin | 整体替换本人个人友情链接并返回含 `achievements` 的完整资料；按数组顺序保存，最多 8 条且仅允许 HTTP(S) 绝对地址 |
 | GET | `/player/me/oj-handles` | Player/Admin | 仅返回当前用户绑定的 Codeforces/AtCoder handle map；未绑定时返回空对象 |
-| POST | `/player/me/avatar` | Player/Admin | 上传前端裁剪后的 512×512 PNG 头像，multipart 字段为 `file`，最大 2MB |
+| POST | `/player/me/avatar` | Player/Admin | 上传前端裁剪后的 512×512 PNG 头像并返回含 `achievements` 的完整资料，multipart 字段为 `file`，最大 2MB |
 | POST | `/player/images` | Player/Admin | 上传文章首图或正文图，multipart 字段为 `file`、`purpose` |
 | DELETE | `/player/images/{id}` | Player/Admin | 幂等删除当前用户尚未绑定文章的临时图片 |
 | PATCH | `/player/me/password` | Player/Admin | 使用旧密码修改本人密码 |
@@ -58,13 +58,75 @@ Vue Blog 在 `/profile` 展示“我的主页”并分页消费 `GET /player/blo
 
 `GET /admin/blogs/backup` 返回固定短 ASCII 文件名的 `application/zip` attachment。范围覆盖数据库中仍存在的已发布、内部、草稿和七天回收站文章；每篇文章目录包含带标题/简介的 Markdown、状态/分类/标签元数据、评论父子关系及扁平命名的托管图片，根目录汇总文章作者资料与按作者目录扁平保存的托管头像，不附带额外 README。备份不导出密码哈希、token、评论 IP/邮箱/通知字段，也不抓取外站图片；缺失的本地托管文件记录在 `manifest.json`。
 
-`GET /player/me`、资料修改、个人友链整体替换和头像更新都返回本人资料 DTO，字段为 `username`、`nickname`、`email`、`avatar`、`avatarOriginalUrl`、`signature`、`role` 和 `links`。`avatar` 是 96×96 缩略图。每条 link 包含 `id`、`label`、`url`、`sortOrder`；清空友链时提交 `{"links":[]}`。
+`GET /player/me`、资料修改、个人友链整体替换和头像更新都返回本人资料 DTO，字段为 `username`、`nickname`、`email`、`avatar`、`avatarOriginalUrl`、`signature`、`role`、`links` 和 `achievements`。本人响应中的 `achievements` 包含所有正常比赛的本人奖项，并以 `profileVisible` 告知是否公开展示，供个人页编辑。`avatar` 是 96×96 缩略图。每条 link 包含 `id`、`label`、`url`、`sortOrder`；清空友链时提交 `{"links":[]}`。
 
-`GET /profiles/{username}` 是匿名只读的作者名片接口，返回用户主动公开展示的 `username`、`nickname`、`email`、`avatar`、`signature` 和 `links`，不返回 role 或 OJ handle。文章详情左侧名片用文章的 `authorUsername` 调用该接口。
+`GET /profiles/{username}` 是匿名只读的作者名片接口，返回用户主动公开展示的 `username`、`nickname`、`email`、`avatar`、`signature`、`links` 和 `achievements`，其中只包含本人将 `profileVisible` 开启的奖项；不返回 role 或 OJ handle。文章详情左侧名片用文章的 `authorUsername` 调用该接口。
 
 `POST /player/images` 的 `purpose` 只能是 `ARTICLE_COVER` 或 `ARTICLE_CONTENT`。正文 JPEG/PNG 最大 15MB，生成最长边 2560 的高清版和最长边 960 的缩略图；首图必须由前端裁剪为 1920×1080 且最大 10MB。响应包含 `id`、`publicId`、`purpose`、`originalUrl`、`thumbnailUrl`、宽高和两个文件大小。文章写请求通过 `firstPictureAssetId` 绑定首图，后端从 Markdown 中解析本站 UUID 图片并绑定正文资产；资产不可跨文章复用。
 
 文章删除只写入 `deleted_at` 并立即从列表、详情、评论、搜索、精选和下载查询中隐藏；正文、评论、标签与托管图片在固定七天保留期内不变。本人或管理员可在到期前恢复，满七天后定时任务才在同一事务中物理删除关联数据并于提交后回收图片。主动从正文移除托管图、更换首图或头像仍在保存事务提交后立即回收；删除失败的资产进入 `DELETING` 重试，超过 24 小时未绑定的 `TEMP` 资产和孤儿目录由每日任务清理。
+
+## 比赛与获奖记录
+
+公开读取和受保护写入路径如下：
+
+| Method | 路径 | Access | Description |
+| --- | --- | --- | --- |
+| GET | `/competitions` | Guest | 按年份闭区间、可选类型标签分页查询正常比赛 |
+| GET | `/competitions/{id}` | Guest | 查询一个正常比赛的参赛用户、可见文章、奖项和获奖人 |
+| POST | `/admin/competitions` | Admin | 添加比赛 |
+| GET | `/admin/competitions/recycle-bin` | Admin | 按同样筛选条件分页查询仍在七天保留期内的比赛根及保留的子关系 |
+| DELETE | `/admin/competitions/{id}` | Admin | 仅将正常比赛根移入七天回收站，子关系原样保留 |
+| PUT | `/admin/competitions/{id}/restore` | Admin | 恢复仍在保留期内且名称不冲突的比赛 |
+| POST | `/admin/competitions/{id}/participants` | Admin | 批量添加比赛参赛用户 |
+| DELETE | `/admin/competitions/{id}/participants/{participantId}` | Admin | 删除一个比赛参赛记录 |
+| POST | `/admin/competitions/{id}/awards` | Admin | 添加奖项并绑定一个或多个当前比赛参赛用户 |
+| DELETE | `/admin/competitions/{id}/awards/{awardId}` | Admin | 删除一个奖项及其获奖人关联 |
+| POST | `/player/competitions/{competitionId}/articles/{blogId}` | Player/Admin | 参赛用户绑定本人当前公开且已发布文章 |
+| DELETE | `/player/competitions/{competitionId}/articles/{blogId}` | Player/Admin | 参赛用户解绑本人文章 |
+| PUT | `/player/competitions/{competitionId}/awards/{awardId}/profile-visibility` | Player/Admin | 获奖人修改本人名片是否展示该奖项 |
+
+`GET /competitions` 和回收站列表接受 `startYear`、`endYear`、`type`、`pageNum`、`pageSize`。年份上下界均包含端点且只接受 1900–9999；只传一端时应用单侧过滤；同时传入时要求 `startYear <= endYear`。`type` 是单个可选标签代码，一场比赛命中该标签即可入选。`pageNum` 从 1 开始，`pageSize` 允许 1–100；分页响应字段为 `pageNum`、`pageSize`、`total`、`totalPages` 和 `list`。
+
+比赛类型是多选标签，支持以下稳定代码：`ICPC`、`CCPC`、`PROVINCIAL`（省赛）、`INVITATIONAL`（邀请赛）、`NATIONAL_SITE`（CCPC 全国分站赛）、`ASIA_REGIONAL`（ICPC 亚洲区域赛）、`ASIA_EAST_CONTINENT_FINAL`（ICPC 亚洲东大陆总决赛（EC-Final））、`NATIONAL_FINAL`（全国总决赛）、`WORLD_FINAL`（世界总决赛）、`LANQIAO_CUP`（蓝桥杯）、`BAIDU_STAR`（百度之星）、`GPLT`（团体程序设计天梯赛）和 `OTHER`（其他）。创建时 `LANQIAO_CUP` 不能与 `PROVINCIAL` 同时出现；`BAIDU_STAR` 允许搭配 `PROVINCIAL`。比赛根的 `participationMode` 只允许 `INDIVIDUAL`、`TEAM`、`MIXED`。
+
+添加比赛请求示例：
+
+```json
+{
+  "fullName": "2026 ICPC Asia Shanghai Regional Contest",
+  "year": 2026,
+  "types": ["ICPC", "ASIA_REGIONAL"],
+  "participationMode": "TEAM"
+}
+```
+
+创建比赛时年份同样只接受 1900–9999，`types` 至少包含一项。比赛全称在正常记录中唯一。删除后该名称立即释放，可在旧记录七天保留期间创建同名新比赛；旧记录恢复时若已有同名正常比赛，恢复请求拒绝且旧记录继续留在回收站。管理员除恢复外没有比赛、参赛用户或奖项的 PUT/PATCH 接口，更正数据时删除对应记录后重新添加。
+
+批量添加参赛用户使用 `{"usernames":["player1","player2"]}`，单次最多 100 个不重复的已存在 username。参赛关系以 `username` 外键连接账号，用户改名时级联更新；删除账号时 username 置空，但昵称快照、参赛记录和历史奖项继续保留。删除参赛记录前必须先删除仍绑定该用户的奖项。
+
+添加奖项请求字段为：
+
+```json
+{
+  "awardMode": "TEAM",
+  "teamName": "CustACM",
+  "awardScope": "NATIONAL",
+  "awardLevel": 1,
+  "awardName": "金奖",
+  "rankPosition": 3,
+  "rankTotal": 280,
+  "recipientUsernames": ["player1", "player2"]
+}
+```
+
+`awardMode` 只允许 `INDIVIDUAL`/`TEAM`，`awardLevel` 只允许 1–4；`rankPosition` 和 `rankTotal` 都是正整数且前者不大于后者，响应同时返回带括号的格式化字符串 `rank`，例如 `(3/280)`。`INDIVIDUAL` 必须且只能绑定一名当前比赛参赛用户，且 `teamName` 必须省略；`TEAM` 至少绑定两名参赛用户，可选填写队名。普通比赛的 `awardScope` 可省略或为 `PROVINCIAL`/`NATIONAL`；蓝桥杯必须为 `NATIONAL`，百度之星和团体程序设计天梯赛必须在省级、国家级中选择一项。
+
+新获奖人关系默认 `profileVisible=false`，不会直接出现在公开名片。获奖人可调用 `PUT /player/competitions/{competitionId}/awards/{awardId}/profile-visibility`，请求体为 `{"visible":true}` 或 `{"visible":false}`。后端只按当前 JWT username 更新本人获奖关系；团队奖各成员独立选择，管理员通过 player 路径也不能替其他人设置。重复提交同一状态按成功处理。比赛公开详情中的获奖人事实不受该偏好影响。
+
+比赛删除后立即从两个公开比赛接口、玩家文章绑定目标和全部个人 `achievements` 中隐藏，但参赛用户、奖项、获奖人和文章关联固定保留七天；管理员回收站响应仍装配这些子关系和其中当前公开已发布的文章。恢复后聚合在公开端原样重现，到期才级联物理清理。已绑定文章后来变为草稿、内部文章或进入文章回收站时，只从比赛响应的文章列表隐藏；重新公开或恢复文章后无需重绑即可重现。
+
+本人资料响应中的每项 `achievements` 包含 `competitionId`、`competitionFullName`、`year`、`types`、`awardId`、奖项形态/标签、可选团队名、奖项范围/标签、1–4 级、可选奖项名称、`rankPosition`、`rankTotal`、格式化 `rank` 和 `profileVisible`；公开资料只返回 `profileVisible=true` 的项目。已删除比赛的获奖记录不返回，恢复后沿用删除前的展示选择；删除用户账号不会抹除其他公开比赛详情中的昵称快照和历史获奖事实。
 
 ## 用户管理
 
@@ -75,7 +137,7 @@ Vue Blog 在 `/profile` 展示“我的主页”并分页消费 `GET /player/blo
 | POST | `/admin/users:batch-create` | 在一个事务中创建 JSON 用户数组 |
 | GET | `/admin/users` | 列出用户、OJ handle 及各 OJ 最近成功采集窗口结束时间 |
 | PUT | `/admin/users/{username}` | 原子更新 `newUsername`、nickname、email、role、password、完整 `handles` 与 `needCollect`；不接受头像 URL |
-| DELETE | `/admin/users/{username}` | 清理训练数据、保留作者内容并删除用户；立即回收该用户未被保留文章引用的托管图片 |
+| DELETE | `/admin/users/{username}` | 清理训练数据、保留作者内容和比赛昵称快照/历史奖项并删除用户；立即回收该用户未被保留文章引用的托管图片 |
 
 `username` 会 trim，长度为 1–128，可包含 Unicode 字母、数字、`.`、`_` 和 `-`。最后一个管理员不能被删除或降级。创建时省略 password 会一次性返回生成密码；PUT 传空 password 会一次性返回重置密码。改名或改密响应包含 `reloginRequired=true`。非 `root` 更新必须同时提交完整 `handles` 与 `needCollect`，避免分接口写入造成账号与训练身份不一致。
 
@@ -151,7 +213,7 @@ GET /api/player/training-data/users?includeRetired=true
 
 ## 公开 Blog API
 
-文章、分类、标签、首页图片、作者资料及评论列表等公开 GET 请求不要求登录。About、全站友链和动态页面及其 API 已删除。评论列表仅在评论仍关联现存账号时返回只读 `username`；历史游客评论或账号删除后的匿名评论不返回该身份。新评论中的表情以标准 Unicode 原样存储，Google Noto Emoji 只由 Blog 展示层通过同源 SVG sprite 渲染；历史短码继续只读兼容。没有公开 OJ handle map、guest 训练查询、独立 handle 管理 API 或独立用户训练数据删除 API；删除用户时由用户服务在内部编排清理。
+文章、分类、标签、比赛与获奖记录、首页图片、作者资料及评论列表等公开 GET 请求不要求登录。About、全站友链和动态页面及其 API 已删除。评论列表仅在评论仍关联现存账号时返回只读 `username`；历史游客评论或账号删除后的匿名评论不返回该身份。新评论中的表情以标准 Unicode 原样存储，Google Noto Emoji 只由 Blog 展示层通过同源 SVG sprite 渲染；历史短码继续只读兼容。没有公开 OJ handle map、guest 训练查询、独立 handle 管理 API 或独立用户训练数据删除 API；删除用户时由用户服务在内部编排清理。
 
 `GET /site` 只返回 Blog 外壳初始化仍使用的数据：`siteInfo.reward`、`siteInfo.commentAdminFlag`、`introduction.avatar`、`introduction.name`、`categoryList`、`tagList` 和 `featuredBlogList`。它不再查询或返回未展示的 `newBlogList`，也不再返回旧 `badges`、社交链接、滚动文字和收藏配置。未被当前管理前端使用的站点设置管理 API 已删除。
 

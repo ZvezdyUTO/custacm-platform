@@ -38,13 +38,15 @@ public class PlayerProfileService {
 	private final UserProfileLinkMapper linkMapper;
 	private final RedisService redisService;
 	private final ImageAssetService imageAssetService;
+	private final CompetitionService competitionService;
 
 	public PlayerProfileService(UserMapper userMapper, UserProfileLinkMapper linkMapper, RedisService redisService,
-			ImageAssetService imageAssetService) {
+			ImageAssetService imageAssetService, CompetitionService competitionService) {
 		this.userMapper = userMapper;
 		this.linkMapper = linkMapper;
 		this.redisService = redisService;
 		this.imageAssetService = imageAssetService;
+		this.competitionService = competitionService;
 	}
 
 	public PlayerProfile get(String username) {
@@ -56,7 +58,8 @@ public class PlayerProfileService {
 		User user = requireUser(username);
 		List<ProfileLinkResponse> links = links(user);
 		var avatar = imageAssetService.response(user.getAvatarAssetId());
-		return new PublicProfile(user, links, avatar == null ? user.getAvatar() : avatar.originalUrl());
+		return new PublicProfile(user, links, avatar == null ? user.getAvatar() : avatar.originalUrl(),
+				competitionService.publicAchievements(user.getUsername()));
 	}
 
 	@Transactional
@@ -106,7 +109,8 @@ public class PlayerProfileService {
 	private PlayerProfile profile(User user) {
 		List<ProfileLinkResponse> links = links(user);
 		var avatar = imageAssetService.response(user.getAvatarAssetId());
-		return new PlayerProfile(user, links, avatar == null ? user.getAvatar() : avatar.originalUrl());
+		return new PlayerProfile(user, links, avatar == null ? user.getAvatar() : avatar.originalUrl(),
+				competitionService.achievements(user.getUsername()));
 	}
 
 	private List<ProfileLinkResponse> links(User user) {

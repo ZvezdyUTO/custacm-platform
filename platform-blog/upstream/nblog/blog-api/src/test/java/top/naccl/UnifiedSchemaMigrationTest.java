@@ -95,7 +95,38 @@ class UnifiedSchemaMigrationTest {
 		assertTrue(migration.contains("ADD INDEX idx_blog_recycle_bin (deleted_at)"));
 	}
 
-    private static String resource(String path) throws IOException {
+	@Test
+	void createsCompetitionRecordsWithHistoricalIdentityAndCascadeContracts() throws IOException {
+		String migration = resource("/db/migration/V037__create_competition_records.sql");
+		String normalized = migration.replaceAll("\\s+", " ");
+
+		assertTrue(migration.contains("CREATE TABLE competition ("));
+		assertTrue(migration.contains("UNIQUE KEY uk_competition_active_full_name (active_full_name)"));
+		assertTrue(migration.contains("CHECK (competition_year BETWEEN 1900 AND 9999)"));
+		assertTrue(migration.contains("CREATE TABLE competition_type_tag ("));
+		assertTrue(migration.contains("PRIMARY KEY (competition_id, type)"));
+
+		assertTrue(migration.contains("CREATE TABLE competition_participant ("));
+		assertTrue(migration.contains("display_name_snapshot varchar(255)"));
+		assertTrue(normalized.contains(
+				"FOREIGN KEY (username) REFERENCES `user` (username) ON UPDATE CASCADE ON DELETE SET NULL"));
+
+		assertTrue(migration.contains("CHECK (award_level BETWEEN 1 AND 4)"));
+		assertTrue(migration.contains(
+				"CHECK (rank_position > 0 AND rank_total > 0 AND rank_position <= rank_total)"));
+		assertTrue(migration.contains("profile_visible boolean NOT NULL DEFAULT false"));
+		assertTrue(migration.contains("CHECK (profile_visible IN (false, true))"));
+
+		assertTrue(normalized.contains(
+				"FOREIGN KEY (award_id, competition_id) REFERENCES competition_award (id, competition_id) ON DELETE CASCADE"));
+		assertTrue(normalized.contains(
+				"FOREIGN KEY (participant_id, competition_id) REFERENCES competition_participant (id, competition_id) ON DELETE CASCADE"));
+		assertTrue(normalized.contains(
+				"FOREIGN KEY (participant_id) REFERENCES competition_participant (id) ON DELETE CASCADE"));
+		assertTrue(normalized.contains("FOREIGN KEY (blog_id) REFERENCES blog (id) ON DELETE CASCADE"));
+	}
+
+	private static String resource(String path) throws IOException {
         try (InputStream input = UnifiedSchemaMigrationTest.class.getResourceAsStream(path)) {
             if (input == null) {
                 return "";

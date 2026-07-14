@@ -10,7 +10,11 @@ import top.naccl.entity.User;
 import top.naccl.exception.NotFoundException;
 import top.naccl.mapper.UserMapper;
 import top.naccl.mapper.UserProfileLinkMapper;
+import top.naccl.model.vo.CompetitionAchievement;
+import top.naccl.model.vo.CompetitionResponse;
 import top.naccl.model.vo.PlayerProfile;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -26,6 +30,7 @@ class PlayerAvatarServiceTest {
 	@Mock private UserProfileLinkMapper linkMapper;
 	@Mock private RedisService redisService;
 	@Mock private ImageAssetService imageAssetService;
+	@Mock private CompetitionService competitionService;
 
 	@Test
 	void switchesToManagedThumbnailAndSchedulesPreviousAssetCleanup() {
@@ -38,12 +43,15 @@ class PlayerAvatarServiceTest {
 		when(imageAssetService.findById(3L)).thenReturn(previous);
 		when(imageAssetService.storeAvatar(1L, file)).thenReturn(replacement);
 		when(userMapper.updateAvatarByUsername("player1", replacement.getThumbnailUrl(), 8L)).thenReturn(1);
-		when(linkMapper.findByUserId(1L)).thenReturn(java.util.List.of());
+		when(linkMapper.findByUserId(1L)).thenReturn(List.of());
+		CompetitionAchievement achievement = achievement();
+		when(competitionService.achievements("player1")).thenReturn(List.of(achievement));
 
 		PlayerProfile profile = service().updateAvatar("player1", file);
 
 		assertEquals(replacement.getThumbnailUrl(), profile.getAvatar());
 		assertEquals(replacement.getOriginalUrl(), profile.getAvatarOriginalUrl());
+		assertEquals(List.of(achievement), profile.getAchievements());
 		verify(imageAssetService).replaceAvatar(previous, replacement);
 	}
 
@@ -55,7 +63,7 @@ class PlayerAvatarServiceTest {
 	}
 
 	private PlayerAvatarService service() {
-		return new PlayerAvatarService(userMapper, linkMapper, redisService, imageAssetService);
+		return new PlayerAvatarService(userMapper, linkMapper, redisService, imageAssetService, competitionService);
 	}
 
 	private static User user() {
@@ -73,5 +81,26 @@ class PlayerAvatarServiceTest {
 		asset.setThumbnailUrl(thumbnail);
 		asset.setOriginalUrl(original);
 		return asset;
+	}
+
+	private static CompetitionAchievement achievement() {
+		return new CompetitionAchievement(
+				31L,
+				"2025 年中国高校计算机大赛-团体程序设计天梯赛",
+				2025,
+				List.of(new CompetitionResponse.Type("GPLT", "团体程序设计天梯赛")),
+				42L,
+				"TEAM",
+				"团队",
+				"custacm",
+				"NATIONAL",
+				"国家级",
+				2,
+				"二等奖",
+				8,
+				300,
+				"(8/300)",
+				true
+		);
 	}
 }

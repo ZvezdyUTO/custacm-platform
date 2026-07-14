@@ -22,13 +22,15 @@ public class PlayerAvatarService {
 	private final UserProfileLinkMapper linkMapper;
 	private final RedisService redisService;
 	private final ImageAssetService imageAssetService;
+	private final CompetitionService competitionService;
 
 	public PlayerAvatarService(UserMapper userMapper, UserProfileLinkMapper linkMapper, RedisService redisService,
-			ImageAssetService imageAssetService) {
+			ImageAssetService imageAssetService, CompetitionService competitionService) {
 		this.userMapper = userMapper;
 		this.linkMapper = linkMapper;
 		this.redisService = redisService;
 		this.imageAssetService = imageAssetService;
+		this.competitionService = competitionService;
 	}
 
 	@Transactional
@@ -48,6 +50,6 @@ public class PlayerAvatarService {
 		user.setAvatarAssetId(replacement.getId());
 		return new PlayerProfile(user, linkMapper.findByUserId(user.getId()).stream()
 				.map(ProfileLinkResponse::new)
-				.toList(), replacement.getOriginalUrl());
+				.toList(), replacement.getOriginalUrl(), competitionService.achievements(username));
 	}
 }
