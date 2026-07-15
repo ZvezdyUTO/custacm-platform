@@ -1,0 +1,33 @@
+design-qa.md
+  s_4f69ab48629acd::t_eebbe0343dc6c6 1-136
+platform-blog/upstream/nblog/blog-view/src/components/index/Header.vue
+  s_cf1c0abd9bfd43::t_3d04560951370e 21
+platform-blog/upstream/nblog/blog-view/src/test/homepageFeaturedImages.test.js
+  s_cf1c0abd9bfd43::t_f14111cc8f2851 18,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "8ddf3b859d206424f84d6dc594fb78dc8c5a1429",
+  "prompts": {},
+  "sessions": {
+    "s_4f69ab48629acd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6144-d8b2-7342-8fef-cadc3718aced",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    },
+    "s_cf1c0abd9bfd43": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f61c0-3235-7052-b34f-338dbea5e4d2",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
