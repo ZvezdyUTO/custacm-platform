@@ -12,6 +12,33 @@ fi
 
 trusted_referers=
 
+validate_referer_pattern() {
+  printf '%s\n' "$1" | awk '
+    length($0) > 253 { exit 1 }
+    {
+      star_count = gsub(/\*/, "&", $0)
+      if (star_count > 1) exit 1
+      if (star_count == 1) {
+        if ($0 !~ /^\*\.[A-Za-z0-9]/ && $0 !~ /^[A-Za-z0-9].*\.\*$/) exit 1
+      }
+    }
+    {
+      gsub(/^\*\./, "", $0)
+      gsub(/\.\*$/, "", $0)
+      if (length($0) == 0) exit 1
+      if (length($0) > 253) exit 1
+      if ($0 !~ /^[A-Za-z0-9]/ || $0 !~ /[A-Za-z0-9]$/) exit 1
+      label_count = split($0, labels, ".")
+      for (i = 1; i <= label_count; i++) {
+        if (length(labels[i]) > 63 || labels[i] !~ /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$/) {
+          exit 1
+        }
+      }
+      exit 0
+    }
+  '
+}
+
 append_referer() {
   referer=$1
 
@@ -23,11 +50,12 @@ append_referer() {
       echo "Unsafe FRONTEND_IMAGE_REFERER_HOSTS token is not allowed: $referer" >&2
       exit 1
       ;;
-    *[!A-Za-z0-9._*-]* )
-      echo "Invalid FRONTEND_IMAGE_REFERER_HOSTS token: $referer" >&2
-      exit 1
-      ;;
   esac
+
+  if ! validate_referer_pattern "$referer"; then
+    echo "Invalid FRONTEND_IMAGE_REFERER_HOSTS token: $referer" >&2
+    exit 1
+  fi
 
   case " $trusted_referers " in
     *" $referer "*)

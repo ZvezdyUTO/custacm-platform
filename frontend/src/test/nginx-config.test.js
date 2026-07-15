@@ -56,6 +56,13 @@ describe('Nginx hosted image referer policy', () => {
     expect(dockerfile).toContain("sed -i 's/\\r$//'");
   });
 
+  it('runs a real nginx config test while building the frontend image', () => {
+    const dockerfile = readConfig('Dockerfile');
+
+    expect(dockerfile).toContain('COPY frontend/test-nginx-config.sh /tmp/test-nginx-config.sh');
+    expect(dockerfile).toContain('&& /tmp/test-nginx-config.sh');
+  });
+
   it.each(nginxConfigs)('%s config renders trusted referers from the startup environment', (_label, configPath) => {
     const tokens = validRefererTokens(readConfig(configPath));
 
@@ -85,15 +92,35 @@ describe('Nginx hosted image referer policy', () => {
     expect(tokens).toEqual(['custacm.top', 'preview.custacm.top', 'localhost', '127.0.0.1']);
   });
 
-  it('rejects unsafe referer tokens from the environment', () => {
-    expect(() => {
-      renderConfig({ FRONTEND_IMAGE_REFERER_HOSTS: 'custacm.top none blocked' });
-    }).toThrow();
+  it('accepts Nginx-supported leading and trailing hostname wildcards', () => {
+    const tokens = validRefererTokens(
+      renderConfig({
+        FRONTEND_IMAGE_REFERER_HOSTS: 'custacm.top,*.custacm.top,custacm.*',
+      }),
+    );
+
+    expect(tokens).toEqual(['custacm.top', '*.custacm.top', 'custacm.*']);
   });
 
-  it('rejects referer tokens that could inject Nginx syntax', () => {
+  it.each([
+    'none',
+    'blocked',
+    '*',
+    '**',
+    'foo*bar',
+    '*.',
+    '**.example.com',
+    'example.**',
+    '*.*',
+    '*.example.*',
+    'foo..example.com',
+    '-foo.example.com',
+    'foo-.example.com',
+    '_foo.example.com',
+    'custacm.top;include',
+  ])('rejects invalid referer token %s', (invalidReferer) => {
     expect(() => {
-      renderConfig({ FRONTEND_IMAGE_REFERER_HOSTS: 'custacm.top;include' });
+      renderConfig({ FRONTEND_IMAGE_REFERER_HOSTS: `custacm.top ${invalidReferer}` });
     }).toThrow();
   });
 });

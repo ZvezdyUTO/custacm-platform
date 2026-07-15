@@ -20,7 +20,10 @@ FROM nginx:1.27-alpine
 COPY frontend/nginx.conf /etc/nginx/custacm/nginx-http.conf
 COPY frontend/nginx-https.conf /etc/nginx/custacm/nginx-https.conf
 COPY frontend/docker-entrypoint.d/10-select-nginx-config.sh /docker-entrypoint.d/10-select-nginx-config.sh
-RUN sed -i 's/\r$//' /docker-entrypoint.d/10-select-nginx-config.sh \
-    && chmod +x /docker-entrypoint.d/10-select-nginx-config.sh
+COPY frontend/test-nginx-config.sh /tmp/test-nginx-config.sh
+RUN sed -i 's/\r$//' /docker-entrypoint.d/10-select-nginx-config.sh /tmp/test-nginx-config.sh \
+    && chmod +x /docker-entrypoint.d/10-select-nginx-config.sh /tmp/test-nginx-config.sh \
+    && /tmp/test-nginx-config.sh \
+    && rm /tmp/test-nginx-config.sh
 COPY --from=blog-build /workspace/blog-view/dist /usr/share/nginx/html/blog
 COPY --from=training-build /workspace/frontend/dist /usr/share/nginx/html/training-app
