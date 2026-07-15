@@ -23,20 +23,21 @@
 			@pointerup="endDrag"
 			@pointercancel="endDrag"
 			@wheel="handleWheel"
+			@scroll.passive="handleScroll"
 		>
 			<div ref="track" class="featured-image-track">
-				<div v-for="copyIndex in 3" :key="copyIndex" class="featured-image-set">
+				<div v-for="copyIndex in copyCount" :key="copyIndex" class="featured-image-set">
 					<figure
 						v-for="(image, index) in visibleImages"
 						:key="`${copyIndex}-${image.id}`"
 						class="featured-image-frame"
-						:aria-hidden="copyIndex !== 2"
+						:aria-hidden="copyIndex !== interactiveCopyIndex"
 					>
 						<button
 							type="button"
 							class="featured-image-open"
-							:tabindex="copyIndex === 2 ? 0 : -1"
-							:aria-label="copyIndex === 2 ? `预览精选图片 ${index + 1}` : undefined"
+							:tabindex="copyIndex === interactiveCopyIndex ? 0 : -1"
+							:aria-label="copyIndex === interactiveCopyIndex ? `预览精选图片 ${index + 1}` : undefined"
 							@click="openPreview(image, index)"
 						>
 							<img
@@ -60,6 +61,12 @@
 	// Author: huangbingrui.awa
 	import {getHomepageFeaturedImages} from '@/api/index'
 	import ManagedImageViewer from '@/components/article/ManagedImageViewer.vue'
+	import {
+		centeredLoopOffset,
+		circularCopyCount,
+		middleCopyIndex,
+		normalizeLoopOffset,
+	} from '@/util/circularMarquee'
 
 	const AUTO_SCROLL_PIXELS_PER_SECOND = 22
 	const KEYBOARD_NUDGE_PIXELS = 280
@@ -70,6 +77,7 @@
 		data() {
 			return {
 				images: [],
+				copyCount: 5,
 				failedIds: new Set(),
 				hovered: false,
 				focused: false,
@@ -84,19 +92,24 @@
 				autoScrollRemainder: 0,
 				motionQuery: null,
 				resizeObserver: null,
+				normalizationFrame: null,
+				normalizingScroll: false,
 			}
 		},
 		computed: {
 			visibleImages() {
 				return this.images.filter(image => image?.imageUrl && !this.failedIds.has(image.id))
 		},
-		shouldAutoScroll() {
-			return !this.reducedMotion && !this.hovered && !this.focused && !this.dragging
-		}
-	},
+			shouldAutoScroll() {
+				return !this.reducedMotion && !this.hovered && !this.focused && !this.dragging
+			},
+			interactiveCopyIndex() {
+				return middleCopyIndex(this.copyCount) + 1
+			},
+		},
 		watch: {
 			visibleImages() {
-				this.$nextTick(this.centerOnMiddleCopy)
+				this.$nextTick(this.refreshLoopGeometry)
 			},
 			shouldAutoScroll() {
 				this.lastFrameTime = null
@@ -107,13 +120,14 @@
 			this.installMotionPreference()
 			await this.loadImages()
 			this.$nextTick(() => {
-				this.centerOnMiddleCopy()
+				this.refreshLoopGeometry()
 				this.installResizeObserver()
 				this.animationFrame = window.requestAnimationFrame(this.tick)
 			})
 		},
 		beforeUnmount() {
 			if (this.animationFrame !== null) window.cancelAnimationFrame(this.animationFrame)
+			if (this.normalizationFrame !== null) window.cancelAnimationFrame(this.normalizationFrame)
 			this.resizeObserver?.disconnect()
 			this.motionQuery?.removeEventListener?.('change', this.updateMotionPreference)
 		},
@@ -141,8 +155,9 @@
 			},
 			installResizeObserver() {
 				if (typeof ResizeObserver === 'undefined') return
-				this.resizeObserver = new ResizeObserver(() => this.centerOnMiddleCopy())
-				if (this.$refs.track) this.resizeObserver.observe(this.$refs.track)
+				this.resizeObserver = new ResizeObserver(this.refreshLoopGeometry)
+				if (this.$refs.scroller) this.resizeObserver.observe(this.$refs.scroller)
+				if (this.$refs.track?.firstElementChild) this.resizeObserver.observe(this.$refs.track.firstElementChild)
 			},
 			setWidth() {
 				return this.$refs.track?.firstElementChild?.getBoundingClientRect().width || 0
@@ -151,14 +166,39 @@
 				const scroller = this.$refs.scroller
 				const width = this.setWidth()
 				if (!scroller || !width) return
-				scroller.scrollLeft = width
+				scroller.scrollLeft = centeredLoopOffset(this.copyCount, width)
+			},
+			refreshLoopGeometry() {
+				const scroller = this.$refs.scroller
+				const width = this.setWidth()
+				if (!scroller || !width) return
+				const nextCopyCount = circularCopyCount(scroller.clientWidth, width)
+				if (nextCopyCount !== this.copyCount) {
+					this.copyCount = nextCopyCount
+					this.$nextTick(this.centerOnMiddleCopy)
+					return
+				}
+				this.centerOnMiddleCopy()
 			},
 			normalizeLoopPosition() {
 				const scroller = this.$refs.scroller
 				const width = this.setWidth()
 				if (!scroller || !width) return
-				if (scroller.scrollLeft >= width * 2) scroller.scrollLeft -= width
-				if (scroller.scrollLeft <= 0) scroller.scrollLeft += width
+				const currentOffset = scroller.scrollLeft
+				const normalizedOffset = normalizeLoopOffset(currentOffset, width, this.copyCount)
+				const shift = normalizedOffset - currentOffset
+				if (Math.abs(shift) < .5) return
+				this.normalizingScroll = true
+				scroller.scrollLeft = normalizedOffset
+				if (this.dragging) this.dragStartScrollLeft += shift
+				if (this.normalizationFrame !== null) window.cancelAnimationFrame(this.normalizationFrame)
+				this.normalizationFrame = window.requestAnimationFrame(() => {
+					this.normalizingScroll = false
+					this.normalizationFrame = null
+				})
+			},
+			handleScroll() {
+				if (!this.normalizingScroll) this.normalizeLoopPosition()
 			},
 			tick(timestamp) {
 				if (this.lastFrameTime === null) this.lastFrameTime = timestamp

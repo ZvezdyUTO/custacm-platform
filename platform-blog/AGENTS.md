@@ -2,9 +2,9 @@
 
 - `upstream/nblog/blog-api` 是根 Maven reactor 中唯一可运行后端，负责 Blog、评论、比赛与获奖记录、首页滚动精选图片、首页精选分组、BCrypt 账号、HS512 JWT、`username`、`ROLE_admin`/`ROLE_player`、OJ handle 和训练数据 HTTP adapter。
 - 对外只有一个 Nginx `frontend` 服务和一个站点；源码中仍有 Blog 与 Training 两份 Vue 3 构建。Blog 位于 `/`，并持有 `/training/**` 外层路由和唯一 `Nav.vue`；Training 运行时内部挂载在 `/training-app/**`。不要合并两个 Router，也不要显示第二条顶栏。
-- 两份 Vue 构建固定使用共享浅色语义 token，不提供主题切换、系统主题跟随、主题持久化或 frame 主题消息。文章目录等固定暖黑页面是页面级视觉，不属于全局夜间模式，清理主题代码时必须保留。
+- 两份 Vue 构建共享日间/夜间语义 token。Blog 唯一顶栏提供紧凑主题开关，首次访问默认日间，用户选择持久化到 `custacm.theme` 并跨标签页、同源 Training frame 同步，但不跟随系统主题。日间沿用首页/赛事荣誉的浅色体系，夜间沿用文章目录的暖黑、米白与陶土橙体系；业务图片不得因全局主题统一滤色。
 - `blog-view/src/assets/css/tokens.css` 是根共享视觉 token 的生成副本，禁止手工编辑；由 `main.js` 在基础样式前加载，Blog 视觉覆盖集中在 `blog-redesign.css`。
-- Blog 唯一顶栏在浅色页面使用共享 `--glass-*` 毛玻璃 token；固定暖黑的文章目录使用原暗色玻璃背景与浅色玻璃边框，但继续复用同一模糊强度。其他页面级配色不得覆盖顶栏背景、边框、文字或激活色。
+- Blog 唯一顶栏在日间使用共享浅色 `--glass-*` 毛玻璃 token，在夜间使用同模糊强度的暗色玻璃和浅色边框。其他页面级配色不得覆盖顶栏背景、边框、文字、激活色或主题开关。
 - Blog 保留 Element Plus 并通过全局 `AppIcon` 使用 Lucide；Semantic UI 已退出。页面结构只能使用项目自有布局 class，不得重新导入 Semantic UI CSS 或旧图标字体。
 - Blog 首页只展示留有页边距的精选文章区，不渲染普通文章列表或标签云。精选由管理员显式编排为最多三组，每组标题可编辑且必须恰好包含三篇文章；同一首页内文章不得重复，组顺序和组内文章顺序都以持久化顺序为准，不再按置顶、`is_recommend` 或更新时间运行时补足。每组沿用第一篇横向大卡、下方并排第二和第三篇的层级，首图保持 16:9 并完整显示而不裁剪，同时展示作者头像、昵称、username 和按持久化颜色渲染的文章标签；首页固定使用暖米色/浅奶油棕表面。文章详情页桌面使用 IDE 式双区：左侧窄工具栏独立滚动并依次展示作者、作者主动公开的荣誉条、目录和评论入口，右侧阅读画布独立滚动；荣誉条只显示比赛全称与奖项描述并链接比赛详情，移动端隐藏工具栏并恢复单列页面流。
 - 浏览器 API 统一从 `/api/**` 进入 Nginx，Blog API 的直接路径不带 `/api`。公开 Vue 请求不得通过全局拦截器附加共享 JWT；受保护请求由对应 adapter 显式携带 Bearer token。
@@ -29,7 +29,7 @@
 - 评论只允许登录账号提交，创建请求只接受 `content`、`blogId` 和 `parentCommentId`；公开评论树按根评论分页并批量装配回复，不得恢复游客身份表单、评论通知或后台评论管理链路。
 - 新评论表情以标准 Unicode 存储；Blog 展示层使用同源 Google Noto Emoji SVG sprite 渲染选择器及受支持表情，禁止把表情 HTML 或第三方 CDN URL 写入评论。历史 tv/阿鲁/泡泡短码只保留只读渲染兼容。
 - 文章列表的标签应批量读取，Redis 缓存必须有 TTL 且失败时降级到数据库；事务内的缓存失效在提交后执行。
-- 文章首图、正文图片和头像通过本地托管资产管理；最多十二张 3:2 首页滚动精选图片同样只写本地上传目录，每张保存原图和压缩缩略图。精选图片通过公开 `GET /homepage-featured-images` 全量有序读取，管理员在现有“首页图片”页调用 `/admin/homepage-featured-images/**` 管理；旧动态首页横幅接口、表和后台面板已删除，首屏只用 Blog 构建内置静态 PNG。数据库提交后再删除失效文件，并由清理任务兜底临时文件、孤儿资产和精选图片孤儿文件。
+- 文章首图、正文图片和头像通过本地托管资产管理；最多十二张 3:2 首页滚动精选图片同样只写本地上传目录，每张保存原图和压缩缩略图。精选图片通过公开 `GET /homepage-featured-images` 全量有序读取，管理员在现有“首页图片”页调用 `/admin/homepage-featured-images/**` 管理；Blog 按视口与单组宽度动态生成足够的奇数副本，并在原生滚动、拖动、触控板、触摸和键盘操作时按整组宽度无感换轨，任意方向都不得触碰首尾。旧动态首页横幅接口、表和后台面板已删除，首屏只用 Blog 构建内置静态 PNG。数据库提交后再删除失效文件，并由清理任务兜底临时文件、孤儿资产和精选图片孤儿文件。
 - 训练自动采集和 AtCoder 题目元数据 bootstrap/调度默认关闭；只能由显式环境变量开启。
 - Java 变更后在仓库根运行 `mvn clean test`；打包行为改变时再运行 `mvn clean package -DskipTests`。Vue Blog 变更在 `blog-view` 运行 `npm ci`、`npm test` 和 `npm run build`。
 - 职责、路径、构建或权限改变时同步更新本文件、`README.md`、两个子模块 README、`../frontend/README.md` 及文档同步表要求的文件。

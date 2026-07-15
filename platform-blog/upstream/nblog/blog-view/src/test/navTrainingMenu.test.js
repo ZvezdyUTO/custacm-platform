@@ -67,11 +67,15 @@ describe('training navigation dropdown', () => {
 		expect(adminPage.get('.nav-training-trigger').classes()).not.toContain('active')
 	})
 
-	it('does not render the retired theme switch', () => {
+	it('renders the compact theme switch before the account entry', async () => {
 		const {wrapper} = mountNav()
+		const toggle = wrapper.get('.nav-theme-toggle')
 
-		expect(wrapper.find('.nav-theme-toggle').exists()).toBe(false)
-		expect(wrapper.find('[role="switch"]').exists()).toBe(false)
+		expect(toggle.attributes('role')).toBe('switch')
+		expect(toggle.attributes('aria-checked')).toBe('false')
+		await toggle.trigger('click')
+		expect(toggle.attributes('aria-checked')).toBe('true')
+		expect(window.localStorage.setItem).toHaveBeenCalledWith('custacm.theme', 'dark')
 	})
 })
 

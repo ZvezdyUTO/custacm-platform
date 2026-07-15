@@ -29,9 +29,23 @@
 					</el-dropdown-menu>
 				</template>
 				</el-dropdown>
-				<router-link v-if="authUser" to="/write" class="nav-item nav-primary-item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='write'}">
+			<router-link v-if="authUser" to="/write" class="nav-item nav-primary-item" :class="{'m-mobile-hide': mobileHide,'active':$route.name==='write'}">
 					<AppIcon name="edit" />发布文章
 				</router-link>
+			<button
+				type="button"
+				class="nav-item nav-theme-toggle"
+				:class="{'m-mobile-hide': mobileHide}"
+				role="switch"
+				:aria-label="themeToggleLabel"
+				:aria-checked="darkTheme ? 'true' : 'false'"
+				:title="themeToggleLabel"
+				@click.stop="switchTheme"
+			>
+				<span class="nav-theme-track" :class="{'is-dark': darkTheme}" aria-hidden="true">
+					<span class="nav-theme-thumb"><AppIcon :name="darkTheme ? 'moon' : 'sun'" :size="13" /></span>
+				</span>
+			</button>
 			<router-link v-if="!authUser" :to="loginTarget" class="nav-item nav-account" :class="{'m-mobile-hide': mobileHide}">
 				<AppIcon name="user" />登录
 			</router-link>
@@ -64,12 +78,14 @@
 <script>
 	import {accountMenuItems} from "@/auth/account-menu";
 	import {clearSession, readUser, SESSION_CHANGE_EVENT} from "@/auth/session";
+	import {getCurrentTheme, THEME_CHANGE_EVENT, toggleTheme} from '@/theme'
 
 	export default {
 		name: "Nav",
 		data() {
 			return {
 				authUser: readUser(),
+				darkTheme: getCurrentTheme() === 'dark',
 				mobileHide: true,
 			}
 		},
@@ -89,6 +105,9 @@
 			},
 			accountItems() {
 				return accountMenuItems(this.authUser)
+			},
+			themeToggleLabel() {
+				return this.darkTheme ? '当前夜间模式，切换到日间模式' : '当前日间模式，切换到夜间模式'
 			}
 		},
 		watch: {
@@ -100,6 +119,7 @@
 		mounted() {
 			window.addEventListener('storage', this.handleStorage)
 			window.addEventListener(SESSION_CHANGE_EVENT, this.refreshAuthUser)
+			window.addEventListener(THEME_CHANGE_EVENT, this.refreshTheme)
 			//监听点击事件，收起导航菜单
 			document.addEventListener('click', (e) => {
 				//遍历冒泡
@@ -113,8 +133,15 @@
 		beforeUnmount() {
 			window.removeEventListener('storage', this.handleStorage)
 			window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshAuthUser)
+			window.removeEventListener(THEME_CHANGE_EVENT, this.refreshTheme)
 		},
 		methods: {
+			switchTheme() {
+				this.darkTheme = toggleTheme() === 'dark'
+			},
+			refreshTheme(event) {
+				this.darkTheme = (event?.detail?.theme || getCurrentTheme()) === 'dark'
+			},
 			accountCommand(command) {
 				if (command === 'profile') {
 					this.$router.push('/profile')
@@ -347,8 +374,51 @@
 		background: #fff !important;
 	}
 
-	.nav-account {
+	.nav-theme-toggle {
+		min-width: 58px !important;
+		justify-content: center;
 		margin-left: auto;
+		padding-right: 8px !important;
+		padding-left: 8px !important;
+	}
+
+	.nav-theme-track {
+		position: relative;
+		display: inline-flex;
+		width: 42px;
+		height: 24px;
+		align-items: center;
+		border: 1px solid var(--color-border-strong);
+		border-radius: 999px;
+		background: var(--color-surface-subtle);
+		transition: border-color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
+	}
+
+	.nav-theme-track.is-dark {
+		border-color: var(--anthropic-clay);
+		background: color-mix(in srgb, var(--anthropic-clay) 24%, var(--color-surface));
+	}
+
+	.nav-theme-thumb {
+		display: grid;
+		width: 18px;
+		height: 18px;
+		place-items: center;
+		border-radius: 50%;
+		background: var(--color-surface);
+		box-shadow: 0 1px 4px color-mix(in srgb, var(--color-text) 18%, transparent);
+		color: var(--color-text-muted);
+		transform: translateX(2px);
+		transition: color var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+	}
+
+	.nav-theme-track.is-dark .nav-theme-thumb {
+		color: var(--anthropic-clay);
+		transform: translateX(20px);
+	}
+
+	.nav-account {
+		margin-left: 0;
 	}
 
 		.nav-auth-trigger {
@@ -400,6 +470,11 @@
 		}
 
 		.nav-account {
+			margin-left: 0;
+		}
+
+		.nav-theme-toggle {
+			justify-content: flex-start !important;
 			margin-left: 0;
 		}
 

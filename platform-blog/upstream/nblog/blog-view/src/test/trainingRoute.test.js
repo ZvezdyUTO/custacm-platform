@@ -18,11 +18,12 @@ describe('training host route bridge', () => {
 		expect(isAllowedTrainingRoutePath('/admin/unknown')).toBe(false)
 	})
 
-	it('keeps the frame in one viewport without a theme message bridge', () => {
+	it('keeps the frame in one viewport and forwards the active theme', () => {
 		expect(trainingHostSource).toMatch(/\.training-host[\s\S]*box-sizing: border-box;[\s\S]*height: 100vh;[\s\S]*padding-top: 51px;/)
 		expect(trainingHostSource).toContain('height: calc(100vh - 51px);')
 		expect(trainingHostSource).toContain("document.documentElement.classList.add('training-host-active')")
-		expect(trainingHostSource).not.toContain('custacm:theme')
-		expect(trainingHostSource).not.toContain('THEME_CHANGE_EVENT')
+		expect(trainingHostSource).toContain("{type: 'custacm:theme', theme}")
+		expect(trainingHostSource).toContain('THEME_CHANGE_EVENT')
+		expect(trainingHostSource).toContain('@load="syncThemeToFrame"')
 	})
 })

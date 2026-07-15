@@ -3,6 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (() => {
+        let theme = 'light';
+        try {
+          const stored = window.localStorage.getItem('custacm.theme');
+          theme = stored === 'dark' || stored === 'light' ? stored : 'light';
+        } catch {
+          theme = 'light';
+        }
+        const root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle('dark', theme === 'dark');
+        root.style.colorScheme = theme;
+      })();
+    </script>
     <meta
       name="description"
       content="custacm-platform 训练队管理平台后台工作台"

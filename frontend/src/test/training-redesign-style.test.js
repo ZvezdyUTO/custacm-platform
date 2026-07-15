@@ -6,15 +6,46 @@ import { describe, expect, it } from 'vitest';
 
 const stylesEntry = readFileSync(resolve(cwd(), 'src/styles.css'), 'utf8');
 const redesignCss = readFileSync(resolve(cwd(), 'src/styles/training-redesign.css'), 'utf8');
+const articleAdminCss = readFileSync(resolve(cwd(), 'src/styles/article-admin.css'), 'utf8');
+const competitionAdminCss = readFileSync(resolve(cwd(), 'src/styles/competition-admin.css'), 'utf8');
+const lightCss = readFileSync(resolve(cwd(), 'src/styles/light.css'), 'utf8');
+const darkCss = readFileSync(resolve(cwd(), 'src/styles/dark.css'), 'utf8');
 const viewSource = readFileSync(resolve(cwd(), 'src/views/TrainingView.vue'), 'utf8');
 const loginSource = readFileSync(resolve(cwd(), 'src/components/LoginPanel.vue'), 'utf8');
 const loginFooterSource = readFileSync(resolve(cwd(), 'src/components/LoginFooter.vue'), 'utf8');
 
 describe('Training visual redesign contract', () => {
-  it('loads generated tokens first without a switchable dark override', () => {
-    expect(stylesEntry.indexOf('./styles/tokens.css')).toBeLessThan(stylesEntry.indexOf('./styles/foundation.css'));
-    expect(stylesEntry).not.toContain('./styles/dark.css');
-  });
+	it('loads generated tokens first and the theme override last', () => {
+		expect(stylesEntry.indexOf('./styles/tokens.css')).toBeLessThan(stylesEntry.indexOf('./styles/foundation.css'));
+		expect(stylesEntry).toContain('./styles/light.css');
+		expect(stylesEntry).toContain('./styles/dark.css');
+		expect(stylesEntry.indexOf('./styles/light.css')).toBeGreaterThan(stylesEntry.indexOf('./styles/training-redesign.css'));
+		expect(stylesEntry.indexOf('./styles/light.css')).toBeLessThan(stylesEntry.indexOf('./styles/dark.css'));
+		expect(lightCss).toContain('--color-canvas: #faf9f5');
+		expect(lightCss).toContain('--color-canvas-alternate: #f0eee6');
+		expect(lightCss).toContain('--color-surface: #f7f7f5');
+		expect(lightCss).toContain('.article-admin-list');
+		expect(stylesEntry.indexOf('./styles/dark.css')).toBeGreaterThan(stylesEntry.indexOf('./styles/training-redesign.css'));
+		expect(darkCss).toContain('--color-canvas: #141413');
+		expect(darkCss).toContain('--color-text: #faf9f5');
+		expect(darkCss).toContain('--color-action: #d97757');
+		expect(darkCss).toMatch(/html\.dark \.training-site \.oj-select-trigger \{[\s\S]*background: var\(--night-input\);/);
+		expect(darkCss).toMatch(/html\.dark \.training-site \.oj-select-options \{[\s\S]*background: var\(--night-panel\);/);
+		expect(darkCss).toMatch(/\.oj-select-options button\.is-selected \{[\s\S]*color: var\(--night-accent\);/);
+		expect(darkCss).not.toContain('html.dark .training-site img');
+	});
+
+	it('keeps featured previews and competition headers aligned with both themes', () => {
+		expect(articleAdminCss).toContain('--featured-preview-surface: #f7f7f5');
+		expect(articleAdminCss).toContain('--featured-preview-media: #eeecea');
+		expect(articleAdminCss).toContain('background: var(--featured-preview-surface);');
+		expect(articleAdminCss).toContain('color: var(--featured-preview-text);');
+		expect(darkCss).toContain('--featured-preview-surface: #1c1c1b');
+		expect(darkCss).toContain('--featured-preview-media: #242422');
+		expect(competitionAdminCss).toContain('background: var(--competition-navy-soft);');
+		expect(darkCss).toMatch(/html\.dark \.competition-admin \{[\s\S]*--competition-navy-soft: var\(--night-panel-soft\);/);
+		expect(darkCss).toMatch(/html\.dark \.competition-list-header \{[\s\S]*background: var\(--night-panel-soft\);/);
+	});
 
   it('limits glass styling to approved floating surfaces', () => {
     expect(redesignCss).toContain('.blog-topbar');

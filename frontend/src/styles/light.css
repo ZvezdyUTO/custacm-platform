@@ -1,0 +1,162 @@
+/* Training daytime palette aligned with the Blog home and competition pages. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  background: #faf9f5;
+  color: #141413;
+  --color-canvas: #faf9f5;
+  --color-canvas-alternate: #f0eee6;
+  --color-surface: #f7f7f5;
+  --color-surface-subtle: #eeece4;
+  --color-border: #d1cfc5;
+  --color-border-strong: #b0aea5;
+  --color-text: #141413;
+  --color-text-muted: #5e5d59;
+  --color-text-faint: #87867f;
+  --glass-background: rgb(250 249 245 / 78%);
+  --glass-border: rgb(176 174 165 / 34%);
+  --floating-shadow: 0 12px 38px rgb(54 51 43 / 12%);
+  --bg: #f0eee6;
+  --surface: #f7f7f5;
+  --surface-subtle: #eeece4;
+  --surface-muted: #e8e5dc;
+  --border: #d1cfc5;
+  --border-strong: #b0aea5;
+  --text: #141413;
+  --muted: #5e5d59;
+  --faint: #87867f;
+  --blog-paper: #f7f7f5;
+  --blog-fog: #f0eee6;
+  --blog-line: #d1cfc5;
+  --blog-copy: #141413;
+  --blog-muted: #5e5d59;
+}
+
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-theme="light"] #app,
+html[data-theme="light"] .training-site,
+html[data-theme="light"] .training-main {
+  background: var(--color-canvas-alternate);
+  color: var(--color-text);
+}
+
+html[data-theme="light"] .training-site.is-login-page {
+  background: var(--color-canvas);
+}
+
+html[data-theme="light"] .admin-workspace {
+  --admin-surface: var(--color-surface);
+  --admin-text: var(--color-text);
+  --admin-text-muted: var(--color-text-muted);
+  --admin-border: var(--color-border);
+  --admin-border-strong: var(--color-border-strong);
+  --admin-divider: var(--color-border);
+  --admin-divider-soft: color-mix(in srgb, var(--color-border) 58%, transparent);
+  background: var(--color-canvas-alternate);
+}
+
+/* Legacy Training styles used literal white for these solid surfaces. */
+html[data-theme="light"] .training-site :is(
+  .workspace-mode-tabs button.is-active,
+  .query-mode-tabs button.is-active,
+  .query-form,
+  .query-mode-field strong,
+  .query-field select,
+  .oj-select-trigger,
+  .oj-select-options,
+  .oj-select-options button,
+  .player-search-options,
+  .player-search-options button,
+  .query-summary,
+  .training-stat-card,
+  .activity-switch button.is-active,
+  .submission-table th,
+  .auto-summary-table th,
+  .auto-summary-table tbody th,
+  .auto-summary-table .auto-summary-player-col,
+  .multi-summary-retry,
+  .submission-pagination select,
+  .metric-strip,
+  .login-panel,
+  .login-panel input,
+  .login-dialog,
+  .login-dialog-close,
+  .create-import-field textarea,
+  .create-user-row input,
+  .admin-user-search-control,
+  .collection-confirm-dialog,
+  .collection-confirm-actions button,
+  .admin-confirm-dialog,
+  .admin-confirm-actions button,
+  .user-delete-dialog,
+  .user-delete-dialog-actions button,
+  .training-data-collection-panel > .admin-management-card,
+  .batch-textarea-field textarea,
+  .editable-user-row input,
+  .user-overview-table-scroll,
+  .segmented-control,
+  .batch-target-list,
+  .collect-student-list > li,
+  .batch-target-empty,
+  .admin-result,
+  .admin-result-table-scroll,
+  .collection-result-table-scroll,
+  .collection-job-list > li,
+  .danger-button.subtle,
+  .filter-row select,
+  .data-inspector article,
+  .operation-toast,
+  .batch-bar,
+  .table-panel,
+  .admin-user-table-shell,
+  .one-time-password-result code,
+  .user-management-side-panel,
+  .user-management-create-form input,
+  .blog-nav-search,
+  .blog-search-results,
+  .password-change-form input,
+  .route-status,
+  .training-admin-tabs,
+  .homepage-featured-card,
+  .homepage-featured-actions button,
+  .article-admin-filters,
+  .article-admin-filters input,
+  .article-admin-filters select,
+  .article-admin-list,
+  .article-delete-button,
+  .article-restore-button,
+  .article-delete-dialog,
+  .article-delete-dialog-actions button,
+  .article-admin-pagination button,
+  .featured-groups-loading,
+  .featured-group-editor,
+  .featured-group-editor-header input,
+  .featured-group-order-actions button,
+  .featured-groups-empty,
+  .featured-picker-dialog,
+  .featured-picker-search,
+  .category-create-form,
+  .category-create-form input,
+  .category-admin-row input,
+  .category-admin-list,
+  .category-admin-actions button,
+  .homepage-banner-card,
+  .homepage-banner-actions button,
+  .homepage-crop-panel
+) {
+  background: var(--color-surface);
+}
+
+html[data-theme="light"] .training-site :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+  select,
+  textarea
+) {
+  border-color: var(--color-border-strong);
+  background: var(--color-canvas);
+}
+
+html[data-theme="light"] .training-site table thead th,
+html[data-theme="light"] .taxonomy-list-header {
+  background: var(--color-surface-subtle);
+}

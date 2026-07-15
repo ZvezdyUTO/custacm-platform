@@ -28,9 +28,10 @@ describe('homepage featured image marquee', () => {
 		})
 	})
 
-	it('sits directly after the homepage hero and renders three loop copies', () => {
+	it('sits directly after the homepage hero and renders a viewport-sized circular track', () => {
 		expect(indexSource).toMatch(/<Header v-if="\$route\.name==='home'"\/>\s*<FeaturedImageMarquee/)
-		expect(source).toContain('v-for="copyIndex in 3"')
+		expect(source).toContain('v-for="copyIndex in copyCount"')
+		expect(source).toContain('circularCopyCount(scroller.clientWidth, width)')
 		expect(source).toContain('centerOnMiddleCopy')
 		expect(source).toContain('normalizeLoopPosition')
 	})
@@ -46,6 +47,7 @@ describe('homepage featured image marquee', () => {
 	it('supports pointer, touchpad, keyboard and blurred edge interaction', () => {
 		expect(source).toContain('@pointerdown="startDrag"')
 		expect(source).toContain('@keydown.left.prevent="nudge(-1)"')
+		expect(source).toContain('@scroll.passive="handleScroll"')
 		expect(source).toContain('overflow-x: auto')
 		expect(source).toContain('backdrop-filter: blur(7px)')
 		expect(source.indexOf('this.dragMoved = true')).toBeLessThan(source.indexOf('setPointerCapture?.(event.pointerId)'))

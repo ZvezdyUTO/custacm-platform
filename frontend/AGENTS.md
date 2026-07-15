@@ -16,7 +16,7 @@
 - 分类和标签使用各自的分页状态及分页条；刷新一个列表不得重置另一个列表。
 - 管理用户页空头像回退 `/img/default-avatar.jpg`。固定 `root` 只显示管理员身份，不提供改名、降权、handle、采集状态或删除入口。
 - 自动采集默认关闭；管理员手动采集仍需确认目标、OJ、倒退范围和数仓刷新影响。
-- Blog 与 Training 固定使用共享浅色语义 token，不提供主题切换、系统主题跟随、主题持久化或 frame 主题消息。Blog 文章目录等固定深色页面属于页面自身设计，不得误当成全局夜间模式删除。
+- Blog 与 Training 使用共享日间/夜间语义 token。首次访问默认日间，Blog 唯一顶栏切换后持久化 `custacm.theme`、跨标签页同步并通过同源 frame 消息同步 Training；不得跟随系统主题。日间沿用首页/赛事荣誉的暖米色画布、浅奶油卡片和暖灰边框，Training 工作区不得回退为纯白；夜间沿用文章目录的暖黑、米白与陶土橙体系，业务图片保持原色。
 - 管理区确认操作统一使用 `AdminConfirmDialog.vue`，不得调用浏览器原生 `confirm/alert/prompt`。创建用户、全量文章下载、分类/标签删除、比赛/参赛用户/奖项删除和首页图片删除必须先展示明确影响范围再执行。
 - 验收范围是 1280–2560 px 桌面端，重点检查 1440×900 和 1920×1080。
 
@@ -41,7 +41,7 @@
 - `src/test/` 覆盖路由、会话、API、批量查询、分页和关键交互。新增或修改业务行为必须同步补测试。
 - 不跨应用复制业务组件，不合并两套 Router；Blog Router 持有公开 `/training/**`，Training Router 只在 `/training-app/**` 运行。
 - 独立开发的 `AppShell` 只读 `/categories` 构建分类菜单；嵌入 Blog 时隐藏调试顶栏并跳过该请求，不能为导航加载完整 `/site`。
-- `index.html` 不得恢复主题探测或首屏主题脚本；Training frame 只同步路由，不同步视觉模式。
+- `index.html` 必须在 Vue 挂载前应用已保存的 `custacm.theme`，无保存值时固定日间，避免首屏闪色；Training frame 同时同步路由与视觉模式。
 - `src/styles/tokens.css` 是由根 `frontend-design-tokens/tokens.css` 通过 `scripts/sync-design-tokens.sh` 生成的副本，禁止手工编辑；它必须在样式入口最先加载，`training-redesign.css` 承载 Training 试点覆盖。
 
 ## 文件职责
@@ -58,17 +58,18 @@
 | `src/routing.ts` | 页面类型与当前有效登录回跳白名单 |
 | `src/types.ts` | Blog API DTO 与页面模型，包括原子用户更新、比赛/奖项和首页精选组模型 |
 | `src/auth/session.ts` | 成对校验、读写和清理共享会话 |
+| `src/theme.ts` | 默认日间、主题持久化、根节点应用、跨标签页与父 frame 同步 |
 | `src/api/client.ts` | Result envelope、含 `Retry-After` 的错误类型、JSON 请求与受保护文件下载 fetch 封装 |
 | `src/api/auth.ts` | 登录、当前用户和本人密码修改 |
 | `src/api/training.ts` | 用户目录、单人汇总、多人批量汇总、提交和首 AC 查询 |
 | `src/api/admin.ts` | 用户单 PUT、比赛/奖项、文章/全量备份、首页精选组、分类/标签分页、采集任务和滚动精选图片 API |
 | `src/composables/useAuthSession.ts` | 会话恢复、登录竞态、退出与密码修改 |
 | `src/composables/usePlatformDashboard.ts` | 按页面加载、批量汇总、比赛聚合、分页、首页精选组、精选图片和管理员状态编排 |
-| `src/components/AppShell.vue` | 独立调试顶栏与分类目录；嵌入时隐藏且不重复请求 |
+| `src/components/AppShell.vue` | 独立调试顶栏、主题开关与分类目录；嵌入时隐藏且不重复请求 |
 | `src/components/LoginPanel.vue` | 登录表单、服务端五秒冷却倒计时和安全回跳 |
 | `src/components/TrainingQueryPanel.vue` | 站内风格 OJ 下拉、多人/单人自动筛选、单人全量队员子串搜索、批量错误展示和整行题目显式查询 |
 | `src/components/TrainingAdminPanel.vue` | 七个管理员页面导航 |
-| `src/components/AdminConfirmDialog.vue` | 管理区统一确认框、语义图标、键盘取消和共享浅色外观 |
+| `src/components/AdminConfirmDialog.vue` | 管理区统一确认框、语义图标、键盘取消和共享日间/夜间外观 |
 | `src/components/AdminUserManagementPanel.vue` | 用户单 PUT 编辑与 handle 高危确认 |
 | `src/components/CategoryAdminPanel.vue` | 分类/标签各自分页和写操作 |
 | `src/components/CompetitionAdminPanel.vue` | 规范赛事分类筛选/创建、动态奖档与排名字段、参赛用户和奖项增删、比赛七天回收站与恢复 |
@@ -77,9 +78,12 @@
 | `src/components/TrainingDataOpsPanel.vue` | 手动采集任务、详情和数仓刷新 |
 | `src/components/HomepageFeaturedImagesAdminPanel.vue` | 最多十二张滚动精选图片的批量选择、3:2 裁剪、缩略图预览、排序和删除 |
 | `src/styles/homepage-featured-images-admin.css` | 精选图片管理网格、计数与裁剪布局 |
-| `src/styles/competition-admin.css` | 比赛聚合列表、详情、表单和奖项层级布局 |
+| `src/styles/article-admin.css` | 文章管理、首页编排及与公开首页同色的精选文章预览 |
+| `src/styles/competition-admin.css` | 比赛聚合列表、详情、表单、奖项层级及日间/夜间专用语义变量 |
 | `src/styles/tokens.css` | 共享设计 token 的生成副本；后续视觉试点接入，禁止手工编辑 |
 | `src/styles/training-redesign.css` | Training 阶段 2 的统一颜色角色、圆角、玻璃、字号和路由动效覆盖 |
+| `src/styles/light.css` | 首页/赛事荣誉暖米色体系驱动的 Training、登录和管理区日间覆盖 |
+| `src/styles/dark.css` | 文章目录暖黑色板驱动的 Training、登录和管理区夜间覆盖 |
 | `src/test/training-redesign-style.test.js`、`admin-confirm-dialog.test.ts` | token/玻璃/动效加载边界与确认弹层焦点生命周期测试 |
 | `src/test/platform-dashboard-batch.test.ts` | 多人页面单次批量请求测试 |
 | `src/test/admin-users-vue.test.ts` | 用户原子保存和危险确认测试 |

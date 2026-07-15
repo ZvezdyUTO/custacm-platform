@@ -83,7 +83,7 @@ describe('Vue training app shell', () => {
     expect(wrapper.get('.top-training-trigger').classes()).toContain('is-active');
   });
 
-  it('does not render the retired theme toggle in the standalone shell', async () => {
+	it('renders the compact theme toggle in the standalone shell', async () => {
     const router = createRouter({
       history: createMemoryHistory('/training-app/'),
       routes: [{ path: '/multiple', component: { template: '<div />' } }],
@@ -95,9 +95,11 @@ describe('Vue training app shell', () => {
       global: { plugins: [router] },
     });
 
-    expect(wrapper.find('.blog-theme-toggle').exists()).toBe(false);
-    expect(wrapper.find('[role="switch"]').exists()).toBe(false);
-  });
+		expect(wrapper.find('.blog-theme-toggle').exists()).toBe(true);
+		expect(wrapper.get('[role="switch"]').attributes('aria-checked')).toBe('false');
+		await wrapper.get('.blog-theme-toggle').trigger('click');
+		expect(wrapper.get('[role="switch"]').attributes('aria-checked')).toBe('true');
+	});
 
   it('does not render the standalone top bar inside the Blog-owned frame', async () => {
     vi.stubGlobal('self', {} as Window);

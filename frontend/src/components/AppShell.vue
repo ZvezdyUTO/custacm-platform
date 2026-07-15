@@ -35,6 +35,23 @@
           </div>
         </form>
 
+        <button
+          class="blog-theme-toggle"
+          type="button"
+          role="switch"
+          :aria-label="currentTheme === 'dark' ? '切换到日间模式' : '切换到夜间模式'"
+          :aria-checked="currentTheme === 'dark'"
+          :title="currentTheme === 'dark' ? '切换到日间模式' : '切换到夜间模式'"
+          @click="switchTheme"
+        >
+          <span class="theme-switch-track" :class="{ 'is-dark': currentTheme === 'dark' }" aria-hidden="true">
+            <span class="theme-switch-thumb">
+              <Moon v-if="currentTheme === 'dark'" :size="13" />
+              <Sun v-else :size="13" />
+            </span>
+          </span>
+        </button>
+
         <RouterLink v-if="!currentUser" class="blog-account-link" to="/login"><UserRound :size="17" aria-hidden="true" />登录</RouterLink>
         <div v-else class="blog-account">
           <button class="blog-account-summary" type="button" :aria-expanded="accountOpen" @click="toggleAccount">
@@ -66,9 +83,10 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { BarChart3, ChevronDown, Home, KeyRound, Lightbulb, LogOut, Save, Search, UserRound } from '@lucide/vue';
+import { BarChart3, ChevronDown, Home, KeyRound, Lightbulb, LogOut, Moon, Save, Search, Sun, UserRound } from '@lucide/vue';
 import { useRoute } from 'vue-router';
 import { requestData } from '../api/client';
+import { currentTheme as appliedTheme, subscribeTheme, toggleTheme, type ColorTheme } from '../theme';
 import type { CurrentUser } from '../types';
 
 // Author: huangbingrui.awa
@@ -95,10 +113,14 @@ const newPassword = ref('');
 const confirmPassword = ref('');
 const passwordError = ref('');
 const submitting = ref(false);
+const currentTheme = ref<ColorTheme>(appliedTheme());
+let stopThemeSubscription: () => void = () => undefined;
 const displayName = computed(() => props.currentUser?.nickname || props.currentUser?.username || '');
 const avatar = computed(() => Array.from(displayName.value.trim())[0]?.toUpperCase() ?? 'U');
 
 onMounted(async () => {
+  currentTheme.value = appliedTheme();
+  stopThemeSubscription = subscribeTheme((theme) => { currentTheme.value = theme; });
   if (embedded) return;
   try {
     const result = await requestData<Array<{ name?: string }>>('/categories');
@@ -110,6 +132,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.clearTimeout(searchTimer);
+  stopThemeSubscription();
 });
 
 function scheduleSearch() {
@@ -131,6 +154,10 @@ function scheduleSearch() {
 function openSearchResult() {
   const result = searchResults.value[0];
   if (result) window.location.assign(`/blog/${result.id}`);
+}
+
+function switchTheme() {
+  currentTheme.value = toggleTheme();
 }
 
 function resetPassword() {

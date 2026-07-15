@@ -3,7 +3,21 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1.0">
-	<meta name="color-scheme" content="light">
+	<meta name="color-scheme" content="light dark">
+	<script>
+		// Apply the saved theme before styles and Vue mount to avoid a bright first frame.
+		(function () {
+			var theme = 'light'
+			try {
+				var stored = window.localStorage.getItem('custacm.theme')
+				theme = stored === 'dark' || stored === 'light' ? stored : 'light'
+			} catch (_) {}
+			var root = document.documentElement
+			root.dataset.theme = theme
+			root.classList.toggle('dark', theme === 'dark')
+			root.style.colorScheme = theme
+		})()
+	</script>
 	<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 	<title>custacm-platpform</title>
 	<link rel="stylesheet" href="/lib/css/prism.css">

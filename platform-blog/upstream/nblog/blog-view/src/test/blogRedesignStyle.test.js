@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 
 const css = readFileSync(resolve(process.cwd(), 'src/assets/css/blog-redesign.css'), 'utf8')
+const nightCss = readFileSync(resolve(process.cwd(), 'src/assets/css/night.css'), 'utf8')
 const navSource = readFileSync(resolve(process.cwd(), 'src/components/index/Nav.vue'), 'utf8')
 const footerSource = readFileSync(resolve(process.cwd(), 'src/components/index/Footer.vue'), 'utf8')
 const mainSource = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8')
@@ -104,13 +105,18 @@ describe('Blog redesign stylesheet contract', () => {
 		expect(indexSource).toContain('background: rgba(38, 34, 31, .68) !important')
 	})
 
-	it('ships one visual mode without a theme switch or dark stylesheet', () => {
-		expect(navSource).not.toContain('nav-theme-toggle')
-		expect(navSource).not.toContain('role="switch"')
-		expect(mainSource).not.toContain('night.css')
-		expect(mainSource).not.toContain('dark/css-vars.css')
-		expect(indexHtml).toContain('<meta name="color-scheme" content="light">')
-		expect(indexHtml).not.toContain('custacm.theme')
+	it('loads the persistent two-mode theme and exposes one compact navigation switch', () => {
+		expect(navSource).toContain('nav-theme-toggle')
+		expect(navSource).toContain('role="switch"')
+		expect(navSource).toContain("THEME_CHANGE_EVENT")
+		expect(mainSource).toContain('night.css')
+		expect(mainSource).toContain('dark/css-vars.css')
+		expect(indexHtml).toContain('<meta name="color-scheme" content="light dark">')
+		expect(indexHtml).toContain('custacm.theme')
+		expect(nightCss).toContain('--color-canvas: #141413')
+		expect(nightCss).toContain('--color-text: #faf9f5')
+		expect(nightCss).toContain('--color-action: #d97757')
+		expect(nightCss).not.toMatch(/html\.dark\s+img/)
 	})
 
 	it('uses one typography and icon scale across the primary navigation items', () => {

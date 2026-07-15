@@ -4,7 +4,7 @@
 
 用户只访问一个站点、一个 Nginx `frontend` 服务。源码中另一份 `frontend/` Vue 构建只负责训练业务，作为同源 `/training-app/**` 运行时嵌入本模块；两份 Vue Router 不合并，也不会显示两条顶栏。
 
-Blog 与 Training 固定使用共享浅色语义 token，不读取系统配色、不持久化视觉模式，也不在 frame 间传递主题消息。Blog 唯一顶栏在首页、文章详情、写作和 Training 外壳使用 `rgba(250, 249, 245, .72)` 米白毛玻璃，使其在同色画布上与 `#faf9f5` 底色一致；固定暖黑的文章目录继续使用原暗色毛玻璃背景和浅色半透明边框，两者复用同一模糊强度；顶栏不提供主题切换入口，文章目录、黑色页脚等固定深色区域仍是页面本身的视觉设计。
+Blog 与 Training 共享日间/夜间语义 token。首次访问固定日间，Blog 唯一顶栏在账户入口左侧提供紧凑太阳/月亮开关；选择写入 `custacm.theme`、跨标签页同步并传给同源 Training frame，但不读取系统配色。日间沿用首页/赛事荣誉的米白浅色体系，夜间沿用文章目录的暖黑 `#141413`、米白 `#faf9f5` 与陶土橙 `#d97757`；顶栏分别使用同模糊强度的浅色/暗色毛玻璃，业务图片不统一滤色。
 
 About、Friends、Moments 页面和 API 已删除，旧 URL 不保留页面。个人资料、友情链接、密码、头像和本人文章统一收敛到 `/profile`；OJ handle 仍由训练管理端统一维护，个人主页不重复展示 OJ 卡片。
 
@@ -44,7 +44,7 @@ src/test/        API、会话、路由和关键交互回归测试
 ## 依赖与边界
 
 - 使用 Vue 3、Vite、Vue Router 4、Vuex 4、Axios、Element Plus 和 Lucide；组件继续允许 Options API。阶段 6 已退出 Semantic UI，页面结构只使用项目自有布局 class，业务模板通过全局 `AppIcon` 使用集中维护的 Lucide 语义映射。代码排版通过 Fontsource 内置 JetBrains Mono Variable，不依赖客户端预装字体或外部 CDN。
-- 共享视觉 token 的唯一源位于仓库根 `frontend-design-tokens/tokens.css`；`src/assets/css/tokens.css` 是脚本生成副本，由 `main.js` 在基础样式前加载。`blog-redesign.css` 统一固定浅色语义角色与 Element Plus 视觉变量。
+- 共享视觉 token 的唯一源位于仓库根 `frontend-design-tokens/tokens.css`；`src/assets/css/tokens.css` 是脚本生成副本，由 `main.js` 在基础样式前加载。`blog-redesign.css` 承载日间基线，`night.css` 统一覆盖暖黑语义角色与 Element Plus 暗色变量。
 - 文章代码块和 Markdown 实时预览固定使用浅灰白底、深墨文字及蓝紫绿语法色。状态语义色及分类/标签业务色保持原义；文章图片、头像、横幅和背景图不再因全局视觉模式变化而额外滤色。
 - Axios 默认 `baseURL` 为 `/api/`。公开请求不得全局附加 `Authorization`，也不再保存或发送游客评论 `identification`；需要登录的 adapter 显式携带 Bearer token。
 - 共享登录键只有 `custacm.accessToken` 和 `custacm.user`。用户摘要只用于展示，权限始终由 Blog API 校验。
@@ -66,10 +66,10 @@ src/test/        API、会话、路由和关键交互回归测试
 - 登录评论表单提交期间禁用重复提交；401 清理共享会话并携带当前页面回到登录页。
 - 顶栏“文章”直接进入 `/articles`，不再通过“分类”下拉菜单导航，顶栏本身不提供搜索框。文章总览、分类与标签页共享暖黑文章目录：总览标题固定为“全部文章”，分类和标签页标题直接使用当前分类名或标签名，并统一使用可覆盖技术、训练与随笔内容的说明文案；页面左栏提供分类直达，下面从服务端标签列表随机抽取最多十二个标签并允许换一组；右侧提供全站文章标题搜索和网格/列表切换，输入过程不请求，只有回车或点击输入框左侧搜索按钮才调用 `/searchBlog`。桌面网格使用一行三篇的暖黑卡片，首图和无图占位统一为 16:9 黑底，图片以 `contain` 完整显示，不拉伸或裁切；作者行标签保持完整宽度，按卡片可用空间只展示前几个并以省略号表示剩余标签。首页仍不渲染普通文章分页，只展示精选文章，文章标签继续由后端批量装配。
 - `/site` 只消费 Blog 首页需要的站点信息、分类、标签和 `featuredGroups`，不依赖已删除页面字段。`featuredGroups` 最多三组，每组由可编辑标题和固定三篇文章组成，并按后台保存的组顺序、组内文章顺序展示；成员文章后来变为草稿、内部文章或进入回收站时整组暂不公开，恢复资格后自动重新出现。
-- 首页首屏只展示构建内置 `public/img/homepage-banner-default.png`，不请求动态横幅接口。首图渐隐区下方匿名读取 `GET /homepage-featured-images` 并一次展示全部精选图片，三份副本组成向左缓慢滚动的无缝环；初始只加载 `thumbnailUrl` 压缩图，点击打开共享预览器后仍先显示缩略图，用户明确选择“加载原图”才请求 `imageUrl`。悬停、键盘聚焦或拖动时暂停，支持鼠标拖动、触控板和方向键手动滚动，左右边界使用渐隐与背景模糊。减少动态效果偏好下不自动滚动。空头像回退到 `public/img/default-avatar.jpg`。
+- 首页首屏只展示构建内置 `public/img/homepage-banner-default.png`，不请求动态横幅接口。首图渐隐区下方匿名读取 `GET /homepage-featured-images` 并一次展示全部精选图片；组件根据视口与单组宽度动态生成足够多的奇数副本，从中间副本开始缓慢左滚，并在接近外围副本时按完整序列宽度无感换轨。初始只加载 `thumbnailUrl` 压缩图，点击打开共享预览器后仍先显示缩略图，用户明确选择“加载原图”才请求 `imageUrl`。悬停、键盘聚焦或拖动时暂停，鼠标拖动、触控板、触摸、原生横向滚动和方向键向任意方向操作都不会到达首尾；左右边界继续使用渐隐与背景模糊。减少动态效果偏好下不自动滚动。空头像回退到 `public/img/default-avatar.jpg`。
 - 文章包打包期间按钮不可重复点击；401 清理共享会话并带当前文章路径跳转登录，429 显示剩余冷却秒数，503 显示下载服务暂不可用。
 - “我的文章”只承担现有内容管理，不重复提供发布入口；发布文章统一从顶栏进入。区域使用克制的当前文章/回收站切换，回收站显示删除时间与剩余保留期，只提供恢复操作，不提供提前永久删除。
-- 全局视觉固定为浅色，不读取 `prefers-color-scheme`，不写主题存储，也不向 Training frame 发送视觉模式消息。
+- 全局默认日间且不读取 `prefers-color-scheme`；顶栏开关写入 `custacm.theme`，主题服务负责同页与跨标签页事件，Training host 在 frame 加载和主题变化时发送同源视觉模式消息。
 - 首页首屏在现有唯一顶栏下使用居中的大字号 `Welcome to the CUSTACM Platform` 标题和单张横向通栏 16:9 首图；标题采用接近 Notion 展示标题的系统 Display Sans 字体链、800 字重、紧字距、独立单词间距和低行高，并复用旧版逐字错峰浮动节奏形成轻微不规则波浪。首图使用居中 `cover` 裁切并贴满浏览器左右边缘，不添加边框、圆角或阴影，使 PNG 透明区域与 Hero 背景直接融合。ICPC、CCPC 和完整圆形 CUSTACM 校队标志叠放在首图左上方留白区，并以不同周期、相位和振幅轻微上下浮动；首图底部继续以背景渐变与局部模糊柔化硬边。标题和标志动画均服从系统减少动态效果设置。下方只展示带页边距的精选区，不渲染普通文章列表、个人介绍或标签云。首页固定使用 Notion 式中性色：`#faf9f5` 米白画布、`#f7f7f5` 卡面、`#f1f1ef` 悬停面、`#e9e9e7` 边框、`#050505` 主文字、`#37352f` 正文和 `#787774` 次要文字；底部黑色链接栏不随此配色调整。精选区最多展示三组，每组先显示自定义标题，再以第一篇横向大卡和下方并排的第二、三篇组成接近 Notion 的层级布局。所有文章首图使用 16:9 媒体框和 `contain` 完整显示，不裁剪原图；卡片同时展示分类、标题、三行简介、日期，以及作者头像、昵称和 `@username`。文章详情页使用 IDE 式双区，左侧窄工具栏组合作者、目录和评论入口，作者信息右侧上下排列登录用户下载与作者编辑操作；右侧以大标题、日期、可选 16:9 首图和正文组成独立阅读画布；首图与正文图片统一 20px 圆角，移动端隐藏工具栏。
 
 ## 文件与路径职责
@@ -81,11 +81,12 @@ src/test/        API、会话、路由和关键交互回归测试
 | `src/router/index.js` | Blog 页面、训练外壳和 `/login` 转交；不包含 About/Friends/Moments |
 | `src/utils/trainingRoute.js` | 训练 frame 路径白名单和内部 `/training-app/**` 地址构造 |
 | `src/views/Index.vue` | Blog 门户响应式外壳、`/site` 的 `featuredGroups` 首页状态与文章 IDE 式双区；桌面锁定单视口高度，左侧作者/目录工具栏与右侧阅读画布分别独立滚动，作者名片承载登录用户下载与作者编辑操作，训练路由保留唯一 `Nav.vue` 并隐藏 Blog 工具栏 |
-| `src/views/training/TrainingHost.vue` | 同源嵌入训练运行时并同步公开 `/training/**` URL；使用 border-box 在单视口内预留顶栏高度，并标记外层 Training 状态以使用中性圆头滚动条 |
+| `src/views/training/TrainingHost.vue` | 同源嵌入训练运行时并同步公开 `/training/**` URL 与当前主题；使用 border-box 在单视口内预留顶栏高度，并标记外层 Training 状态以使用中性圆头滚动条 |
 | `src/assets/css/typo.css` | 文章 Markdown 排版、统一 JetBrains Mono 行内/块级代码字体、固定浅色 Prism 语法配色与横向滚动行为 |
 | `src/assets/css/base.css` | 项目自有的基础重置、导航/网格/内容表面、侧栏与通用控件布局基础，以及全局等宽字体角色 |
 | `src/assets/css/tokens.css` | 从仓库根共享源生成并由 `main.js` 首先加载的视觉 token 副本；禁止手工编辑 |
-| `src/assets/css/blog-redesign.css` | Blog 固定浅色语义映射、Element Plus 变量、有限玻璃、现代圆角和实体内容表面覆盖 |
+| `src/assets/css/blog-redesign.css`、`night.css` | Blog 日间基线与全站暖黑夜间覆盖、Element Plus 变量、有限玻璃、现代圆角和实体内容表面 |
+| `src/theme.js` | 默认日间、`custacm.theme` 持久化、根节点应用、同页及跨标签页主题事件 |
 | `src/views/home/Home.vue` | 保留的首页文章分页组件；当前首页外壳暂不渲染 |
 | `src/views/blog/Blog.vue` | 文章详情的完整换行大标题/日期/可选首图、首图下完整换行的浅色衬线简介、统一圆角正文图片、按持久化业务色展示的分类圆点/彩色标签和完整评论；文章操作由 `Index.vue` 的左侧作者名片承载，本组件不展示字体或阅读模式控件 |
 | `src/views/category/Category.vue`、`src/views/tag/Tag.vue` | `/articles` 文章总览及分类/标签分页；共享 Claude 参考页式暖黑目录、分类侧栏、随机标签、显式提交的全站标题搜索和网格/列表视图 |
@@ -101,9 +102,10 @@ src/test/        API、会话、路由和关键交互回归测试
 | `src/components/article/ArticleCoverUpload.vue` | 1920×1080 首图裁剪 |
 | `src/components/article/ManagedImageViewer.vue` | 默认展示缩略图，明确操作后加载高清图 |
 | `src/util/dialogFocus.js` | Blog 弹层共享的焦点进入、Tab 循环和关闭后焦点归还工具 |
-| `src/components/index/Nav.vue` | Blog/训练导航、发布入口和账号菜单；浅色路由使用共享浅色毛玻璃，暖黑文章目录使用同模糊强度的暗色毛玻璃；不承载搜索，“文章”直接进入 `/articles` 且无分类下拉，五个主导航项共享统一规格 |
+| `src/util/circularMarquee.js` | 根据视口计算循环副本数、中间副本偏移及按整组宽度双向换轨的纯几何函数 |
+| `src/components/index/Nav.vue` | Blog/训练导航、发布入口、紧凑太阳/月亮主题开关和账号菜单；日间/夜间使用同模糊强度的浅色/暗色毛玻璃；不承载搜索，“文章”直接进入 `/articles` 且无分类下拉，五个主导航项共享统一规格 |
 | `src/components/index/Header.vue` | 首页大标题、构建内置静态首图、底部渐隐与首图留白区赛事/校队标志行 |
-| `src/components/index/FeaturedImageMarquee.vue` | 进入首图渐隐区的滚动精选图；压缩图优先、共享高清预览、三副本无缝左滚、悬停/聚焦暂停、拖动/触控板/键盘滚动和左右渐隐模糊 |
+| `src/components/index/FeaturedImageMarquee.vue` | 进入首图渐隐区的滚动精选图；压缩图优先、共享高清预览、动态多副本双向无尽循环、悬停/聚焦暂停、拖动/触控板/触摸/键盘滚动和左右渐隐模糊 |
 | `src/components/index/Footer.vue` | 保持黑色的站点与竞赛友情链接栏；使用不可压缩的最小高度和底部安全间距，避免末行被视口裁切 |
 | `src/api/index.js` | `/site` 与公开滚动精选图片读取；公开请求不得附加共享 JWT |
 | `src/components/sidebar/Introduction.vue` | 当前用户或文章作者公开名片 |
@@ -140,7 +142,7 @@ src/test/        API、会话、路由和关键交互回归测试
 | `src/test/articleCompetitionBindings.test.js` | 本人公开文章的参赛比赛筛选、关联/解绑与并发状态测试 |
 | `src/test/publicVisibilityApi.test.js` | 聚合读取仅在有会话时显式附加 Bearer 的测试 |
 | `src/test/featuredBlog.test.js` | 首页精选最多三组、一大两小布局、16:9 首图完整显示、作者信息和键盘进入文章的回归测试 |
-| `src/test/homepageFeaturedImages.test.js` | 精选图片公开无认证请求、首页位置、三副本循环、暂停/手动滚动和边界模糊合同测试 |
+| `src/test/homepageFeaturedImages.test.js`、`circularMarquee.test.js` | 精选图片公开无认证请求、首页位置、动态副本、双向无尽换轨、暂停/手动滚动和边界模糊测试 |
 | `src/test/articleDownloadApi.test.js`、`articleDownload.test.js` | 下载请求、文件名、浏览器保存和 `Retry-After` 测试 |
 | `src/test/liveMarkdownEditor.test.js` | 编辑器工具栏、代码块点击、视觉行方向键、图片原子区与预览/源码边界测试 |
 | `src/test/articleRecycleBinUi.test.js`、`playerBlogApi.test.js` | 本人回收站文案、删除/恢复交互和受保护路径测试 |

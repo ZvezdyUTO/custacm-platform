@@ -12,7 +12,7 @@
 
 两份 Vue Router 彼此独立。训练运行时通过同源 frame 嵌入 Blog 外壳；进入训练中心时继续使用已挂载的同一个 `Nav.vue`，不会渲染第二条顶栏。
 
-两份构建固定使用共享浅色语义 token，不读取系统配色、不持久化视觉模式，也不在 frame 间传递主题消息。Blog 顶栏和 Training 独立开发外壳都不提供主题按钮；文章目录等固定深色页面仍由 Blog 自身页面样式维护，不属于全局夜间模式。个人训练难度分布继续使用 rating 色阶和清晰轨道保持边界可辨。
+两份构建共享日间/夜间语义 token。首次访问固定为日间，Blog 顶栏账户入口左侧提供紧凑太阳/月亮开关，选择写入 `custacm.theme`、跨标签页同步并传递给同源 Training frame，但不读取系统配色。日间沿用首页/赛事荣誉的暖米色画布、浅奶油卡片和暖灰边框，Training 普通查询、登录和管理工作区都不使用纯白底；夜间沿用文章目录的暖黑、米白与陶土橙体系。业务图片不统一滤色，个人训练难度分布继续使用 rating 色阶和清晰轨道保持边界可辨。
 
 ## 页面与权限
 
@@ -132,6 +132,7 @@ frontend/
 | `src/views/TrainingView.vue` | 查询和管理员页面的路由级容器，向 dashboard 传递当前 admin section |
 | `src/types.ts` | 页面模型和 Blog API DTO，包括用户更新、比赛/奖项及首页精选组模型 |
 | `src/auth/session.ts` | 成对校验、读写和清理共享 JWT/用户摘要 |
+| `src/theme.ts` | 默认日间、`custacm.theme` 持久化、根节点应用、同页/跨标签页事件及同源父 frame 消息同步 |
 | `src/api/client.ts` | `/api` 基址、Result envelope、Bearer header、含 `Retry-After` 的 `ApiError` 和响应文件名解析 |
 | `src/api/auth.ts` | 登录、当前用户和本人密码修改 |
 | `src/api/training.ts` | 用户目录、单人/多人批量汇总、提交和首 AC 查询 |
@@ -140,7 +141,7 @@ frontend/
 | `src/composables/usePlatformDashboard.ts` | 按页面加载数据、批量汇总、比赛聚合、分页、首页精选组/精选图片和管理员操作状态编排 |
 | `src/utils/adminUsers.ts` | 创建用户文本导入、角色与 handle 行转换 |
 | `src/utils/adminTraining.ts` | 固定携带数仓刷新的采集请求构造 |
-| `src/components/AppShell.vue` | 独立开发调试顶栏；只读分类目录，嵌入 Blog 时隐藏顶栏且不重复加载 |
+| `src/components/AppShell.vue` | 独立开发调试顶栏及紧凑主题开关；只读分类目录，嵌入 Blog 时隐藏顶栏且不重复加载 |
 | `src/components/LoginPanel.vue` | 统一顶栏下的居中账户式登录表单、五秒冷却倒计时和安全回跳 |
 | `public/img/custacm-training-logo.jpg` | Training 登录页中央使用的 CUST ACM 圆形徽章原图 |
 | `src/components/LoginFooter.vue` | 在 Training iframe 内复现 Blog 项目与竞赛平台页脚，使登录页无需外层滚动即可访问链接 |
@@ -156,9 +157,10 @@ frontend/
 | `src/components/TrainingDataOpsPanel.vue` | 手动采集任务、详情和数仓刷新 |
 | `src/components/HomepageFeaturedImagesAdminPanel.vue` | 最多十二张滚动精选图片的批量队列、3:2 裁剪、缩略图预览、完整排序和删除确认 |
 | `src/styles/homepage-featured-images-admin.css` | 精选图片后台卡片网格、计数和裁剪布局 |
-| `src/styles/competition-admin.css` | 比赛聚合、奖项层级、表单与回收站布局 |
+| `src/styles/article-admin.css` | 文章管理、首页编排及与公开首页同色的精选文章预览 |
+| `src/styles/competition-admin.css` | 比赛聚合、奖项层级、表单、回收站布局及日间/夜间专用语义变量 |
 | `src/components/CreateUsersPanel.vue` | 批量创建用户输入与编辑 |
-| `src/styles.css`、`src/styles/*.css` | 固定浅色桌面外壳、管理员确认框、表格、分页和业务页面样式 |
+| `src/styles.css`、`src/styles/*.css` | 日间/夜间桌面外壳、管理员确认框、表格、分页和业务页面样式；`light.css` 承载暖米色覆盖，`dark.css` 承载暖黑覆盖 |
 | `src/styles/tokens.css` | 从根共享源生成并在样式入口首先加载的视觉 token 副本；禁止手工编辑 |
 | `src/styles/training-redesign.css` | Training 阶段 2 的 Action Blue/暖橙角色、现代圆角、有限玻璃、分级字号和路由动效覆盖 |
 | `src/test/platform-dashboard-batch.test.ts` | 多人页面只调用一次批量汇总 API 的回归测试 |

@@ -5,6 +5,7 @@
 			class="training-frame"
 			:src="frameSource"
 			title="训练中心"
+			@load="syncThemeToFrame"
 		></iframe>
 	</section>
 </template>
@@ -12,6 +13,7 @@
 <script setup>
 import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
 import {useRoute} from 'vue-router'
+import {getCurrentTheme, THEME_CHANGE_EVENT} from '../../theme'
 import {buildTrainingFrameSource, isAllowedTrainingRoutePath} from '../../utils/trainingRoute'
 
 // Author: huangbingrui.awa
@@ -29,13 +31,21 @@ function syncTrainingUrl(event) {
 	window.history.replaceState(window.history.state, '', `/training${path}`)
 }
 
+function syncThemeToFrame(event) {
+	const theme = event?.detail?.theme === 'dark' || event?.detail?.theme === 'light'
+		? event.detail.theme : getCurrentTheme()
+	frame.value?.contentWindow?.postMessage({type: 'custacm:theme', theme}, window.location.origin)
+}
+
 onMounted(() => {
 	document.documentElement.classList.add('training-host-active')
 	window.addEventListener('message', syncTrainingUrl)
+	window.addEventListener(THEME_CHANGE_EVENT, syncThemeToFrame)
 })
 onBeforeUnmount(() => {
 	document.documentElement.classList.remove('training-host-active')
 	window.removeEventListener('message', syncTrainingUrl)
+	window.removeEventListener(THEME_CHANGE_EVENT, syncThemeToFrame)
 })
 </script>
 
@@ -46,7 +56,7 @@ onBeforeUnmount(() => {
 	height: 100vh;
 	overflow: hidden;
 	padding-top: 51px;
-	background: #f4f6f8;
+	background: var(--color-canvas-alternate);
 }
 
 .training-frame {
@@ -54,6 +64,6 @@ onBeforeUnmount(() => {
 	width: 100%;
 	height: calc(100vh - 51px);
 	border: 0;
-	background: #f4f6f8;
+	background: var(--color-canvas-alternate);
 }
 </style>

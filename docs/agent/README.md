@@ -9,7 +9,7 @@
 - Vue Blog 构建内置唯一静态首页首图 `public/img/homepage-banner-default.png`，不再通过后端动态横幅接口读取或管理。
 - 两份 Vue 3 构建共享 `custacm.accessToken`、`custacm.user`；公开 Blog 请求不全局带 JWT，受保护评论提交显式使用共享 Bearer。
 - 匿名登录按规范化 username 受 Redis 五秒冷却保护：首次错误 401 携带 `Retry-After: 5`，窗口内重复请求 429，Training 登录按钮同步显示剩余秒数；Redis 不可用时登录失败关闭。
-- 两份 Vue 3 构建固定使用共享浅色语义 token，不提供主题按钮、系统主题跟随、主题持久化或 frame 主题同步。Blog 文章目录和黑色页脚等固定深色区域属于页面设计，不是全局夜间模式。
+- 两份 Vue 3 构建共享日间/夜间语义 token。Blog 唯一顶栏提供主题按钮，首次默认日间，选择持久化到 `custacm.theme` 并跨标签页、同源 Training frame 同步，但不跟随系统主题；夜间以文章目录暖黑色板为全站基准，业务图片不统一滤色。
 - 两份前端的共享视觉 token 以 `frontend-design-tokens/tokens.css` 为唯一源，通过 `scripts/sync-design-tokens.sh` 生成本地副本；Training 与 Blog 均已通过各自独立覆盖层接入，保留两套 Router 和组件边界。
 - Vue Blog 只保留首页、文章、分类、标签、搜索、`/competitions` 赛事档案、`/profile` 个人主页与评论；赛事详情展示完整参赛者、相关文章和奖项事实，个人主页维护本人奖项公开偏好、公开顺序与已发布文章的比赛绑定。文章作者栏按该顺序默认展示前三项公开奖项并可展开。评论用本地 Google Noto Emoji sprite 选择并渲染标准 Unicode，历史短码只读兼容。About、全站友链和动态页面/API 已移除。“我的主页”内嵌本人文章，登录用户从顶栏发布纯文本/Markdown 导入文章，并从本人文章详情进入编辑。
 - Vue Blog 首页只展示 `GET /site` 的 `featuredGroups` 精选区，不渲染普通文章列表、个人介绍或标签云；最多三组，每组以自定义标题、一张大卡和两张次卡展示三篇文章，首图在 16:9 框内完整显示，并带作者头像、昵称、username 与按持久化颜色展示的文章标签。首页使用暖米色画布和统一的低饱和浅奶油棕卡片，黑夜开关会同时切换页面背景与统一暖炭灰卡片。文章详情桌面端使用 IDE 式双区，左侧独立滚动工具栏包含作者、目录和评论入口，作者信息右侧上下排列下载与作者编辑文字操作；右侧独立滚动阅读画布包含标题、日期、可选首图、首图下浅色小号衬线简介、正文和评论。
