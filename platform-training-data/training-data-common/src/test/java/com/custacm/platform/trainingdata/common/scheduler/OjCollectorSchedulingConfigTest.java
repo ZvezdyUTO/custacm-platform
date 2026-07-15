@@ -1,5 +1,6 @@
 package com.custacm.platform.trainingdata.common.scheduler;
 
+import com.custacm.platform.trainingdata.common.collector.OjCollectionExecutionCoordinator;
 import com.custacm.platform.trainingdata.common.collector.config.OjCollectorSchedulingProperties;
 import com.custacm.platform.trainingdata.common.collector.job.OjSubmissionCollectionJobRefreshResult;
 import com.custacm.platform.trainingdata.common.collector.job.OjSubmissionCollectionJobRefreshStatus;
@@ -13,11 +14,17 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -65,7 +72,9 @@ class OjCollectorSchedulingConfigTest {
         new OjCollectorSchedulingConfig(
                 properties,
                 collectionService,
-                new OjWarehouseRefreshDispatcher(List.of(codeforcesRefreshHandler, atcoderRefreshHandler))
+                new OjWarehouseRefreshDispatcher(List.of(codeforcesRefreshHandler, atcoderRefreshHandler)),
+                Runnable::run,
+                new OjCollectionExecutionCoordinator()
         ).configureTasks(registrar);
 
         assertThat(registrar.getTriggerTaskList()).hasSize(2);
@@ -99,12 +108,79 @@ class OjCollectorSchedulingConfigTest {
         new OjCollectorSchedulingConfig(
                 properties,
                 collectionService,
-                new OjWarehouseRefreshDispatcher(List.of(refreshHandler))
+                new OjWarehouseRefreshDispatcher(List.of(refreshHandler)),
+                Runnable::run,
+                new OjCollectionExecutionCoordinator()
         ).configureTasks(registrar);
 
         registrar.getTriggerTaskList().getFirst().getRunnable().run();
         verify(refreshHandler).ojName();
         verify(refreshHandler, never()).refresh(any());
+    }
+
+    @Test
+    void skipsSameOjTriggerInsteadOfQueueingItBehindBusyWorkers() throws Exception {
+        OjScheduledSubmissionCollectionService collectionService = mock(OjScheduledSubmissionCollectionService.class);
+        CountDownLatch started = new CountDownLatch(2);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger codeforcesRuns = new AtomicInteger();
+        when(collectionService.collectRecentWindowForConfiguredHandles(any(), any())).thenAnswer(invocation -> {
+            String ojName = invocation.getArgument(0);
+            if ("CODEFORCES".equals(ojName)) {
+                codeforcesRuns.incrementAndGet();
+            }
+            started.countDown();
+            release.await();
+            return successResult(ojName, null);
+        });
+        OjCollectorSchedulingProperties properties = new OjCollectorSchedulingProperties(
+                List.of(
+                        new OjCollectorSchedulingProperties.Schedule(
+                                "codeforces",
+                                "CODEFORCES",
+                                true,
+                                "0 0 12 * * *",
+                                "UTC",
+                                Duration.ZERO
+                        ),
+                        new OjCollectorSchedulingProperties.Schedule(
+                                "atcoder",
+                                "ATCODER",
+                                true,
+                                "0 0 12 * * *",
+                                "UTC",
+                                Duration.ZERO
+                        )
+                ),
+                null
+        );
+        ScheduledTaskRegistrar registrar = new ScheduledTaskRegistrar();
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        new OjCollectorSchedulingConfig(
+                properties,
+                collectionService,
+                new OjWarehouseRefreshDispatcher(List.of()),
+                executor,
+                new OjCollectionExecutionCoordinator()
+        ).configureTasks(registrar);
+
+        try {
+            registrar.getTriggerTaskList().getFirst().getRunnable().run();
+            registrar.getTriggerTaskList().get(1).getRunnable().run();
+            assertThat(started.await(2, SECONDS)).isTrue();
+
+            registrar.getTriggerTaskList().getFirst().getRunnable().run();
+            release.countDown();
+            executor.shutdown();
+            assertThat(executor.awaitTermination(2, SECONDS)).isTrue();
+
+            assertThat(codeforcesRuns).hasValue(1);
+            verify(collectionService, times(1))
+                    .collectRecentWindowForConfiguredHandles("CODEFORCES", Duration.ZERO);
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+        }
     }
 
     @Test
@@ -125,7 +201,9 @@ class OjCollectorSchedulingConfigTest {
         new OjCollectorSchedulingConfig(
                 properties,
                 mock(OjScheduledSubmissionCollectionService.class),
-                new OjWarehouseRefreshDispatcher(List.of())
+                new OjWarehouseRefreshDispatcher(List.of()),
+                Runnable::run,
+                new OjCollectionExecutionCoordinator()
         ).configureTasks(registrar);
 
         assertThat(registrar.getTriggerTaskList()).isEmpty();
@@ -160,7 +238,9 @@ class OjCollectorSchedulingConfigTest {
         new OjCollectorSchedulingConfig(
                 properties,
                 mock(OjScheduledSubmissionCollectionService.class),
-                new OjWarehouseRefreshDispatcher(List.of())
+                new OjWarehouseRefreshDispatcher(List.of()),
+                Runnable::run,
+                new OjCollectionExecutionCoordinator()
         ).configureTasks(registrar);
 
         assertThat(registrar.getTriggerTaskList()).isEmpty();

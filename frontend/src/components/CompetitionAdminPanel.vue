@@ -4,7 +4,7 @@
       <span class="reference-page-icon"><Trophy :size="22" /></span>
       <div>
         <h2>比赛与奖项</h2>
-        <p>比赛、参赛者和奖项只允许添加或删除；比赛删除后进入固定七天回收站。</p>
+        <p>比赛、参赛者和奖项主体只允许添加或删除；每项奖项可单独设置查看权限。</p>
       </div>
       <button
         v-if="viewMode === 'active'"
@@ -60,7 +60,15 @@
         <label class="competition-name-field">比赛全称
           <input v-model="createDraft.fullName" maxlength="255" placeholder="例如：2026 ICPC 亚洲区域赛（合肥）">
         </label>
-        <label>年份<input v-model.number="createDraft.year" type="number" min="1900" max="9999"></label>
+        <label>比赛日期（可选）
+          <input
+            v-model="createDraft.competitionDate"
+            type="date"
+            min="1900-01-01"
+            max="9999-12-31"
+            aria-label="比赛日期"
+          >
+        </label>
         <label>规范分类
           <select v-model="createDraft.category" aria-label="比赛规范分类">
             <option value="" disabled>请选择分类</option>
@@ -88,7 +96,7 @@
         <div class="competition-row-summary">
           <div class="competition-identity">
             <strong>{{ competition.fullName }}</strong>
-            <span>{{ competition.year }} · {{ competition.participationModeLabel }}</span>
+            <span>{{ formatCompetitionDate(competition) }} · {{ competition.participationModeLabel }}</span>
           </div>
           <div class="competition-category-tag" :class="{ 'is-unclassified': !competition.category }">
             <span>{{ competition.categoryLabel || '待归类历史记录' }}</span>
@@ -180,6 +188,21 @@
                   <label>排名<input v-model.number="awardDraft.rankPosition" type="number" min="1" aria-label="排名名次"></label>
                   <label>总排名数<input v-model.number="awardDraft.rankTotal" type="number" min="1" aria-label="排名总数"></label>
                 </template>
+                <div class="competition-visibility-field">
+                  <span>查看权限</span>
+                  <button
+                    class="competition-visibility-switch"
+                    type="button"
+                    role="switch"
+                    :aria-checked="awardDraft.requiresLogin"
+                    aria-label="新奖项仅登录后可见"
+                    :disabled="busy"
+                    @click="awardDraft.requiresLogin = !awardDraft.requiresLogin"
+                  >
+                    <span class="competition-switch-track" aria-hidden="true"><span /></span>
+                    <span>{{ awardDraft.requiresLogin ? '仅登录后可见' : '所有访客可见' }}</span>
+                  </button>
+                </div>
               </div>
               <fieldset class="competition-recipient-picker">
                 <legend>获奖人</legend>
@@ -211,9 +234,23 @@
                   <p v-if="award.teamName">队伍：{{ award.teamName }}</p>
                   <p>获奖人：{{ award.recipients.map((item) => item.displayName).join('、') }}</p>
                 </div>
-                <button type="button" :aria-label="`删除奖项 ${award.awardTierLabel || '待归类历史奖项'}`" @click="askDeleteAward(competition, award)">
-                  <Trash2 :size="14" />
-                </button>
+                <div class="competition-award-actions">
+                  <button
+                    class="competition-visibility-switch"
+                    type="button"
+                    role="switch"
+                    :aria-checked="award.requiresLogin"
+                    :aria-label="`${award.awardTierLabel || '待归类历史奖项'} ${award.requiresLogin ? '仅登录后可见' : '所有访客可见'}`"
+                    :disabled="busy"
+                    @click="toggleAwardLoginRequirement(competition, award)"
+                  >
+                    <span class="competition-switch-track" aria-hidden="true"><span /></span>
+                    <span>{{ award.requiresLogin ? '仅登录后可见' : '所有访客可见' }}</span>
+                  </button>
+                  <button class="competition-award-delete" type="button" :aria-label="`删除奖项 ${award.awardTierLabel || '待归类历史奖项'}`" @click="askDeleteAward(competition, award)">
+                    <Trash2 :size="14" />
+                  </button>
+                </div>
               </article>
               <p v-if="competition.awards.length === 0">暂无奖项。</p>
             </div>
@@ -317,19 +354,20 @@ const filters = reactive<{ startYear: string; endYear: string; category: '' | Co
 });
 const createDraft = reactive<{
   fullName: string;
-  year: number;
+  competitionDate: string;
   category: '' | CompetitionCategory;
-}>({ fullName: '', year: new Date().getFullYear(), category: '' });
+}>({ fullName: '', competitionDate: '', category: '' });
 const awardDraft = reactive<{
   awardMode: CompetitionAwardMode;
   teamName: string;
   awardTier: '' | CompetitionAwardTier;
   rankPosition: number | null;
   rankTotal: number | null;
+  requiresLogin: boolean;
   recipientUsernames: string[];
 }>({
   awardMode: 'TEAM', teamName: '', awardTier: '',
-  rankPosition: null, rankTotal: null, recipientUsernames: [],
+  rankPosition: null, rankTotal: null, requiresLogin: false, recipientUsernames: [],
 });
 let listRequestSequence = 0;
 
@@ -341,8 +379,8 @@ const currentPage = computed(() => (
 const competitions = computed(() => currentPage.value.list);
 const createValidation = computed(() => {
   if (!createDraft.fullName.trim()) return '请输入比赛全称。';
-  if (!Number.isInteger(createDraft.year) || createDraft.year < 1900 || createDraft.year > 9999) {
-    return '比赛年份必须在 1900 到 9999 之间。';
+  if (createDraft.competitionDate && !isValidCompetitionDate(createDraft.competitionDate)) {
+    return '比赛日期必须在 1900-01-01 到 9999-12-31 之间。';
   }
   if (!createDraft.category) return '请选择唯一的规范分类。';
   return '';
@@ -473,7 +511,7 @@ function changePage(pageNum: number) {
 
 function resetCreateDraft() {
   createDraft.fullName = '';
-  createDraft.year = new Date().getFullYear();
+  createDraft.competitionDate = '';
   createDraft.category = '';
 }
 
@@ -482,7 +520,7 @@ function submitCompetition() {
   void run(async () => {
     const created = await props.dashboard.createCompetition({
       fullName: createDraft.fullName.trim(),
-      year: createDraft.year,
+      competitionDate: createDraft.competitionDate || null,
       category: createDraft.category as CompetitionCategory,
       participationMode: PARTICIPATION_MODE_BY_CATEGORY[createDraft.category as CompetitionCategory],
     });
@@ -492,6 +530,27 @@ function submitCompetition() {
     if (competitions.value.some((item) => item.id === created.id)) expandedId.value = created.id;
     notice.value = '比赛已创建，可继续添加参赛者和奖项。';
   }, '比赛创建失败。');
+}
+
+function isValidCompetitionDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(value);
+  if (!match || value < '1900-01-01' || value > '9999-12-31') return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  return daysInMonth !== undefined && day >= 1 && day <= daysInMonth;
+}
+
+function formatCompetitionDate(competition: Competition) {
+  if (competition.competitionDate) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(competition.competitionDate);
+    if (match) return `${Number(match[1])}年${Number(match[2])}月${Number(match[3])}日`;
+    return competition.competitionDate;
+  }
+  if (competition.year !== null) return `${competition.year}年`;
+  return '日期未填写';
 }
 
 function toggleExpanded(competition: Competition) {
@@ -573,6 +632,7 @@ function resetAwardDraft(competition: Competition) {
   awardDraft.awardTier = awardTierOptions(competition)[0]?.code ?? '';
   awardDraft.rankPosition = requiresAwardRank(competition) ? 1 : null;
   awardDraft.rankTotal = requiresAwardRank(competition) ? 1 : null;
+  awardDraft.requiresLogin = false;
   awardDraft.recipientUsernames = [];
 }
 
@@ -600,6 +660,7 @@ function awardValidation(competition: Competition) {
 
 function submitAward(competition: Competition) {
   if (awardValidation(competition)) return;
+  const requiresLogin = awardDraft.requiresLogin;
   void run(async () => {
     await props.dashboard.addCompetitionAward(competition.id, {
       awardMode: awardDraft.awardMode,
@@ -607,11 +668,24 @@ function submitAward(competition: Competition) {
       awardTier: awardDraft.awardTier as CompetitionAwardTier,
       rankPosition: requiresAwardRank(competition) ? awardDraft.rankPosition : null,
       rankTotal: requiresAwardRank(competition) ? awardDraft.rankTotal : null,
+      requiresLogin,
       recipientUsernames: [...awardDraft.recipientUsernames],
     });
+    const visibility = requiresLogin ? '仅登录后可见' : '所有访客可见';
     resetAwardDraft(competition);
-    notice.value = '奖项已添加；新获奖人的个人名片展示默认关闭。';
+    notice.value = `奖项已添加并设为${visibility}；新获奖人的个人名片展示默认关闭。`;
   }, '奖项添加失败。');
+}
+
+function toggleAwardLoginRequirement(competition: Competition, award: CompetitionAward) {
+  const requiresLogin = !award.requiresLogin;
+  void run(async () => {
+    await props.dashboard.updateCompetitionAwardLoginRequirement(
+      competition.id, award.id, requiresLogin,
+    );
+    const label = award.awardTierLabel || '待归类历史奖项';
+    notice.value = `“${label}”已设置为${requiresLogin ? '仅登录后可见' : '所有访客可见'}。`;
+  }, '奖项查看权限更新失败。');
 }
 
 function askMoveToRecycleBin(competition: Competition) {

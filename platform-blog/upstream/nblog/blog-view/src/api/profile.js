@@ -1,8 +1,14 @@
 // Author: huangbingrui.awa
 import axios from '@/plugins/axios'
+import {readToken} from '@/auth/session'
 
 function bearer(token) {
 	return {Authorization: `Bearer ${token}`}
+}
+
+function optionalBearer() {
+	const token = readToken()
+	return token ? bearer(token) : undefined
 }
 
 export async function getCurrentProfile(token) {
@@ -19,6 +25,7 @@ export async function getPublicProfile(username) {
 	const response = await axios({
 		url: `profiles/${encodeURIComponent(username)}`,
 		method: 'GET',
+		headers: optionalBearer(),
 	})
 	if (response.code !== 200) throw new Error(response.msg || '作者资料获取失败')
 	return response.data

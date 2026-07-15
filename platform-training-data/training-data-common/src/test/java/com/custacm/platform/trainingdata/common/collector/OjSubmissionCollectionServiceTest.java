@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OjSubmissionCollectionServiceTest {
     private static final Instant NOW = Instant.parse("2026-07-05T04:00:00Z");
@@ -135,6 +136,25 @@ class OjSubmissionCollectionServiceTest {
                 .isEqualTo(OjSubmissionCollectionStatus.SKIPPED);
     }
 
+    @Test
+    void writeFailureAbortsBeforeAdvancingAnyHandleCursor() {
+        FakeHandleResolver resolver = new FakeHandleResolver();
+        resolver.handlesByOj.put("CODEFORCES", List.of("alice", "bob"));
+        FakeAdapter adapter = new FakeAdapter();
+        adapter.writeFailureHandle = "bob";
+        OjSubmissionCollectionService service = service(resolver, adapter);
+
+        assertThatThrownBy(() -> service.collectRecentWindowForConfiguredHandles(
+                "CODEFORCES",
+                Duration.ofHours(24)
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("database unavailable");
+
+        assertThat(adapter.writtenHandles).containsExactly("alice");
+        assertThat(resolver.markedCollections).isEmpty();
+    }
+
     private OjSubmissionCollectionService service(FakeHandleResolver resolver, FakeAdapter adapter) {
         return new OjSubmissionCollectionService(
                 resolver,
@@ -152,6 +172,7 @@ class OjSubmissionCollectionServiceTest {
         private final List<String> collectedHandles = new ArrayList<>();
         private final List<CollectedWindow> collectedWindows = new ArrayList<>();
         private final List<String> writtenHandles = new ArrayList<>();
+        private String writeFailureHandle;
 
         @Override
         public String defaultOjName() {
@@ -164,37 +185,68 @@ class OjSubmissionCollectionServiceTest {
         }
 
         @Override
+        public OjSubmissionCollectionBatchWriter openBatch(String ojName) {
+            return new FakeBatchWriter(ojName);
+        }
+
+        @Override
         public OjHandleCollectionOutcome collectHandle(
                 String ojName,
                 String handle,
                 Instant windowStartInclusive,
                 Instant windowEndExclusive,
-                OjCollectionRequestExecutor requestExecutor
+                OjCollectionRequestExecutor requestExecutor,
+                OjSubmissionCollectionBatchWriter batchWriter
         ) {
             collectedHandles.add(handle);
             collectedWindows.add(new CollectedWindow(handle, windowStartInclusive, windowEndExclusive));
             requestExecutor.execute(() -> objectMapper.createObjectNode());
             if (failedHandles.contains(handle)) {
                 return new OjHandleCollectionOutcome(
-                        OjSubmissionCollectionHandleResult.failed(handle, 3, "SOURCE_FAILED", "source failed"),
-                        List.of()
+                        OjSubmissionCollectionHandleResult.failed(handle, 3, "SOURCE_FAILED", "source failed")
                 );
             }
+            try {
+                batchWriter.write(handle, List.of(objectMapper.createObjectNode().put("handle", handle)));
+            } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+                throw new IllegalStateException(ex);
+            }
             return new OjHandleCollectionOutcome(
-                    OjSubmissionCollectionHandleResult.success(handle, 3, 1),
-                    List.of(objectMapper.createObjectNode().put("handle", handle))
+                    OjSubmissionCollectionHandleResult.success(handle, 3, 1)
             );
         }
 
-        @Override
-        public OjSubmissionCollectionWriteResult writeBatch(String ojName, List<OjHandleCollectionOutcome> outcomes) {
-            outcomes.forEach(outcome -> writtenHandles.add(outcome.result().handle()));
-            return new OjSubmissionCollectionWriteResult(
-                    "batch-" + ojName.toLowerCase(),
-                    "ods_" + ojName.toLowerCase(),
-                    outcomes.stream().mapToInt(outcome -> outcome.submissions().size()).sum(),
-                    NOW
-            );
+        private final class FakeBatchWriter implements OjSubmissionCollectionBatchWriter {
+            private final String ojName;
+            private int writtenRows;
+
+            private FakeBatchWriter(String ojName) {
+                this.ojName = ojName;
+            }
+
+            @Override
+            public void write(String handle, List<com.fasterxml.jackson.databind.JsonNode> submissions) {
+                if (handle.equals(writeFailureHandle)) {
+                    throw new IllegalStateException("database unavailable");
+                }
+                writtenHandles.add(handle);
+                writtenRows += submissions.size();
+            }
+
+            @Override
+            public int writtenRows() {
+                return writtenRows;
+            }
+
+            @Override
+            public OjSubmissionCollectionWriteResult result() {
+                return new OjSubmissionCollectionWriteResult(
+                        "batch-" + ojName.toLowerCase(),
+                        "ods_" + ojName.toLowerCase(),
+                        writtenRows,
+                        NOW
+                );
+            }
         }
     }
 

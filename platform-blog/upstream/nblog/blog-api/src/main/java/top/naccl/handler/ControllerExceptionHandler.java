@@ -2,29 +2,38 @@ package top.naccl.handler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.validation.BindException;
+import org.springframework.web.ErrorResponse;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import top.naccl.exception.NotFoundException;
-import top.naccl.exception.BadRequestException;
-import top.naccl.exception.PersistenceException;
-import top.naccl.exception.ForbiddenException;
-import top.naccl.exception.ImageAssetException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountException;
+import com.custacm.platform.trainingdata.common.app.purge.OjStudentDataPurgeException;
+
+import jakarta.servlet.http.HttpServletRequest;
 import top.naccl.exception.ArticleDownloadRateLimitException;
 import top.naccl.exception.ArticleDownloadRateLimitUnavailableException;
+import top.naccl.exception.BadRequestException;
+import top.naccl.exception.ConflictException;
+import top.naccl.exception.ForbiddenException;
+import top.naccl.exception.ImageAssetException;
 import top.naccl.exception.LoginBadCredentialsException;
 import top.naccl.exception.LoginCooldownException;
 import top.naccl.exception.LoginCooldownUnavailableException;
+import top.naccl.exception.NotFoundException;
+import top.naccl.exception.PersistenceException;
 import top.naccl.model.vo.Result;
-
-import jakarta.servlet.http.HttpServletRequest;
-import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountException;
-import com.custacm.platform.trainingdata.common.app.purge.OjStudentDataPurgeException;
 
 /**
  * @Description: 对Controller层全局异常处理
@@ -112,6 +121,61 @@ public class ControllerExceptionHandler {
 		return ResponseEntity.badRequest().body(Result.error(400, "BAD_REQUEST", e.getMessage()));
 	}
 
+	@ExceptionHandler(ConflictException.class)
+	public ResponseEntity<Result> conflictExceptionHandler(HttpServletRequest request, ConflictException e) {
+		logger.warn("errorCode=RESOURCE_CONFLICT requestUrl={} message={}", request.getRequestURL(), e.getMessage());
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+				.body(Result.error(409, "RESOURCE_CONFLICT", e.getMessage()));
+	}
+
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<Result> unreadableRequestBodyHandler(HttpServletRequest request) {
+		logger.warn("errorCode=REQUEST_BODY_INVALID requestUrl={}", request.getRequestURL());
+		return ResponseEntity.badRequest()
+				.body(Result.error(400, "REQUEST_BODY_INVALID", "请求体格式错误"));
+	}
+
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ResponseEntity<Result> requestValidationHandler(HttpServletRequest request) {
+		logger.warn("errorCode=REQUEST_VALIDATION_FAILED requestUrl={}", request.getRequestURL());
+		return ResponseEntity.badRequest()
+				.body(Result.error(400, "REQUEST_VALIDATION_FAILED", "请求参数校验失败"));
+	}
+
+	@ExceptionHandler(HandlerMethodValidationException.class)
+	public ResponseEntity<Result> methodValidationHandler(
+			HttpServletRequest request, HandlerMethodValidationException e) {
+		if (e.isForReturnValue()) {
+			logger.error("errorCode=INTERNAL_ERROR requestUrl={}", request.getRequestURL(), e);
+			return ResponseEntity.internalServerError()
+					.body(Result.error(500, "INTERNAL_ERROR", "异常错误"));
+		}
+		logger.warn("errorCode=REQUEST_VALIDATION_FAILED requestUrl={}", request.getRequestURL());
+		return ResponseEntity.badRequest()
+				.body(Result.error(400, "REQUEST_VALIDATION_FAILED", "请求参数校验失败"));
+	}
+
+	@ExceptionHandler({BindException.class, MethodArgumentTypeMismatchException.class})
+	public ResponseEntity<Result> requestBindingHandler(HttpServletRequest request) {
+		logger.warn("errorCode=REQUEST_PARAMETER_INVALID requestUrl={}", request.getRequestURL());
+		return ResponseEntity.badRequest()
+				.body(Result.error(400, "REQUEST_PARAMETER_INVALID", "请求参数格式错误"));
+	}
+
+	@ExceptionHandler(ServletRequestBindingException.class)
+	public ResponseEntity<Result> servletRequestBindingHandler(
+			HttpServletRequest request, ServletRequestBindingException e) {
+		if (e.getStatusCode().is5xxServerError()) {
+			logger.error("errorCode=INTERNAL_ERROR requestUrl={}", request.getRequestURL(), e);
+			return ResponseEntity.status(e.getStatusCode())
+					.body(Result.error(e.getStatusCode().value(), "INTERNAL_ERROR", "异常错误"));
+		}
+		logger.warn("errorCode=REQUEST_PARAMETER_INVALID requestUrl={}", request.getRequestURL());
+		return ResponseEntity.status(e.getStatusCode())
+				.body(Result.error(e.getStatusCode().value(),
+						"REQUEST_PARAMETER_INVALID", "请求参数格式错误"));
+	}
+
 	@ExceptionHandler(ImageAssetException.class)
 	public ResponseEntity<Result> imageAssetExceptionHandler(HttpServletRequest request, ImageAssetException e) {
 		logger.warn("errorCode={} requestUrl={} message={}", e.errorCode(), request.getRequestURL(), e.getMessage());
@@ -166,6 +230,22 @@ public class ControllerExceptionHandler {
 	 */
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<Result> exceptionHandler(HttpServletRequest request, Exception e) {
+		if (e instanceof ErrorResponse errorResponse) {
+			int status = errorResponse.getStatusCode().value();
+			if (errorResponse.getStatusCode().is4xxClientError()) {
+				logger.warn("errorCode=REQUEST_ERROR requestUrl={} status={}", request.getRequestURL(), status);
+				return ResponseEntity.status(errorResponse.getStatusCode())
+						.headers(errorResponse.getHeaders())
+						.body(Result.error(status, "REQUEST_ERROR", "请求无法处理"));
+			}
+			if (errorResponse.getStatusCode().is5xxServerError()) {
+				logger.error("errorCode=INTERNAL_ERROR requestUrl={} status={}",
+						request.getRequestURL(), status, e);
+				return ResponseEntity.status(errorResponse.getStatusCode())
+						.headers(errorResponse.getHeaders())
+						.body(Result.error(status, "INTERNAL_ERROR", "异常错误"));
+			}
+		}
 		logger.error("errorCode=INTERNAL_ERROR requestUrl={}", request.getRequestURL(), e);
 		return ResponseEntity.internalServerError().body(Result.error(500, "INTERNAL_ERROR", "异常错误"));
 	}

@@ -1,5 +1,6 @@
 package top.naccl.model.vo;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
@@ -12,6 +13,7 @@ public record CompetitionResponse(
 		Long id,
 		String fullName,
 		Integer year,
+		LocalDate competitionDate,
 		String category,
 		String categoryLabel,
 		String participationMode,
@@ -50,6 +52,7 @@ public record CompetitionResponse(
 			Integer rankPosition,
 			Integer rankTotal,
 			String rank,
+			boolean requiresLogin,
 			List<Recipient> recipients
 	) {
 	}

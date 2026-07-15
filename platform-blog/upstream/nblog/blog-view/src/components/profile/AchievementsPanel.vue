@@ -36,7 +36,16 @@
 						<strong class="achievement-strip-award">{{ presentation(achievement).awardTierLabel }}</strong>
 					</router-link>
 					<article v-else class="achievement-row" :class="presentation(achievement).classes">
-						<time :datetime="String(achievement.year || '')">{{ achievement.year || '—' }}</time>
+						<time
+							v-if="datePresentation(achievement).isKnown"
+							class="achievement-date"
+							:datetime="datePresentation(achievement).datetime || undefined"
+							:aria-label="datePresentation(achievement).label"
+						>
+							<strong>{{ datePresentation(achievement).year }}</strong>
+							<small v-if="datePresentation(achievement).hasExactDate">{{ datePresentation(achievement).monthDay }}</small>
+						</time>
+						<span v-else class="achievement-date" aria-label="日期待补充"><strong>—</strong></span>
 						<div class="achievement-copy">
 							<strong>{{ achievement.competitionFullName }}</strong>
 							<div v-if="presentation(achievement).categoryLabel" class="achievement-types" aria-label="比赛类型">
@@ -96,6 +105,7 @@
 <script>
 	// Author: huangbingrui.awa
 	import {achievementPresentation, achievementsInProfileOrder} from '@/utils/achievementPresentation'
+	import {competitionDatePresentation} from '@/utils/competitionDatePresentation'
 
 	let nextPanelId = 1
 
@@ -145,6 +155,9 @@
 			achievementKey(achievement) {
 				return `${achievement.competitionId}:${achievement.awardId}`
 			},
+			datePresentation(achievement) {
+				return competitionDatePresentation(achievement)
+			},
 			presentation(achievement) {
 				return achievementPresentation(achievement)
 			},
@@ -193,7 +206,9 @@
 	.achievement-row { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 17px 20px; }
 	.achievement-row + .achievement-row { border-top: 1px solid var(--color-border); }
 	.achievement-row { --achievement-row-tone: var(--color-action); }
-	.achievement-row time { display: grid; width: 52px; min-height: 38px; place-items: center; border-left: 3px solid var(--achievement-row-tone); background: var(--color-surface-subtle); color: var(--color-text); font-size: 13px; font-weight: 800; }
+	.achievement-row .achievement-date { display: grid; width: 52px; min-height: 42px; place-content: center; justify-items: center; gap: 2px; border-left: 3px solid var(--achievement-row-tone); background: var(--color-surface-subtle); color: var(--color-text); font-variant-numeric: tabular-nums; }
+	.achievement-row .achievement-date strong { font-size: 13px; font-weight: 800; }
+	.achievement-row .achievement-date small { color: var(--achievement-meta-color); font-size: 9px; font-weight: 800; letter-spacing: .05em; }
 	.achievement-copy { display: grid; min-width: 0; gap: 6px; }
 	.achievement-copy strong { overflow: hidden; color: var(--color-text); font-size: 14px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
 	.achievement-copy p { margin: 0; color: var(--color-text-muted); font-size: 13px; font-weight: 700; }

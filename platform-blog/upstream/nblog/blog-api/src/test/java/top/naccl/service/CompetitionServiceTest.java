@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import top.naccl.entity.Competition;
 import top.naccl.entity.CompetitionAwardFlatProjection;
+import top.naccl.entity.CompetitionAward;
 import top.naccl.entity.CompetitionAwardRecipient;
 import top.naccl.entity.CompetitionParticipant;
 import top.naccl.entity.CompetitionTypeTag;
@@ -28,11 +29,13 @@ import top.naccl.mapper.UserMapper;
 import top.naccl.model.dto.CompetitionAchievementVisibilityRequest;
 import top.naccl.model.dto.CompetitionAchievementOrderRequest;
 import top.naccl.model.dto.CompetitionAwardCreateRequest;
+import top.naccl.model.dto.CompetitionAwardLoginRequirementRequest;
 import top.naccl.model.dto.CompetitionCreateRequest;
 import top.naccl.model.dto.CompetitionParticipantsCreateRequest;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.List;
@@ -40,6 +43,7 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -59,6 +63,7 @@ import static org.mockito.Mockito.when;
 class CompetitionServiceTest {
 	private static final Instant NOW = Instant.parse("2026-07-14T04:00:00Z");
 	private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
+	private static final LocalDate COMPETITION_DATE = LocalDate.of(2026, 5, 17);
 
 	@Mock
 	private CompetitionMapper competitionMapper;
@@ -125,6 +130,7 @@ class CompetitionServiceTest {
 	@Test
 	void createsCompetitionWithAllNormalizedTypeTags() {
 		Competition persisted = activeCompetition(31L, "2026 ICPC 亚洲区域赛");
+		persisted.setCompetitionDate(COMPETITION_DATE);
 		doAnswer(invocation -> {
 			Competition source = invocation.getArgument(0);
 			source.setId(31L);
@@ -135,18 +141,53 @@ class CompetitionServiceTest {
 		stubActiveResponse(persisted, CompetitionType.ICPC, CompetitionType.ASIA_REGIONAL);
 
 		var response = service.create(new CompetitionCreateRequest(
-				" 2026 ICPC 亚洲区域赛 ", 2026,
+				" 2026 ICPC 亚洲区域赛 ", COMPETITION_DATE,
 				"icpc_asia_regional", "team"));
 
 		ArgumentCaptor<Competition> captor = ArgumentCaptor.forClass(Competition.class);
 		verify(competitionMapper).insertCompetition(captor.capture());
 		assertEquals("2026 ICPC 亚洲区域赛", captor.getValue().getFullName());
 		assertEquals("2026 ICPC 亚洲区域赛", captor.getValue().getActiveFullName());
+		assertEquals(2026, captor.getValue().getCompetitionYear());
+		assertEquals(COMPETITION_DATE, captor.getValue().getCompetitionDate());
 		assertEquals(CompetitionParticipationMode.TEAM, captor.getValue().getParticipationMode());
+		assertEquals(2026, response.year());
+		assertEquals(COMPETITION_DATE, response.competitionDate());
 		assertEquals("ICPC_ASIA_REGIONAL", response.category());
 		assertEquals("ICPC 亚洲区域赛", response.categoryLabel());
 		assertEquals(List.of("ICPC", "ASIA_REGIONAL"),
 				response.types().stream().map(type -> type.code()).toList());
+	}
+
+	@Test
+	void createsCompetitionWithoutAnOptionalDateOrDerivedYear() {
+		Competition persisted = activeCompetition(31L, "无明确日期的比赛");
+		persisted.setCompetitionYear(null);
+		doAnswer(invocation -> {
+			Competition source = invocation.getArgument(0);
+			source.setId(31L);
+			return 1;
+		}).when(competitionMapper).insertCompetition(any(Competition.class));
+		when(competitionMapper.insertTypeTags(31L, List.of(CompetitionType.PROVINCIAL))).thenReturn(1);
+		stubActiveResponse(persisted, CompetitionType.PROVINCIAL);
+
+		var response = service.create(new CompetitionCreateRequest(
+				"无明确日期的比赛", null, "PROVINCIAL", "INDIVIDUAL"));
+
+		ArgumentCaptor<Competition> captor = ArgumentCaptor.forClass(Competition.class);
+		verify(competitionMapper).insertCompetition(captor.capture());
+		assertNull(captor.getValue().getCompetitionYear());
+		assertNull(captor.getValue().getCompetitionDate());
+		assertNull(response.year());
+		assertNull(response.competitionDate());
+	}
+
+	@Test
+	void rejectsCompetitionDatesOutsideTheSupportedYearRange() {
+		assertThrows(BadRequestException.class, () -> service.create(new CompetitionCreateRequest(
+				"历史比赛", LocalDate.of(1899, 12, 31), "PROVINCIAL", "INDIVIDUAL")));
+
+		verifyNoInteractions(competitionMapper, userMapper);
 	}
 
 	@Test
@@ -170,8 +211,19 @@ class CompetitionServiceTest {
 	@Test
 	void rejectsParticipationModeThatConflictsWithTheCanonicalCategory() {
 		assertThrows(BadRequestException.class, () -> service.create(new CompetitionCreateRequest(
-				"2026 蓝桥杯", 2026, "LANQIAO_CUP_NATIONAL", "TEAM")));
+				"2026 蓝桥杯", COMPETITION_DATE, "LANQIAO_CUP_NATIONAL", "TEAM")));
 		verify(competitionMapper, never()).insertCompetition(any());
+	}
+
+	@Test
+	void historicalYearOnlyCompetitionsRemainReadable() {
+		Competition historical = activeCompetition(31L, "历史比赛");
+		stubActiveResponse(historical, CompetitionType.OTHER);
+
+		var response = service.get(31L, true);
+
+		assertEquals(2026, response.year());
+		assertNull(response.competitionDate());
 	}
 
 	@Test
@@ -350,7 +402,7 @@ class CompetitionServiceTest {
 		stubActiveResponse(competition, CompetitionType.ICPC, CompetitionType.ASIA_REGIONAL);
 
 		service.addAward(31L,
-				award("TEAM", "custacm", "MEDAL_SILVER", 3, 120, List.of("alice")));
+				award("TEAM", "custacm", "MEDAL_SILVER", 3, 120, true, List.of("alice")));
 
 		ArgumentCaptor<top.naccl.entity.CompetitionAward> captor =
 				ArgumentCaptor.forClass(top.naccl.entity.CompetitionAward.class);
@@ -359,6 +411,60 @@ class CompetitionServiceTest {
 		assertEquals("银牌", captor.getValue().getAwardName());
 		assertEquals(null, captor.getValue().getAwardScope());
 		assertEquals(3, captor.getValue().getRankPosition());
+		assertTrue(captor.getValue().getRequiresLogin());
+	}
+
+	@Test
+	void guestCompetitionReadsExcludeLoginRequiredAwards() {
+		Competition competition = activeCompetition(31L, "比赛");
+		CompetitionAward publicAward = competitionAward(71L, 31L, false);
+		CompetitionAward loginRequiredAward = competitionAward(72L, 31L, true);
+		List<Long> ids = List.of(31L);
+		when(competitionMapper.findActiveCompetitionById(31L)).thenReturn(competition);
+		when(competitionMapper.findTypeTagsByCompetitionIds(ids))
+				.thenReturn(typeTags(31L, CompetitionType.ICPC, CompetitionType.ASIA_REGIONAL));
+		when(competitionMapper.findParticipantsByCompetitionIds(ids)).thenReturn(List.of());
+		when(competitionMapper.findAwardRecipientsByCompetitionIds(ids)).thenReturn(List.of());
+		when(competitionMapper.findAwardsByCompetitionIds(ids))
+				.thenReturn(List.of(publicAward, loginRequiredAward));
+
+		var guest = service.get(31L, false);
+		var member = service.get(31L, true);
+
+		assertEquals(List.of(71L), guest.awards().stream().map(award -> award.id()).toList());
+		assertEquals(List.of(71L, 72L), member.awards().stream().map(award -> award.id()).toList());
+		assertTrue(member.awards().get(1).requiresLogin());
+	}
+
+	@Test
+	void adminCanUpdateAnAwardsLoginRequirement() {
+		Competition competition = activeCompetition(31L, "比赛");
+		CompetitionAward award = competitionAward(71L, 31L, false);
+		when(competitionMapper.findCompetitionByIdForUpdate(31L)).thenReturn(competition);
+		when(competitionMapper.findAwardByIdForUpdate(71L)).thenReturn(award);
+		when(competitionMapper.updateAwardLoginRequirement(31L, 71L, true)).thenReturn(1);
+		stubActiveResponse(competition, CompetitionType.ICPC, CompetitionType.ASIA_REGIONAL);
+
+		service.updateAwardLoginRequirement(
+				31L, 71L, new CompetitionAwardLoginRequirementRequest(true));
+
+		verify(competitionMapper).updateAwardLoginRequirement(31L, 71L, true);
+	}
+
+	@Test
+	void awardLoginRequirementRejectsAnEmptyChoiceOrMismatchedAward() {
+		assertThrows(BadRequestException.class, () -> service.updateAwardLoginRequirement(
+				31L, 71L, new CompetitionAwardLoginRequirementRequest(null)));
+
+		when(competitionMapper.findCompetitionByIdForUpdate(31L))
+				.thenReturn(activeCompetition(31L, "比赛"));
+		when(competitionMapper.findAwardByIdForUpdate(71L))
+				.thenReturn(competitionAward(71L, 41L, false));
+
+		assertThrows(NotFoundException.class, () -> service.updateAwardLoginRequirement(
+				31L, 71L, new CompetitionAwardLoginRequirementRequest(true)));
+		verify(competitionMapper, never()).updateAwardLoginRequirement(anyLong(), anyLong(),
+				org.mockito.ArgumentMatchers.anyBoolean());
 	}
 
 	@Test
@@ -462,6 +568,8 @@ class CompetitionServiceTest {
 	void profileAchievementsCollapseMultipleTypeRowsForTheSameAward() {
 		CompetitionAwardFlatProjection regional = projection(CompetitionType.ASIA_REGIONAL);
 		CompetitionAwardFlatProjection icpc = projection(CompetitionType.ICPC);
+		regional.setCompetitionDate(COMPETITION_DATE);
+		icpc.setCompetitionDate(COMPETITION_DATE);
 		when(competitionMapper.findActiveAwardProjectionsByUsername("alice"))
 				.thenReturn(List.of(regional, icpc));
 
@@ -472,6 +580,7 @@ class CompetitionServiceTest {
 				achievements.getFirst().types().stream().map(type -> type.code()).toList());
 		assertEquals("(3/120)", achievements.getFirst().rank());
 		assertEquals(71L, achievements.getFirst().awardId());
+		assertEquals(COMPETITION_DATE, achievements.getFirst().competitionDate());
 		assertTrue(achievements.getFirst().profileVisible());
 	}
 
@@ -491,6 +600,25 @@ class CompetitionServiceTest {
 				privateAchievements.stream().map(achievement -> achievement.awardId()).toList());
 		assertEquals(List.of(71L),
 				publicAchievements.stream().map(achievement -> achievement.awardId()).toList());
+	}
+
+	@Test
+	void publicProfilesExposeLoginRequiredAchievementsOnlyToMembers() {
+		CompetitionAwardFlatProjection publicAward = projection(CompetitionType.ICPC);
+		publicAward.setProfileOrder(1L);
+		CompetitionAwardFlatProjection loginRequiredAward = projection(CompetitionType.CCPC);
+		loginRequiredAward.setAwardId(72L);
+		loginRequiredAward.setProfileOrder(2L);
+		loginRequiredAward.setRequiresLogin(true);
+		when(competitionMapper.findActiveAwardProjectionsByUsername("alice"))
+				.thenReturn(List.of(publicAward, loginRequiredAward));
+
+		var guest = service.publicAchievements("alice", false);
+		var member = service.publicAchievements("alice", true);
+
+		assertEquals(List.of(71L), guest.stream().map(achievement -> achievement.awardId()).toList());
+		assertEquals(List.of(71L, 72L),
+				member.stream().map(achievement -> achievement.awardId()).toList());
 	}
 
 	@Test
@@ -655,8 +783,26 @@ class CompetitionServiceTest {
 
 	private static CompetitionAwardCreateRequest award(String mode, String teamName, String tier,
 			Integer rankPosition, Integer rankTotal, List<String> recipients) {
+		return award(mode, teamName, tier, rankPosition, rankTotal, false, recipients);
+	}
+
+	private static CompetitionAwardCreateRequest award(String mode, String teamName, String tier,
+			Integer rankPosition, Integer rankTotal, boolean requiresLogin, List<String> recipients) {
 		return new CompetitionAwardCreateRequest(
-				mode, teamName, tier, rankPosition, rankTotal, recipients);
+				mode, teamName, tier, rankPosition, rankTotal, requiresLogin, recipients);
+	}
+
+	private static CompetitionAward competitionAward(long id, long competitionId, boolean requiresLogin) {
+		CompetitionAward award = new CompetitionAward();
+		award.setId(id);
+		award.setCompetitionId(competitionId);
+		award.setAwardMode(CompetitionAwardMode.TEAM);
+		award.setAwardLevel(1);
+		award.setAwardName("金牌");
+		award.setRankPosition(1);
+		award.setRankTotal(10);
+		award.setRequiresLogin(requiresLogin);
+		return award;
 	}
 
 	private static CompetitionAwardRecipient profileState(long competitionId, long awardId,
@@ -681,6 +827,7 @@ class CompetitionServiceTest {
 		projection.setAwardScope(CompetitionAwardScope.NATIONAL);
 		projection.setAwardLevel(1);
 		projection.setAwardName("金奖");
+		projection.setRequiresLogin(false);
 		projection.setRankPosition(3);
 		projection.setRankTotal(120);
 		projection.setProfileVisible(true);

@@ -1,6 +1,7 @@
 package top.naccl.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 import top.naccl.entity.Comment;
 import top.naccl.model.vo.ArticleBackupComment;
@@ -18,7 +19,10 @@ import java.util.List;
 public interface CommentMapper {
 	List<PageComment> getPageCommentListByPageAndParentCommentId(Integer page, Long blogId, Long parentCommentId);
 
-	List<PageComment> getPublishedReplyList(Integer page, Long blogId);
+	List<PageComment> getPublishedReplyListForRootComments(@Param("page") Integer page,
+	                                                     @Param("blogId") Long blogId,
+	                                                     @Param("rootCommentIds") List<Long> rootCommentIds,
+	                                                     @Param("replyLimit") int replyLimit);
 
 	Comment getCommentById(Long id);
 

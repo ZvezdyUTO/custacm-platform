@@ -11,6 +11,7 @@ const medalAchievement = {
 	competitionFullName: '2026 ICPC Asia Shanghai Regional Contest',
 	category: 'ICPC_ASIA_REGIONAL',
 	categoryLabel: 'ICPC 亚洲区域赛',
+	competitionDate: '2026-10-25',
 	year: 2026,
 	awardId: 71,
 	awardMode: 'TEAM',
@@ -42,6 +43,11 @@ describe('achievements panel', () => {
 		expect(wrapper.text()).toContain('CustACM')
 		expect(wrapper.text()).toContain('排名 (3/280)')
 		expect(wrapper.text()).not.toContain('还没有获奖记录')
+		const date = wrapper.get('.achievement-row time')
+		expect(date.attributes('datetime')).toBe('2026-10-25')
+		expect(date.attributes('aria-label')).toBe('2026年10月25日')
+		expect(date.get('strong').text()).toBe('2026')
+		expect(date.get('small').text()).toBe('10.25')
 		const toggle = wrapper.get('[role="switch"]')
 		expect(toggle.attributes('aria-checked')).toBe('false')
 
@@ -61,6 +67,7 @@ describe('achievements panel', () => {
 		expect(wrapper.classes()).toContain('is-compact')
 		expect(wrapper.find('.achievements-heading').exists()).toBe(false)
 		expect(wrapper.find('.achievement-row').exists()).toBe(false)
+		expect(wrapper.find('time').exists()).toBe(false)
 		expect(wrapper.get('.achievement-strip-title').text()).toBe(achievement.competitionFullName)
 		expect(wrapper.get('.achievement-strip-award').text()).toBe('金牌')
 		expect(wrapper.text()).not.toContain('(3/280)')
@@ -74,6 +81,22 @@ describe('achievements panel', () => {
 		})
 		expect(wrapper.text()).not.toContain('CustACM')
 		expect(wrapper.text()).not.toContain('ICPC 亚洲区域赛')
+	})
+
+	it.each([
+		[{competitionDate: null, year: 2024}, '2024', '2024年'],
+		[{competitionDate: null, year: null}, '—', '日期待补充'],
+	])('falls back from an optional exact date without inventing one', (dateFields, visibleYear, accessibleLabel) => {
+		const wrapper = mount(AchievementsPanel, {
+			props: {achievements: [{...medalAchievement, ...dateFields}]},
+		})
+
+		const date = wrapper.get('.achievement-date')
+		expect(date.element.tagName).toBe(dateFields.year ? 'TIME' : 'SPAN')
+		expect(date.attributes('datetime')).toBe(dateFields.year ? String(dateFields.year) : undefined)
+		expect(date.attributes('aria-label')).toBe(accessibleLabel)
+		expect(date.get('strong').text()).toBe(visibleYear)
+		expect(date.find('small').exists()).toBe(false)
 	})
 
 	it('never appends rank to an ordinary award', () => {

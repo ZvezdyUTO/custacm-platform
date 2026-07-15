@@ -35,19 +35,26 @@
 						<span v-for="category in visibleCategories(competition)" :key="category.code">{{ category.label }}</span>
 					</div>
 					<h1>{{ competition.fullName }}</h1>
-					<p class="detail-subtitle">{{ competition.year }} 年 · {{ competition.participationModeLabel || competition.participationMode }}</p>
+					<p class="detail-subtitle">{{ competitionDate.label }} · {{ competition.participationModeLabel || competition.participationMode }}</p>
 				</div>
 				<div class="archive-number" aria-label="档案编号">
 					<span>ARCHIVE NO.</span>
 					<strong>{{ competition.id }}</strong>
-					<em>{{ competition.year }}</em>
+					<time v-if="competitionDate.isKnown" class="archive-date" :datetime="competitionDate.datetime" :aria-label="competitionDate.label">
+						<em>{{ competitionDate.year }}</em>
+						<small v-if="competitionDate.hasExactDate">{{ competitionDate.monthDay }}</small>
+					</time>
+					<span v-else class="archive-date archive-date-unknown" aria-label="日期待补充">
+						<em>—</em>
+						<small>日期待补充</small>
+					</span>
 				</div>
 			</header>
 
 			<dl class="detail-overview">
 				<div>
-					<dt>赛事年份</dt>
-					<dd>{{ competition.year }}</dd>
+					<dt>赛事日期</dt>
+					<dd>{{ competitionDate.label }}</dd>
 				</div>
 				<div>
 					<dt>参赛形态</dt>
@@ -105,7 +112,7 @@
 						<span>{{ awards.length }}</span>
 					</header>
 
-					<p v-if="awards.length === 0" class="ledger-empty">暂无获奖记录。</p>
+					<p v-if="awards.length === 0" class="ledger-empty">暂无可见获奖记录。</p>
 					<ol v-else class="award-list">
 						<li v-for="(award, index) in awards" :key="award.id" class="award-record">
 							<div class="award-spine">
@@ -163,7 +170,9 @@
 
 <script>
 	import {getCompetition} from '@/api/competition'
+	import {SESSION_CHANGE_EVENT} from '@/auth/session'
 	import {achievementPresentation} from '@/utils/achievementPresentation'
+	import {competitionDatePresentation} from '@/utils/competitionDatePresentation'
 	import {publicCompetitionCategories} from '@/utils/competitionTypes'
 
 	export default {
@@ -178,6 +187,9 @@
 			}
 		},
 		computed: {
+			competitionDate() {
+				return competitionDatePresentation(this.competition)
+			},
 			participants() {
 				return this.safeList(this.competition?.participants)
 			},
@@ -197,7 +209,21 @@
 		created() {
 			this.loadCompetition()
 		},
+		mounted() {
+			window.addEventListener('storage', this.refreshVisibleCompetition)
+			window.addEventListener(SESSION_CHANGE_EVENT, this.refreshVisibleCompetition)
+		},
+		beforeUnmount() {
+			window.removeEventListener('storage', this.refreshVisibleCompetition)
+			window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshVisibleCompetition)
+		},
 		methods: {
+			refreshVisibleCompetition(event) {
+				if (!event || event.type === SESSION_CHANGE_EVENT || event.key === null
+					|| event.key === 'custacm.accessToken' || event.key === 'custacm.user') {
+					this.loadCompetition()
+				}
+			},
 			safeList(value) {
 				return Array.isArray(value) ? value : []
 			},
@@ -337,7 +363,7 @@
 		font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
 	}
 
-	.archive-number span {
+	.archive-number > span:not(.archive-date) {
 		color: var(--archive-muted);
 		font-size: 10px;
 		letter-spacing: .14em;
@@ -358,6 +384,20 @@
 		font-size: 44px;
 		font-style: normal;
 		font-weight: 700;
+	}
+
+	.archive-number .archive-date {
+		display: grid;
+		justify-items: start;
+		gap: 5px;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.archive-number .archive-date small {
+		color: var(--archive-copper);
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: .12em;
 	}
 
 	.detail-overview {
@@ -691,6 +731,10 @@
 
 		.archive-number em {
 			font-size: 30px;
+		}
+
+		.archive-number .archive-date {
+			justify-items: end;
 		}
 
 		.detail-overview {

@@ -175,9 +175,12 @@ class OjWarehouseQueryFacadeTest {
         assertInvalidRequest(() -> facade.listProblemSubmissions(
                 OjNames.CODEFORCES, "1000:A", null, null, 1, 2001
         ));
-        assertInvalidRequest(() -> facade.listProblemSubmissions(
-                " ", "1000:A", null, null, 1, 100
-        ));
+		assertInvalidRequest(() -> facade.listProblemSubmissions(
+				" ", "1000:A", null, null, 1, 100
+		));
+		assertInvalidRequest(() -> facade.listProblemSubmissions(
+				"unsupported", "1000:A", null, null, 1, 100
+		));
         assertInvalidRequest(() -> facade.summarizeStudentFirstAcceptedProblems(
                 OjNames.CODEFORCES, "112487张三", null, null, null, null, 0, 100
         ));

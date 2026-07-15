@@ -62,6 +62,10 @@ public class CodeforcesOdsSubmissionIngestService {
         return upsertSubmissions(submissionsByHandle, newBatch(batchIdPrefix));
     }
 
+    CodeforcesCollectBatch startSubmissionBatch(String batchIdPrefix) {
+        return newBatch(batchIdPrefix);
+    }
+
     public CodeforcesOdsBatchUpsertResult upsertSubmissions(JsonNode submissions, CodeforcesCollectBatch batch)
             throws JsonProcessingException {
         if (submissions == null || !submissions.isArray()) {

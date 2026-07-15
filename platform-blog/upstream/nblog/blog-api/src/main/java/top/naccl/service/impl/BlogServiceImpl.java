@@ -3,10 +3,12 @@ package top.naccl.service.impl;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.naccl.constant.RedisKeyConstants;
 import top.naccl.entity.Blog;
+import top.naccl.exception.ConflictException;
 import top.naccl.exception.NotFoundException;
 import top.naccl.exception.PersistenceException;
 import top.naccl.mapper.BlogMapper;
@@ -110,8 +112,12 @@ public class BlogServiceImpl implements BlogService {
 	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void saveBlog(top.naccl.model.dto.Blog blog) {
-		if (blogMapper.saveBlog(blog) != 1) {
-			throw new PersistenceException("添加博客失败");
+		try {
+			if (blogMapper.saveBlog(blog) != 1) {
+				throw new PersistenceException("添加博客失败");
+			}
+		} catch (DataIntegrityViolationException exception) {
+			throw new ConflictException("文章分类已发生变化，请刷新后重试", exception);
 		}
 		deleteBlogRedisCache();
 	}
@@ -119,8 +125,12 @@ public class BlogServiceImpl implements BlogService {
 	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void saveBlogTag(Long blogId, Long tagId) {
-		if (blogMapper.saveBlogTag(blogId, tagId) != 1) {
-			throw new PersistenceException("维护博客标签关联表失败");
+		try {
+			if (blogMapper.saveBlogTag(blogId, tagId) != 1) {
+				throw new PersistenceException("维护博客标签关联表失败");
+			}
+		} catch (DataIntegrityViolationException exception) {
+			throw new ConflictException("文章标签已发生变化，请刷新后重试", exception);
 		}
 	}
 
@@ -146,20 +156,14 @@ public class BlogServiceImpl implements BlogService {
 	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void updateBlog(top.naccl.model.dto.Blog blog) {
-		if (blogMapper.updateBlog(blog) != 1) {
-			throw new PersistenceException("更新博客失败");
+		try {
+			if (blogMapper.updateBlog(blog) != 1) {
+				throw new PersistenceException("更新博客失败");
+			}
+		} catch (DataIntegrityViolationException exception) {
+			throw new ConflictException("文章分类已发生变化，请刷新后重试", exception);
 		}
 		deleteBlogRedisCache();
-	}
-
-	@Override
-	public int countBlogByCategoryId(Long categoryId) {
-		return blogMapper.countBlogByCategoryId(categoryId);
-	}
-
-	@Override
-	public int countBlogByTagId(Long tagId) {
-		return blogMapper.countBlogByTagId(tagId);
 	}
 
 	@Override

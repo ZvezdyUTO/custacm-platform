@@ -1,92 +1,56 @@
 # Agent Instructions
 
-## Project Goal
+## 开始前
 
-This repository is the skeleton for `custacm-platform`, a training-team integrated platform.
+- 本仓库是 CUST ACM 集训队的 Blog 与训练平台。
+- 修改目录前先读最近的 `AGENTS.md`；只按任务需要读取 [docs/README.md](docs/README.md) 中对应文档，不要预加载整套文档。
+- 代码、配置、迁移和测试是实现事实；文档与它们冲突时先核验事实，再修正文档。
 
-Current phase: operate the integrated Blog API backend and the Vue 3 Blog / Vue 3 Training frontend gateway.
+## 当前边界
 
-## Current Scope
+- `platform-blog/upstream/nblog/blog-api` 是唯一 Spring Boot 后端，保留 `top.naccl` package，统一负责 Blog、账号、认证和训练 HTTP adapter。
+- `platform-training-data` 只提供 Codeforces/AtCoder 采集、ODS/DWD/DWM/DWS、查询、调度、刷新和清理库；不拥有 Web runtime、账号或认证。
+- `platform-common` 只放已有重复需求证明的通用基础能力，不放业务实体。
+- 业务身份和 JWT `sub` 都是 `username`；存储角色只有 `ROLE_admin`、`ROLE_player`，guest 表示未认证。
+- 对外只有一个 Nginx `frontend` 服务：Blog 位于 `/`，训练外壳位于 `/training/**`，内部训练产物位于 `/training-app/**`，浏览器 API 位于 `/api/**`。
+- Blog 与 Training 保持两套 Vue Router，共享 `custacm.accessToken`、`custacm.user`。公开请求不得全局附加 JWT，受保护请求由 adapter 显式发送 Bearer token。
+- URL 授权和资源所有权以 [docs/authorization.md](docs/authorization.md) 为准，HTTP 路径以 [docs/api.md](docs/api.md) 为准。
 
-- `platform-blog/upstream/nblog/blog-api` is the only runnable Spring Boot backend.
-- Blog API owns BCrypt passwords, user management, HS512 JWT issuance, roles, and OJ handles.
-- `username` is the JWT subject and the only training business identity.
-- Stored roles are exactly `ROLE_admin` and `ROLE_player`; guest is implicit unauthenticated access.
-- `platform-training-data` retains Codeforces/AtCoder collection, ODS/DWD/DWM/DWS processing, query, scheduling, and purge libraries.
-- `platform-blog/upstream/nblog/blog-view` is the Vue 3 + Vite public Blog at `/`.
-- `frontend` is the Vue 3 Training application at `/training/**`; its admin pages cover user management, training-data management, and homepage image management.
-- One Nginx `frontend` service serves both static applications and proxies browser `/api/**` requests to Blog API.
-- The supported UI scope is 1280–2560 px desktop, with primary acceptance at 1440×900 and 1920×1080; mobile is outside the current phase.
+## 不可破坏的规则
 
-## Architecture Rules
+- BCrypt 密码、HS512 JWT、账号、角色、OJ handle 和 token 签发都属于 Blog API；没有公开注册、demo token 或内存登录流程。
+- 管理员替换或移除 handle 前必须先清理该用户对应 OJ 的可再生训练数据；不能新增绕过清理的覆盖入口。
+- 固定 `root` 管理员不可删除、改名、降权、绑定 OJ handle 或进入队员采集状态。
+- 已应用的 Flyway migration 不得修改；结构变化使用新的 migration。
+- 自动提交采集和 AtCoder 元数据 bootstrap/调度默认关闭，只能由部署配置显式开启。
+- 修改后端日志前读 [docs/logging.md](docs/logging.md)。禁止记录密码、token、cookie、Authorization header、签名密钥、数据库密码或完整敏感个人信息。
 
-- Blog API owns the single HTTP layer and composes training application services in-process.
-- Do not put business entities in `platform-common`.
-- Do not reintroduce demo-token or in-memory login flows unless the user explicitly changes the identity decision.
-- Passwords, account management, handles, and token issuance belong to Blog API; there is no public registration flow.
-- Other business modules reference users by `username`.
-- HTTP APIs must follow `docs/authorization.md`: `/admin/**` is admin-only, `/player/**` is player-or-admin, public GET and OPTIONS are anonymous, and the only anonymous business write is `POST /login`.
-- The two Vue 3 applications share `custacm.accessToken` and `custacm.user` for login continuity. Public Blog requests must not globally attach JWTs; protected requests attach Bearer tokens explicitly.
-- Keep Vue Blog routing under `/`, Vue Training routing under `/training/**`, and browser API routing under `/api/**`; do not couple the two frontend routers.
-- Keep training domain/app/infra boundaries clear and keep `top.naccl` as NBlog's package root.
+## 文档原则
 
-## Logging Rules
+- `AGENTS.md` 只保存不可违反的约束；模块 README 只说明职责、顶层目录、依赖边界、关键入口和验证命令。
+- 只有公开 API、安全规则、模块职责、运行拓扑、部署步骤或用户可见行为变化时，才更新对应的唯一权威文档。普通内部重构、测试或样式微调不要求仪式性改文档。
+- 文档入口和事实归属见 [docs/README.md](docs/README.md)。不要维护逐文件、逐测试或逐迁移清单；源码搜索比复制清单可靠。
+- 无法从仓库证明的事实写成 TODO，不要猜测。`CHANGELOG.md` 只记录有用户、部署、数据或兼容性影响的变化。
 
-- Before adding or changing backend logs, read `docs/logging.md`.
-- Use Spring Boot's default SLF4J/Logback stack; do not introduce a custom logging system or heavy log platform in the current phase.
-- Error logs must include a stable `errorCode`.
-- After request tracing is implemented, request logs must carry `traceId` through MDC; business code must not generate trace IDs manually.
-- Never log passwords, tokens, cookies, Authorization headers, JWT signing keys, database passwords, or full personal sensitive data.
+## 验证
 
-## Documentation Rules
+按改动范围运行最小充分检查：
 
-- Treat `docs/README.md` as the documentation index and `docs/agent/README.md` as the fast context entry for future agents.
-- Before editing a module, read the nearest module `AGENTS.md`.
-- Every non-placeholder module with source code must have a module-level `README.md` for humans and agents. It must include the module responsibility, directory layout, dependency/layer rules, and a file-level responsibility list. When generating, moving, deleting, or materially changing module files, create or update that module README in the same change.
-- Before opening an MR, update `CHANGELOG.md` using `docs/agent/changelog.md`; it is written by agents but must read naturally for humans.
-- When changing code, scripts, CI, deployment configuration, or module boundaries, update the matching docs listed in `docs/doc-sync-map.tsv`.
-- Keep `docs/agent/context-map.md` current when top-level directories, runnable services, or module responsibilities change.
-- If a fact cannot be proven from current files, write it as a TODO instead of guessing.
-- Run `./scripts/check-doc-sync.sh origin/main WORKTREE` before opening a PR when local refs are available.
+| 改动 | 检查 |
+| --- | --- |
+| Java、POM、后端合同 | `mvn clean test` |
+| 打包或后端镜像 | `mvn clean package -DskipTests` |
+| Training 前端 | `cd frontend && pnpm lint && pnpm test && pnpm typecheck && pnpm build` |
+| Blog 前端 | `cd platform-blog/upstream/nblog/blog-view && npm install && npm test && npm run build` |
+| 共享设计 token | `./scripts/sync-design-tokens.sh --check`，并构建两端 |
+| Compose 配置 | `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config` |
+| 文档或任意文本 | `git diff --check`，并检查受影响的本地链接 |
 
-## Git Rules
+新增或实质修改业务逻辑、安全解析、Controller 或 adapter 时增加聚焦测试。不得为通过检查而删除、跳过或弱化已有测试。文档-only 变更不要求 Maven。
 
-- Do not commit unless the user explicitly asks.
-- Do not push unless the user explicitly asks.
-- If the user says to push, treat that as permission to commit and push.
-- PRs/MRs opened by anyone other than the project owner must not be merged until the project owner explicitly confirms approval.
-- PRs/MRs opened by the project owner do not need an additional review confirmation; the owner's explicit merge instruction is enough.
-- MR titles and descriptions must be written in Chinese.
+## Git 与协作
 
-## Verification
-
-Use this check after Java changes:
-
-```bash
-mvn clean test
-```
-
-`mvn clean test` compiles the reactor and runs all existing unit tests. Historical code is not required to backfill unit tests or meet a repository-wide coverage threshold.
-
-Test standard:
-
-- New or materially changed business logic, JWT/security parsing, HTTP controller behavior, and client/adapters should add focused unit tests in the same change.
-- Existing tests must continue to pass; do not delete, skip, or weaken tests merely to make a change pass.
-- Historical code without tests does not need unrelated test backfills.
-- JaCoCo reports may be inspected locally as a diagnostic aid, but coverage percentage is not an MR gate.
-
-If packaging or Docker image behavior changes, also run:
-
-```bash
-mvn clean package -DskipTests
-```
-
-For deployment configuration changes, run the relevant config checks, for example:
-
-```bash
-docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config
-```
-
-For local deployment, use the Compose stack under `deploy/`, which starts exactly `blog-db`, `blog-redis`, `blog-api`, and the shared-Nginx `frontend` service.
-
-For docs-only changes, Maven verification is not required.
+- 只有用户明文要求时才提交；只有用户明文要求时才推送。用户说“推送”时默认同时授权提交和推送。
+- MR 标题和描述使用中文。非项目负责人发起的 MR 未经负责人明确确认不得合并；负责人本人明确要求合并即可。
+- 不提交 secret、真实 `.env`、日志、构建产物或本地数据。
+- 新文件确实需要 Author 标记时使用 `huangbingrui.awa`。

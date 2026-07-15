@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.naccl.controller.support.PageRequestValidator;
 import top.naccl.entity.Blog;
 import top.naccl.model.vo.Result;
 import top.naccl.service.ArticleArchiveService;
@@ -51,6 +52,7 @@ public class PlayerBlogController {
 	                    @RequestParam(defaultValue = "") Integer categoryId,
 	                    @RequestParam(defaultValue = "1") Integer pageNum,
 	                    @RequestParam(defaultValue = "10") Integer pageSize) {
+		PageRequestValidator.validate(pageNum, pageSize);
 		PageInfo<Blog> blogs = playerBlogService.list(authentication.getName(), title, categoryId, pageNum, pageSize);
 		Map<String, Object> data = new HashMap<>(4);
 		data.put("blogs", blogs);
@@ -64,6 +66,7 @@ public class PlayerBlogController {
 			@RequestParam(defaultValue = "") Integer categoryId,
 			@RequestParam(defaultValue = "1") Integer pageNum,
 			@RequestParam(defaultValue = "10") Integer pageSize) {
+		PageRequestValidator.validate(pageNum, pageSize);
 		PageInfo<Blog> blogs = playerBlogService.listRecycleBin(
 				authentication.getName(), title, categoryId, pageNum, pageSize);
 		Map<String, Object> data = new HashMap<>(4);

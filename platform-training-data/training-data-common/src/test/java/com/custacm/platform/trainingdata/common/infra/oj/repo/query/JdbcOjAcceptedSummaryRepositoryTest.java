@@ -1,13 +1,15 @@
 package com.custacm.platform.trainingdata.common.infra.oj.repo.query;
 
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjAcceptedSummaryCriteria;
-import com.custacm.platform.trainingdata.common.domain.oj.model.OjDailyRatingAcceptedSummary;
+import com.custacm.platform.trainingdata.common.domain.oj.model.OjRatingAcceptedSummary;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 
@@ -15,13 +17,12 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JdbcOjAcceptedSummaryRepositoryTest {
-    private NamedParameterJdbcTemplate jdbcTemplate;
+    private CountingNamedParameterJdbcTemplate jdbcTemplate;
     private JdbcOjAcceptedSummaryRepository repository;
 
     @BeforeEach
@@ -31,7 +32,7 @@ class JdbcOjAcceptedSummaryRepositoryTest {
                 "sa",
                 ""
         );
-        jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
+        jdbcTemplate = new CountingNamedParameterJdbcTemplate(dataSource);
         repository = new JdbcOjAcceptedSummaryRepository(jdbcTemplate, OjDifficultyBucketPolicies.defaults());
         try (Connection connection = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V011__create_codeforces_dwd_dwm_dws_tables.sql"));
@@ -40,36 +41,40 @@ class JdbcOjAcceptedSummaryRepositoryTest {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/migration/V017__reshape_codeforces_warehouse_to_common_contract.sql"));
         }
         insertSummary("tourist", "2026-07-01", 2, 1, 0, 0);
-        insertSummary("tourist", "2026-07-02", 0, 0, 0, 3);
+        insertSummary("tourist", "2026-07-02", 4, 0, 0, 3);
         insertSummary("tourist", "2026-07-03", 0, 0, 1, 0);
         insertSummary("other", "2026-07-01", 5, 0, 0, 0);
     }
 
     @Test
-    void findsAllDailyRatingSummariesForHandle() {
-        List<OjDailyRatingAcceptedSummary> summaries =
-                repository.findDailyRatingAcceptedSummaries(OjAcceptedSummaryCriteria.allForHandle("tourist"));
+    void sumsAllDatesByHandleAndDifficulty() {
+        List<OjRatingAcceptedSummary> summaries =
+                repository.summarizeAcceptedProblemsByRating(OjAcceptedSummaryCriteria.allForHandle("tourist"));
 
-        assertThat(summaries).containsExactly(
-                summary("tourist", "2026-07-01", Map.of("800", 2, "1200", 1)),
-                summary("tourist", "2026-07-02", Map.of("UNRATED", 3)),
-                summary("tourist", "2026-07-03", Map.of("1600", 1))
+        assertThat(summaries).containsExactlyInAnyOrder(
+                summary("tourist", "800", 6),
+                summary("tourist", "1200", 1),
+                summary("tourist", "1600", 1),
+                summary("tourist", "UNRATED", 3)
         );
+        assertThat(jdbcTemplate.queryCount()).isEqualTo(1);
     }
 
     @Test
     void findsMultipleHandlesInOneBatchQuery() {
-        List<OjDailyRatingAcceptedSummary> summaries = repository.findDailyRatingAcceptedSummaries(List.of(
+        List<OjRatingAcceptedSummary> summaries = repository.summarizeAcceptedProblemsByRating(List.of(
                 OjAcceptedSummaryCriteria.allForHandle("tourist"),
                 OjAcceptedSummaryCriteria.allForHandle("other")
         ));
 
-        assertThat(summaries).containsExactly(
-                summary("other", "2026-07-01", Map.of("800", 5)),
-                summary("tourist", "2026-07-01", Map.of("800", 2, "1200", 1)),
-                summary("tourist", "2026-07-02", Map.of("UNRATED", 3)),
-                summary("tourist", "2026-07-03", Map.of("1600", 1))
+        assertThat(summaries).containsExactlyInAnyOrder(
+                summary("other", "800", 5),
+                summary("tourist", "800", 6),
+                summary("tourist", "1200", 1),
+                summary("tourist", "1600", 1),
+                summary("tourist", "UNRATED", 3)
         );
+        assertThat(jdbcTemplate.queryCount()).isEqualTo(1);
     }
 
     @Test
@@ -82,10 +87,13 @@ class JdbcOjAcceptedSummaryRepositoryTest {
                 1600
         );
 
-        List<OjDailyRatingAcceptedSummary> summaries =
-                repository.findDailyRatingAcceptedSummaries(query);
+        List<OjRatingAcceptedSummary> summaries =
+                repository.summarizeAcceptedProblemsByRating(query);
 
-        assertThat(summaries).containsExactly(summary("tourist", "2026-07-01", Map.of("800", 2, "1200", 1)));
+        assertThat(summaries).containsExactlyInAnyOrder(
+                summary("tourist", "800", 6),
+                summary("tourist", "1200", 1)
+        );
     }
 
     @Test
@@ -98,11 +106,19 @@ class JdbcOjAcceptedSummaryRepositoryTest {
                 1200
         );
 
-        List<OjDailyRatingAcceptedSummary> summaries =
-                repository.findDailyRatingAcceptedSummaries(query);
+        insertDifficultySummary(
+                "dws_codeforces__handle_daily_rating_accepted_summary",
+                "tourist",
+                "2026-07-02",
+                "LEGACY",
+                7
+        );
+
+        List<OjRatingAcceptedSummary> summaries =
+                repository.summarizeAcceptedProblemsByRating(query);
 
         assertThat(summaries).containsExactly(
-                summary("tourist", "2026-07-01", Map.of("1200", 1))
+                summary("tourist", "1200", 1)
         );
     }
 
@@ -116,11 +132,12 @@ class JdbcOjAcceptedSummaryRepositoryTest {
                 1200
         );
 
-        List<OjDailyRatingAcceptedSummary> summaries =
-                repository.findDailyRatingAcceptedSummaries(query);
+        List<OjRatingAcceptedSummary> summaries =
+                repository.summarizeAcceptedProblemsByRating(query);
 
-        assertThat(summaries).containsExactly(
-                summary("tourist", "2026-07-01", Map.of("800", 2, "1200", 1))
+        assertThat(summaries).containsExactlyInAnyOrder(
+                summary("tourist", "800", 6),
+                summary("tourist", "1200", 1)
         );
     }
 
@@ -134,10 +151,27 @@ class JdbcOjAcceptedSummaryRepositoryTest {
                 null
         );
 
-        List<OjDailyRatingAcceptedSummary> summaries =
-                repository.findDailyRatingAcceptedSummaries(query);
+        List<OjRatingAcceptedSummary> summaries =
+                repository.summarizeAcceptedProblemsByRating(query);
 
         assertThat(summaries).isEmpty();
+    }
+
+    @Test
+    void preservesUnknownDifficultyForUnratedFoldingWhenBoundsAreBlank() {
+        insertDifficultySummary(
+                "dws_codeforces__handle_daily_rating_accepted_summary",
+                "tourist",
+                "2026-07-03",
+                "LEGACY",
+                2
+        );
+
+        List<OjRatingAcceptedSummary> summaries = repository.summarizeAcceptedProblemsByRating(
+                OjAcceptedSummaryCriteria.allForHandle("tourist")
+        );
+
+        assertThat(summaries).contains(summary("tourist", "LEGACY", 2));
     }
 
     private void insertSummary(
@@ -204,15 +238,33 @@ class JdbcOjAcceptedSummaryRepositoryTest {
                 .addValue("acceptedProblemCount", acceptedProblemCount));
     }
 
-    private static OjDailyRatingAcceptedSummary summary(
+    private static OjRatingAcceptedSummary summary(
             String handle,
-            String acceptedDateUtcPlus8,
-            Map<String, Integer> acceptedProblemCountsByRating
+            String difficultyKey,
+            int acceptedProblemCount
     ) {
-        return new OjDailyRatingAcceptedSummary(
+        return new OjRatingAcceptedSummary(
                 handle,
-                LocalDate.parse(acceptedDateUtcPlus8),
-                acceptedProblemCountsByRating
+                difficultyKey,
+                acceptedProblemCount
         );
+    }
+
+    private static final class CountingNamedParameterJdbcTemplate extends NamedParameterJdbcTemplate {
+        private int queryCount;
+
+        private CountingNamedParameterJdbcTemplate(DataSource dataSource) {
+            super(dataSource);
+        }
+
+        @Override
+        public <T> List<T> query(String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
+            queryCount++;
+            return super.query(sql, paramSource, rowMapper);
+        }
+
+        private int queryCount() {
+            return queryCount;
+        }
     }
 }

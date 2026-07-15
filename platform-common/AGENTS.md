@@ -1,14 +1,9 @@
 # platform-common Agent Notes
 
-`platform-common` is a shared Maven area, not a business module and not a runnable service.
-
-Current state:
-
-- `common-core` contains the reusable SQL task DAG execution core. It reads a YAML manifest on every run, rebuilds an adjacency-list graph, validates DAG shape, and executes SQL task nodes with one transaction per node.
-
-Rules:
-
-- Do not put business entities here.
-- Add shared code only after a repeated concrete need exists.
-- If executable code is added, add focused tests and update this file plus [../docs/architecture.md](../docs/architecture.md).
-- Keep common code independent of concrete business modules.
+- `platform-common` is a shared Maven area, not a business module or runnable service.
+- Do not place business entities, module-specific tables or transport contracts here.
+- Add shared code only for a demonstrated repeated need, and keep it independent of concrete business modules.
+- `common-core` owns the reusable SQL task DAG executor; callers own business manifests, SQL, HTTP validation and security.
+- New or materially changed executable logic requires focused tests and an updated nearest README.
+- Before backend log changes read [logging.md](../docs/logging.md). Verify Java changes from the repository root with `mvn clean test`.
+- Update [architecture.md](../docs/architecture.md) only when the shared-module boundary changes.

@@ -33,6 +33,7 @@ function competitionFixture(deletedAt: string | null = null): Competition {
   return {
     id: 7,
     fullName: '2026 ICPC 亚洲区域赛（合肥）',
+    competitionDate: '2026-07-15',
     year: 2026,
     category: 'ICPC_ASIA_REGIONAL',
     categoryLabel: 'ICPC 亚洲区域赛',
@@ -55,6 +56,7 @@ function competitionFixture(deletedAt: string | null = null): Competition {
       rankPosition: 3,
       rankTotal: 280,
       rank: '(3/280)',
+      requiresLogin: false,
       recipients: [
         { participantId: 11, username: 'alice', displayName: 'Alice' },
         { participantId: 12, username: 'bob', displayName: 'Bob' },
@@ -70,6 +72,23 @@ function page(list: Competition[]): CompetitionPageResponse {
 function dashboardStub() {
   const active = ref(page([competitionFixture()]));
   const recycle = ref(page([competitionFixture(new Date().toISOString())]));
+  const updateCompetitionAwardLoginRequirement = vi.fn().mockImplementation(
+    async (competitionId: number, awardId: number, requiresLogin: boolean) => {
+      const current = active.value.list.find((item) => item.id === competitionId);
+      if (!current) throw new Error('比赛不存在');
+      const updated = {
+        ...current,
+        awards: current.awards.map((award) => (
+          award.id === awardId ? { ...award, requiresLogin } : award
+        )),
+      };
+      active.value = {
+        ...active.value,
+        list: active.value.list.map((item) => item.id === competitionId ? updated : item),
+      };
+      return updated;
+    },
+  );
   return {
     adminCompetitions: active,
     adminCompetitionRecycleBin: recycle,
@@ -80,6 +99,7 @@ function dashboardStub() {
     deleteCompetitionParticipant: vi.fn().mockResolvedValue(undefined),
     addCompetitionAward: vi.fn().mockResolvedValue(competitionFixture()),
     deleteCompetitionAward: vi.fn().mockResolvedValue(undefined),
+    updateCompetitionAwardLoginRequirement,
     moveCompetitionToRecycleBin: vi.fn().mockResolvedValue(undefined),
     restoreCompetition: vi.fn().mockResolvedValue(competitionFixture()),
   };
@@ -128,6 +148,26 @@ describe('CompetitionAdminPanel', () => {
     expect(stub.loadAdminCompetitionRecycleBin).toHaveBeenCalledWith({
       startYear: null, endYear: null, category: null, pageNum: 1, pageSize: 10,
     });
+    wrapper.unmount();
+  });
+
+  it('shows exact dates without timezone conversion and falls back for undated records', async () => {
+    const stub = dashboardStub();
+    stub.adminCompetitions.value = page([
+      competitionFixture(),
+      {
+        ...competitionFixture(), id: 8, fullName: '历史比赛', competitionDate: null, year: 2025,
+      },
+      {
+        ...competitionFixture(), id: 9, fullName: '待补日期比赛', competitionDate: null, year: null,
+      },
+    ]);
+    const { wrapper } = mountPanel(stub);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('2026年7月15日');
+    expect(wrapper.text()).toContain('2025年');
+    expect(wrapper.text()).toContain('日期未填写');
     wrapper.unmount();
   });
 
@@ -210,6 +250,10 @@ describe('CompetitionAdminPanel', () => {
     await flushPromises();
     await wrapper.get('.competition-create-trigger').trigger('click');
     await wrapper.get('.competition-name-field input').setValue('2026 CCPC 全国邀请赛');
+    const dateInput = wrapper.get('input[aria-label="比赛日期"]');
+    expect(dateInput.attributes('min')).toBe('1900-01-01');
+    expect(dateInput.attributes('max')).toBe('9999-12-31');
+    await dateInput.setValue('2026-07-15');
     await wrapper.get('select[aria-label="比赛规范分类"]').setValue('CCPC_NATIONAL_INVITATIONAL');
     expect(wrapper.find('select[aria-label="比赛参赛形态"]').exists()).toBe(false);
     await wrapper.get('[data-test="competition-create-form"]').trigger('submit');
@@ -217,7 +261,7 @@ describe('CompetitionAdminPanel', () => {
 
     expect(stub.createCompetition).toHaveBeenCalledWith({
       fullName: '2026 CCPC 全国邀请赛',
-      year: new Date().getFullYear(),
+      competitionDate: '2026-07-15',
       category: 'CCPC_NATIONAL_INVITATIONAL',
       participationMode: 'TEAM',
     });
@@ -276,7 +320,7 @@ describe('CompetitionAdminPanel', () => {
 
     expect(stub.createCompetition).toHaveBeenCalledWith({
       fullName: `2026 ${category}`,
-      year: new Date().getFullYear(),
+      competitionDate: null,
       category,
       participationMode,
     });
@@ -369,6 +413,7 @@ describe('CompetitionAdminPanel', () => {
       awardTier: 'BAIDU_NATIONAL_SECOND',
       rankPosition: null,
       rankTotal: null,
+      requiresLogin: false,
       recipientUsernames: ['alice'],
     });
     wrapper.unmount();
@@ -415,6 +460,7 @@ describe('CompetitionAdminPanel', () => {
 
     const recipients = wrapper.findAll('.competition-recipient-picker input');
     await recipients[0].setValue(true);
+    await wrapper.get('button[aria-label="新奖项仅登录后可见"]').trigger('click');
     await wrapper.get('.competition-award-form').trigger('submit');
     await flushPromises();
     expect(stub.addCompetitionAward).toHaveBeenCalledWith(7, expect.objectContaining({
@@ -422,6 +468,7 @@ describe('CompetitionAdminPanel', () => {
       awardTier: 'MEDAL_GOLD',
       rankPosition: 1,
       rankTotal: 1,
+      requiresLogin: true,
       recipientUsernames: ['alice'],
     }));
 
@@ -436,6 +483,29 @@ describe('CompetitionAdminPanel', () => {
     await wrapper.get('.admin-confirm-primary').trigger('click');
     await flushPromises();
     expect(stub.moveCompetitionToRecycleBin).toHaveBeenCalledWith(7);
+    wrapper.unmount();
+  });
+
+  it('switches each awards login requirement without a confirmation dialog', async () => {
+    const { wrapper, stub } = mountPanel();
+    await flushPromises();
+    await wrapper.get('.competition-detail-trigger').trigger('click');
+
+    const switchControl = wrapper.get('.competition-award-list [role="switch"]');
+    expect(switchControl.attributes('aria-checked')).toBe('false');
+    expect(switchControl.text()).toContain('所有访客可见');
+
+    await switchControl.trigger('click');
+    await flushPromises();
+
+    expect(stub.updateCompetitionAwardLoginRequirement).toHaveBeenCalledWith(7, 21, true);
+    expect(wrapper.get('.competition-award-list [role="switch"]').attributes('aria-checked')).toBe('true');
+    expect(wrapper.text()).toContain('已设置为仅登录后可见');
+    expect(document.body.textContent).not.toContain('确认设置');
+
+    await wrapper.get('.competition-award-list [role="switch"]').trigger('click');
+    await flushPromises();
+    expect(stub.updateCompetitionAwardLoginRequirement).toHaveBeenLastCalledWith(7, 21, false);
     wrapper.unmount();
   });
 

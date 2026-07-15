@@ -17,6 +17,7 @@ import com.custacm.platform.trainingdata.codeforces.infra.JacksonSubmissionPaylo
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -81,6 +82,50 @@ class CodeforcesSubmissionCollectionServiceTest {
                 .isEqualTo(OjSubmissionCollectionHandleStatus.FAILED);
         assertThat(result.handles().get(1).errorCode())
                 .isEqualTo("CODEFORCES_API_STATUS_FAILED");
+    }
+
+    @Test
+    void writesEachSourcePageWithOneStableBatchId() throws Exception {
+        FakeSourceClient sourceClient = new FakeSourceClient();
+        sourceClient.addPage("alice", page(
+                submission(301, "alice", "2026-07-04T00:00:00Z"),
+                submission(302, "alice", "2026-07-03T00:00:00Z")
+        ));
+        sourceClient.addPage("alice", page(
+                submission(303, "alice", "2026-07-02T00:00:00Z")
+        ));
+        RecordingWriter writer = new RecordingWriter();
+        CodeforcesSubmissionCollectionService service = service(
+                List.of("alice"), sourceClient, writer, 2
+        );
+
+        var result = service.collectRecentWindowForConfiguredHandles(LOOKBACK);
+
+        assertThat(result.writtenRows()).isEqualTo(3);
+        assertThat(writer.chunkSizes).containsExactly(2, 1);
+        assertThat(writer.batches).extracting(CodeforcesCollectBatch::batchId)
+                .containsOnly(result.batchId());
+    }
+
+    @Test
+    void failsHandleWhenSubmissionTimestampIsMissing() throws Exception {
+        FakeSourceClient sourceClient = new FakeSourceClient();
+        JsonNode malformedSubmission = submission(401, "alice", "2026-07-04T00:00:00Z");
+        ((ObjectNode) malformedSubmission).remove("creationTimeSeconds");
+        sourceClient.addPage("alice", page(malformedSubmission));
+        RecordingWriter writer = new RecordingWriter();
+        CodeforcesSubmissionCollectionService service = service(
+                List.of("alice"), sourceClient, writer, 100
+        );
+
+        var result = service.collectRecentWindowForConfiguredHandles(LOOKBACK);
+
+        assertThat(result.status()).isEqualTo(OjSubmissionCollectionStatus.FAILED);
+        assertThat(result.handles()).singleElement().satisfies(handle -> {
+            assertThat(handle.status()).isEqualTo(OjSubmissionCollectionHandleStatus.FAILED);
+            assertThat(handle.message()).contains("creationTimeSeconds");
+        });
+        assertThat(writer.records).isEmpty();
     }
 
     @Test
@@ -631,12 +676,16 @@ class CodeforcesSubmissionCollectionServiceTest {
 
     private static final class RecordingWriter implements CodeforcesOdsSubmissionWriter {
         private CodeforcesCollectBatch batch;
-        private List<CodeforcesOdsSubmission> records = List.of();
+        private final List<CodeforcesOdsSubmission> records = new ArrayList<>();
+        private final List<CodeforcesCollectBatch> batches = new ArrayList<>();
+        private final List<Integer> chunkSizes = new ArrayList<>();
 
         @Override
         public void upsertBatch(CodeforcesCollectBatch batch, List<CodeforcesOdsSubmission> submissions) {
             this.batch = batch;
-            this.records = List.copyOf(submissions);
+            this.batches.add(batch);
+            this.chunkSizes.add(submissions.size());
+            this.records.addAll(submissions);
         }
     }
 }

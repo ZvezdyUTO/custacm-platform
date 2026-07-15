@@ -11,6 +11,7 @@ public record CompetitionAwardCreateRequest(
 		String awardTier,
 		Integer rankPosition,
 		Integer rankTotal,
+		Boolean requiresLogin,
 		List<String> recipientUsernames
 ) {
 }

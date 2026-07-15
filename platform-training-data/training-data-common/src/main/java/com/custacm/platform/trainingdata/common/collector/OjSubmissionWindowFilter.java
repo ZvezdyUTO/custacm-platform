@@ -37,7 +37,7 @@ public final class OjSubmissionWindowFilter {
                 maxEpochSecond = OptionalLong.of(epochSecond);
             }
             if (epochSecond >= startEpochSecond && epochSecond < endEpochSecond) {
-                matchedSubmissions.add(submission.deepCopy());
+                matchedSubmissions.add(submission);
             }
             if (epochSecond >= startEpochSecond) {
                 allSubmissionsAreOlderThanWindow = false;

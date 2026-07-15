@@ -107,7 +107,7 @@ class ArticleRecycleBinServiceTest {
 		InOrder order = inOrder(imageAssetService, commentMapper, blogMapper);
 		order.verify(imageAssetService).prepareBlogDeletion(42L);
 		order.verify(commentMapper).deleteCommentsByBlogId(42L);
-		order.verify(blogMapper).deleteBlogTagByBlogId(42L);
 		order.verify(blogMapper).deleteBlogById(42L);
+		verify(blogMapper, never()).deleteBlogTagByBlogId(anyLong());
 	}
 }

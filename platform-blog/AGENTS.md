@@ -1,35 +1,14 @@
 # platform-blog Agent Notes
 
-- `upstream/nblog/blog-api` 是根 Maven reactor 中唯一可运行后端，负责 Blog、评论、比赛与获奖记录、首页滚动精选图片、首页精选分组、BCrypt 账号、HS512 JWT、`username`、`ROLE_admin`/`ROLE_player`、OJ handle 和训练数据 HTTP adapter。
-- 对外只有一个 Nginx `frontend` 服务和一个站点；源码中仍有 Blog 与 Training 两份 Vue 3 构建。Blog 位于 `/`，并持有 `/training/**` 外层路由和唯一 `Nav.vue`；Training 运行时内部挂载在 `/training-app/**`。不要合并两个 Router，也不要显示第二条顶栏。
-- 两份 Vue 构建共享日间/夜间语义 token。Blog 唯一顶栏提供紧凑主题开关，首次访问默认日间，用户选择持久化到 `custacm.theme` 并跨标签页、同源 Training frame 同步，但不跟随系统主题。日间沿用首页/赛事荣誉的浅色体系，夜间沿用文章目录的暖黑、米白与陶土橙体系；业务图片不得因全局主题统一滤色。
-- `blog-view/src/assets/css/tokens.css` 是根共享视觉 token 的生成副本，禁止手工编辑；由 `main.js` 在基础样式前加载，Blog 视觉覆盖集中在 `blog-redesign.css`。
-- Blog 唯一顶栏在日间使用共享浅色 `--glass-*` 毛玻璃 token，在夜间使用同模糊强度的暗色玻璃和浅色边框。其他页面级配色不得覆盖顶栏背景、边框、文字、激活色或主题开关。
-- Blog 保留 Element Plus 并通过全局 `AppIcon` 使用 Lucide；Semantic UI 已退出。页面结构只能使用项目自有布局 class，不得重新导入 Semantic UI CSS 或旧图标字体。
-- Blog 首页只展示留有页边距的精选文章区，不渲染普通文章列表或标签云。精选由管理员显式编排为最多三组，每组标题可编辑且必须恰好包含三篇文章；同一首页内文章不得重复，组顺序和组内文章顺序都以持久化顺序为准，不再按置顶、`is_recommend` 或更新时间运行时补足。每组沿用第一篇横向大卡、下方并排第二和第三篇的层级，首图保持 16:9 并完整显示而不裁剪，同时展示作者头像、昵称、username 和按持久化颜色渲染的文章标签；首页固定使用暖米色/浅奶油棕表面。文章详情页桌面使用 IDE 式双区：左侧窄工具栏独立滚动并依次展示作者、作者主动公开的荣誉条、目录和评论入口，右侧阅读画布独立滚动；荣誉条只显示比赛全称与奖项描述并链接比赛详情，移动端隐藏工具栏并恢复单列页面流。
-- 浏览器 API 统一从 `/api/**` 进入 Nginx，Blog API 的直接路径不带 `/api`。公开 Vue 请求不得通过全局拦截器附加共享 JWT；受保护请求由对应 adapter 显式携带 Bearer token。
-- `/login` 按规范化 username 使用 Redis 原子五秒窗口：正确凭据释放占位，首次错误返回 401 与 `Retry-After: 5`，窗口内重复请求返回 429，Redis 不可用时失败关闭。Training 登录按钮必须消费服务端 `Retry-After` 展示倒计时，不能只做可绕过的前端延迟。
-- Blog 页面只保留首页、文章、分类、标签、公开赛事列表/详情、个人主页和写作。不得恢复 About、Friends、Moments 页面或其 Controller/Service/Mapper/表，也不得恢复旧访问统计、日志管理、Quartz、邮件/Telegram 通知、QQ 查询、GitHub/又拍云上传链路。
-- 普通用户文章写操作必须按当前用户校验 `blog.user_id`；管理员可管理全部文章，但新建文章的作者必须来自当前认证管理员，不能硬编码 user id 或信任请求体作者。
-- 首页精选分组只接受当前已发布、公开且未进入回收站的文章；成员后来变为草稿、内部文章或进入回收站时保留关系和后台失效状态，但公开 `/site` 暂不返回整组，恢复资格后自动重现。管理员在现有 `/training/admin/articles` 内使用“首页编排”子视图调用 `/admin/homepage-featured-groups/**`，不得新增顶级路由。旧 `/admin/blog/recommend` 已移除，`blog.is_recommend` 只为历史数据和备份兼容保留，不再影响首页。
-- 作者或管理员删除文章都只能写入 `deleted_at` 并固定保留七天；期间仅作者本人或管理员可恢复，不得提供提前物理删除入口。到期清理必须在事务中删除评论、标签关联和文章，并在提交后回收托管图片。
-- 公开比赛只通过 `GET /competitions` 与 `GET /competitions/{id}` 读取；列表以 `startYear`/`endYear` 闭区间和可选单个 `category` 规范分类分页。创建入口只能使用十个规范分类：省赛、两种全国邀请赛、ICPC 亚洲区域赛、CCPC 区域赛、EC-Final、CCPC-Final、百度之星、GPLT 国赛和蓝桥杯国奖；底层历史类型标签仅作为存储兼容，不得重新暴露任意多选组合。比赛根参赛形态只允许 `INDIVIDUAL`、`TEAM`、`MIXED`，并受规范分类约束。
-- 管理员对比赛、参赛用户和奖项只提供 POST/DELETE，比赛恢复是管理员比赛管理的唯一 PUT，不得新增普通 PUT/PATCH 编辑入口；获奖人修改本人名片展示偏好和顺序不属于管理员修改奖项。前七类赛事只接受金牌、银牌、铜牌、优胜奖并要求合法 `(x/y)`；百度之星只接受国一至国四、省一至省三；GPLT 与蓝桥杯只接受一、二、三等奖且不记录排名。`INDIVIDUAL` 必须且只能绑定一人且不能填队名，`TEAM` 至少绑定一名参赛用户且不限制队伍人数。
-- 比赛删除后只把比赛根放入七天回收站并从公开端隐藏聚合，参赛用户、奖项、获奖人和文章绑定不得提前删除；管理员回收站树仍显示当前公开已发布文章，恢复后公开端重现，到期才级联物理清理。同名正常比赛唯一，但回收站不占用名称；恢复遇到同名正常比赛必须拒绝。
-- `POST /player/competitions/{competitionId}/articles/{blogId}` 只允许比赛参赛用户绑定本人公开且已发布文章；对应 DELETE 可解绑本人已存在的绑定。草稿、内部或回收站文章只从公开比赛响应隐藏，不删除绑定，重新公开或恢复后自动重现。
-- 单篇文章归档下载只允许登录用户读取已发布文章，ZIP 内 `article.md` 依次包含标题、简介和原始正文，托管首图/正文图使用扁平语义化文件名；普通用户按 username 在全部文章间共享 30 秒 Redis 原子窗口，管理员豁免，限流存储故障时普通用户失败关闭。管理员可从文章管理页下载包含全部文章状态、评论、作者资料和托管图片的全量 ZIP，备份不得包含密码、token 或评论 IP。
-- 管理员用户编辑统一走一个 `PUT /admin/users/{username}`。账号字段、改名、角色、密码、完整 OJ handle 集合和 `needCollect` 必须在同一事务内处理；更换或移除 handle 前先清理对应 OJ 训练数据。不得恢复拆分的 patch/replace-handle 接口。
-- 比赛参赛关系使用 `username` 外键并随用户改名级联；删除用户只把关系中的 username 置空，必须保留昵称快照、比赛参与和历史奖项。公开名片、`/player/me`、资料修改和头像更新响应均包含仍可见比赛的 `achievements`。
-- 新获奖关系默认不在个人公开名片展示；`/player/me` 等本人资料响应必须返回全部本人奖项及 `profileVisible`/`profileOrder`，公开 `/profiles/{username}` 只按本人保存的顺序返回已开启展示的项目，文章作者名片也只消费这份主动公开集合而不把它解释为当前文章绑定比赛。展示偏好与公开顺序只能由该获奖人通过 player 路径修改，团队成员独立选择，不能影响比赛详情中的获奖事实。
-- 固定系统管理员 `root` 不得删除、改名、降权、绑定 OJ handle 或设置队员采集状态。
-- 多人训练汇总使用一次 `GET /player/training-data/accepted-summaries` 批量读取，不能在前端按用户制造 N+1 请求；单人查询继续使用单用户接口。
-- 分类与标签后台列表分别分页；公开独立训练外壳只读取 `/categories`，不为导航加载完整 `/site` 响应。
-- Vue Blog 在 `/competitions` 与 `/competitions/:id` 提供匿名赛事档案和完整比赛详情；列表直接使用后端按规范 `category` 分页返回的完整聚合树，不逐项请求详情或在前端二次分页。个人主页位于 `src/views/profile/Profile.vue`，以可点击更换的头像、昵称和 username 组成唯一身份头部，不重复展示 OJ、用户名、昵称或签名卡片；同页仍提供资料、最多 40 字符的个性签名、友情链接、全部本人 `achievements`、逐项公开开关、公开顺序调整和本人文章，本人公开已发布文章可在文章列表中绑定或解绑参赛比赛。文章作者栏按公开顺序默认展示前三项荣誉，存在更多项目时提供展开/收起。
-- Blog 顶栏不提供文章搜索框；全站标题搜索只放在 `/articles`、分类和标签共用的文章目录中，输入时不得发请求，只有回车或点击输入框左侧搜索按钮才调用 `GET /searchBlog`。
-- 评论只允许登录账号提交，创建请求只接受 `content`、`blogId` 和 `parentCommentId`；公开评论树按根评论分页并批量装配回复，不得恢复游客身份表单、评论通知或后台评论管理链路。
-- 新评论表情以标准 Unicode 存储；Blog 展示层使用同源 Google Noto Emoji SVG sprite 渲染选择器及受支持表情，禁止把表情 HTML 或第三方 CDN URL 写入评论。历史 tv/阿鲁/泡泡短码只保留只读渲染兼容。
-- 文章列表的标签应批量读取，Redis 缓存必须有 TTL 且失败时降级到数据库；事务内的缓存失效在提交后执行。
-- 文章首图、正文图片和头像通过本地托管资产管理；最多十二张 3:2 首页滚动精选图片同样只写本地上传目录，每张保存原图和压缩缩略图。精选图片通过公开 `GET /homepage-featured-images` 全量有序读取，管理员在现有“首页图片”页调用 `/admin/homepage-featured-images/**` 管理；Blog 按视口与单组宽度动态生成足够的奇数副本，并在原生滚动、拖动、触控板、触摸和键盘操作时按整组宽度无感换轨，任意方向都不得触碰首尾。旧动态首页横幅接口、表和后台面板已删除，首屏只用 Blog 构建内置静态 PNG。数据库提交后再删除失效文件，并由清理任务兜底临时文件、孤儿资产和精选图片孤儿文件。
-- 训练自动采集和 AtCoder 题目元数据 bootstrap/调度默认关闭；只能由显式环境变量开启。
-- Java 变更后在仓库根运行 `mvn clean test`；打包行为改变时再运行 `mvn clean package -DskipTests`。Vue Blog 变更在 `blog-view` 运行 `npm ci`、`npm test` 和 `npm run build`。
-- 职责、路径、构建或权限改变时同步更新本文件、`README.md`、两个子模块 README、`../frontend/README.md` 及文档同步表要求的文件。
+- `upstream/nblog/blog-api` is the only runnable backend. Keep `top.naccl` as its package root; training modules remain in-process libraries and must not add an HTTP runtime.
+- Production exposes one Nginx `frontend` service. Blog owns `/` and the `/training/**` shell; Training is mounted internally at `/training-app/**`; browser APIs use `/api/**`. Keep the two Vue Routers separate and keep a single Blog navigation bar.
+- Follow [authorization](../docs/authorization.md) and [API contracts](../docs/api.md). Public Blog requests must not receive a global JWT; protected adapters attach Bearer tokens explicitly.
+- Passwords, JWTs, users, roles and OJ handles belong to Blog API. `username` is the JWT subject and training identity; stored roles are only `ROLE_admin` and `ROLE_player`.
+- Article writes must enforce the authenticated author. Handle removal or replacement must purge that OJ's training data before the binding changes. The fixed `root` administrator cannot be deleted, renamed, demoted or used as a training member.
+- Do not restore retired About/Friends/Moments, statistics, Quartz, notification, remote-upload or dynamic-banner paths without an explicit product decision.
+- `blog-view/src/assets/css/tokens.css` is generated from the repository token source and must not be edited manually. Visual rules live in [the frontend design system](../docs/frontend-design-system.md).
+- Submission schedules and AtCoder metadata bootstrap/schedules stay disabled unless operators explicitly enable them.
+- Before backend log changes, read [logging.md](../docs/logging.md); never log credentials, tokens, Authorization headers, keys or full sensitive data.
+- Verify Java changes from the repository root with `mvn clean test`; add `mvn clean package -DskipTests` only for packaging changes.
+- Verify Vue Blog changes in `upstream/nblog/blog-view` with `npm install`, `npm test` and `npm run build`.
+- When responsibilities, paths, build behavior or authorization change, update the nearest README and the relevant architecture, API or authorization document.

@@ -91,9 +91,9 @@ if ! curl -fsS http://localhost:8090/health >/dev/null; then
   exit 1
 fi
 
-echo "Installing locked frontend dependencies ..."
+echo "Installing frontend dependencies ..."
 (cd "${TRAINING_DIR}" && "${pnpm_command[@]}" install --frozen-lockfile)
-(cd "${BLOG_DIR}" && npm ci)
+(cd "${BLOG_DIR}" && npm install)
 
 trap cleanup EXIT INT TERM
 

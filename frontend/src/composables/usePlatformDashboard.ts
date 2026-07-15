@@ -37,6 +37,7 @@ import {
   listAdminTags as listAdminTagsApi, createTag as createTagApi, deleteTag as deleteTagApi,
   moveCompetitionToRecycleBin as moveCompetitionToRecycleBinApi,
   restoreCompetition as restoreCompetitionApi,
+  updateCompetitionAwardLoginRequirement as updateCompetitionAwardLoginRequirementApi,
 } from '../api/admin';
 import { ApiError } from '../api/client';
 import {
@@ -181,9 +182,11 @@ export function usePlatformDashboard(options: {
   const adminCategories = ref<AdminCategoryPage | null>(null);
   const adminTags = ref<AdminTagPage | null>(null);
   let requestSequence = 0;
+  let adminUsersRequestSequence = 0;
   let adminCompetitionsRequestSequence = 0;
   let adminCompetitionRecycleBinRequestSequence = 0;
-  let pollTimer: number | null = null;
+  const pollWaiters = new Map<number, () => void>();
+  let unmounted = false;
 
   const selectedTrainingUser = computed(() => (
     trainingUsers.value.find((item) => item.username === selectedUsername.value) ?? null
@@ -192,6 +195,10 @@ export function usePlatformDashboard(options: {
   function activeToken() {
     if (!options.token.value) throw new Error('请先登录。');
     return options.token.value;
+  }
+
+  function isCurrentToken(token: string) {
+    return !unmounted && options.token.value === token;
   }
 
   function handleError(error: unknown) {
@@ -294,12 +301,15 @@ export function usePlatformDashboard(options: {
       if (activeAdminSection !== null) {
         if (options.user.value?.role === 'ROLE_admin') {
           const needsUsers = activeAdminSection === 'users' || activeAdminSection === 'training';
+          const usersSequence = needsUsers ? ++adminUsersRequestSequence : adminUsersRequestSequence;
           const [allUsers, jobs] = await Promise.all([
             needsUsers ? listAdminUsers(token) : Promise.resolve(adminUsers.value),
             activeAdminSection === 'training' ? listCollectionJobs(token) : Promise.resolve(collectionJobs.value),
           ]);
           if (sequence !== requestSequence) return;
-          adminUsers.value = allUsers.map(withoutGeneratedPassword);
+          if (needsUsers && usersSequence === adminUsersRequestSequence) {
+            adminUsers.value = allUsers.map(withoutGeneratedPassword);
+          }
           collectionJobs.value = jobs;
         }
         if (sequence === requestSequence) status.value = 'ready';
@@ -404,17 +414,20 @@ export function usePlatformDashboard(options: {
 
   async function batchCreateUsers(requests: AdminUserCreateRequest[]) {
     const results = await batchCreateUsersApi(activeToken(), requests);
+    adminUsersRequestSequence += 1;
     adminUsers.value = [...adminUsers.value, ...results.map(withoutGeneratedPassword)];
     return results;
   }
   async function updateUser(username: Username, request: AdminUserUpdateRequest) {
     const result = await updateUserApi(activeToken(), username, request);
+    adminUsersRequestSequence += 1;
     adminUsers.value = adminUsers.value.map((item) => item.user.username === username
       ? withoutGeneratedPassword(result) : item);
     return result;
   }
   async function deleteUser(username: Username) {
     await deleteUserApi(activeToken(), username);
+    adminUsersRequestSequence += 1;
     adminUsers.value = adminUsers.value.filter((item) => item.user.username !== username);
   }
 
@@ -423,27 +436,47 @@ export function usePlatformDashboard(options: {
     collectionJob.value = job;
   }
 
-  async function waitForJob(jobId: string): Promise<CollectionJob> {
-    while (options.token.value) {
-      const job = await getCollectionJob(activeToken(), jobId);
+  function waitForNextJobPoll() {
+    return new Promise<void>((resolve) => {
+      const timer = window.setTimeout(() => {
+        pollWaiters.delete(timer);
+        resolve();
+      }, 1200);
+      pollWaiters.set(timer, resolve);
+    });
+  }
+
+  async function waitForJob(jobId: string, token: string): Promise<CollectionJob> {
+    while (isCurrentToken(token)) {
+      const job = await getCollectionJob(token, jobId);
+      if (!isCurrentToken(token)) throw new Error('登录状态已失效。');
       upsertJob(job);
       if (job.status !== 'PENDING' && job.status !== 'RUNNING') return job;
-      await new Promise((resolve) => { pollTimer = window.setTimeout(resolve, 1200); });
+      await waitForNextJobPoll();
     }
     throw new Error('登录状态已失效。');
   }
 
   async function batchCollectSubmissions(request: CollectionJobStartRequest) {
-    const started = await startCollectionJob(activeToken(), request);
+    const token = activeToken();
+    const started = await startCollectionJob(token, request);
+    if (!isCurrentToken(token)) throw new Error('登录状态已失效。');
     upsertJob(started);
     const completed = started.status === 'PENDING' || started.status === 'RUNNING'
-      ? waitForJob(started.jobId)
+      ? waitForJob(started.jobId, token)
       : started;
     const result = await completed;
+    if (!isCurrentToken(token)) return result;
+    const usersSequence = ++adminUsersRequestSequence;
     try {
-      adminUsers.value = (await listAdminUsers(activeToken())).map(withoutGeneratedPassword);
+      const users = await listAdminUsers(token);
+      if (isCurrentToken(token) && usersSequence === adminUsersRequestSequence) {
+        adminUsers.value = users.map(withoutGeneratedPassword);
+      }
     } catch (error) {
-      handleError(error);
+      if (isCurrentToken(token) && (usersSequence === adminUsersRequestSequence || isUnauthorized(error))) {
+        handleError(error);
+      }
     }
     return result;
   }
@@ -522,11 +555,18 @@ export function usePlatformDashboard(options: {
 
   async function loadAdminCompetitions(query: CompetitionListQuery = {}) {
     const sequence = ++adminCompetitionsRequestSequence;
-    const page = await listCompetitionsApi(query);
-    if (sequence === adminCompetitionsRequestSequence) {
-      adminCompetitions.value = page;
+    try {
+      const page = await listCompetitionsApi(activeToken(), query);
+      if (sequence === adminCompetitionsRequestSequence) {
+        adminCompetitions.value = page;
+      }
+      return page;
+    } catch (error) {
+      if (sequence === adminCompetitionsRequestSequence || isUnauthorized(error)) {
+        handleError(error);
+      }
+      throw error;
     }
-    return page;
   }
 
   async function runCompetitionAdminRequest<T>(request: () => Promise<T>) {
@@ -616,6 +656,20 @@ export function usePlatformDashboard(options: {
     }
   }
 
+  async function updateCompetitionAwardLoginRequirement(
+    competitionId: number,
+    awardId: number,
+    requiresLogin: boolean,
+  ) {
+    const competition = await runCompetitionAdminRequest(
+      () => updateCompetitionAwardLoginRequirementApi(
+        activeToken(), competitionId, awardId, requiresLogin,
+      ),
+    );
+    replaceActiveCompetition(competition);
+    return competition;
+  }
+
   async function moveCompetitionToRecycleBin(id: number) {
     await runCompetitionAdminRequest(() => moveCompetitionToRecycleBinApi(activeToken(), id));
   }
@@ -696,10 +750,16 @@ export function usePlatformDashboard(options: {
   });
 
   onBeforeUnmount(() => {
+    unmounted = true;
     requestSequence += 1;
+    adminUsersRequestSequence += 1;
     adminCompetitionsRequestSequence += 1;
     adminCompetitionRecycleBinRequestSequence += 1;
-    if (pollTimer !== null) window.clearTimeout(pollTimer);
+    pollWaiters.forEach((resolve, timer) => {
+      window.clearTimeout(timer);
+      resolve();
+    });
+    pollWaiters.clear();
   });
 
   return {
@@ -724,7 +784,7 @@ export function usePlatformDashboard(options: {
     reorderHomepageFeaturedGroups, deleteHomepageFeaturedGroup,
     loadAdminCompetitions, loadAdminCompetitionRecycleBin,
     createCompetition, addCompetitionParticipants, deleteCompetitionParticipant,
-    addCompetitionAward, deleteCompetitionAward,
+    addCompetitionAward, deleteCompetitionAward, updateCompetitionAwardLoginRequirement,
     moveCompetitionToRecycleBin, restoreCompetition,
     loadAdminArticles, deleteArticle, restoreArticle, backupAllArticles,
     loadAdminCategories, createCategory, updateCategory, deleteCategory,

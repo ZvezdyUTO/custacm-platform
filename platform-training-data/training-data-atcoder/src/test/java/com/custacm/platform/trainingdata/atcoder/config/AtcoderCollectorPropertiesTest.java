@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AtcoderCollectorPropertiesTest {
     @Test
@@ -24,6 +25,19 @@ class AtcoderCollectorPropertiesTest {
         assertThat(properties.readTimeout()).isEqualTo(Duration.ofSeconds(30));
         assertThat(properties.requestInterval()).isEqualTo(Duration.ofSeconds(2));
         assertThat(properties.maxRequestAttempts()).isEqualTo(3);
+    }
+
+    @Test
+    void rejectsPageSizeAboveUpstreamUserSubmissionLimit() {
+        assertThatThrownBy(() -> new AtcoderCollectorProperties(
+                null,
+                501,
+                null,
+                null,
+                null,
+                0
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("500");
     }
 
     @Test

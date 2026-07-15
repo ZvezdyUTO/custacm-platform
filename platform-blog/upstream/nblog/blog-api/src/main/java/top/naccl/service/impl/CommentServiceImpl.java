@@ -1,12 +1,15 @@
 package top.naccl.service.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.naccl.entity.Comment;
+import top.naccl.exception.NotFoundException;
 import top.naccl.exception.PersistenceException;
 import top.naccl.mapper.CommentMapper;
 import top.naccl.model.vo.PageComment;
+import top.naccl.model.vo.PageCommentPage;
 import top.naccl.service.CommentService;
 
 import java.util.ArrayDeque;
@@ -26,17 +29,36 @@ import java.util.Set;
  */
 @Service
 public class CommentServiceImpl implements CommentService {
-	@Autowired
-	CommentMapper commentMapper;
+	static final int MAX_REPLY_COUNT_PER_PAGE = 500;
+	private static final int REPLY_QUERY_LIMIT = MAX_REPLY_COUNT_PER_PAGE + 1;
+	private static final Comparator<PageComment> REPLY_ORDER = Comparator
+			.comparing(PageComment::getCreateTime)
+			.thenComparing(PageComment::getId);
+
+	private final CommentMapper commentMapper;
+
+	public CommentServiceImpl(CommentMapper commentMapper) {
+		this.commentMapper = commentMapper;
+	}
 
 	@Override
-	public List<PageComment> getPageCommentList(Integer page, Long blogId, Long parentCommentId) {
+	public PageCommentPage getPageComments(Integer page, Long blogId, Long parentCommentId,
+	                                      int pageNum, int pageSize) {
+		PageHelper.startPage(pageNum, pageSize);
 		List<PageComment> comments = commentMapper.getPageCommentListByPageAndParentCommentId(page, blogId, parentCommentId);
+		PageInfo<PageComment> pageInfo = new PageInfo<>(comments);
 		if (comments.isEmpty()) {
-			return comments;
+			return new PageCommentPage(pageInfo.getPages(), comments, false);
+		}
+		List<Long> rootCommentIds = comments.stream().map(PageComment::getId).toList();
+		List<PageComment> replyRows = commentMapper.getPublishedReplyListForRootComments(
+				page, blogId, rootCommentIds, REPLY_QUERY_LIMIT);
+		boolean repliesTruncated = replyRows.size() > MAX_REPLY_COUNT_PER_PAGE;
+		if (repliesTruncated) {
+			replyRows = replyRows.subList(0, MAX_REPLY_COUNT_PER_PAGE);
 		}
 		Map<String, List<PageComment>> repliesByParentId = new HashMap<>();
-		for (PageComment reply : commentMapper.getPublishedReplyList(page, blogId)) {
+		for (PageComment reply : replyRows) {
 			repliesByParentId.computeIfAbsent(reply.getParentCommentId(), ignored -> new ArrayList<>()).add(reply);
 		}
 		for (PageComment c : comments) {
@@ -44,20 +66,18 @@ public class CommentServiceImpl implements CommentService {
 			collectReplyComments(tmpComments, repliesByParentId, String.valueOf(c.getId()), new HashSet<>());
 			//对于两列评论来说，按时间顺序排列应该比树形更合理些
 			//排序一下
-			Comparator<PageComment> comparator = Comparator.comparing(PageComment::getCreateTime)
-					.thenComparing(PageComment::getId);
-			tmpComments.sort(comparator);
+			tmpComments.sort(REPLY_ORDER);
 
 			c.setReplyComments(tmpComments);
 		}
-		return comments;
+		return new PageCommentPage(pageInfo.getPages(), comments, repliesTruncated);
 	}
 
 	@Override
 	public Comment getCommentById(Long id) {
 		Comment comment = commentMapper.getCommentById(id);
 		if (comment == null) {
-			throw new PersistenceException("评论不存在");
+			throw new NotFoundException("评论不存在");
 		}
 		return comment;
 	}

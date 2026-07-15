@@ -11,6 +11,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * @Description: JWT工具类
@@ -19,27 +20,20 @@ import java.util.Date;
  */
 @Component
 public class JwtUtils {
-	private static long expireTime;
-	private static String secretKey;
+	private static final int HS512_MINIMUM_KEY_BYTES = 64;
+	private static final String SECRET_PLACEHOLDER_MARKER = "change-me";
 
-	@Value("${token.secretKey}")
-	public void setSecretKey(String secretKey) {
-		JwtUtils.secretKey = secretKey;
-	}
+	private final long expireTime;
+	private final SecretKey signingKey;
 
-	@Value("${token.expireTime}")
-	public void setExpireTime(long expireTime) {
-		JwtUtils.expireTime = expireTime;
-	}
-
-	/**
-	 * 判断token是否存在
-	 *
-	 * @param token
-	 * @return
-	 */
-	public static boolean judgeTokenIsExist(String token) {
-		return token != null && !"".equals(token) && !"null".equals(token);
+	public JwtUtils(
+			@Value("${token.secretKey:}") String secretKey,
+			@Value("${token.expireTime}") long expireTime) {
+		this.signingKey = validateAndCreateSigningKey(secretKey);
+		if (expireTime <= 0) {
+			throw new IllegalStateException("token.expireTime must be greater than zero");
+		}
+		this.expireTime = expireTime;
 	}
 
 	/**
@@ -48,13 +42,12 @@ public class JwtUtils {
 	 * @param subject
 	 * @return
 	 */
-	public static String generateToken(String subject) {
-		String jwt = Jwts.builder()
+	public String generateToken(String subject) {
+		return Jwts.builder()
 				.subject(subject)
 				.expiration(new Date(System.currentTimeMillis() + expireTime))
-				.signWith(getSigningKey(), Jwts.SIG.HS512)
+				.signWith(signingKey, Jwts.SIG.HS512)
 				.compact();
-		return jwt;
 	}
 
 	/**
@@ -64,18 +57,17 @@ public class JwtUtils {
 	 * @param authorities
 	 * @return
 	 */
-	public static String generateToken(String subject, Collection<? extends GrantedAuthority> authorities) {
+	public String generateToken(String subject, Collection<? extends GrantedAuthority> authorities) {
 		StringBuilder sb = new StringBuilder();
 		for (GrantedAuthority authority : authorities) {
 			sb.append(authority.getAuthority()).append(",");
 		}
-		String jwt = Jwts.builder()
+		return Jwts.builder()
 				.subject(subject)
 				.claim("authorities", sb.toString())
 				.expiration(new Date(System.currentTimeMillis() + expireTime))
-				.signWith(getSigningKey(), Jwts.SIG.HS512)
+				.signWith(signingKey, Jwts.SIG.HS512)
 				.compact();
-		return jwt;
 	}
 
 	/**
@@ -85,13 +77,12 @@ public class JwtUtils {
 	 * @param expireTime
 	 * @return
 	 */
-	public static String generateToken(String subject, long expireTime) {
-		String jwt = Jwts.builder()
+	public String generateToken(String subject, long expireTime) {
+		return Jwts.builder()
 				.subject(subject)
 				.expiration(new Date(System.currentTimeMillis() + expireTime))
-				.signWith(getSigningKey(), Jwts.SIG.HS512)
+				.signWith(signingKey, Jwts.SIG.HS512)
 				.compact();
-		return jwt;
 	}
 
 
@@ -101,16 +92,25 @@ public class JwtUtils {
 	 * @param token
 	 * @return
 	 */
-	public static Claims getTokenBody(String token) {
-		Claims claims = Jwts.parser()
-				.verifyWith(getSigningKey())
+	public Claims getTokenBody(String token) {
+		return Jwts.parser()
+				.verifyWith(signingKey)
 				.build()
-				.parseSignedClaims(token.replace("Bearer", "").trim())
+				.parseSignedClaims(token)
 				.getPayload();
-		return claims;
 	}
 
-	private static SecretKey getSigningKey() {
-		return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+	private static SecretKey validateAndCreateSigningKey(String secretKey) {
+		if (secretKey == null || secretKey.isBlank()) {
+			throw new IllegalStateException("token.secretKey must be configured");
+		}
+		if (secretKey.toLowerCase(Locale.ROOT).contains(SECRET_PLACEHOLDER_MARKER)) {
+			throw new IllegalStateException("token.secretKey must not use a placeholder value");
+		}
+		byte[] secretBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+		if (secretBytes.length < HS512_MINIMUM_KEY_BYTES) {
+			throw new IllegalStateException("token.secretKey must contain at least 64 UTF-8 bytes for HS512");
+		}
+		return Keys.hmacShaKeyFor(secretBytes);
 	}
 }

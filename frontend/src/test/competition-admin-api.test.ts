@@ -10,12 +10,14 @@ import {
   listCompetitions,
   moveCompetitionToRecycleBin,
   restoreCompetition,
+  updateCompetitionAwardLoginRequirement,
 } from '../api/admin';
 import type { Competition } from '../types';
 
 const competition: Competition = {
   id: 7,
   fullName: '2026 ICPC 亚洲区域赛（合肥）',
+  competitionDate: '2026-07-15',
   year: 2026,
   category: 'ICPC_ASIA_REGIONAL',
   categoryLabel: 'ICPC 亚洲区域赛',
@@ -50,10 +52,10 @@ function requestAt(fetchMock: ReturnType<typeof vi.fn>, index = 0) {
 describe('competition admin API contract', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('loads the active public list without attaching the admin token', async () => {
+  it('loads the complete active list through the protected admin endpoint', async () => {
     const fetchMock = stubFetch({ pageNum: 2, pageSize: 10, total: 1, totalPages: 1, list: [competition] });
 
-    await listCompetitions({
+    await listCompetitions('jwt', {
       startYear: 2024,
       endYear: 2026,
       category: 'ICPC_ASIA_REGIONAL',
@@ -62,11 +64,11 @@ describe('competition admin API contract', () => {
     });
 
     const { url, init } = requestAt(fetchMock);
-    expect(url.pathname).toBe('/api/competitions');
+    expect(url.pathname).toBe('/api/admin/competitions');
     expect(Object.fromEntries(url.searchParams)).toEqual({
       startYear: '2024', endYear: '2026', category: 'ICPC_ASIA_REGIONAL', pageNum: '2', pageSize: '10',
     });
-    expect(new Headers(init.headers).get('Authorization')).toBeNull();
+    expect(new Headers(init.headers).get('Authorization')).toBe('Bearer jwt');
   });
 
   it('loads the recycle bin with an explicit bearer token', async () => {
@@ -85,7 +87,7 @@ describe('competition admin API contract', () => {
 
     await createCompetition('jwt', {
       fullName: competition.fullName,
-      year: 2026,
+      competitionDate: '2026-07-15',
       category: 'ICPC_ASIA_REGIONAL',
       participationMode: 'TEAM',
     });
@@ -96,6 +98,7 @@ describe('competition admin API contract', () => {
       awardTier: 'MEDAL_GOLD',
       rankPosition: 3,
       rankTotal: 280,
+      requiresLogin: true,
       recipientUsernames: ['alice', 'bob'],
     });
 
@@ -104,7 +107,7 @@ describe('competition admin API contract', () => {
     expect(create.init.method).toBe('POST');
     expect(JSON.parse(String(create.init.body))).toEqual({
       fullName: competition.fullName,
-      year: 2026,
+      competitionDate: '2026-07-15',
       category: 'ICPC_ASIA_REGIONAL',
       participationMode: 'TEAM',
     });
@@ -119,6 +122,7 @@ describe('competition admin API contract', () => {
     expect(award.init.method).toBe('POST');
     expect(JSON.parse(String(award.init.body))).toMatchObject({
       awardMode: 'TEAM', awardTier: 'MEDAL_GOLD', rankPosition: 3, rankTotal: 280,
+      requiresLogin: true,
       recipientUsernames: ['alice', 'bob'],
     });
     expect(JSON.parse(String(award.init.body))).not.toHaveProperty('awardScope');
@@ -126,6 +130,24 @@ describe('competition admin API contract', () => {
     for (let index = 0; index < 3; index += 1) {
       expect(new Headers(requestAt(fetchMock, index).init.headers).get('Authorization')).toBe('Bearer jwt');
     }
+  });
+
+  it('keeps an omitted competition date explicitly nullable', async () => {
+    const fetchMock = stubFetch(competition);
+
+    await createCompetition('jwt', {
+      fullName: '无确切日期的比赛',
+      competitionDate: null,
+      category: 'PROVINCIAL',
+      participationMode: 'TEAM',
+    });
+
+    expect(JSON.parse(String(requestAt(fetchMock).init.body))).toEqual({
+      fullName: '无确切日期的比赛',
+      competitionDate: null,
+      category: 'PROVINCIAL',
+      participationMode: 'TEAM',
+    });
   });
 
   it('keeps ordinary award ranks explicitly nullable in the request body', async () => {
@@ -137,6 +159,7 @@ describe('competition admin API contract', () => {
       awardTier: 'BAIDU_NATIONAL_FIRST',
       rankPosition: null,
       rankTotal: null,
+      requiresLogin: false,
       recipientUsernames: ['alice'],
     });
 
@@ -146,11 +169,24 @@ describe('competition admin API contract', () => {
       awardTier: 'BAIDU_NATIONAL_FIRST',
       rankPosition: null,
       rankTotal: null,
+      requiresLogin: false,
       recipientUsernames: ['alice'],
     });
   });
 
-  it('uses explicit destructive and restore endpoints without inventing edit APIs', async () => {
+  it('updates only the selected awards login requirement', async () => {
+    const fetchMock = stubFetch(competition);
+
+    await updateCompetitionAwardLoginRequirement('jwt', 7, 21, true);
+
+    const { url, init } = requestAt(fetchMock);
+    expect(url.pathname).toBe('/api/admin/competitions/7/awards/21/login-requirement');
+    expect(init.method).toBe('PUT');
+    expect(new Headers(init.headers).get('Authorization')).toBe('Bearer jwt');
+    expect(JSON.parse(String(init.body))).toEqual({ requiresLogin: true });
+  });
+
+  it('uses explicit destructive and restore endpoints', async () => {
     const fetchMock = stubFetch(competition);
 
     await deleteCompetitionParticipant('jwt', 7, 11);

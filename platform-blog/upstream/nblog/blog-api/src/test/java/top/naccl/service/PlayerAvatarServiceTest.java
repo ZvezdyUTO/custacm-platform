@@ -88,6 +88,7 @@ class PlayerAvatarServiceTest {
 				31L,
 				"2025 年中国高校计算机大赛-团体程序设计天梯赛",
 				2025,
+				null,
 				"GPLT_NATIONAL",
 				"GPLT 团体程序设计天梯赛（国赛）",
 				List.of(new CompetitionResponse.Type("GPLT", "团体程序设计天梯赛")),

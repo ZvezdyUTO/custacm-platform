@@ -8,6 +8,7 @@ import com.custacm.platform.trainingdata.common.app.query.result.OjProblemFirstA
 import com.custacm.platform.trainingdata.common.app.query.result.OjProblemSubmissionReport;
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjProblemFirstAcceptedHandleCriteria;
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjProblemSubmissionCriteria;
+import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -49,7 +50,7 @@ public class OjWarehouseQueryFacade {
             Integer maxProblemRating
     ) {
         return acceptedSummaryQueryService.summarizeStudentAcceptedProblems(
-                requireText(ojName, "ojName", OjWarehouseQueryFacade::invalidRequest),
+                requireOjName(ojName),
                 requireText(username, "username", OjWarehouseQueryFacade::invalidRequest),
                 parseLocalDate(acceptedFromDateUtcPlus8, "acceptedFromDateUtcPlus8"),
                 parseLocalDate(acceptedToDateUtcPlus8, "acceptedToDateUtcPlus8"),
@@ -67,7 +68,7 @@ public class OjWarehouseQueryFacade {
             Integer maxProblemRating
     ) {
         return acceptedSummaryQueryService.summarizeStudentsAcceptedProblems(
-                requireText(ojName, "ojName", OjWarehouseQueryFacade::invalidRequest),
+                requireOjName(ojName),
                 includeRetired,
                 parseLocalDate(acceptedFromDateUtcPlus8, "acceptedFromDateUtcPlus8"),
                 parseLocalDate(acceptedToDateUtcPlus8, "acceptedToDateUtcPlus8"),
@@ -89,7 +90,7 @@ public class OjWarehouseQueryFacade {
         int normalizedPage = normalizePage(page);
         int normalizedLimit = normalizeLimit(limit);
         return submissionQueryService.listStudentSubmissions(
-                requireText(ojName, "ojName", OjWarehouseQueryFacade::invalidRequest),
+                requireOjName(ojName),
                 requireText(username, "username", OjWarehouseQueryFacade::invalidRequest),
                 parseLocalDateTime(submittedFromUtcPlus8, "submittedFromUtcPlus8"),
                 parseLocalDateTime(submittedToUtcPlus8, "submittedToUtcPlus8"),
@@ -111,7 +112,7 @@ public class OjWarehouseQueryFacade {
         int normalizedPage = normalizePage(page);
         int normalizedLimit = normalizeLimit(limit);
         return submissionQueryService.listProblemSubmissions(new OjProblemSubmissionCriteria(
-                requireText(ojName, "ojName", OjWarehouseQueryFacade::invalidRequest),
+                requireOjName(ojName),
                 requireText(problemKey, "problemKey", OjWarehouseQueryFacade::invalidRequest),
                 parseLocalDateTime(submittedFromUtcPlus8, "submittedFromUtcPlus8"),
                 parseLocalDateTime(submittedToUtcPlus8, "submittedToUtcPlus8"),
@@ -133,7 +134,7 @@ public class OjWarehouseQueryFacade {
         int normalizedPage = normalizePage(page);
         int normalizedLimit = normalizeLimit(limit);
         return firstAcceptedProblemQueryService.summarizeStudentFirstAcceptedProblems(
-                requireText(ojName, "ojName", OjWarehouseQueryFacade::invalidRequest),
+                requireOjName(ojName),
                 requireText(username, "username", OjWarehouseQueryFacade::invalidRequest),
                 parseLocalDateTime(firstAcceptedFromUtcPlus8, "firstAcceptedFromUtcPlus8"),
                 parseLocalDateTime(firstAcceptedToUtcPlus8, "firstAcceptedToUtcPlus8"),
@@ -156,7 +157,7 @@ public class OjWarehouseQueryFacade {
         int normalizedLimit = normalizeLimit(limit);
         return firstAcceptedProblemQueryService.summarizeProblemFirstAcceptedHandles(
                 new OjProblemFirstAcceptedHandleCriteria(
-                        requireText(ojName, "ojName", OjWarehouseQueryFacade::invalidRequest),
+                        requireOjName(ojName),
                         requireText(problemKey, "problemKey", OjWarehouseQueryFacade::invalidRequest),
                         parseLocalDateTime(firstAcceptedFromUtcPlus8, "firstAcceptedFromUtcPlus8"),
                         parseLocalDateTime(firstAcceptedToUtcPlus8, "firstAcceptedToUtcPlus8"),
@@ -208,8 +209,17 @@ public class OjWarehouseQueryFacade {
         return limit;
     }
 
-    private static long offset(int page, int limit) {
-        return (long) (page - 1) * limit;
+	private static long offset(int page, int limit) {
+		return (long) (page - 1) * limit;
+	}
+
+    private static String requireOjName(String value) {
+        String required = requireText(value, "ojName", OjWarehouseQueryFacade::invalidRequest);
+        try {
+            return OjNames.normalize(required);
+        } catch (IllegalArgumentException exception) {
+            throw invalidRequest(exception.getMessage());
+        }
     }
 
     private static OjHandleAccountException invalidRequest(String message) {

@@ -2,7 +2,6 @@ package top.naccl.controller.admin;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,9 +9,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.naccl.controller.support.PageRequestValidator;
 import top.naccl.entity.Tag;
+import top.naccl.exception.BadRequestException;
 import top.naccl.model.vo.Result;
-import top.naccl.service.BlogService;
 import top.naccl.service.TagService;
 import top.naccl.util.StringUtils;
 
@@ -24,10 +24,11 @@ import top.naccl.util.StringUtils;
 @RestController
 @RequestMapping("/admin")
 public class TagAdminController {
-	@Autowired
-	BlogService blogService;
-	@Autowired
-	TagService tagService;
+	private final TagService tagService;
+
+	public TagAdminController(TagService tagService) {
+		this.tagService = tagService;
+	}
 
 	/**
 	 * 获取博客标签列表
@@ -38,6 +39,7 @@ public class TagAdminController {
 	 */
 	@GetMapping("/tags")
 	public Result tags(@RequestParam(defaultValue = "1") Integer pageNum, @RequestParam(defaultValue = "10") Integer pageSize) {
+		PageRequestValidator.validate(pageNum, pageSize);
 		String orderBy = "id desc";
 		PageHelper.startPage(pageNum, pageSize, orderBy);
 		PageInfo<Tag> pageInfo = new PageInfo<>(tagService.getTagList());
@@ -52,11 +54,8 @@ public class TagAdminController {
 	 */
 	@PostMapping("/tag")
 	public Result saveTag(@RequestBody Tag tag) {
-		if (StringUtils.isEmpty(tag.getName())) {
-			return Result.error("参数不能为空");
-		}
-		if (tagService.getTagByName(tag.getName()) != null) {
-			return Result.error("该标签已存在");
+		if (tag == null || StringUtils.isEmpty(tag.getName())) {
+			throw new BadRequestException("参数不能为空");
 		}
 		tagService.saveTag(tag);
 		return Result.ok("添加成功");
@@ -70,11 +69,6 @@ public class TagAdminController {
 	 */
 	@DeleteMapping("/tag")
 	public Result delete(@RequestParam Long id) {
-		//删除存在博客关联的标签后，该博客的查询会出异常
-		int num = blogService.countBlogByTagId(id);
-		if (num != 0) {
-			return Result.error("已有博客与此标签关联，不可删除");
-		}
 		tagService.deleteTagById(id);
 		return Result.ok("删除成功");
 	}

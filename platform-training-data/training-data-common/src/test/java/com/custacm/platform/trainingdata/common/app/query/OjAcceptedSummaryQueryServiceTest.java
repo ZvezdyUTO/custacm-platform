@@ -4,9 +4,9 @@ import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountExcep
 import com.custacm.platform.trainingdata.common.app.account.OjHandleAccountService;
 import com.custacm.platform.trainingdata.common.app.query.result.OjAcceptedSummaryReport;
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjAcceptedSummaryCriteria;
-import com.custacm.platform.trainingdata.common.domain.oj.model.OjDailyRatingAcceptedSummary;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleAccount;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleCollectionState;
+import com.custacm.platform.trainingdata.common.domain.oj.model.OjRatingAcceptedSummary;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjAcceptedSummaryRepository;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjHandleAccountRepository;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
@@ -20,6 +20,7 @@ import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OjAcceptedSummaryQueryServiceTest {
     @Test
-    void summarizesDwsRowsByRatingInAppLayer() {
+    void mapsRepositoryRatingAggregatesToReportOrder() {
         String username = "112487张三";
         LocalDate from = LocalDate.parse("2026-07-01");
         LocalDate to = LocalDate.parse("2026-07-03");
@@ -41,8 +42,9 @@ class OjAcceptedSummaryQueryServiceTest {
         OjAcceptedSummaryRepository repository = singleQueryRepository(actualQuery -> {
             assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
             return List.of(
-                    row("tourist", "2026-07-01", Map.of("800", 2, "1200", 1)),
-                    row("tourist", "2026-07-02", Map.of("800", 3, "UNRATED", 4))
+                    summary("tourist", "800", 5),
+                    summary("tourist", "1200", 1),
+                    summary("tourist", "UNRATED", 4)
             );
         });
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
@@ -82,7 +84,7 @@ class OjAcceptedSummaryQueryServiceTest {
         );
         OjAcceptedSummaryRepository repository = singleQueryRepository(actualQuery -> {
             assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
-            return List.of(row("tourist_atcoder", "2026-07-01", Map.of("800", 2)));
+            return List.of(summary("tourist_atcoder", "800", 2));
         });
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
@@ -113,7 +115,8 @@ class OjAcceptedSummaryQueryServiceTest {
     void foldsUnknownDifficultyKeysIntoUnratedWhenRatingBoundsAreBlank() {
         String username = "112487张三";
         OjAcceptedSummaryRepository repository = singleQueryRepository(actualQuery -> List.of(
-                row("tourist_atcoder", "2026-07-01", Map.of("2800-", 1, "UNRATED", 2))
+                summary("tourist_atcoder", "2800-", 1),
+                summary("tourist_atcoder", "UNRATED", 2)
         ));
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
                 repository,
@@ -139,7 +142,7 @@ class OjAcceptedSummaryQueryServiceTest {
     }
 
     @Test
-    void appliesProblemRatingBoundsToWideDwsRowsInAppLayer() {
+    void appliesProblemRatingBoundsToAggregatedRows() {
         String username = "112487张三";
         LocalDate from = LocalDate.parse("2026-07-01");
         LocalDate to = LocalDate.parse("2026-07-03");
@@ -153,8 +156,10 @@ class OjAcceptedSummaryQueryServiceTest {
         OjAcceptedSummaryRepository repository = singleQueryRepository(actualQuery -> {
             assertThat(actualQuery).isEqualTo(expectedRepositoryQuery);
             return List.of(
-                    row("tourist", "2026-07-01", Map.of("800", 2, "1200", 1)),
-                    row("tourist", "2026-07-02", Map.of("1600", 3, "UNRATED", 4))
+                    summary("tourist", "800", 2),
+                    summary("tourist", "1200", 1),
+                    summary("tourist", "1600", 3),
+                    summary("tourist", "UNRATED", 4)
             );
         });
         OjAcceptedSummaryQueryService service = new OjAcceptedSummaryQueryService(
@@ -200,23 +205,25 @@ class OjAcceptedSummaryQueryServiceTest {
 
     @Test
     void summarizesAllActiveUsersWithOneRepositoryBatch() {
+        AtomicInteger batchQueryCount = new AtomicInteger();
         OjAcceptedSummaryRepository repository = new OjAcceptedSummaryRepository() {
             @Override
-            public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+            public List<OjRatingAcceptedSummary> summarizeAcceptedProblemsByRating(
                     OjAcceptedSummaryCriteria query
             ) {
                 throw new AssertionError("batch query must not fan out into single-handle reads");
             }
 
             @Override
-            public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+            public List<OjRatingAcceptedSummary> summarizeAcceptedProblemsByRating(
                     List<OjAcceptedSummaryCriteria> queries
             ) {
+                batchQueryCount.incrementAndGet();
                 assertThat(queries).extracting(OjAcceptedSummaryCriteria::authorHandle)
                         .containsExactly("tourist", "Benq");
                 return List.of(
-                        row("tourist", "2026-07-01", Map.of("800", 2)),
-                        row("Benq", "2026-07-01", Map.of("1200", 3))
+                        summary("tourist", "800", 2),
+                        summary("Benq", "1200", 3)
                 );
             }
         };
@@ -238,33 +245,34 @@ class OjAcceptedSummaryQueryServiceTest {
                 .containsExactly("alice", "bob");
         assertThat(reports).extracting(OjAcceptedSummaryReport::totalAcceptedProblemCount)
                 .containsExactly(2, 3);
+        assertThat(batchQueryCount).hasValue(1);
     }
 
-    private static OjDailyRatingAcceptedSummary row(
+    private static OjRatingAcceptedSummary summary(
             String authorHandle,
-            String acceptedDateUtcPlus8,
-            Map<String, Integer> acceptedProblemCountsByRating
+            String difficultyKey,
+            int acceptedProblemCount
     ) {
-        return new OjDailyRatingAcceptedSummary(
+        return new OjRatingAcceptedSummary(
                 authorHandle,
-                LocalDate.parse(acceptedDateUtcPlus8),
-                acceptedProblemCountsByRating
+                difficultyKey,
+                acceptedProblemCount
         );
     }
 
     private static OjAcceptedSummaryRepository singleQueryRepository(
-            Function<OjAcceptedSummaryCriteria, List<OjDailyRatingAcceptedSummary>> query
+            Function<OjAcceptedSummaryCriteria, List<OjRatingAcceptedSummary>> query
     ) {
         return new OjAcceptedSummaryRepository() {
             @Override
-            public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+            public List<OjRatingAcceptedSummary> summarizeAcceptedProblemsByRating(
                     OjAcceptedSummaryCriteria criteria
             ) {
                 return query.apply(criteria);
             }
 
             @Override
-            public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+            public List<OjRatingAcceptedSummary> summarizeAcceptedProblemsByRating(
                     List<OjAcceptedSummaryCriteria> criteria
             ) {
                 throw new AssertionError("single-query test must not use the batch contract");

@@ -157,10 +157,10 @@ public class OjSubmissionCollectionService {
             );
         }
 
-        List<OjHandleCollectionOutcome> matchedOutcomes = new ArrayList<>();
         List<OjSubmissionCollectionHandleResult> handleResults = new ArrayList<>();
-        List<OjHandleCollectionOutcome> successfulOutcomes = new ArrayList<>();
+        List<String> successfulHandles = new ArrayList<>();
         Instant earliestWindowStartInclusive = null;
+        OjSubmissionCollectionBatchWriter batchWriter = adapter.openBatch(ojName);
         OjCollectionRequestExecutor requestExecutor = new OjCollectionRequestExecutor(
                 maxRequestAttempts,
                 requestInterval,
@@ -180,14 +180,12 @@ public class OjSubmissionCollectionService {
                     handle,
                     windowStartInclusive,
                     windowEndExclusive,
-                    requestExecutor
+                    requestExecutor,
+                    batchWriter
             );
             handleResults.add(outcome.result());
             if (outcome.result().status() == OjSubmissionCollectionHandleStatus.SUCCESS) {
-                successfulOutcomes.add(outcome);
-                if (!outcome.submissions().isEmpty()) {
-                    matchedOutcomes.add(outcome);
-                }
+                successfulHandles.add(outcome.result().handle());
             }
         }
 
@@ -195,8 +193,8 @@ public class OjSubmissionCollectionService {
         Instant resultWindowStartInclusive = earliestWindowStartInclusive == null
                 ? fallbackWindowStartInclusive
                 : earliestWindowStartInclusive;
-        if (matchedOutcomes.isEmpty()) {
-            markSuccessfulHandleCollections(ojName, successfulOutcomes, windowEndExclusive);
+        if (!batchWriter.hasWrites()) {
+            markSuccessfulHandleCollections(ojName, successfulHandles, windowEndExclusive);
             return OjSubmissionCollectionResult.withoutWrite(
                     ojName,
                     resultWindowStartInclusive,
@@ -207,8 +205,8 @@ public class OjSubmissionCollectionService {
             );
         }
 
-        OjSubmissionCollectionWriteResult writeResult = adapter.writeBatch(ojName, matchedOutcomes);
-        markSuccessfulHandleCollections(ojName, successfulOutcomes, windowEndExclusive);
+        OjSubmissionCollectionWriteResult writeResult = batchWriter.result();
+        markSuccessfulHandleCollections(ojName, successfulHandles, windowEndExclusive);
         return OjSubmissionCollectionResult.written(
                 ojName,
                 resultWindowStartInclusive,
@@ -221,13 +219,13 @@ public class OjSubmissionCollectionService {
 
     private void markSuccessfulHandleCollections(
             String ojName,
-            List<OjHandleCollectionOutcome> successfulOutcomes,
+            List<String> successfulHandles,
             Instant collectedAt
     ) {
-        for (OjHandleCollectionOutcome outcome : successfulOutcomes) {
+        for (String handle : successfulHandles) {
             handleResolver.markHandleCollected(
                     ojName,
-                    outcome.result().handle(),
+                    handle,
                     collectedAt
             );
         }

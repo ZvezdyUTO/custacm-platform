@@ -1,90 +1,36 @@
-# Logging Guide
+# 后端日志规则
 
-This document is mandatory reading for agents before changing backend code that logs anything.
+修改后端日志前必须阅读本文件。项目使用 Spring Boot 默认 SLF4J/Logback，不引入自定义日志系统或重型日志平台。
 
-## Runtime Shape
-
-The project uses Spring Boot's default SLF4J and Logback stack. Do not build a custom logging system and do not add a heavy log platform for the current phase.
-
-Backend logs are written to local files:
+## 当前输出
 
 ```text
-logs/combined.log  all backend logs
-logs/error.log     ERROR level logs only
+logs/combined.log  全部后端日志
+logs/error.log     ERROR 日志
 ```
 
-On the server these files live under:
+Compose 将日志目录挂载到应用容器；服务器路径由部署环境决定，仓库不提供公开日志查询端口。
 
-```text
-/opt/custacm-platform/logs/
-```
-
-AI log lookup uses the read-only `local-logs-mcp-server` over SSH. The server must not expose a public log query port.
-
-Every runnable Spring Boot web service in this repository must ship a `logback-spring.xml` that writes to the same file contract unless a future shared logging starter replaces the duplicated resource. Placeholder modules do not need logging files until they become runnable services.
-
-## Required Logging Style
-
-Use one logger per class:
+## 写法
 
 ```java
 private static final Logger log = LoggerFactory.getLogger(CurrentClass.class);
-```
 
-Use structured key-value text in the message so agents can search stable tokens:
-
-```java
-log.info("User profile loaded, usernameHash={}", usernameHash);
+log.info("Collection completed, ojName={}, batchId={}", ojName, batchId);
 log.warn("Request rejected, errorCode={}, reason={}", errorCode, reason);
-log.error("Failed to load current user, errorCode={}", errorCode, ex);
+log.error("Collection failed, errorCode={}", errorCode, exception);
 ```
 
-Rules:
+- 使用参数占位符，不拼接字符串。
+- 每条 `error` 日志包含稳定 `errorCode`；有异常时把 `Throwable` 作为最后参数。
+- 请求追踪存在后通过 MDC 统一携带 `traceId`；业务代码不自行生成 trace ID。
+- `info` 只记录重要生命周期或状态变化；预期拒绝/降级用 `warn`；需要调查的意外失败用 `error`；排障细节用 `debug`。
+- 后台任务在记录任务最终状态的边界记录未处理异常，日志与任务状态使用同一稳定错误码。
 
-- `error` logs must include a stable `errorCode`.
-- If an exception exists, pass the `Throwable` as the final argument. Do not only log `ex.getMessage()`.
-- After request tracing is added, every request log must carry `traceId` through MDC; business code must not generate trace IDs manually.
-- User-facing copy is not a stable query key. Prefer `errorCode`, `traceId`, route path, HTTP status, and log level.
-- Schedulers and background workers must log unexpected task failures at the boundary that also records task state. The same stable `errorCode` should appear in the log and in the task or job status table.
+## 禁止记录
 
-## Log Levels
+- 密码、重置码、token、cookie、session、Authorization header；
+- JWT 签名材料、数据库密码、`.env` 值；
+- 含敏感个人信息的完整请求/响应或未经脱敏的个人数据。
 
-- `info`: important successful lifecycle or business events, such as startup, current user loaded, or an important state transition.
-- `warn`: expected rejection or degraded behavior, such as invalid input, forbidden access, conflict, or missing optional data.
-- `error`: unexpected failure that needs investigation. Include `errorCode` and the exception object.
-- `debug`: local troubleshooting details only. Do not depend on production `debug` logs.
-
-## Sensitive Data
-
-Never log these values:
-
-- password, reset code, login session, token, cookie, or `Authorization` header
-- JWT private key, signing key material, database password, or `.env` value
-- full personal information or raw request/response bodies that may contain personal data
-
-When user correlation is needed, prefer a hash such as `usernameHash` unless the raw `username` is explicitly required for an operator-facing audit trail.
-
-## Future Error Response Contract
-
-When the unified exception slice is implemented, errors should return:
-
-```json
-{
-  "code": "AUTH_TOKEN_INVALID",
-  "message": "登录状态无效",
-  "traceId": "..."
-}
-```
-
-The same `code` must appear in logs as `errorCode`, and `traceId` must be written into MDC so it appears in `combined.log` and `error.log`.
-
-## Agent Checklist
-
-Before adding or changing logs:
-
-1. Use SLF4J parameter placeholders, not string concatenation.
-2. Add `errorCode` to all error logs.
-3. Pass `Throwable` as the final argument for exception logs.
-4. Keep sensitive data out of logs.
-5. Make the log searchable by `errorCode`, `traceId`, route path, or a stable domain key.
-6. For a new runnable `*-web` service, add `logback-spring.xml` and verify it uses `LOG_DIR`, `combined.log`, `error.log`, and the shared pattern with `traceId` and `errorCode`.
+需要关联用户时优先记录不可逆 hash。新增 runnable backend 时复用 `LOG_DIR`、`combined.log`、`error.log` 与 MDC 格式。

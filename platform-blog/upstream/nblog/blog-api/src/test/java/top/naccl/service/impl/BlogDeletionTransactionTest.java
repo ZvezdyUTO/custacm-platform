@@ -47,7 +47,9 @@ class BlogDeletionTransactionTest {
         recycleBinService = context.getBean(ArticleRecycleBinService.class);
 
         jdbcTemplate.execute("create table blog_record (id bigint primary key)");
-        jdbcTemplate.execute("create table blog_tag_record (blog_id bigint not null)");
+        jdbcTemplate.execute("create table blog_tag_record (blog_id bigint not null, "
+                + "constraint fk_blog_tag_record_blog foreign key (blog_id) "
+                + "references blog_record(id) on delete cascade)");
         jdbcTemplate.execute("create table comment_record (blog_id bigint not null)");
         jdbcTemplate.update("insert into blog_record (id) values (42)");
         jdbcTemplate.update("insert into blog_tag_record (blog_id) values (42)");
@@ -55,9 +57,6 @@ class BlogDeletionTransactionTest {
 
         when(commentMapper.deleteCommentsByBlogId(anyLong())).thenAnswer(invocation ->
                 jdbcTemplate.update("delete from comment_record where blog_id = ?",
-                        new Object[]{invocation.getArgument(0)}));
-        when(blogMapper.deleteBlogTagByBlogId(anyLong())).thenAnswer(invocation ->
-                jdbcTemplate.update("delete from blog_tag_record where blog_id = ?",
                         new Object[]{invocation.getArgument(0)}));
 		when(blogMapper.findExpiredRecycleBinBlogIds(org.mockito.ArgumentMatchers.any()))
 				.thenReturn(List.of(42L));

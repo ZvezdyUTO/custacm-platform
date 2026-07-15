@@ -22,8 +22,6 @@ public interface CategoryMapper {
 
 	Category getCategoryById(Long id);
 
-	Category getCategoryByName(String name);
-
 	int deleteCategoryById(Long id);
 
 	int updateCategory(Category category);

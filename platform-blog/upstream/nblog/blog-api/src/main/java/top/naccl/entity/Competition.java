@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import top.naccl.enums.CompetitionParticipationMode;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 /**
@@ -20,6 +21,7 @@ public class Competition {
 	private String fullName;
 	private String activeFullName;
 	private Integer competitionYear;
+	private LocalDate competitionDate;
 	private CompetitionParticipationMode participationMode;
 	private Date createTime;
 	private Date deletedAt;

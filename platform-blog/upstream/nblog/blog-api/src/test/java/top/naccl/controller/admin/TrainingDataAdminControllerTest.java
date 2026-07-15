@@ -14,10 +14,12 @@ import top.naccl.handler.ControllerExceptionHandler;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.net.URI;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -66,6 +68,23 @@ class TrainingDataAdminControllerTest {
     }
 
     @Test
+    void invalidJobRequestIsRejectedBeforeCallingTheJobService() throws Exception {
+        mockMvc.perform(post("/admin/training-data/submission-collection-jobs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "usernames":[" "],
+                                  "lookbackHours":0,
+                                  "ojName":"unsupported"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"));
+
+        verifyNoInteractions(jobService);
+    }
+
+    @Test
     void listsRetainedCollectionJobs() throws Exception {
         when(jobService.listJobs()).thenReturn(List.of(job("job-1")));
 
@@ -81,6 +100,15 @@ class TrainingDataAdminControllerTest {
         mockMvc.perform(get("/admin/training-data/submission-collection-jobs/missing"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("RESOURCE_NOT_FOUND"));
+    }
+
+    @Test
+    void blankCollectionJobIdIsRejectedAtTheHttpBoundary() throws Exception {
+        mockMvc.perform(get(URI.create("/admin/training-data/submission-collection-jobs/%20")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"));
+
+        verifyNoInteractions(jobService);
     }
 
     private static OjSubmissionCollectionJobSnapshot job(String jobId) {

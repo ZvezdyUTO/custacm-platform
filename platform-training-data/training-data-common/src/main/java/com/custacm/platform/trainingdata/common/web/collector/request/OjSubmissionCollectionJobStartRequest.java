@@ -1,7 +1,11 @@
 package com.custacm.platform.trainingdata.common.web.collector.request;
 
+import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
+
 import java.time.Duration;
 import java.util.List;
+
+import static com.custacm.platform.trainingdata.common.support.Texts.requireText;
 
 public record OjSubmissionCollectionJobStartRequest(
         List<String> usernames,
@@ -13,7 +17,10 @@ public record OjSubmissionCollectionJobStartRequest(
         if (usernames == null || usernames.isEmpty()) {
             throw new IllegalArgumentException("usernames must not be empty");
         }
-        return usernames;
+        return usernames.stream()
+                .map(username -> requireText(username, "username"))
+                .distinct()
+                .toList();
     }
 
     public Duration requireLookbackDuration() {
@@ -32,6 +39,6 @@ public record OjSubmissionCollectionJobStartRequest(
     }
 
     public String optionalOjName() {
-        return ojName == null || ojName.isBlank() ? null : ojName.trim();
+        return ojName == null || ojName.isBlank() ? null : OjNames.normalize(ojName);
     }
 }

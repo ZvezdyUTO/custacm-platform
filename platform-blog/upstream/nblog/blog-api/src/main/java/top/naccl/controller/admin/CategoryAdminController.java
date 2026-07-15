@@ -2,7 +2,6 @@ package top.naccl.controller.admin;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,12 +10,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.naccl.controller.support.PageRequestValidator;
 import top.naccl.entity.Category;
+import top.naccl.exception.BadRequestException;
 import top.naccl.model.vo.Result;
-import top.naccl.service.BlogService;
 import top.naccl.service.CategoryService;
 import top.naccl.util.StringUtils;
-import top.naccl.constant.TaxonomyColorPalette;
 
 /**
  * @Description: 博客分类后台管理
@@ -26,10 +25,11 @@ import top.naccl.constant.TaxonomyColorPalette;
 @RestController
 @RequestMapping("/admin")
 public class CategoryAdminController {
-	@Autowired
-	BlogService blogService;
-	@Autowired
-	CategoryService categoryService;
+	private final CategoryService categoryService;
+
+	public CategoryAdminController(CategoryService categoryService) {
+		this.categoryService = categoryService;
+	}
 
 	/**
 	 * 获取博客分类列表
@@ -40,6 +40,7 @@ public class CategoryAdminController {
 	 */
 	@GetMapping("/categories")
 	public Result categories(@RequestParam(defaultValue = "1") Integer pageNum, @RequestParam(defaultValue = "10") Integer pageSize) {
+		PageRequestValidator.validate(pageNum, pageSize);
 		String orderBy = "id desc";
 		PageHelper.startPage(pageNum, pageSize, orderBy);
 		PageInfo<Category> pageInfo = new PageInfo<>(categoryService.getCategoryList());
@@ -54,7 +55,9 @@ public class CategoryAdminController {
 	 */
 	@PostMapping("/category")
 	public Result saveCategory(@RequestBody Category category) {
-		return getResult(category, "save");
+		validateCategory(category);
+		categoryService.saveCategory(category);
+		return Result.ok("分类添加成功");
 	}
 
 	/**
@@ -65,33 +68,17 @@ public class CategoryAdminController {
 	 */
 	@PutMapping("/category")
 	public Result updateCategory(@RequestBody Category category) {
-		return getResult(category, "update");
+		validateCategory(category);
+		if (category.getId() == null || category.getId() <= 0) {
+			throw new BadRequestException("分类 ID 必须为正整数");
+		}
+		categoryService.updateCategory(category);
+		return Result.ok("分类更新成功");
 	}
 
-	/**
-	 * 执行分类添加或更新操作：校验参数是否合法，分类是否已存在
-	 *
-	 * @param category 分类实体
-	 * @param type     添加或更新
-	 * @return
-	 */
-	private Result getResult(Category category, String type) {
-		if (StringUtils.isEmpty(category.getName())) {
-			return Result.error("分类名称不能为空");
-		}
-		category.setColor(TaxonomyColorPalette.normalize(category.getColor()));
-		//查询分类是否已存在
-		Category category1 = categoryService.getCategoryByName(category.getName());
-		//如果 category1.getId().equals(category.getId()) == true 就是更新分类
-		if (category1 != null && !category1.getId().equals(category.getId())) {
-			return Result.error("该分类已存在");
-		}
-		if ("save".equals(type)) {
-			categoryService.saveCategory(category);
-			return Result.ok("分类添加成功");
-		} else {
-			categoryService.updateCategory(category);
-			return Result.ok("分类更新成功");
+	private static void validateCategory(Category category) {
+		if (category == null || StringUtils.isEmpty(category.getName())) {
+			throw new BadRequestException("分类名称不能为空");
 		}
 	}
 
@@ -103,11 +90,6 @@ public class CategoryAdminController {
 	 */
 	@DeleteMapping("/category")
 	public Result delete(@RequestParam Long id) {
-		//删除存在博客关联的分类后，该博客的查询会出异常
-		int num = blogService.countBlogByCategoryId(id);
-		if (num != 0) {
-			return Result.error("已有博客与此分类关联，不可删除");
-		}
 		categoryService.deleteCategoryById(id);
 		return Result.ok("删除成功");
 	}

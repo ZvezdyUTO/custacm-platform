@@ -30,6 +30,7 @@ import top.naccl.mapper.UserMapper;
 import top.naccl.model.dto.CompetitionAchievementOrderRequest;
 import top.naccl.model.dto.CompetitionAchievementVisibilityRequest;
 import top.naccl.model.dto.CompetitionAwardCreateRequest;
+import top.naccl.model.dto.CompetitionAwardLoginRequirementRequest;
 import top.naccl.model.dto.CompetitionCreateRequest;
 import top.naccl.model.dto.CompetitionParticipantsCreateRequest;
 import top.naccl.model.vo.CompetitionAchievement;
@@ -38,6 +39,7 @@ import top.naccl.model.vo.CompetitionResponse;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -52,7 +54,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * 比赛记录聚合用例。比赛根进入七天回收站，参赛人和奖项只允许添加或删除。
+ * 比赛记录聚合用例。比赛根进入七天回收站，参赛人和奖项主体只允许添加或删除。
  *
  * @author huangbingrui.awa
  */
@@ -86,11 +88,17 @@ public class CompetitionService {
 	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public CompetitionPageResponse list(Integer startYear, Integer endYear, String category,
 			Integer pageNum, Integer pageSize) {
+		return list(startYear, endYear, category, pageNum, pageSize, false);
+	}
+
+	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+	public CompetitionPageResponse list(Integer startYear, Integer endYear, String category,
+			Integer pageNum, Integer pageSize, boolean includeLoginRequiredAwards) {
 		Query query = query(startYear, endYear, category, pageNum, pageSize);
 		PageHelper.startPage(query.pageNum(), query.pageSize());
 		List<Competition> competitions = competitionMapper.findActiveCompetitions(
 				query.startYear(), query.endYear(), query.categoryTypes(), query.categoryTypeCount());
-		return page(new PageInfo<>(competitions), assemble(competitions));
+		return page(new PageInfo<>(competitions), assemble(competitions, includeLoginRequiredAwards));
 	}
 
 	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
@@ -100,16 +108,21 @@ public class CompetitionService {
 		PageHelper.startPage(query.pageNum(), query.pageSize());
 		List<Competition> competitions = competitionMapper.findRecycleBinCompetitions(
 				query.startYear(), query.endYear(), query.categoryTypes(), query.categoryTypeCount(), cutoff());
-		return page(new PageInfo<>(competitions), assemble(competitions));
+		return page(new PageInfo<>(competitions), assemble(competitions, true));
 	}
 
 	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public CompetitionResponse get(Long id) {
+		return get(id, false);
+	}
+
+	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+	public CompetitionResponse get(Long id, boolean includeLoginRequiredAwards) {
 		Competition competition = id == null ? null : competitionMapper.findActiveCompetitionById(id);
 		if (competition == null) {
 			throw new NotFoundException("比赛不存在");
 		}
-		return assemble(List.of(competition)).getFirst();
+		return assemble(List.of(competition), includeLoginRequiredAwards).getFirst();
 	}
 
 	@Transactional(rollbackFor = Exception.class)
@@ -118,7 +131,9 @@ public class CompetitionService {
 			throw new BadRequestException("请求体不能为空");
 		}
 		String fullName = normalizeRequiredText(request.fullName(), MAX_FULL_NAME_LENGTH, "比赛全称");
-		Integer year = requireYear(request.year(), "比赛年份");
+		LocalDate competitionDate = request.competitionDate();
+		Integer year = competitionDate == null
+				? null : requireYear(competitionDate.getYear(), "比赛日期年份");
 		CompetitionCategory category = enumValue(request.category(), CompetitionCategory.class, "比赛分类");
 		List<CompetitionType> types = category.types();
 		CompetitionParticipationMode participationMode = participationMode(request.participationMode());
@@ -135,6 +150,7 @@ public class CompetitionService {
 		competition.setFullName(fullName);
 		competition.setActiveFullName(fullName);
 		competition.setCompetitionYear(year);
+		competition.setCompetitionDate(competitionDate);
 		competition.setParticipationMode(participationMode);
 		try {
 			if (competitionMapper.insertCompetition(competition) != 1) {
@@ -264,6 +280,7 @@ public class CompetitionService {
 		award.setRankPosition(normalized.rankPosition());
 		award.setRankTotal(normalized.rankTotal());
 		award.setAwardName(normalized.awardName());
+		award.setRequiresLogin(normalized.requiresLogin());
 		if (competitionMapper.insertAward(award) != 1) {
 			throw new PersistenceException("奖项添加失败");
 		}
@@ -278,6 +295,27 @@ public class CompetitionService {
 				.toList();
 		if (competitionMapper.insertAwardRecipients(recipientRows) != recipientRows.size()) {
 			throw new PersistenceException("奖项获奖人保存失败");
+		}
+		return requireActiveResponse(competitionId);
+	}
+
+	@Transactional(rollbackFor = Exception.class)
+	public CompetitionResponse updateAwardLoginRequirement(Long competitionId, Long awardId,
+			CompetitionAwardLoginRequirementRequest request) {
+		if (request == null || request.requiresLogin() == null) {
+			throw new BadRequestException("是否要求登录不能为空");
+		}
+		requireActiveLocked(competitionId);
+		CompetitionAward award = awardId == null ? null : competitionMapper.findAwardByIdForUpdate(awardId);
+		if (award == null || !competitionId.equals(award.getCompetitionId())) {
+			throw new NotFoundException("奖项不存在");
+		}
+		if (request.requiresLogin().equals(award.getRequiresLogin())) {
+			return requireActiveResponse(competitionId);
+		}
+		if (competitionMapper.updateAwardLoginRequirement(
+				competitionId, awardId, request.requiresLogin()) != 1) {
+			throw new PersistenceException("奖项查看权限更新失败");
 		}
 		return requireActiveResponse(competitionId);
 	}
@@ -376,21 +414,29 @@ public class CompetitionService {
 
 	@Transactional(readOnly = true)
 	public List<CompetitionAchievement> achievements(String username) {
-		return achievements(username, false);
+		return achievements(username, false, true);
 	}
 
 	@Transactional(readOnly = true)
 	public List<CompetitionAchievement> publicAchievements(String username) {
-		return achievements(username, true);
+		return publicAchievements(username, false);
 	}
 
-	private List<CompetitionAchievement> achievements(String username, boolean visibleOnly) {
+	@Transactional(readOnly = true)
+	public List<CompetitionAchievement> publicAchievements(String username,
+			boolean includeLoginRequiredAwards) {
+		return achievements(username, true, includeLoginRequiredAwards);
+	}
+
+	private List<CompetitionAchievement> achievements(String username, boolean visibleOnly,
+			boolean includeLoginRequiredAwards) {
 		if (username == null || username.isBlank()) {
 			return List.of();
 		}
 		Map<Long, AchievementAccumulator> byAward = new LinkedHashMap<>();
 		for (CompetitionAwardFlatProjection row : competitionMapper.findActiveAwardProjectionsByUsername(username)) {
-			if (visibleOnly && !Boolean.TRUE.equals(row.getProfileVisible())) {
+			if (visibleOnly && (!Boolean.TRUE.equals(row.getProfileVisible())
+					|| (!includeLoginRequiredAwards && Boolean.TRUE.equals(row.getRequiresLogin())))) {
 				continue;
 			}
 			AchievementAccumulator accumulator = byAward.computeIfAbsent(row.getAwardId(), ignored ->
@@ -412,7 +458,7 @@ public class CompetitionService {
 		if (competition == null) {
 			throw new PersistenceException("比赛读取失败");
 		}
-		return assemble(List.of(competition)).getFirst();
+		return assemble(List.of(competition), true).getFirst();
 	}
 
 	private Competition requireActiveLocked(Long id) {
@@ -484,10 +530,11 @@ public class CompetitionService {
 			throw new BadRequestException("个人奖项不能填写队伍名称");
 		}
 		return new NormalizedAward(mode, teamName, tier.scope(), tier.level(), tier.storedName(),
-				rankPosition, rankTotal, recipients);
+				rankPosition, rankTotal, Boolean.TRUE.equals(request.requiresLogin()), recipients);
 	}
 
-	private List<CompetitionResponse> assemble(List<Competition> competitions) {
+	private List<CompetitionResponse> assemble(List<Competition> competitions,
+			boolean includeLoginRequiredAwards) {
 		if (competitions.isEmpty()) {
 			return List.of();
 		}
@@ -537,6 +584,8 @@ public class CompetitionService {
 						}, Collectors.toList())));
 		Map<Long, List<CompetitionResponse.Award>> awardsByCompetition = competitionMapper
 				.findAwardsByCompetitionIds(competitionIds).stream()
+				.filter(award -> includeLoginRequiredAwards
+						|| !Boolean.TRUE.equals(award.getRequiresLogin()))
 				.collect(Collectors.groupingBy(CompetitionAward::getCompetitionId, LinkedHashMap::new,
 						Collectors.mapping(award -> award(award,
 								categoryByCompetition.get(award.getCompetitionId()),
@@ -546,6 +595,7 @@ public class CompetitionService {
 			CompetitionCategory category = categoryByCompetition.get(competition.getId());
 			return new CompetitionResponse(
 					competition.getId(), competition.getFullName(), competition.getCompetitionYear(),
+					competition.getCompetitionDate(),
 					category == null ? null : category.name(), category == null ? null : category.label(),
 					competition.getParticipationMode().name(), competition.getParticipationMode().label(),
 					List.copyOf(typesByCompetition.getOrDefault(competition.getId(), List.of())),
@@ -565,7 +615,8 @@ public class CompetitionService {
 				award.getAwardMode().name(), award.getAwardMode().label(), award.getTeamName(),
 				scope == null ? null : scope.name(), scope == null ? null : scope.label(), award.getAwardLevel(),
 				award.getAwardName(), award.getRankPosition(), award.getRankTotal(),
-				rank(award.getRankPosition(), award.getRankTotal()), List.copyOf(recipients));
+				rank(award.getRankPosition(), award.getRankTotal()),
+				Boolean.TRUE.equals(award.getRequiresLogin()), List.copyOf(recipients));
 	}
 
 	private static CompetitionResponse.Type type(CompetitionType type) {
@@ -714,6 +765,7 @@ public class CompetitionService {
 			String awardName,
 			Integer rankPosition,
 			Integer rankTotal,
+			boolean requiresLogin,
 			List<String> recipientUsernames
 	) {
 	}
@@ -737,6 +789,7 @@ public class CompetitionService {
 					category, scope, row.getAwardLevel());
 			return new CompetitionAchievement(
 					row.getCompetitionId(), row.getCompetitionFullName(), row.getCompetitionYear(),
+					row.getCompetitionDate(),
 					category == null ? null : category.name(), category == null ? null : category.label(), responseTypes,
 					row.getAwardId(), tier == null ? null : tier.name(), tier == null ? null : tier.label(),
 					row.getAwardMode().name(), row.getAwardMode().label(), row.getTeamName(),

@@ -26,5 +26,6 @@ public class CompetitionAward {
 	private Integer rankPosition;
 	private Integer rankTotal;
 	private String awardName;
+	private Boolean requiresLogin;
 	private Date createTime;
 }

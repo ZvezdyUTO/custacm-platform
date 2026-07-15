@@ -53,24 +53,43 @@
         </if>
         and c1.parent_comment_id=#{parentCommentId}
         and c1.is_published=true
-        order by c1.create_time desc
+        order by c1.create_time desc, c1.id desc
     </select>
 
-    <!--一次查询文章下的全部公开回复，由业务层为当前分页的根评论组树-->
-    <select id="getPublishedReplyList" resultMap="pageComment">
+    <!--以当前根评论页为锚点递归查询公开回复；UNION DISTINCT 使异常环路和重复路径收敛。-->
+    <select id="getPublishedReplyListForRootComments" resultMap="pageComment">
+        with recursive reply_ids (id) as (
+        select c.id
+        from comment as c
+        where c.page=#{page}
+        <if test="page==0 and blogId!=null">
+            and c.blog_id=#{blogId}
+        </if>
+        and c.parent_comment_id in
+        <foreach collection="rootCommentIds" item="rootCommentId" open="(" separator="," close=")">
+            #{rootCommentId}
+        </foreach>
+        and c.is_published=true
+        union distinct
+        select child.id
+        from comment as child
+        inner join reply_ids as ancestor on child.parent_comment_id=ancestor.id
+        where child.page=#{page}
+        <if test="page==0 and blogId!=null">
+            and child.blog_id=#{blogId}
+        </if>
+        and child.is_published=true
+		limit #{replyLimit}
+        )
         select c1.id, u1.username, coalesce(u1.nickname,c1.nickname) as nickname, c1.content,
         coalesce(u1.avatar,c1.avatar) as avatar, c1.create_time, c1.is_admin_comment, c1.website,
         c1.parent_comment_id as parent_comment_id, coalesce(u2.nickname,c2.nickname) as parent_comment_nickname
-        from comment as c1
+        from reply_ids
+        inner join comment as c1 on c1.id=reply_ids.id
         left join user as u1 on c1.user_id=u1.id
         left join comment as c2 on c1.parent_comment_id=c2.id
         left join user as u2 on c2.user_id=u2.id
-        where c1.page=#{page}
-        <if test="page==0 and blogId!=null">
-            and c1.blog_id=#{blogId}
-        </if>
-        and c1.parent_comment_id&lt;&gt;-1
-        and c1.is_published=true
+		order by c1.id asc
     </select>
 
 	<!--文章完整备份只导出展示与关系字段，不导出评论 IP、邮箱和通知字段。-->

@@ -27,9 +27,9 @@ class IntegratedControllerCoverageTest {
 	@Test
 	void delegatesPublicProfileLookup() {
 		PlayerProfileService service = mock(PlayerProfileService.class);
-		new PublicProfileController(service).get("alice");
+		new PublicProfileController(service).get("alice", null);
 
-		verify(service).getPublic("alice");
+		verify(service).getPublic("alice", false);
 	}
 
 	@Test

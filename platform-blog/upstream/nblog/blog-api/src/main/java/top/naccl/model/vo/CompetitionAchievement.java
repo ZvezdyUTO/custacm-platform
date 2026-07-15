@@ -1,5 +1,6 @@
 package top.naccl.model.vo;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -11,6 +12,7 @@ public record CompetitionAchievement(
 		Long competitionId,
 		String competitionFullName,
 		Integer year,
+		LocalDate competitionDate,
 		String category,
 		String categoryLabel,
 		List<CompetitionResponse.Type> types,

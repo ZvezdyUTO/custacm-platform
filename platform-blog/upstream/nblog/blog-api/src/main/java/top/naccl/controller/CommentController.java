@@ -1,12 +1,13 @@
 package top.naccl.controller;
 
-import com.github.pagehelper.PageHelper;
-import com.github.pagehelper.PageInfo;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.naccl.controller.support.PageRequestValidator;
 import top.naccl.enums.CommentOpenStateEnum;
-import top.naccl.model.vo.PageComment;
+import top.naccl.exception.ForbiddenException;
+import top.naccl.exception.NotFoundException;
+import top.naccl.model.vo.PageCommentPage;
 import top.naccl.model.vo.PageResult;
 import top.naccl.model.vo.Result;
 import top.naccl.service.BlogService;
@@ -39,25 +40,26 @@ public class CommentController {
 	public Result comments(@RequestParam Long blogId,
 	                       @RequestParam(defaultValue = "1") Integer pageNum,
 	                       @RequestParam(defaultValue = "10") Integer pageSize) {
+		PageRequestValidator.validate(pageNum, pageSize);
 		if (Boolean.TRUE.equals(blogService.getInternalByBlogId(blogId))) {
-			return Result.create(404, "该博客不存在");
+			throw new NotFoundException("该博客不存在");
 		}
 		CommentOpenStateEnum openState = commentUtils.judgeCommentState(BLOG_PAGE, blogId);
 		if (openState == CommentOpenStateEnum.NOT_FOUND) {
-			return Result.create(404, "该博客不存在");
+			throw new NotFoundException("该博客不存在");
 		}
 		if (openState == CommentOpenStateEnum.CLOSE) {
-			return Result.create(403, "评论已关闭");
+			throw new ForbiddenException("评论已关闭");
 		}
 		Integer allComment = commentService.countByPageAndIsPublished(BLOG_PAGE, blogId, null);
 		Integer openComment = commentService.countByPageAndIsPublished(BLOG_PAGE, blogId, true);
-		PageHelper.startPage(pageNum, pageSize);
-		PageInfo<PageComment> pageInfo = new PageInfo<>(
-				commentService.getPageCommentList(BLOG_PAGE, blogId, -1L));
-		Map<String, Object> data = new HashMap<>(4);
+		PageCommentPage commentPage = commentService.getPageComments(
+				BLOG_PAGE, blogId, -1L, pageNum, pageSize);
+		Map<String, Object> data = new HashMap<>(8);
 		data.put("allComment", allComment);
 		data.put("closeComment", allComment - openComment);
-		data.put("comments", new PageResult<>(pageInfo.getPages(), pageInfo.getList()));
+		data.put("comments", new PageResult<>(commentPage.totalPages(), commentPage.comments()));
+		data.put("repliesTruncated", commentPage.repliesTruncated());
 		return Result.ok("获取成功", data);
 	}
 }

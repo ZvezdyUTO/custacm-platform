@@ -1,17 +1,18 @@
 package top.naccl.service.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.naccl.constant.RedisKeyConstants;
 import top.naccl.constant.TaxonomyColorPalette;
 import top.naccl.entity.Category;
+import top.naccl.exception.ConflictException;
 import top.naccl.exception.NotFoundException;
 import top.naccl.exception.PersistenceException;
 import top.naccl.mapper.CategoryMapper;
 import top.naccl.service.CategoryService;
 import top.naccl.service.RedisService;
-import top.naccl.service.TagService;
 
 import java.util.List;
 
@@ -22,12 +23,13 @@ import java.util.List;
  */
 @Service
 public class CategoryServiceImpl implements CategoryService {
-	@Autowired
-	CategoryMapper categoryMapper;
-	@Autowired
-	TagService tagService;
-	@Autowired
-	RedisService redisService;
+	private final CategoryMapper categoryMapper;
+	private final RedisService redisService;
+
+	public CategoryServiceImpl(CategoryMapper categoryMapper, RedisService redisService) {
+		this.categoryMapper = categoryMapper;
+		this.redisService = redisService;
+	}
 
 	@Override
 	public List<Category> getCategoryList() {
@@ -50,8 +52,12 @@ public class CategoryServiceImpl implements CategoryService {
 	@Override
 	public void saveCategory(Category category) {
 		category.setColor(TaxonomyColorPalette.normalize(category.getColor()));
-		if (categoryMapper.saveCategory(category) != 1) {
-			throw new PersistenceException("分类添加失败");
+		try {
+			if (categoryMapper.saveCategory(category) != 1) {
+				throw new PersistenceException("分类添加失败");
+			}
+		} catch (DuplicateKeyException exception) {
+			throw new ConflictException("该分类已存在", exception);
 		}
 		redisService.deleteCacheByKey(RedisKeyConstants.CATEGORY_NAME_LIST);
 	}
@@ -65,16 +71,15 @@ public class CategoryServiceImpl implements CategoryService {
 		return category;
 	}
 
-	@Override
-	public Category getCategoryByName(String name) {
-		return categoryMapper.getCategoryByName(name);
-	}
-
 	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void deleteCategoryById(Long id) {
-		if (categoryMapper.deleteCategoryById(id) != 1) {
-			throw new PersistenceException("删除分类失败");
+		try {
+			if (categoryMapper.deleteCategoryById(id) != 1) {
+				throw new NotFoundException("分类不存在");
+			}
+		} catch (DataIntegrityViolationException exception) {
+			throw new ConflictException("已有博客与此分类关联，不可删除", exception);
 		}
 		redisService.deleteCacheByKey(RedisKeyConstants.CATEGORY_NAME_LIST);
 	}
@@ -83,8 +88,12 @@ public class CategoryServiceImpl implements CategoryService {
 	@Override
 	public void updateCategory(Category category) {
 		category.setColor(TaxonomyColorPalette.normalize(category.getColor()));
-		if (categoryMapper.updateCategory(category) != 1) {
-			throw new PersistenceException("分类更新失败");
+		try {
+			if (categoryMapper.updateCategory(category) != 1) {
+				throw new NotFoundException("分类不存在");
+			}
+		} catch (DuplicateKeyException exception) {
+			throw new ConflictException("该分类已存在", exception);
 		}
 		redisService.deleteCacheByKey(RedisKeyConstants.CATEGORY_NAME_LIST);
 		//修改了分类名，可能有首页文章关联了分类，也要更新首页缓存

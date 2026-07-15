@@ -1,16 +1,18 @@
 package top.naccl.config;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,19 +31,18 @@ import static org.mockito.Mockito.when;
 
 @WebMvcTest(controllers = SecurityConfigTest.ProbeController.class,
 		excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = WebConfig.class))
-@Import({SecurityConfig.class, MyAuthenticationEntryPoint.class, SecurityConfigTest.ProbeController.class})
+@Import({SecurityConfig.class, MyAuthenticationEntryPoint.class, SecurityConfigTest.ProbeController.class,
+		JwtUtils.class})
+@TestPropertySource(properties = {
+		"token.secretKey=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab",
+		"token.expireTime=60000"
+})
 class SecurityConfigTest {
 	@Autowired private MockMvc mockMvc;
+	@Autowired private JwtUtils jwtUtils;
 	@MockitoBean private UserServiceImpl userService;
 	@MockitoBean private RedisService redisService;
 	private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-
-	@BeforeEach
-	void setUpJwt() {
-		JwtUtils jwtUtils = new JwtUtils();
-		jwtUtils.setSecretKey("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab");
-		jwtUtils.setExpireTime(60_000L);
-	}
 
 	@Test
 	void guestCanReadButCannotWritePublicEndpoints() throws Exception {
@@ -66,7 +67,30 @@ class SecurityConfigTest {
 		mockMvc.perform(get("/public-probe").header("Authorization", token))
 				.andExpect(status().isOk())
 				.andExpect(content().string("player1"));
-		mockMvc.perform(get("/public-probe").header("Authorization", "not-a-jwt"))
+		mockMvc.perform(get("/public-probe").header("Authorization", "Bearer not-a-jwt"))
+				.andExpect(status().isOk())
+				.andExpect(content().string("guest"));
+	}
+
+	@Test
+	void bearerSchemeIsCaseInsensitiveButMalformedAuthorizationIsRejected() throws Exception {
+		stubUser("player1", "ROLE_player");
+		String rawToken = jwtUtils.generateToken(
+				"player1", AuthorityUtils.createAuthorityList("ROLE_player"));
+
+		mockMvc.perform(get("/player/probe").header("Authorization", "bearer " + rawToken))
+				.andExpect(status().isOk());
+		mockMvc.perform(get("/player/probe").header("Authorization", rawToken))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.errorCode").value("AUTH_TOKEN_INVALID"));
+		mockMvc.perform(get("/player/probe").header("Authorization", "BearerBearer " + rawToken))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.errorCode").value("AUTH_TOKEN_INVALID"));
+	}
+
+	@Test
+	void protectedRouteDetectionDoesNotBleedIntoSimilarPublicPrefixes() throws Exception {
+		mockMvc.perform(get("/administrator-probe").header("Authorization", "not-a-bearer-token"))
 				.andExpect(status().isOk())
 				.andExpect(content().string("guest"));
 	}
@@ -102,18 +126,34 @@ class SecurityConfigTest {
 
 	@Test
 	void invalidOrDeletedUserTokenReturnsUnauthorized() throws Exception {
+		when(userService.loadUserByUsername("deleted-user"))
+				.thenThrow(new UsernameNotFoundException("deleted user"));
 		String deletedUserToken = token("deleted-user", "ROLE_player");
 		mockMvc.perform(get("/player/probe").header("Authorization", deletedUserToken))
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.errorCode").value("AUTH_TOKEN_INVALID"));
 
-		mockMvc.perform(get("/player/probe").header("Authorization", "not-a-jwt"))
+		mockMvc.perform(get("/player/probe").header("Authorization", "Bearer not-a-jwt"))
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.errorCode").value("AUTH_TOKEN_INVALID"));
 	}
 
+	@Test
+	void userLookupInfrastructureFailureIsNotMisreportedAsAnInvalidToken() throws Exception {
+		when(userService.loadUserByUsername("lookup-fails"))
+				.thenThrow(new DataAccessResourceFailureException("database unavailable"));
+		String token = token("lookup-fails", "ROLE_player");
+
+		mockMvc.perform(get("/player/probe").header("Authorization", token))
+				.andExpect(status().isInternalServerError())
+				.andExpect(jsonPath("$.errorCode").value("AUTH_CONTEXT_RESOLUTION_FAILED"));
+		mockMvc.perform(get("/public-probe").header("Authorization", token))
+				.andExpect(status().isInternalServerError())
+				.andExpect(jsonPath("$.errorCode").value("AUTH_CONTEXT_RESOLUTION_FAILED"));
+	}
+
 	private String token(String username, String authority) {
-		return JwtUtils.generateToken(username, AuthorityUtils.createAuthorityList(authority));
+		return "Bearer " + jwtUtils.generateToken(username, AuthorityUtils.createAuthorityList(authority));
 	}
 
 	private void stubUser(String username, String role) {
@@ -127,6 +167,10 @@ class SecurityConfigTest {
 	@RestController
 	static class ProbeController {
 		@GetMapping("/public-probe") String publicProbe(org.springframework.security.core.Authentication authentication) {
+			return authentication == null ? "guest" : authentication.getName();
+		}
+		@GetMapping("/administrator-probe") String administratorProbe(
+				org.springframework.security.core.Authentication authentication) {
 			return authentication == null ? "guest" : authentication.getName();
 		}
 		@GetMapping("/player/probe") String playerProbe() { return "ok"; }

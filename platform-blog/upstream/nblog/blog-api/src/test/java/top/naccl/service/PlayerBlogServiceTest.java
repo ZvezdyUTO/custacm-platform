@@ -9,20 +9,24 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import top.naccl.entity.Category;
+import top.naccl.entity.Tag;
 import top.naccl.entity.User;
-import top.naccl.exception.NotFoundException;
 import top.naccl.exception.BadRequestException;
+import top.naccl.exception.NotFoundException;
 import top.naccl.mapper.BlogMapper;
 import top.naccl.mapper.UserMapper;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -97,6 +101,32 @@ class PlayerBlogServiceTest {
 
 		assertEquals("", input.getFirstPicture());
 		verify(blogService).saveBlog(input);
+	}
+
+	@Test
+	void createDeduplicatesRepeatedTagIdsWhilePreservingFirstSeenOrder() {
+		when(userMapper.findByUsername("player1")).thenReturn(player);
+		when(categoryService.getCategoryById(3L)).thenReturn(category);
+		Tag first = new Tag();
+		first.setId(7L);
+		Tag second = new Tag();
+		second.setId(8L);
+		when(tagService.getTagById(7L)).thenReturn(first);
+		when(tagService.getTagById(8L)).thenReturn(second);
+		doAnswer(invocation -> {
+			((top.naccl.model.dto.Blog) invocation.getArgument(0)).setId(12L);
+			return null;
+		}).when(blogService).saveBlog(any());
+		top.naccl.model.dto.Blog input = validBlog();
+		input.setTagList(List.of(7, 7L, 8));
+
+		playerBlogService.create("player1", input);
+
+		verify(tagService, times(1)).getTagById(7L);
+		verify(tagService, times(1)).getTagById(8L);
+		InOrder tagWriteOrder = inOrder(blogService);
+		tagWriteOrder.verify(blogService).saveBlogTag(12L, 7L);
+		tagWriteOrder.verify(blogService).saveBlogTag(12L, 8L);
 	}
 
 	@Test

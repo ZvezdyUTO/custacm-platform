@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import top.naccl.controller.support.PageRequestValidator;
 import top.naccl.entity.Blog;
 import top.naccl.entity.Category;
 import top.naccl.model.vo.Result;
@@ -64,6 +65,7 @@ public class BlogAdminController {
 	                    @RequestParam(defaultValue = "") Integer categoryId,
 	                    @RequestParam(defaultValue = "1") Integer pageNum,
 	                    @RequestParam(defaultValue = "10") Integer pageSize) {
+		PageRequestValidator.validate(pageNum, pageSize);
 		String orderBy = "create_time desc";
 		PageHelper.startPage(pageNum, pageSize, orderBy);
 		PageInfo<Blog> pageInfo = new PageInfo<>(blogService.getListByTitleAndCategoryId(title, categoryId));
@@ -79,6 +81,7 @@ public class BlogAdminController {
 			@RequestParam(defaultValue = "") Integer categoryId,
 			@RequestParam(defaultValue = "1") Integer pageNum,
 			@RequestParam(defaultValue = "10") Integer pageSize) {
+		PageRequestValidator.validate(pageNum, pageSize);
 		Map<String, Object> map = new HashMap<>(4);
 		map.put("blogs", recycleBinService.listForAdmin(title, categoryId, pageNum, pageSize));
 		map.put("categories", categoryService.getCategoryList());

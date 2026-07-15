@@ -1,7 +1,7 @@
 package com.custacm.platform.trainingdata.common.infra.oj.repo.query;
 
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjAcceptedSummaryCriteria;
-import com.custacm.platform.trainingdata.common.domain.oj.model.OjDailyRatingAcceptedSummary;
+import com.custacm.platform.trainingdata.common.domain.oj.model.OjRatingAcceptedSummary;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjAcceptedSummaryRepository;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
 import com.custacm.platform.trainingdata.common.infra.oj.repo.warehouse.OjWarehouseTableNames;
@@ -10,9 +10,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.Date;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class JdbcOjAcceptedSummaryRepository implements OjAcceptedSummaryRepository {
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -27,14 +25,14 @@ public class JdbcOjAcceptedSummaryRepository implements OjAcceptedSummaryReposit
     }
 
     @Override
-    public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+    public List<OjRatingAcceptedSummary> summarizeAcceptedProblemsByRating(
             OjAcceptedSummaryCriteria query
     ) {
-        return findDailyRatingAcceptedSummaries(List.of(query));
+        return summarizeAcceptedProblemsByRating(List.of(query));
     }
 
     @Override
-    public List<OjDailyRatingAcceptedSummary> findDailyRatingAcceptedSummaries(
+    public List<OjRatingAcceptedSummary> summarizeAcceptedProblemsByRating(
             List<OjAcceptedSummaryCriteria> queries
     ) {
         if (queries == null || queries.isEmpty()) {
@@ -64,27 +62,19 @@ public class JdbcOjAcceptedSummaryRepository implements OjAcceptedSummaryReposit
         String sql = """
                 select
                     handle,
-                    accepted_date_utc_plus8,
                     difficulty,
-                    accepted_problem_count
+                    sum(accepted_problem_count) as accepted_problem_count
                 from %s
                 where %s
-                order by handle asc, accepted_date_utc_plus8 asc, difficulty asc
+                group by handle, difficulty
+                order by handle asc, difficulty asc
                 """.formatted(tableName, String.join(" and ", predicates));
 
-        Map<String, OjDailyRatingAcceptedSummaryBuilder> builders = new LinkedHashMap<>();
-        jdbcTemplate.query(sql, params, rs -> {
-            String handle = rs.getString("handle");
-            Date acceptedDate = rs.getDate("accepted_date_utc_plus8");
-            String key = handle + "\n" + acceptedDate;
-            builders.computeIfAbsent(key, ignored -> new OjDailyRatingAcceptedSummaryBuilder(
-                    handle,
-                    acceptedDate.toLocalDate()
-            )).put(rs.getString("difficulty"), rs.getInt("accepted_problem_count"));
-        });
-        return builders.values().stream()
-                .map(OjDailyRatingAcceptedSummaryBuilder::build)
-                .toList();
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> new OjRatingAcceptedSummary(
+                rs.getString("handle"),
+                rs.getString("difficulty"),
+                Math.toIntExact(rs.getLong("accepted_problem_count"))
+        ));
     }
 
     private static void validateSameFilters(
@@ -118,24 +108,5 @@ public class JdbcOjAcceptedSummaryRepository implements OjAcceptedSummaryReposit
         }
         predicates.add("difficulty in (:difficulties)");
         params.addValue("difficulties", difficulties);
-    }
-
-    private static final class OjDailyRatingAcceptedSummaryBuilder {
-        private final String handle;
-        private final java.time.LocalDate acceptedDateUtcPlus8;
-        private final Map<String, Integer> counts = new LinkedHashMap<>();
-
-        private OjDailyRatingAcceptedSummaryBuilder(String handle, java.time.LocalDate acceptedDateUtcPlus8) {
-            this.handle = handle;
-            this.acceptedDateUtcPlus8 = acceptedDateUtcPlus8;
-        }
-
-        private void put(String difficulty, int count) {
-            counts.put(difficulty, count);
-        }
-
-        private OjDailyRatingAcceptedSummary build() {
-            return new OjDailyRatingAcceptedSummary(handle, acceptedDateUtcPlus8, counts);
-        }
     }
 }

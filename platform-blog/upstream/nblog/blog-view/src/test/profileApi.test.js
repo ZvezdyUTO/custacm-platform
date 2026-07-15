@@ -1,9 +1,10 @@
 // Author: huangbingrui.awa
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
-const {request} = vi.hoisted(() => ({request: vi.fn()}))
+const {request, readToken} = vi.hoisted(() => ({request: vi.fn(), readToken: vi.fn()}))
 
 vi.mock('@/plugins/axios', () => ({default: request}))
+vi.mock('@/auth/session', () => ({readToken}))
 
 import {
 	changeCurrentPassword,
@@ -14,7 +15,11 @@ import {
 } from '@/api/profile'
 
 describe('profile API', () => {
-	beforeEach(() => request.mockReset())
+	beforeEach(() => {
+		request.mockReset()
+		readToken.mockReset()
+		readToken.mockReturnValue(null)
+	})
 
 	it('loads the current user with an explicit bearer token', async () => {
 		request.mockResolvedValue({code: 200, data: {username: 'alice', links: []}})
@@ -34,6 +39,20 @@ describe('profile API', () => {
 		expect(request).toHaveBeenCalledWith({
 			url: 'profiles/alice%20smith',
 			method: 'GET',
+			headers: undefined,
+		})
+	})
+
+	it('loads login-required public achievements with an explicit shared token', async () => {
+		readToken.mockReturnValue('member-token')
+		request.mockResolvedValue({code: 200, data: {username: 'alice', achievements: [{awardId: 72}]}})
+
+		await getPublicProfile('alice')
+
+		expect(request).toHaveBeenCalledWith({
+			url: 'profiles/alice',
+			method: 'GET',
+			headers: {Authorization: 'Bearer member-token'},
 		})
 	})
 

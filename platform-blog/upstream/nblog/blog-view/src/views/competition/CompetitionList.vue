@@ -71,7 +71,19 @@
 			<section class="archive-timeline" aria-label="赛事时间线">
 				<article v-for="(competition, index) in records" :key="competition.id" class="archive-record">
 					<div class="record-index">
-						<time :datetime="String(competition.year)">{{ competition.year }}</time>
+						<time
+							v-if="datePresentation(competition).isKnown"
+							class="record-date"
+							:datetime="datePresentation(competition).datetime || undefined"
+							:aria-label="datePresentation(competition).label"
+						>
+							<strong>{{ datePresentation(competition).year }}</strong>
+							<small v-if="datePresentation(competition).hasExactDate">{{ datePresentation(competition).monthDay }}</small>
+						</time>
+						<span v-else class="record-date record-date-unknown" aria-label="日期待补充">
+							<strong>—</strong>
+							<small>日期待补充</small>
+						</span>
 						<span>NO. {{ serialNumber(index) }}</span>
 					</div>
 					<div class="record-body">
@@ -106,7 +118,7 @@
 								<dd>{{ articleCount(competition) }} 篇</dd>
 							</div>
 						</dl>
-						<div v-if="safeList(competition.awards).length" class="record-honours">
+						<div v-if="showAwardSummaries(competition)" class="record-honours">
 							<span v-for="award in safeList(competition.awards).slice(0, 3)" :key="award.id">
 								{{ awardSummary(award, competition) }}
 							</span>
@@ -132,8 +144,11 @@
 
 <script>
 	import {getCompetitions} from '@/api/competition'
+	import {SESSION_CHANGE_EVENT} from '@/auth/session'
 	import {achievementPresentation} from '@/utils/achievementPresentation'
+	import {competitionDatePresentation} from '@/utils/competitionDatePresentation'
 	import {
+		competitionCategory,
 		legacyRouteCategory,
 		PUBLIC_COMPETITION_CATEGORIES,
 		PUBLIC_COMPETITION_CATEGORY_VALUES,
@@ -143,6 +158,11 @@
 	const PAGE_SIZE = 10
 	const MIN_YEAR = 1900
 	const MAX_YEAR = 9999
+	const COUNT_ONLY_AWARD_CATEGORIES = new Set([
+		'GPLT_NATIONAL',
+		'BAIDU_STAR',
+		'LANQIAO_CUP_NATIONAL',
+	])
 	export default {
 		name: 'CompetitionList',
 		data() {
@@ -173,7 +193,25 @@
 			this.readRouteState()
 			this.loadCompetitions()
 		},
+		mounted() {
+			window.addEventListener('storage', this.refreshVisibleCompetitions)
+			window.addEventListener(SESSION_CHANGE_EVENT, this.refreshVisibleCompetitions)
+		},
+		beforeUnmount() {
+			window.removeEventListener('storage', this.refreshVisibleCompetitions)
+			window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshVisibleCompetitions)
+		},
 		methods: {
+			datePresentation(competition) {
+				return competitionDatePresentation(competition)
+			},
+			refreshVisibleCompetitions(event) {
+				if (!event || event.type === SESSION_CHANGE_EVENT || event.key === null
+					|| event.key === 'custacm.accessToken' || event.key === 'custacm.user') {
+					this.page = {...this.page, list: []}
+					this.loadCompetitions()
+				}
+			},
 			safeList(value) {
 				return Array.isArray(value) ? value : []
 			},
@@ -220,6 +258,11 @@
 			},
 			visibleCategories(competition) {
 				return publicCompetitionCategories(competition)
+			},
+			showAwardSummaries(competition) {
+				const awards = this.safeList(competition?.awards)
+				const category = competitionCategory(competition)
+				return awards.length > 0 && !COUNT_ONLY_AWARD_CATEGORIES.has(category?.code)
 			},
 			navigate(pageNum) {
 				const query = this.routeQuery(pageNum)
@@ -621,16 +664,38 @@
 		content: "";
 	}
 
-	.record-index time {
+	.record-index .record-date {
+		display: grid;
+		justify-items: end;
+		gap: 4px;
+		margin: 0;
 		color: var(--archive-navy);
 		font-family: Georgia, "Times New Roman", serif;
-		font-size: 24px;
 		font-variant-numeric: tabular-nums;
-		font-weight: 700;
+		letter-spacing: normal;
 		line-height: 1;
 	}
 
-	.record-index span {
+	.record-index .record-date strong {
+		font-size: 24px;
+		font-weight: 700;
+	}
+
+	.record-index .record-date small {
+		color: var(--archive-copper);
+		font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: .08em;
+	}
+
+	.record-index .record-date-unknown small {
+		color: var(--archive-muted);
+		font-size: 9px;
+		letter-spacing: 0;
+	}
+
+	.record-index > span:not(.record-date) {
 		margin-top: 8px;
 		color: var(--archive-muted);
 		font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
@@ -813,6 +878,10 @@
 			align-items: flex-start;
 			padding-top: 26px;
 			text-align: left;
+		}
+
+		.record-index .record-date {
+			justify-items: start;
 		}
 
 		.record-index::after {

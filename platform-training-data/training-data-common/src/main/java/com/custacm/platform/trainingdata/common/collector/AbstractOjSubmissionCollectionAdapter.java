@@ -10,7 +10,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HexFormat;
 import java.util.List;
@@ -35,10 +34,11 @@ public abstract class AbstractOjSubmissionCollectionAdapter implements OjSubmiss
             String handle,
             Instant windowStartInclusive,
             Instant windowEndExclusive,
-            OjCollectionRequestExecutor requestExecutor
-    ) {
+            OjCollectionRequestExecutor requestExecutor,
+            OjSubmissionCollectionBatchWriter batchWriter
+    ) throws com.fasterxml.jackson.core.JsonProcessingException {
         String normalizedHandle = requireText(handle, "handle");
-        HandleCollectionProgress progress = new HandleCollectionProgress();
+        HandleCollectionProgress progress = new HandleCollectionProgress(normalizedHandle, batchWriter);
         try {
             collectHandleSubmissions(
                     ojName,
@@ -53,9 +53,10 @@ public abstract class AbstractOjSubmissionCollectionAdapter implements OjSubmiss
                             normalizedHandle,
                             progress.fetchedSubmissionCount(),
                             progress.matchedSubmissionCount()
-                    ),
-                    progress.matchedSubmissions()
+                    )
             );
+        } catch (ChunkWriteFailure ex) {
+            throw ex.failure();
         } catch (RuntimeException ex) {
             String errorCode = errorCode(ex);
             log.warn(
@@ -69,10 +70,10 @@ public abstract class AbstractOjSubmissionCollectionAdapter implements OjSubmiss
                     OjSubmissionCollectionHandleResult.failed(
                             normalizedHandle,
                             progress.fetchedSubmissionCount(),
+                            progress.matchedSubmissionCount(),
                             errorCode,
                             ex.getMessage()
-                    ),
-                    List.of()
+                    )
             );
         }
     }
@@ -84,7 +85,7 @@ public abstract class AbstractOjSubmissionCollectionAdapter implements OjSubmiss
             Instant windowEndExclusive,
             OjCollectionRequestExecutor requestExecutor,
             HandleCollectionProgress progress
-    );
+    ) throws com.fasterxml.jackson.core.JsonProcessingException;
 
     protected final String collectorBatchIdPrefix(String ojName) {
         return COLLECTOR_BATCH_ID_PREFIX + "-" + ojName.toLowerCase(Locale.ROOT);
@@ -110,8 +111,15 @@ public abstract class AbstractOjSubmissionCollectionAdapter implements OjSubmiss
     }
 
     protected static final class HandleCollectionProgress {
-        private final List<JsonNode> matchedSubmissions = new ArrayList<>();
+        private final String handle;
+        private final OjSubmissionCollectionBatchWriter batchWriter;
         private int fetchedSubmissionCount;
+        private int matchedSubmissionCount;
+
+        private HandleCollectionProgress(String handle, OjSubmissionCollectionBatchWriter batchWriter) {
+            this.handle = requireText(handle, "handle");
+            this.batchWriter = Objects.requireNonNull(batchWriter, "batchWriter must not be null");
+        }
 
         public void addFetchedSubmissionCount(int count) {
             if (count < 0) {
@@ -120,13 +128,27 @@ public abstract class AbstractOjSubmissionCollectionAdapter implements OjSubmiss
             fetchedSubmissionCount = Math.addExact(fetchedSubmissionCount, count);
         }
 
-        public void addMatchedSubmission(JsonNode submission) {
-            matchedSubmissions.add(Objects.requireNonNull(submission, "submission must not be null"));
+        public void writeMatchedSubmission(JsonNode submission)
+                throws com.fasterxml.jackson.core.JsonProcessingException {
+            writeMatchedSubmissions(List.of(Objects.requireNonNull(submission, "submission must not be null")));
         }
 
-        public void addMatchedSubmissions(Collection<? extends JsonNode> submissions) {
-            Objects.requireNonNull(submissions, "submissions must not be null")
-                    .forEach(this::addMatchedSubmission);
+        public void writeMatchedSubmissions(Collection<? extends JsonNode> submissions)
+                throws com.fasterxml.jackson.core.JsonProcessingException {
+            Collection<? extends JsonNode> nonNullSubmissions =
+                    Objects.requireNonNull(submissions, "submissions must not be null");
+            if (nonNullSubmissions.isEmpty()) {
+                return;
+            }
+            List<JsonNode> chunk = nonNullSubmissions.stream()
+                    .map(submission -> Objects.requireNonNull(submission, "submission must not be null"))
+                    .toList();
+            try {
+                batchWriter.write(handle, chunk);
+            } catch (RuntimeException ex) {
+                throw new ChunkWriteFailure(ex);
+            }
+            matchedSubmissionCount = Math.addExact(matchedSubmissionCount, chunk.size());
         }
 
         private int fetchedSubmissionCount() {
@@ -134,12 +156,20 @@ public abstract class AbstractOjSubmissionCollectionAdapter implements OjSubmiss
         }
 
         private int matchedSubmissionCount() {
-            return matchedSubmissions.size();
+            return matchedSubmissionCount;
+        }
+    }
+
+    private static final class ChunkWriteFailure extends RuntimeException {
+        private final RuntimeException failure;
+
+        private ChunkWriteFailure(RuntimeException failure) {
+            super(failure);
+            this.failure = failure;
         }
 
-        private List<JsonNode> matchedSubmissions() {
-            return List.copyOf(matchedSubmissions);
+        private RuntimeException failure() {
+            return failure;
         }
-
     }
 }

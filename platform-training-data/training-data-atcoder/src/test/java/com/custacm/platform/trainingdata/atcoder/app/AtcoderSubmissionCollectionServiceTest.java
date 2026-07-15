@@ -73,6 +73,27 @@ class AtcoderSubmissionCollectionServiceTest {
     }
 
     @Test
+    void writesEachAtcoderSourcePageWithOneStableBatchId() throws Exception {
+        FakeSourceClient sourceClient = new FakeSourceClient();
+        sourceClient.addPage("tourist", page(
+                submission(21, "tourist", "2026-07-01T00:00:00Z"),
+                submission(22, "tourist", "2026-07-02T00:00:00Z")
+        ));
+        sourceClient.addPage("tourist", page(
+                submission(23, "tourist", "2026-07-03T00:00:00Z")
+        ));
+        RecordingSubmissionWriter writer = new RecordingSubmissionWriter();
+        AtcoderSubmissionCollectionService service = service(sourceClient, writer);
+
+        var result = service.collectRecentWindowForUsername("112487张三", LOOKBACK);
+
+        assertThat(result.writtenRows()).isEqualTo(3);
+        assertThat(writer.chunkSizes).containsExactly(2, 1);
+        assertThat(writer.batches).extracting(AtcoderCollectBatch::batchId)
+                .containsOnly(result.batchId());
+    }
+
+    @Test
     void firstSuccessfulCollectionCrawlsFullAtcoderHistoryAndCreatesCursor() throws Exception {
         FakeSourceClient sourceClient = new FakeSourceClient();
         sourceClient.addPage("tourist", page(submission(1, "tourist", "2020-01-01T00:00:00Z")));
@@ -262,9 +283,13 @@ class AtcoderSubmissionCollectionServiceTest {
 
     private static final class RecordingSubmissionWriter implements AtcoderOdsSubmissionWriter {
         private final List<AtcoderOdsSubmission> records = new ArrayList<>();
+        private final List<AtcoderCollectBatch> batches = new ArrayList<>();
+        private final List<Integer> chunkSizes = new ArrayList<>();
 
         @Override
         public void upsertBatch(AtcoderCollectBatch batch, List<AtcoderOdsSubmission> submissions) {
+            batches.add(batch);
+            chunkSizes.add(submissions.size());
             records.addAll(submissions);
         }
     }

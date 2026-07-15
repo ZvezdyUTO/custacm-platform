@@ -8,16 +8,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import top.naccl.exception.BadRequestException;
 import top.naccl.service.ArticleArchiveService;
-import top.naccl.service.BlogService;
 import top.naccl.service.ArticleRecycleBinService;
+import top.naccl.service.BlogService;
 import top.naccl.service.CategoryService;
 
 import java.io.ByteArrayOutputStream;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * @author huangbingrui.awa
@@ -42,6 +44,14 @@ class BlogAdminControllerTest {
 		controller.restore(42L);
 
 		verify(recycleBinService).restore(42L);
+	}
+
+	@Test
+	void rejectsUnboundedActiveAndRecycleBinPagesBeforeServiceAccess() {
+		assertThrows(BadRequestException.class, () -> controller.blogs("", null, 1, 101));
+		assertThrows(BadRequestException.class, () -> controller.recycleBin("", null, 0, 10));
+
+		verifyNoInteractions(blogService, categoryService, recycleBinService);
 	}
 
 	@Test

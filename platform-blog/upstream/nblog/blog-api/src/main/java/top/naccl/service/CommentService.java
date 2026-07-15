@@ -1,12 +1,11 @@
 package top.naccl.service;
 
 import top.naccl.entity.Comment;
-import top.naccl.model.vo.PageComment;
-
-import java.util.List;
+import top.naccl.model.vo.PageCommentPage;
 
 public interface CommentService {
-	List<PageComment> getPageCommentList(Integer page, Long blogId, Long parentCommentId);
+	PageCommentPage getPageComments(Integer page, Long blogId, Long parentCommentId,
+	                                int pageNum, int pageSize);
 
 	Comment getCommentById(Long id);
 

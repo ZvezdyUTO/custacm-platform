@@ -34,10 +34,6 @@ public interface BlogService {
 
 	void updateBlog(top.naccl.model.dto.Blog blog);
 
-	int countBlogByCategoryId(Long categoryId);
-
-	int countBlogByTagId(Long tagId);
-
 	Boolean getCommentEnabledByBlogId(Long blogId);
 
 	Boolean getPublishedByBlogId(Long blogId);

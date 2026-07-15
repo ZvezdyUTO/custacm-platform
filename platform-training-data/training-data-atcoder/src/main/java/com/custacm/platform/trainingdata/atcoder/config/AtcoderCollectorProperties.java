@@ -1,5 +1,6 @@
 package com.custacm.platform.trainingdata.atcoder.config;
 
+import com.custacm.platform.trainingdata.atcoder.domain.AtcoderSubmissionSourceClient;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
@@ -23,7 +24,12 @@ public record AtcoderCollectorProperties(
             baseUrl = "https://kenkoooo.com";
         }
         if (pageSize <= 0) {
-            pageSize = 500;
+            pageSize = AtcoderSubmissionSourceClient.USER_SUBMISSIONS_PAGE_LIMIT;
+        } else if (pageSize > AtcoderSubmissionSourceClient.USER_SUBMISSIONS_PAGE_LIMIT) {
+            throw new IllegalArgumentException(
+                    "pageSize must not exceed the AtCoder user submissions limit of "
+                            + AtcoderSubmissionSourceClient.USER_SUBMISSIONS_PAGE_LIMIT
+            );
         }
         if (connectTimeout == null || connectTimeout.isNegative() || connectTimeout.isZero()) {
             connectTimeout = DEFAULT_CONNECT_TIMEOUT;

@@ -67,12 +67,14 @@ function articlePage(list, pages = 1, categories = []) {
 	return {blogs: {list, pages}, categories}
 }
 
-function competition(id, username = 'alice', articles = []) {
+function competition(id, username = 'alice', articles = [], overrides = {}) {
 	return {
 		id,
 		fullName: `比赛 ${id}`,
+		competitionDate: '2026-10-25',
 		year: 2026,
 		participants: [{id: id * 10, username, displayName: username, articles}],
+		...overrides,
 	}
 }
 
@@ -163,11 +165,35 @@ describe('article competition bindings', () => {
 		expect(binding.attributes('aria-pressed')).toBe('true')
 		expect(binding.attributes('aria-label')).toContain('公开题解')
 		expect(binding.attributes('aria-label')).toContain('比赛 31')
+		expect(binding.get('small').text()).toBe('2026年10月25日 · 已关联')
+		expect(binding.get('time').attributes('datetime')).toBe('2026-10-25')
 
 		await binding.trigger('click')
 		await flushPromises()
 		expect(mocks.unbindCompetitionArticle).toHaveBeenCalledWith('token-value', 31, 9)
 		expect(wrapper.get('.article-competition-bindings > div > button').attributes('aria-pressed')).toBe('false')
+	})
+
+	it('falls back to the stored year and labels completely undated competition bindings', async () => {
+		mocks.getCompetitions.mockResolvedValue(competitionPage([
+			competition(31, 'alice', [], {competitionDate: null, year: 2024}),
+			competition(32, 'alice', [], {competitionDate: null, year: null}),
+		]))
+		const {wrapper} = mountArticles()
+		await flushPromises()
+
+		await wrapper.get('.competition-panel-toggle').trigger('click')
+		await flushPromises()
+
+		const metadata = wrapper.findAll('.competition-binding-list small')
+		expect(metadata.map(node => node.text())).toEqual([
+			'2024年 · 未关联',
+			'日期待补充 · 未关联',
+		])
+		const bindings = wrapper.findAll('.competition-binding-list > button')
+		expect(bindings[0].get('time').attributes('datetime')).toBe('2024')
+		expect(bindings[1].find('time').exists()).toBe(false)
+		expect(bindings[1].get('.competition-date-missing').text()).toBe('日期待补充')
 	})
 
 	it('loads every public page only on first expansion and reuses the lifecycle cache after mode switches', async () => {

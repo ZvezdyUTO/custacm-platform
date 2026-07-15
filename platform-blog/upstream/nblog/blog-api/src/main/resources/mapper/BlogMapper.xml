@@ -343,16 +343,6 @@
 		where id=#{id} and deleted_at is null
     </update>
 
-    <!--按分类id查询博客数量-->
-    <select id="countBlogByCategoryId" resultType="java.lang.Integer">
-        select count(*) from blog where category_id=#{categoryId}
-    </select>
-
-    <!--按标签id查询博客数量-->
-    <select id="countBlogByTagId" resultType="java.lang.Integer">
-        select count(*) from blog_tag where tag_id=#{tagId}
-    </select>
-
     <!--查询博客是否启用评论-->
     <select id="getCommentEnabledByBlogId" resultType="java.lang.Boolean">
 		select is_comment_enabled from blog where id=#{blogId} and deleted_at is null

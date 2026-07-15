@@ -267,13 +267,15 @@ export interface CompetitionAward {
   rankPosition: number | null;
   rankTotal: number | null;
   rank: string | null;
+  requiresLogin: boolean;
   recipients: CompetitionAwardRecipient[];
 }
 
 export interface Competition {
   id: number;
   fullName: string;
-  year: number;
+  competitionDate: string | null;
+  year: number | null;
   category: CompetitionCategory | null;
   categoryLabel: string | null;
   participationMode: CompetitionParticipationMode;
@@ -303,7 +305,7 @@ export interface CompetitionListQuery {
 
 export interface CompetitionCreateRequest {
   fullName: string;
-  year: number;
+  competitionDate: string | null;
   category: CompetitionCategory;
   participationMode: CompetitionParticipationMode;
 }
@@ -318,6 +320,7 @@ export interface CompetitionAwardCreateRequest {
   awardTier: CompetitionAwardTier;
   rankPosition: number | null;
   rankTotal: number | null;
+  requiresLogin: boolean;
   recipientUsernames: Username[];
 }
 

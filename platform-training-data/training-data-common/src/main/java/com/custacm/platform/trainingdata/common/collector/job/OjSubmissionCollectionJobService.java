@@ -1,5 +1,6 @@
 package com.custacm.platform.trainingdata.common.collector.job;
 
+import com.custacm.platform.trainingdata.common.collector.OjCollectionExecutionCoordinator;
 import com.custacm.platform.trainingdata.common.collector.result.OjSubmissionCollectionResult;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
 
@@ -27,6 +28,7 @@ public class OjSubmissionCollectionJobService {
     private final Clock clock;
     private final Duration itemInterval;
     private final SleepStrategy sleepStrategy;
+    private final OjCollectionExecutionCoordinator executionCoordinator;
     private final Map<String, JobState> jobs = new ConcurrentHashMap<>();
 
     public OjSubmissionCollectionJobService(
@@ -44,6 +46,24 @@ public class OjSubmissionCollectionJobService {
             Duration itemInterval
     ) {
         this(collector, refreshHandler, executor, Clock.systemUTC(), itemInterval);
+    }
+
+    public OjSubmissionCollectionJobService(
+            RecentIdentityCollector collector,
+            RefreshHandler refreshHandler,
+            Executor executor,
+            Duration itemInterval,
+            OjCollectionExecutionCoordinator executionCoordinator
+    ) {
+        this(
+                collector,
+                refreshHandler,
+                executor,
+                Clock.systemUTC(),
+                itemInterval,
+                duration -> Thread.sleep(duration.toMillis()),
+                executionCoordinator
+        );
     }
 
     public OjSubmissionCollectionJobService(
@@ -73,12 +93,36 @@ public class OjSubmissionCollectionJobService {
             Duration itemInterval,
             SleepStrategy sleepStrategy
     ) {
+        this(
+                collector,
+                refreshHandler,
+                executor,
+                clock,
+                itemInterval,
+                sleepStrategy,
+                new OjCollectionExecutionCoordinator()
+        );
+    }
+
+    OjSubmissionCollectionJobService(
+            RecentIdentityCollector collector,
+            RefreshHandler refreshHandler,
+            Executor executor,
+            Clock clock,
+            Duration itemInterval,
+            SleepStrategy sleepStrategy,
+            OjCollectionExecutionCoordinator executionCoordinator
+    ) {
         this.collector = Objects.requireNonNull(collector, "collector must not be null");
         this.refreshHandler = Objects.requireNonNull(refreshHandler, "refreshHandler must not be null");
         this.executor = Objects.requireNonNull(executor, "executor must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.itemInterval = itemInterval == null || itemInterval.isNegative() ? Duration.ZERO : itemInterval;
         this.sleepStrategy = Objects.requireNonNull(sleepStrategy, "sleepStrategy must not be null");
+        this.executionCoordinator = Objects.requireNonNull(
+                executionCoordinator,
+                "executionCoordinator must not be null"
+        );
     }
 
     public OjSubmissionCollectionJobSnapshot startBatchCollection(
@@ -89,17 +133,25 @@ public class OjSubmissionCollectionJobService {
     ) {
         List<String> identities = normalizeIdentities(usernames);
         requirePositiveDuration(lookback);
+        String normalizedOjName = normalizeOjName(ojName);
         synchronized (jobs) {
-            OjSubmissionCollectionJobSnapshot active = activeJob();
+            OjSubmissionCollectionJobSnapshot active = activeJob(normalizedOjName);
             if (active != null) {
                 return active;
             }
             String jobId = UUID.randomUUID().toString();
-            String normalizedOjName = normalizeOptionalText(ojName);
             JobState state = new JobState(jobId, normalizedOjName, identities, clock.instant(), "采集任务已创建");
             jobs.put(jobId, state);
             pruneCompletedJobs();
-            executor.execute(() -> runJob(state, identities, lookback, refreshWarehouse, normalizedOjName));
+            try {
+                executor.execute(() -> executionCoordinator.runExclusive(
+                        normalizedOjName,
+                        () -> runJob(state, identities, lookback, refreshWarehouse, normalizedOjName)
+                ));
+            } catch (RuntimeException ex) {
+                jobs.remove(jobId, state);
+                throw ex;
+            }
             return state.snapshot();
         }
     }
@@ -128,10 +180,11 @@ public class OjSubmissionCollectionJobService {
                 .toList();
     }
 
-    private OjSubmissionCollectionJobSnapshot activeJob() {
+    private OjSubmissionCollectionJobSnapshot activeJob(String ojName) {
         return jobs.values().stream()
                 .map(JobState::snapshot)
                 .filter(job -> job.status() == OjSubmissionCollectionJobStatus.RUNNING)
+                .filter(job -> job.ojName().equals(ojName))
                 .findFirst()
                 .orElse(null);
     }
@@ -238,9 +291,9 @@ public class OjSubmissionCollectionJobService {
         }
     }
 
-    private static String normalizeOptionalText(String value) {
+    private static String normalizeOjName(String value) {
         if (value == null || value.isBlank()) {
-            return null;
+            return OjNames.CODEFORCES;
         }
         return OjNames.normalize(value);
     }
@@ -343,7 +396,9 @@ public class OjSubmissionCollectionJobService {
             long failedCount = items.stream()
                     .filter(item -> item.itemStatus() == OjSubmissionCollectionJobItemStatus.FAILED)
                     .count();
-            if (failedCount == 0) {
+            boolean refreshFailed = items.stream()
+                    .anyMatch(item -> item.refreshStatus() == OjSubmissionCollectionJobRefreshStatus.FAILED);
+            if (failedCount == 0 && !refreshFailed) {
                 return OjSubmissionCollectionJobStatus.SUCCESS;
             }
             return failedCount == items.size()

@@ -199,10 +199,14 @@ export function deleteHomepageFeaturedGroup(
 }
 
 export function listCompetitions(
+  token: string,
   query: CompetitionListQuery = {},
   signal?: AbortSignal,
 ): Promise<CompetitionPageResponse> {
-  return requestData(competitionListPath('/competitions', query), { signal });
+  return requestData(competitionListPath('/admin/competitions', query), {
+    headers: authHeaders(token),
+    signal,
+  });
 }
 
 export function listCompetitionRecycleBin(
@@ -268,6 +272,20 @@ export function deleteCompetitionAward(
   return requestData(
     `/admin/competitions/${encodeURIComponent(competitionId)}/awards/${encodeURIComponent(awardId)}`,
     { method: 'DELETE', headers: authHeaders(token) },
+  );
+}
+
+export function updateCompetitionAwardLoginRequirement(
+  token: string,
+  competitionId: number,
+  awardId: number,
+  requiresLogin: boolean,
+): Promise<Competition> {
+  return jsonRequest(
+    token,
+    `/admin/competitions/${encodeURIComponent(competitionId)}/awards/${encodeURIComponent(awardId)}/login-requirement`,
+    'PUT',
+    { requiresLogin },
   );
 }
 

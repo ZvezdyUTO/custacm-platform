@@ -207,6 +207,7 @@
 				this.avatarMutationId += 1
 				this.saving = false
 				this.errorMessage = ''
+				if (this.authorUsername) this.loadAuthorProfile()
 				if (token && user) this.loadProfile()
 			},
 			handleAvatarClick() {

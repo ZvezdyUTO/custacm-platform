@@ -108,7 +108,6 @@ public class ArticleRecycleBinService {
 		for (Long blogId : blogIds) {
 			imageAssetService.prepareBlogDeletion(blogId);
 			commentMapper.deleteCommentsByBlogId(blogId);
-			blogMapper.deleteBlogTagByBlogId(blogId);
 			if (blogMapper.deleteBlogById(blogId) != 1) {
 				throw new PersistenceException("回收站文章清理失败");
 			}

@@ -85,7 +85,7 @@ class PlayerProfileServiceTest {
 		CompetitionAchievement achievement = achievement();
 		when(userMapper.findByUsername("player1")).thenReturn(player);
 		when(linkMapper.findByUserId(7L)).thenReturn(List.of(link));
-		when(competitionService.publicAchievements("player1")).thenReturn(List.of(achievement));
+		when(competitionService.publicAchievements("player1", false)).thenReturn(List.of(achievement));
 
 		PublicProfile profile = service.getPublic("player1");
 
@@ -204,6 +204,7 @@ class PlayerProfileServiceTest {
 				31L,
 				"2025 年中国高校计算机大赛-团体程序设计天梯赛",
 				2025,
+				null,
 				"GPLT_NATIONAL",
 				"GPLT 团体程序设计天梯赛（国赛）",
 				List.of(new CompetitionResponse.Type("GPLT", "团体程序设计天梯赛")),

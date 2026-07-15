@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.naccl.exception.BadRequestException;
 import top.naccl.model.vo.Result;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -29,10 +30,19 @@ public class TrainingDataAdminController {
         if (request == null) {
             throw new BadRequestException("请求体不能为空");
         }
+        List<String> usernames;
+        Duration lookback;
+        String ojName;
+        try {
+            usernames = request.requireUsernames();
+            lookback = request.requireLookbackDuration();
+            ojName = request.optionalOjName();
+        } catch (IllegalArgumentException exception) {
+            throw new BadRequestException("请求参数错误", exception);
+        }
         return Result.ok("任务已创建", OjSubmissionCollectionJobResponse.from(
                 jobService.startBatchCollection(
-                        request.requireUsernames(), request.requireLookbackDuration(),
-                        request.refreshWarehouseOrDefault(), request.optionalOjName())));
+                        usernames, lookback, request.refreshWarehouseOrDefault(), ojName)));
     }
 
     @GetMapping("/submission-collection-jobs")
@@ -44,6 +54,9 @@ public class TrainingDataAdminController {
 
     @GetMapping("/submission-collection-jobs/{jobId}")
     public Result getJob(@PathVariable String jobId) {
+        if (jobId == null || jobId.isBlank()) {
+            throw new BadRequestException("任务 ID 不能为空");
+        }
         try {
             return Result.ok("获取成功", OjSubmissionCollectionJobResponse.from(jobService.getJob(jobId)));
         } catch (NoSuchElementException ex) {

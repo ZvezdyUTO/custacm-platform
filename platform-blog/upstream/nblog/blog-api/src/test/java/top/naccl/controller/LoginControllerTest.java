@@ -6,6 +6,7 @@ import top.naccl.exception.LoginBadCredentialsException;
 import top.naccl.model.dto.LoginInfo;
 import top.naccl.service.LoginAttemptLimiter;
 import top.naccl.service.UserService;
+import top.naccl.util.JwtUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -22,7 +23,8 @@ class LoginControllerTest {
 	void failedCredentialsKeepTheFiveSecondReservation() {
 		UserService userService = mock(UserService.class);
 		LoginAttemptLimiter limiter = mock(LoginAttemptLimiter.class);
-		LoginController controller = new LoginController(userService, limiter);
+		JwtUtils jwtUtils = mock(JwtUtils.class);
+		LoginController controller = new LoginController(userService, limiter, jwtUtils);
 		LoginInfo loginInfo = new LoginInfo();
 		loginInfo.setUsername("player1");
 		loginInfo.setPassword("wrong");

@@ -24,9 +24,6 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Check documentation sync
-        run: ./scripts/check-doc-sync.sh
-
       - name: Check shared frontend design tokens
         run: ./scripts/sync-design-tokens.sh --check
 

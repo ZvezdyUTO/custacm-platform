@@ -17,7 +17,9 @@ import top.naccl.util.BlogContentLimits;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Player 文章用例。作者和受管理员控制的字段只在服务端决定。
@@ -162,9 +164,6 @@ public class PlayerBlogService {
 			blog.setCategory(category);
 		} else if (cate instanceof String && !StringUtils.isEmpty(((String) cate).trim())) {
 			String name = ((String) cate).trim();
-			if (categoryService.getCategoryByName(name) != null) {
-				throw new BadRequestException("不可添加已存在的分类");
-			}
 			Category category = new Category();
 			category.setName(name);
 			categoryService.saveCategory(category);
@@ -174,18 +173,21 @@ public class PlayerBlogService {
 		}
 
 		List<Tag> tags = new ArrayList<>();
+		Set<String> seenTagKeys = new HashSet<>();
 		for (Object value : blog.getTagList()) {
 			if (value instanceof Number) {
-				tags.add(tagService.getTagById(((Number) value).longValue()));
+				long tagId = ((Number) value).longValue();
+				if (seenTagKeys.add("id:" + tagId)) {
+					tags.add(tagService.getTagById(tagId));
+				}
 			} else if (value instanceof String && !StringUtils.isEmpty(((String) value).trim())) {
 				String name = ((String) value).trim();
-				if (tagService.getTagByName(name) != null) {
-					throw new BadRequestException("不可添加已存在的标签");
+				if (seenTagKeys.add("name:" + name)) {
+					Tag tag = new Tag();
+					tag.setName(name);
+					tagService.saveTag(tag);
+					tags.add(tag);
 				}
-				Tag tag = new Tag();
-				tag.setName(name);
-				tagService.saveTag(tag);
-				tags.add(tag);
 			} else {
 				throw new BadRequestException("标签不正确");
 			}

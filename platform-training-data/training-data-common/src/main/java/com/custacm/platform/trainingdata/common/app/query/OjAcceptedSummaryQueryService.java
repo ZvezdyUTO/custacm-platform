@@ -3,8 +3,8 @@ package com.custacm.platform.trainingdata.common.app.query;
 import com.custacm.platform.trainingdata.common.app.account.TrainingUserDirectory;
 import com.custacm.platform.trainingdata.common.app.query.result.OjAcceptedSummaryReport;
 import com.custacm.platform.trainingdata.common.domain.oj.criteria.OjAcceptedSummaryCriteria;
-import com.custacm.platform.trainingdata.common.domain.oj.model.OjDailyRatingAcceptedSummary;
 import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleAccount;
+import com.custacm.platform.trainingdata.common.domain.oj.model.OjRatingAcceptedSummary;
 import com.custacm.platform.trainingdata.common.domain.oj.repo.OjAcceptedSummaryRepository;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicies;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjDifficultyBucketPolicy;
@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class OjAcceptedSummaryQueryService {
     private final OjAcceptedSummaryRepository repository;
@@ -85,7 +86,7 @@ public class OjAcceptedSummaryQueryService {
                 minProblemRating,
                 maxProblemRating
         );
-        List<OjDailyRatingAcceptedSummary> rows = repository.findDailyRatingAcceptedSummaries(query);
+        List<OjRatingAcceptedSummary> rows = repository.summarizeAcceptedProblemsByRating(query);
         return summarizeRows(account, ojHandle, query, rows);
     }
 
@@ -113,8 +114,8 @@ public class OjAcceptedSummaryQueryService {
                         maxProblemRating
                 ))
                 .toList();
-        List<OjDailyRatingAcceptedSummary> rows = repository.findDailyRatingAcceptedSummaries(queries);
-        Map<String, List<OjDailyRatingAcceptedSummary>> rowsByHandle = new LinkedHashMap<>();
+        List<OjRatingAcceptedSummary> rows = repository.summarizeAcceptedProblemsByRating(queries);
+        Map<String, List<OjRatingAcceptedSummary>> rowsByHandle = new LinkedHashMap<>();
         rows.forEach(row -> rowsByHandle.computeIfAbsent(row.authorHandle(), ignored -> new ArrayList<>()).add(row));
         return java.util.stream.IntStream.range(0, accounts.size())
                 .mapToObj(index -> summarizeRows(
@@ -130,7 +131,7 @@ public class OjAcceptedSummaryQueryService {
             OjHandleAccount account,
             String ojHandle,
             OjAcceptedSummaryCriteria query,
-            List<OjDailyRatingAcceptedSummary> rows
+            List<OjRatingAcceptedSummary> rows
     ) {
         OjDifficultyBucketPolicy bucketPolicy = bucketPolicies.policyFor(query.ojName());
         List<OjAcceptedSummaryReport.OjRatingAcceptedCount> ratingCounts = ratingCounts(
@@ -148,11 +149,17 @@ public class OjAcceptedSummaryQueryService {
     }
 
     private static List<OjAcceptedSummaryReport.OjRatingAcceptedCount> ratingCounts(
-            List<OjDailyRatingAcceptedSummary> rows,
+            List<OjRatingAcceptedSummary> rows,
             OjDifficultyBucketPolicy bucketPolicy,
             Integer minProblemRating,
             Integer maxProblemRating
     ) {
+        Map<String, Integer> countsByDifficulty = new LinkedHashMap<>();
+        rows.forEach(row -> countsByDifficulty.merge(
+                row.difficultyKey(),
+                row.acceptedProblemCount(),
+                Math::addExact
+        ));
         List<OjAcceptedSummaryReport.OjRatingAcceptedCount> counts = new ArrayList<>();
         List<String> allRatedBucketKeys = bucketPolicy.ratedBucketKeys();
         List<String> ratedBucketKeys = bucketPolicy.bucketKeysInRange(minProblemRating, maxProblemRating);
@@ -160,9 +167,7 @@ public class OjAcceptedSummaryQueryService {
             ratedBucketKeys = allRatedBucketKeys;
         }
         for (String bucketKey : ratedBucketKeys) {
-            int acceptedProblemCount = rows.stream()
-                    .mapToInt(row -> row.acceptedProblemCount(bucketKey))
-                    .sum();
+            int acceptedProblemCount = countsByDifficulty.getOrDefault(bucketKey, 0);
             if (acceptedProblemCount > 0) {
                 counts.add(new OjAcceptedSummaryReport.OjRatingAcceptedCount(
                         bucketKey,
@@ -172,8 +177,11 @@ public class OjAcceptedSummaryQueryService {
         }
 
         if (bucketPolicy.includesUnrated(minProblemRating, maxProblemRating)) {
-            int acceptedProblemCount = rows.stream()
-                    .mapToInt(row -> unratedOrUnknownAcceptedProblemCount(row, allRatedBucketKeys))
+            Set<String> ratedBucketKeySet = Set.copyOf(allRatedBucketKeys);
+            int acceptedProblemCount = countsByDifficulty.entrySet().stream()
+                    .filter(entry -> OjDifficultyBucketPolicies.UNRATED_KEY.equals(entry.getKey())
+                            || !ratedBucketKeySet.contains(entry.getKey()))
+                    .mapToInt(Map.Entry::getValue)
                     .sum();
             if (acceptedProblemCount > 0) {
                 counts.add(new OjAcceptedSummaryReport.OjRatingAcceptedCount(
@@ -184,17 +192,6 @@ public class OjAcceptedSummaryQueryService {
         }
 
         return counts;
-    }
-
-    private static int unratedOrUnknownAcceptedProblemCount(
-            OjDailyRatingAcceptedSummary row,
-            List<String> ratedBucketKeys
-    ) {
-        return row.acceptedProblemCountsByRating().entrySet().stream()
-                .filter(entry -> OjDifficultyBucketPolicies.UNRATED_KEY.equals(entry.getKey())
-                        || !ratedBucketKeys.contains(entry.getKey()))
-                .mapToInt(Map.Entry::getValue)
-                .sum();
     }
 
     private static int totalCount(List<OjAcceptedSummaryReport.OjRatingAcceptedCount> counts) {

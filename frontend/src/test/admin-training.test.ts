@@ -1,5 +1,5 @@
 // Author: huangbingrui.awa
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
 import TrainingDataOpsPanel from '../components/TrainingDataOpsPanel.vue';
@@ -14,7 +14,11 @@ describe('admin training collection', () => {
   });
 
   it('collects the jiangly handle on both OJs and always refreshes the warehouse', async () => {
-    const batchCollectSubmissions = vi.fn().mockResolvedValue(undefined);
+    let finishCodeforces!: () => void;
+    const codeforcesJob = new Promise<void>((resolve) => { finishCodeforces = resolve; });
+    const batchCollectSubmissions = vi.fn()
+      .mockImplementationOnce(() => codeforcesJob)
+      .mockRejectedValueOnce(new Error('AtCoder 采集失败'));
     const dashboard = {
       adminUsers: ref([{
         user: { id: 99, username: 'ui-test-jiangly', nickname: '临时测试', email: '', avatar: '', role: 'ROLE_player', createTime: '2026-07-12T00:00:00', updateTime: '2026-07-12T00:00:00' },
@@ -49,6 +53,14 @@ describe('admin training collection', () => {
     expect(batchCollectSubmissions).toHaveBeenNthCalledWith(2, {
       usernames: ['ui-test-jiangly'], lookbackHours: 1440, ojName: 'ATCODER', refreshWarehouse: true,
     });
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toBe('AtCoder 采集失败');
+
+    await wrapper.get('.collection-reference-controls select').setValue('CODEFORCES');
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+
+    finishCodeforces();
+    await flushPromises();
   });
 
   it('accepts the numeric value emitted by the all-users rollback input', async () => {

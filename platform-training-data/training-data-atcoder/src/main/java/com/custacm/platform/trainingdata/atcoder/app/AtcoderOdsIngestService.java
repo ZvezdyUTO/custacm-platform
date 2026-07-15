@@ -67,10 +67,14 @@ public class AtcoderOdsIngestService {
 
     public AtcoderOdsBatchUpsertResult upsertSubmissions(JsonNode submissions, String batchIdPrefix)
             throws JsonProcessingException {
+        return upsertSubmissions(submissions, newBatch(batchIdPrefix));
+    }
+
+    public AtcoderOdsBatchUpsertResult upsertSubmissions(JsonNode submissions, AtcoderCollectBatch batch)
+            throws JsonProcessingException {
         if (submissions == null || !submissions.isArray()) {
             throw new IllegalArgumentException("AtCoder submissions body must be a JSON array");
         }
-        AtcoderCollectBatch batch = newBatch(batchIdPrefix);
         var records = submissionParser.parseSubmissions(objectMapper.writeValueAsString(submissions), batch);
         submissionWriter.upsertBatch(batch, records);
         return new AtcoderOdsBatchUpsertResult(
@@ -79,6 +83,10 @@ public class AtcoderOdsIngestService {
                 records.size(),
                 batch.fetchedAt()
         );
+    }
+
+    AtcoderCollectBatch startSubmissionBatch(String batchIdPrefix) {
+        return newBatch(batchIdPrefix);
     }
 
     public AtcoderOdsBatchUpsertResult upsertProblems(JsonNode problems, String batchIdPrefix)

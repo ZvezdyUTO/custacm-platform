@@ -1,5 +1,7 @@
 package top.naccl.controller;
 
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,13 +30,19 @@ public class CompetitionController {
 			@RequestParam(required = false) Integer endYear,
 			@RequestParam(required = false) String category,
 			@RequestParam(defaultValue = "1") Integer pageNum,
-			@RequestParam(defaultValue = "10") Integer pageSize
+			@RequestParam(defaultValue = "10") Integer pageSize,
+			Authentication authentication
 	) {
-		return Result.ok("获取成功", competitionService.list(startYear, endYear, category, pageNum, pageSize));
+		return Result.ok("获取成功", competitionService.list(
+				startYear, endYear, category, pageNum, pageSize, isAuthenticated(authentication)));
 	}
 
 	@GetMapping("/{id}")
-	public Result get(@PathVariable Long id) {
-		return Result.ok("获取成功", competitionService.get(id));
+	public Result get(@PathVariable Long id, Authentication authentication) {
+		return Result.ok("获取成功", competitionService.get(id, isAuthenticated(authentication)));
+	}
+
+	private static boolean isAuthenticated(Authentication authentication) {
+		return authentication != null && !(authentication instanceof AnonymousAuthenticationToken);
 	}
 }

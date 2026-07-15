@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import top.naccl.entity.Blog;
+import top.naccl.exception.BadRequestException;
 import top.naccl.service.ArticleArchiveService;
 import top.naccl.service.ArticleDownloadService;
 import top.naccl.service.PlayerBlogService;
@@ -17,8 +18,10 @@ import top.naccl.service.PlayerBlogService;
 import java.io.ByteArrayOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -84,6 +87,18 @@ class PlayerBlogDownloadControllerTest {
 
 		verify(playerBlogService).delete("player1", 9L);
 		verify(playerBlogService).restore("player1", 9L);
+	}
+
+	@Test
+	void rejectsUnboundedActiveAndRecycleBinPagesBeforeServiceAccess() {
+		TestingAuthenticationToken authentication = new TestingAuthenticationToken(
+				"player1", null, "ROLE_player");
+
+		assertThrows(BadRequestException.class,
+				() -> controller.blogs(authentication, "", null, 1, 101));
+		assertThrows(BadRequestException.class,
+				() -> controller.recycleBin(authentication, "", null, 0, 10));
+		verifyNoInteractions(playerBlogService);
 	}
 
 	private static Blog article(Long id, String title, String content) {

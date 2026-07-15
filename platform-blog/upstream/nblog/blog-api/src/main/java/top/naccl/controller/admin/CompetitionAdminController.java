@@ -10,13 +10,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.naccl.model.dto.CompetitionAwardCreateRequest;
+import top.naccl.model.dto.CompetitionAwardLoginRequirementRequest;
 import top.naccl.model.dto.CompetitionCreateRequest;
 import top.naccl.model.dto.CompetitionParticipantsCreateRequest;
 import top.naccl.model.vo.Result;
 import top.naccl.service.CompetitionService;
 
 /**
- * 比赛、参赛队员和奖项的管理员添加/删除入口。
+ * 比赛、参赛队员和奖项的管理员入口；奖项仅开放查看权限这一项专用更新。
  *
  * @author huangbingrui.awa
  */
@@ -27,6 +28,18 @@ public class CompetitionAdminController {
 
 	public CompetitionAdminController(CompetitionService competitionService) {
 		this.competitionService = competitionService;
+	}
+
+	@GetMapping
+	public Result list(
+			@RequestParam(required = false) Integer startYear,
+			@RequestParam(required = false) Integer endYear,
+			@RequestParam(required = false) String category,
+			@RequestParam(defaultValue = "1") Integer pageNum,
+			@RequestParam(defaultValue = "10") Integer pageSize
+	) {
+		return Result.ok("获取成功",
+				competitionService.list(startYear, endYear, category, pageNum, pageSize, true));
 	}
 
 	@PostMapping
@@ -72,6 +85,13 @@ public class CompetitionAdminController {
 	@PostMapping("/{id}/awards")
 	public Result addAward(@PathVariable Long id, @RequestBody CompetitionAwardCreateRequest request) {
 		return Result.ok("奖项添加成功", competitionService.addAward(id, request));
+	}
+
+	@PutMapping("/{id}/awards/{awardId}/login-requirement")
+	public Result updateAwardLoginRequirement(@PathVariable Long id, @PathVariable Long awardId,
+			@RequestBody CompetitionAwardLoginRequirementRequest request) {
+		return Result.ok("奖项查看权限更新成功",
+				competitionService.updateAwardLoginRequirement(id, awardId, request));
 	}
 
 	@DeleteMapping("/{id}/awards/{awardId}")

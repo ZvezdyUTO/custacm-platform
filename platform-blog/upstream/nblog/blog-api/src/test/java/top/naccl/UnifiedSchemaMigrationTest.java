@@ -10,6 +10,43 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class UnifiedSchemaMigrationTest {
+	@Test
+	void taxonomyNamesAreDatabaseUnique() throws IOException {
+		String categoryMigration = resource("/db/migration/V043__enforce_category_name_uniqueness.sql")
+				.replaceAll("\\s+", " ");
+		String tagMigration = resource("/db/migration/V044__enforce_tag_name_uniqueness.sql")
+				.replaceAll("\\s+", " ");
+
+		assertTrue(categoryMigration.contains("ADD CONSTRAINT uk_category_name UNIQUE (category_name)"));
+		assertFalse(categoryMigration.contains("ALTER TABLE tag"));
+		assertTrue(tagMigration.contains("ADD CONSTRAINT uk_tag_name UNIQUE (tag_name)"));
+		assertFalse(tagMigration.contains("ALTER TABLE category"));
+	}
+
+	@Test
+	void taxonomyReferencesAndJoinPairsAreDatabaseEnforced() throws IOException {
+		String pairMigration = normalizedResource(
+				"/db/migration/V045__enforce_blog_tag_pair_uniqueness.sql");
+		String tagIndexMigration = normalizedResource(
+				"/db/migration/V046__index_blog_tag_by_tag.sql");
+		String categoryReferenceMigration = normalizedResource(
+				"/db/migration/V047__enforce_blog_category_reference.sql");
+		String blogReferenceMigration = normalizedResource(
+				"/db/migration/V048__enforce_blog_tag_blog_reference.sql");
+		String tagReferenceMigration = normalizedResource(
+				"/db/migration/V049__enforce_blog_tag_tag_reference.sql");
+
+		assertTrue(pairMigration.contains("ALTER TABLE blog_tag ADD PRIMARY KEY (blog_id, tag_id)"));
+		assertTrue(tagIndexMigration.contains(
+				"ALTER TABLE blog_tag ADD INDEX idx_blog_tag_tag_id_blog_id (tag_id, blog_id)"));
+		assertTrue(categoryReferenceMigration.contains(
+				"FOREIGN KEY (category_id) REFERENCES category (id) ON UPDATE RESTRICT ON DELETE RESTRICT"));
+		assertTrue(blogReferenceMigration.contains(
+				"FOREIGN KEY (blog_id) REFERENCES blog (id) ON UPDATE CASCADE ON DELETE CASCADE"));
+		assertTrue(tagReferenceMigration.contains(
+				"FOREIGN KEY (tag_id) REFERENCES tag (id) ON UPDATE CASCADE ON DELETE RESTRICT"));
+	}
+
     @Test
     void baselineDoesNotSeedAWellKnownAdministratorPassword() throws IOException {
         String migration = resource("/db/migration/V001__create_nblog_schema.sql");
@@ -145,6 +182,32 @@ class UnifiedSchemaMigrationTest {
 	}
 
 	@Test
+	void addsAnExplicitLoginRequirementToCompetitionAwards() throws IOException {
+		String migration = normalizedResource(
+				"/db/migration/V050__add_competition_award_login_requirement.sql");
+
+		assertTrue(migration.contains(
+				"ADD COLUMN requires_login boolean NOT NULL DEFAULT false AFTER award_name"));
+		assertTrue(migration.contains(
+				"CHECK (requires_login IN (false, true))"));
+	}
+
+	@Test
+	void addsAnOptionalCompetitionDateWhilePreservingHistoricalYears() throws IOException {
+		String migration = normalizedResource(
+				"/db/migration/V051__add_competition_date.sql");
+
+		assertTrue(migration.contains("DROP CHECK chk_competition_year"));
+		assertTrue(migration.contains("MODIFY COLUMN competition_year smallint unsigned NULL"));
+		assertTrue(migration.contains("ADD COLUMN competition_date date NULL AFTER competition_year"));
+		assertTrue(migration.contains(
+				"CHECK (competition_year IS NULL OR competition_year BETWEEN 1900 AND 9999)"));
+		assertTrue(migration.contains(
+				"competition_date IS NULL OR (competition_year IS NOT NULL AND YEAR(competition_date) = competition_year)"));
+		assertFalse(migration.toUpperCase().contains("UPDATE COMPETITION"));
+	}
+
+	@Test
 	void competitionCategoryQueriesMatchTheWholeStableTypeSetBeforePaging() throws IOException {
 		String mapper = resource("/mapper/CompetitionMapper.xml");
 
@@ -203,4 +266,8 @@ class UnifiedSchemaMigrationTest {
             return new String(input.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
+
+	private static String normalizedResource(String path) throws IOException {
+		return resource(path).replaceAll("\\s+", " ").trim();
+	}
 }

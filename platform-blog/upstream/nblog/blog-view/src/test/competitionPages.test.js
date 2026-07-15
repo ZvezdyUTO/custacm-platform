@@ -1,6 +1,6 @@
 // Author: huangbingrui.awa
-import {flushPromises, mount} from '@vue/test-utils'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {enableAutoUnmount, flushPromises, mount} from '@vue/test-utils'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {readFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 
@@ -13,12 +13,16 @@ vi.mock('@/api/competition', () => api)
 
 import CompetitionDetail from '@/views/competition/CompetitionDetail.vue'
 import CompetitionList from '@/views/competition/CompetitionList.vue'
+import {SESSION_CHANGE_EVENT} from '@/auth/session'
+
+enableAutoUnmount(afterEach)
 
 const competitionListSource = readFileSync(resolve(process.cwd(), 'src/views/competition/CompetitionList.vue'), 'utf8')
 
 const competition = {
 	id: 31,
 	fullName: '2026 ICPC Asia Shanghai Regional Contest',
+	competitionDate: '2026-10-25',
 	year: 2026,
 	category: 'ICPC_ASIA_REGIONAL',
 	categoryLabel: 'ICPC 亚洲区域赛',
@@ -42,6 +46,7 @@ const competition = {
 			rankPosition: 3,
 			rankTotal: 280,
 			rank: '(3/280)',
+			requiresLogin: false,
 			recipients: [
 				{participantId: 51, username: 'alice', displayName: 'Alice'},
 				{participantId: 52, username: null, displayName: '历史队员'},
@@ -58,6 +63,7 @@ const competition = {
 			rankPosition: 8,
 			rankTotal: 120,
 			rank: '(8/120)',
+			requiresLogin: true,
 			recipients: [{participantId: 51, username: 'alice', displayName: 'Alice'}],
 		},
 	],
@@ -118,7 +124,56 @@ describe('public competition pages', () => {
 		expect(wrapper.text()).not.toContain('CCPC 分站赛')
 		expect(wrapper.text()).toContain('2 人')
 		expect(wrapper.text()).toContain('2 项')
+		expect(wrapper.find('.record-honours').exists()).toBe(true)
 		expect(wrapper.text()).toContain('金牌 · (3/280)')
+		const recordDate = wrapper.get('.record-index time')
+		expect(recordDate.attributes('datetime')).toBe('2026-10-25')
+		expect(recordDate.attributes('aria-label')).toBe('2026年10月25日')
+		expect(recordDate.get('strong').text()).toBe('2026')
+		expect(recordDate.get('small').text()).toBe('10.25')
+	})
+
+	it.each([
+		['GPLT_NATIONAL', 'GPLT 团体程序设计天梯赛（国赛）'],
+		['BAIDU_STAR', '百度之星'],
+		['LANQIAO_CUP_NATIONAL', '蓝桥杯程序设计竞赛（国奖）'],
+	])('shows only the award count for %s on the list page', async (category, categoryLabel) => {
+		api.getCompetitions.mockResolvedValue({
+			pageNum: 1,
+			pageSize: 10,
+			total: 1,
+			totalPages: 1,
+			list: [{...competition, category, categoryLabel}],
+		})
+
+		const wrapper = listMount()
+		await flushPromises()
+
+		expect(wrapper.text()).toContain('2 项')
+		expect(wrapper.find('.record-honours').exists()).toBe(false)
+		expect(wrapper.text()).not.toContain('金牌')
+		expect(wrapper.text()).not.toContain('银牌')
+	})
+
+	it('also shows only the award count for a legacy GPLT category tag', async () => {
+		api.getCompetitions.mockResolvedValue({
+			pageNum: 1,
+			pageSize: 10,
+			total: 1,
+			totalPages: 1,
+			list: [{
+				...competition,
+				category: undefined,
+				categoryLabel: undefined,
+				types: [{code: 'GPLT', label: '团体程序设计天梯赛'}],
+			}],
+		})
+
+		const wrapper = listMount()
+		await flushPromises()
+
+		expect(wrapper.text()).toContain('2 项')
+		expect(wrapper.find('.record-honours').exists()).toBe(false)
 	})
 
 	it('exposes exactly the ten canonical public categories', async () => {
@@ -155,6 +210,47 @@ describe('public competition pages', () => {
 		expect(yearInputs).toHaveLength(2)
 		expect(yearInputs.map(input => input.attributes('placeholder'))).toEqual(['不限', '不限'])
 		expect(wrapper.vm.routeQuery()).toEqual({})
+	})
+
+	it('keeps year-only records readable and keeps exact dates optional', async () => {
+		const historical = {...competition, competitionDate: null, year: 2024}
+		api.getCompetitions.mockResolvedValue({pageNum: 1, pageSize: 10, total: 1, totalPages: 1, list: [historical]})
+		api.getCompetition.mockResolvedValue(historical)
+
+		const list = listMount()
+		const detail = detailMount()
+		await flushPromises()
+
+		const recordDate = list.get('.record-index time')
+		expect(recordDate.attributes('datetime')).toBe('2024')
+		expect(recordDate.attributes('aria-label')).toBe('2024年')
+		expect(recordDate.get('strong').text()).toBe('2024')
+		expect(recordDate.find('small').exists()).toBe(false)
+		expect(detail.get('.detail-subtitle').text()).toContain('2024年 · 团队')
+		expect(detail.get('.detail-overview dt').text()).toBe('赛事日期')
+		expect(detail.get('.detail-overview dd').text()).toBe('2024年')
+		expect(detail.get('.archive-number time').attributes('datetime')).toBe('2024')
+	})
+
+	it('labels records with neither an exact date nor a legacy year as pending', async () => {
+		const undated = {...competition, competitionDate: null, year: null}
+		api.getCompetitions.mockResolvedValue({pageNum: 1, pageSize: 10, total: 1, totalPages: 1, list: [undated]})
+		api.getCompetition.mockResolvedValue(undated)
+
+		const list = listMount()
+		const detail = detailMount()
+		await flushPromises()
+
+		expect(list.find('.record-index time').exists()).toBe(false)
+		const recordDate = list.get('.record-index .record-date')
+		expect(recordDate.element.tagName).toBe('SPAN')
+		expect(recordDate.attributes('aria-label')).toBe('日期待补充')
+		expect(recordDate.get('strong').text()).toBe('—')
+		expect(recordDate.get('small').text()).toBe('日期待补充')
+		expect(detail.get('.detail-subtitle').text()).toContain('日期待补充 · 团队')
+		expect(detail.get('.detail-overview dd').text()).toBe('日期待补充')
+		expect(detail.find('.archive-number time').exists()).toBe(false)
+		expect(detail.get('.archive-number .archive-date').element.tagName).toBe('SPAN')
 	})
 
 	it('uses the contest hall photograph as a decorative full-height masthead scene', async () => {
@@ -247,6 +343,13 @@ describe('public competition pages', () => {
 		expect(wrapper.text()).toContain('银牌')
 		expect(wrapper.text()).not.toContain('undefined')
 		expect(wrapper.text()).not.toContain('null')
+		expect(wrapper.get('.detail-subtitle').text()).toContain('2026年10月25日 · 团队')
+		expect(wrapper.get('.detail-overview dt').text()).toBe('赛事日期')
+		expect(wrapper.get('.detail-overview dd').text()).toBe('2026年10月25日')
+		const archiveDate = wrapper.get('.archive-number time')
+		expect(archiveDate.attributes('datetime')).toBe('2026-10-25')
+		expect(archiveDate.get('em').text()).toBe('2026')
+		expect(archiveDate.get('small').text()).toBe('10.25')
 		expect(wrapper.vm.backTo).toBe('/competitions?category=ICPC_ASIA_REGIONAL')
 	})
 
@@ -271,6 +374,22 @@ describe('public competition pages', () => {
 		expect(wrapper.text()).not.toContain('赛事排名')
 	})
 
+	it.each([
+		['GPLT_NATIONAL', 'GPLT 团体程序设计天梯赛（国赛）'],
+		['BAIDU_STAR', '百度之星'],
+		['LANQIAO_CUP_NATIONAL', '蓝桥杯程序设计竞赛（国奖）'],
+	])('keeps %s award records expanded on the detail page', async (category, categoryLabel) => {
+		api.getCompetition.mockResolvedValue({...competition, category, categoryLabel})
+
+		const wrapper = detailMount()
+		await flushPromises()
+
+		expect(wrapper.find('.award-list').exists()).toBe(true)
+		expect(wrapper.findAll('.award-record')).toHaveLength(2)
+		expect(wrapper.text()).toContain('金牌')
+		expect(wrapper.text()).toContain('银牌')
+	})
+
 	it('distinguishes a missing public record from a retryable transport failure', async () => {
 		api.getCompetition.mockRejectedValue({response: {status: 404, data: {msg: '比赛不存在'}}})
 		const wrapper = detailMount('404')
@@ -279,5 +398,51 @@ describe('public competition pages', () => {
 		expect(wrapper.text()).toContain('这份赛事档案不存在')
 		expect(wrapper.text()).toContain('查阅其他赛事')
 		expect(wrapper.text()).not.toContain('重新调阅')
+	})
+
+	it('reloads and removes stale login-required detail awards when the session changes', async () => {
+		api.getCompetition
+			.mockResolvedValueOnce(competition)
+			.mockResolvedValueOnce({...competition, awards: [competition.awards[0]]})
+		const wrapper = detailMount()
+		await flushPromises()
+		expect(wrapper.text()).toContain('银牌')
+
+		window.dispatchEvent(new Event(SESSION_CHANGE_EVENT))
+		await flushPromises()
+
+		expect(api.getCompetition).toHaveBeenCalledTimes(2)
+		expect(wrapper.text()).toContain('金牌')
+		expect(wrapper.text()).not.toContain('银牌')
+	})
+
+	it('reloads list counts and summaries when the session changes', async () => {
+		api.getCompetitions
+			.mockResolvedValueOnce({pageNum: 1, pageSize: 10, total: 1, totalPages: 1, list: [competition]})
+			.mockResolvedValueOnce({
+				pageNum: 1,
+				pageSize: 10,
+				total: 1,
+				totalPages: 1,
+				list: [{...competition, awards: [competition.awards[0]]}],
+			})
+		const wrapper = listMount()
+		await flushPromises()
+		expect(wrapper.text()).toContain('2 项')
+
+		window.dispatchEvent(new Event(SESSION_CHANGE_EVENT))
+		await flushPromises()
+
+		expect(api.getCompetitions).toHaveBeenCalledTimes(2)
+		expect(wrapper.text()).toContain('1 项')
+		expect(wrapper.text()).not.toContain('银牌')
+	})
+
+	it('uses a visibility-aware empty award state', async () => {
+		api.getCompetition.mockResolvedValue({...competition, awards: []})
+		const wrapper = detailMount()
+		await flushPromises()
+
+		expect(wrapper.text()).toContain('暂无可见获奖记录')
 	})
 })

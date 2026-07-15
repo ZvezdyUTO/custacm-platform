@@ -82,7 +82,11 @@
 						>
 							<span class="competition-binding-mark" aria-hidden="true">{{ isArticleBound(competition, blog.id) ? '✓' : '+' }}</span>
 							<strong>{{ competition.fullName }}</strong>
-							<small>{{ competition.year }} · {{ isArticleBound(competition, blog.id) ? '已关联' : '未关联' }}</small>
+							<small>
+								<time v-if="competitionDate(competition).isKnown" :datetime="competitionDate(competition).datetime">{{ competitionDate(competition).label }}</time>
+								<span v-else class="competition-date-missing">日期待补充</span>
+								· {{ isArticleBound(competition, blog.id) ? '已关联' : '未关联' }}
+							</small>
 						</button>
 					</div>
 				</div>
@@ -100,6 +104,7 @@
 	import {deleteMyBlog, getMyBlogs, getMyDeletedBlogs, restoreMyBlog} from '@/api/player-blog'
 	import {bindCompetitionArticle, unbindCompetitionArticle} from '@/api/player-competition'
 	import {clearSession, readToken, readUser, SESSION_CHANGE_EVENT} from '@/auth/session'
+	import {competitionDatePresentation} from '@/utils/competitionDatePresentation'
 
 	export default {
 		name: 'MyArticles',
@@ -132,6 +137,9 @@
 			this.competitionRequestId += 1
 		},
 		methods: {
+			competitionDate(competition) {
+				return competitionDatePresentation(competition)
+			},
 			refreshSession() {
 				const token = readToken() || ''
 				const username = readUser()?.username || ''
@@ -384,7 +392,7 @@
 	.competition-panel-message { margin: 0; color: var(--color-text-muted); font-size: 11px; }
 	.competition-panel-message.is-error { color: var(--color-danger); }
 	.competition-binding-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--color-border); }
-	.competition-binding-list > button { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-width: 0; border: 0; border-bottom: 1px solid var(--color-border); background: transparent; padding: 9px 7px; color: var(--color-text-muted); font: inherit; text-align: left; cursor: pointer; }
+	.competition-binding-list > button { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; column-gap: 8px; row-gap: 3px; min-width: 0; border: 0; border-bottom: 1px solid var(--color-border); background: transparent; padding: 9px 7px; color: var(--color-text-muted); font: inherit; text-align: left; cursor: pointer; }
 	.competition-binding-list > button:nth-child(odd) { border-right: 1px solid var(--color-border); }
 	.competition-binding-list > button.is-bound { background: #eaf4ef; color: #126244; }
 	.competition-binding-list > button:focus-visible { position: relative; outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
@@ -392,6 +400,6 @@
 	.competition-binding-list strong, .competition-binding-list small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.competition-binding-list strong { font-size: 11px; }
 	.competition-binding-list small { font-size: 10px; }
-	.competition-binding-mark { display: grid; width: 18px; height: 18px; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-size: 11px; font-weight: 800; }
+	.competition-binding-mark { display: grid; grid-row: 1 / span 2; width: 18px; height: 18px; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-size: 11px; font-weight: 800; }
 	.el-pagination { justify-content: center; margin-top: 18px; }
 </style>

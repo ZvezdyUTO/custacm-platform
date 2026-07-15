@@ -24,10 +24,12 @@ import java.util.Map;
 public class LoginController {
 	private final UserService userService;
 	private final LoginAttemptLimiter loginAttemptLimiter;
+	private final JwtUtils jwtUtils;
 
-	public LoginController(UserService userService, LoginAttemptLimiter loginAttemptLimiter) {
+	public LoginController(UserService userService, LoginAttemptLimiter loginAttemptLimiter, JwtUtils jwtUtils) {
 		this.userService = userService;
 		this.loginAttemptLimiter = loginAttemptLimiter;
+		this.jwtUtils = jwtUtils;
 	}
 
 	/**
@@ -48,7 +50,7 @@ public class LoginController {
 		}
 		loginAttemptLimiter.release(username);
 		user.setPassword(null);
-		String jwt = JwtUtils.generateToken(user.getUsername(), user.getAuthorities());
+		String jwt = jwtUtils.generateToken(user.getUsername(), user.getAuthorities());
 		Map<String, Object> map = new HashMap<>(4);
 		map.put("user", user);
 		map.put("token", jwt);

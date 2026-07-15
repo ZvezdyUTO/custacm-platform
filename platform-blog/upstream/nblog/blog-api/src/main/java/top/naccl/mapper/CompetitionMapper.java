@@ -84,6 +84,9 @@ public interface CompetitionMapper {
 
 	int insertAward(CompetitionAward award);
 
+	int updateAwardLoginRequirement(@Param("competitionId") Long competitionId,
+			@Param("awardId") Long awardId, @Param("requiresLogin") boolean requiresLogin);
+
 	int deleteAward(@Param("competitionId") Long competitionId, @Param("awardId") Long awardId);
 
 	int insertAwardRecipients(@Param("recipients") List<CompetitionAwardRecipient> recipients);

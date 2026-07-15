@@ -1,10 +1,11 @@
 package com.custacm.platform.trainingdata.codeforces.app;
 
 import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesSubmissionSourceClient;
+import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesCollectBatch;
 import com.custacm.platform.trainingdata.common.collector.AbstractOjSubmissionCollectionAdapter;
 import com.custacm.platform.trainingdata.common.collector.OjCollectionRequestExecutor;
+import com.custacm.platform.trainingdata.common.collector.OjSubmissionCollectionBatchWriter;
 import com.custacm.platform.trainingdata.common.collector.OjSubmissionWindowFilter;
-import com.custacm.platform.trainingdata.common.collector.result.OjHandleCollectionOutcome;
 import com.custacm.platform.trainingdata.common.collector.result.OjSubmissionCollectionWriteResult;
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -13,7 +14,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
@@ -54,6 +54,11 @@ final class CodeforcesSubmissionCollectionAdapter extends AbstractOjSubmissionCo
     }
 
     @Override
+    public OjSubmissionCollectionBatchWriter openBatch(String ojName) {
+        return new BatchWriter(ingestService.startSubmissionBatch(collectorBatchIdPrefix(ojName)));
+    }
+
+    @Override
     protected void collectHandleSubmissions(
             String ojName,
             String normalizedHandle,
@@ -61,7 +66,7 @@ final class CodeforcesSubmissionCollectionAdapter extends AbstractOjSubmissionCo
             Instant windowEndExclusive,
             OjCollectionRequestExecutor requestExecutor,
             HandleCollectionProgress progress
-    ) {
+    ) throws JsonProcessingException {
         int from = 1;
         while (true) {
             int currentFrom = from;
@@ -78,7 +83,7 @@ final class CodeforcesSubmissionCollectionAdapter extends AbstractOjSubmissionCo
                     windowEndExclusive,
                     CodeforcesSubmissionCollectionAdapter::creationTimeSeconds
             );
-            progress.addMatchedSubmissions(filteredPage.matchedSubmissions());
+            progress.writeMatchedSubmissions(filteredPage.matchedSubmissions());
             boolean reachedSourceEnd = responsePage.size() < pageSize;
             if (reachedSourceEnd || filteredPage.allSubmissionsAreOlderThanWindow()) {
                 break;
@@ -87,37 +92,54 @@ final class CodeforcesSubmissionCollectionAdapter extends AbstractOjSubmissionCo
         }
     }
 
-    @Override
-    public OjSubmissionCollectionWriteResult writeBatch(
-            String ojName,
-            List<OjHandleCollectionOutcome> outcomes
-    ) throws JsonProcessingException {
-        Map<String, ArrayNode> submissionsByHandle = new LinkedHashMap<>();
-        for (OjHandleCollectionOutcome outcome : outcomes) {
-            ArrayNode handleSubmissions = submissionsByHandle.computeIfAbsent(
-                    outcome.result().handle(),
-                    ignored -> objectMapper.createArrayNode()
-            );
-            outcome.submissions().forEach(submission -> handleSubmissions.add(submission.deepCopy()));
-        }
-        CodeforcesOdsBatchUpsertResult upsertResult = ingestService.upsertSubmissions(
-                submissionsByHandle,
-                collectorBatchIdPrefix(ojName)
-        );
-        return new OjSubmissionCollectionWriteResult(
-                upsertResult.batchId(),
-                upsertResult.tableName(),
-                upsertResult.writtenRows(),
-                upsertResult.fetchedAt()
-        );
-    }
-
     private static OptionalLong creationTimeSeconds(JsonNode submission) {
         JsonNode value = submission.path("creationTimeSeconds");
         if (!value.canConvertToLong()) {
-            return OptionalLong.empty();
+            throw new IllegalArgumentException("missing Codeforces submission creationTimeSeconds");
         }
         return OptionalLong.of(value.asLong());
+    }
+
+    private final class BatchWriter implements OjSubmissionCollectionBatchWriter {
+        private final CodeforcesCollectBatch batch;
+        private int writtenRows;
+        private String tableName;
+
+        private BatchWriter(CodeforcesCollectBatch batch) {
+            this.batch = batch;
+        }
+
+        @Override
+        public void write(String handle, List<JsonNode> submissions) throws JsonProcessingException {
+            if (submissions.isEmpty()) {
+                return;
+            }
+            ArrayNode submissionArray = objectMapper.createArrayNode().addAll(submissions);
+            CodeforcesOdsBatchUpsertResult chunk = ingestService.upsertSubmissions(
+                    Map.of(handle, submissionArray),
+                    batch
+            );
+            tableName = chunk.tableName();
+            writtenRows = Math.addExact(writtenRows, chunk.writtenRows());
+        }
+
+        @Override
+        public int writtenRows() {
+            return writtenRows;
+        }
+
+        @Override
+        public OjSubmissionCollectionWriteResult result() {
+            if (!hasWrites() || tableName == null) {
+                throw new IllegalStateException("collection batch has no written submissions");
+            }
+            return new OjSubmissionCollectionWriteResult(
+                    batch.batchId(),
+                    tableName,
+                    writtenRows,
+                    batch.fetchedAt()
+            );
+        }
     }
 
 }

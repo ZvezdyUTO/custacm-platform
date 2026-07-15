@@ -26,6 +26,7 @@ public record OjSubmissionCollectionHandleResult(
     public static OjSubmissionCollectionHandleResult failed(
             String handle,
             int fetchedSubmissionCount,
+            int matchedSubmissionCount,
             String errorCode,
             String message
     ) {
@@ -33,9 +34,18 @@ public record OjSubmissionCollectionHandleResult(
                 handle,
                 OjSubmissionCollectionHandleStatus.FAILED,
                 fetchedSubmissionCount,
-                0,
+                matchedSubmissionCount,
                 errorCode,
                 message
         );
+    }
+
+    public static OjSubmissionCollectionHandleResult failed(
+            String handle,
+            int fetchedSubmissionCount,
+            String errorCode,
+            String message
+    ) {
+        return failed(handle, fetchedSubmissionCount, 0, errorCode, message);
     }
 }

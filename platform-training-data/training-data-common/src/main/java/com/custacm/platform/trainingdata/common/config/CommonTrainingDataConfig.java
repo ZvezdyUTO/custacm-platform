@@ -7,6 +7,7 @@ import com.custacm.platform.trainingdata.common.app.query.OjAcceptedSummaryQuery
 import com.custacm.platform.trainingdata.common.app.query.OjFirstAcceptedProblemQueryService;
 import com.custacm.platform.trainingdata.common.app.query.OjSubmissionQueryService;
 import com.custacm.platform.trainingdata.common.app.query.OjWarehouseQueryFacade;
+import com.custacm.platform.trainingdata.common.collector.OjCollectionExecutionCoordinator;
 import com.custacm.platform.trainingdata.common.collector.config.OjCollectorSchedulingProperties;
 import com.custacm.platform.trainingdata.common.collector.dispatch.OjRecentSubmissionCollector;
 import com.custacm.platform.trainingdata.common.collector.dispatch.OjSubmissionCollectionDispatcher;
@@ -27,6 +28,7 @@ import com.custacm.platform.trainingdata.common.infra.oj.repo.query.JdbcOjFirstA
 import com.custacm.platform.trainingdata.common.infra.oj.repo.query.JdbcOjSubmissionRepository;
 import com.custacm.platform.trainingdata.common.infra.oj.repo.warehouse.JdbcOjWarehouseDataPurgeRepository;
 import com.custacm.platform.trainingdata.common.scheduler.OjScheduledSubmissionCollectionService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -148,27 +150,45 @@ public class CommonTrainingDataConfig {
         return new OjWarehouseRefreshDispatcher(refreshHandlers);
     }
 
+    @Bean
+    OjCollectionExecutionCoordinator ojCollectionExecutionCoordinator() {
+        return new OjCollectionExecutionCoordinator();
+    }
+
     @Bean(destroyMethod = "shutdown")
     ExecutorService ojSubmissionCollectionJobExecutor() {
-        return Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "oj-submission-collection-job");
-            thread.setDaemon(false);
-            return thread;
-        });
+        return Executors.newFixedThreadPool(
+                OjNames.supportedNames().size(),
+                Thread.ofPlatform()
+                        .name("oj-submission-collection-job-", 0)
+                        .factory()
+        );
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    ExecutorService ojScheduledCollectionExecutor() {
+        return Executors.newFixedThreadPool(
+                OjNames.supportedNames().size(),
+                Thread.ofPlatform()
+                        .name("oj-submission-collection-schedule-", 0)
+                        .factory()
+        );
     }
 
     @Bean
     OjSubmissionCollectionJobService ojSubmissionCollectionJobService(
             OjScheduledSubmissionCollectionService collectionService,
             OjWarehouseRefreshDispatcher warehouseRefreshDispatcher,
-            ExecutorService ojSubmissionCollectionJobExecutor,
-            OjCollectorSchedulingProperties properties
+            @Qualifier("ojSubmissionCollectionJobExecutor") ExecutorService ojSubmissionCollectionJobExecutor,
+            OjCollectorSchedulingProperties properties,
+            OjCollectionExecutionCoordinator executionCoordinator
     ) {
         return new OjSubmissionCollectionJobService(
                 collectionService::collectRecentWindowForUsername,
                 warehouseRefreshDispatcher,
                 ojSubmissionCollectionJobExecutor,
-                properties.jobItemInterval()
+                properties.jobItemInterval(),
+                executionCoordinator
         );
     }
 

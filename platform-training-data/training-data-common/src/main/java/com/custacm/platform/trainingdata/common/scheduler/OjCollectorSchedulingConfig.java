@@ -1,5 +1,6 @@
 package com.custacm.platform.trainingdata.common.scheduler;
 
+import com.custacm.platform.trainingdata.common.collector.OjCollectionExecutionCoordinator;
 import com.custacm.platform.trainingdata.common.collector.config.OjCollectorSchedulingProperties;
 import com.custacm.platform.trainingdata.common.collector.job.OjSubmissionCollectionJobRefreshResult;
 import com.custacm.platform.trainingdata.common.collector.job.OjSubmissionCollectionJobRefreshStatus;
@@ -8,6 +9,7 @@ import com.custacm.platform.trainingdata.common.collector.result.OjSubmissionCol
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
@@ -16,6 +18,7 @@ import org.springframework.scheduling.support.CronTrigger;
 
 import java.time.ZoneId;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 @Configuration
 @EnableScheduling
@@ -24,20 +27,30 @@ public class OjCollectorSchedulingConfig implements SchedulingConfigurer {
             "OJ_SCHEDULED_COLLECTION_FAILED";
     private static final String SCHEDULED_WAREHOUSE_REFRESH_FAILED_ERROR_CODE =
             "OJ_SCHEDULED_WAREHOUSE_REFRESH_FAILED";
+    private static final String SCHEDULED_COLLECTION_ALREADY_RUNNING_ERROR_CODE =
+            "OJ_SCHEDULED_COLLECTION_ALREADY_RUNNING";
+    private static final String SCHEDULED_COLLECTION_SUBMIT_FAILED_ERROR_CODE =
+            "OJ_SCHEDULED_COLLECTION_SUBMIT_FAILED";
     private static final Logger log = LoggerFactory.getLogger(OjCollectorSchedulingConfig.class);
 
     private final OjCollectorSchedulingProperties properties;
     private final OjScheduledSubmissionCollectionService collectionService;
     private final OjWarehouseRefreshDispatcher warehouseRefreshDispatcher;
+    private final Executor scheduledCollectionExecutor;
+    private final OjCollectionExecutionCoordinator executionCoordinator;
 
     public OjCollectorSchedulingConfig(
             OjCollectorSchedulingProperties properties,
             OjScheduledSubmissionCollectionService collectionService,
-            OjWarehouseRefreshDispatcher warehouseRefreshDispatcher
+            OjWarehouseRefreshDispatcher warehouseRefreshDispatcher,
+            @Qualifier("ojScheduledCollectionExecutor") Executor scheduledCollectionExecutor,
+            OjCollectionExecutionCoordinator executionCoordinator
     ) {
         this.properties = properties;
         this.collectionService = collectionService;
         this.warehouseRefreshDispatcher = warehouseRefreshDispatcher;
+        this.scheduledCollectionExecutor = scheduledCollectionExecutor;
+        this.executionCoordinator = executionCoordinator;
     }
 
     @Override
@@ -49,7 +62,7 @@ public class OjCollectorSchedulingConfig implements SchedulingConfigurer {
         }
         for (OjCollectorSchedulingProperties.Schedule schedule : schedules) {
             taskRegistrar.addTriggerTask(
-                    () -> collectScheduledWindow(schedule),
+                    () -> submitScheduledWindow(schedule),
                     new CronTrigger(schedule.cron(), ZoneId.of(schedule.zone()))
             );
             log.info(
@@ -59,6 +72,36 @@ public class OjCollectorSchedulingConfig implements SchedulingConfigurer {
                     schedule.cron(),
                     schedule.zone(),
                     schedule.lookback()
+            );
+        }
+    }
+
+    private void submitScheduledWindow(OjCollectorSchedulingProperties.Schedule schedule) {
+        var acquired = executionCoordinator.tryAcquire(schedule.ojName());
+        if (acquired.isEmpty()) {
+            log.warn(
+                    "Scheduled OJ submission collection skipped, errorCode={}, ojName={}, schedule={}",
+                    SCHEDULED_COLLECTION_ALREADY_RUNNING_ERROR_CODE,
+                    schedule.ojName(),
+                    schedule.name()
+            );
+            return;
+        }
+        OjCollectionExecutionCoordinator.Permit permit = acquired.orElseThrow();
+        try {
+            scheduledCollectionExecutor.execute(() -> {
+                try (permit) {
+                    collectScheduledWindow(schedule);
+                }
+            });
+        } catch (RuntimeException ex) {
+            permit.close();
+            log.error(
+                    "Failed to submit scheduled OJ submission collection, errorCode={}, ojName={}, schedule={}",
+                    SCHEDULED_COLLECTION_SUBMIT_FAILED_ERROR_CODE,
+                    schedule.ojName(),
+                    schedule.name(),
+                    ex
             );
         }
     }

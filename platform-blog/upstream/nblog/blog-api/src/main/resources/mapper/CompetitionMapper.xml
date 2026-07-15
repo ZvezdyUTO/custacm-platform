@@ -7,6 +7,7 @@
 		<result property="fullName" column="full_name"/>
 		<result property="activeFullName" column="active_full_name"/>
 		<result property="competitionYear" column="competition_year"/>
+		<result property="competitionDate" column="competition_date"/>
 		<result property="participationMode" column="participation_mode"/>
 		<result property="createTime" column="create_time"/>
 		<result property="deletedAt" column="deleted_at"/>
@@ -36,6 +37,7 @@
 		<result property="rankPosition" column="rank_position"/>
 		<result property="rankTotal" column="rank_total"/>
 		<result property="awardName" column="award_name"/>
+		<result property="requiresLogin" column="requires_login"/>
 		<result property="profileVisible" column="profile_visible"/>
 		<result property="createTime" column="create_time"/>
 	</resultMap>
@@ -65,6 +67,7 @@
 		<result property="competitionId" column="competition_id"/>
 		<result property="competitionFullName" column="competition_full_name"/>
 		<result property="competitionYear" column="competition_year"/>
+		<result property="competitionDate" column="competition_date"/>
 		<result property="awardMode" column="award_mode"/>
 		<result property="teamName" column="team_name"/>
 		<result property="awardScope" column="award_scope"/>
@@ -72,12 +75,13 @@
 		<result property="rankPosition" column="rank_position"/>
 		<result property="rankTotal" column="rank_total"/>
 		<result property="awardName" column="award_name"/>
+		<result property="requiresLogin" column="requires_login"/>
 		<result property="profileVisible" column="profile_visible"/>
 		<result property="profileOrder" column="profile_sort_order"/>
 	</resultMap>
 
 	<sql id="competitionColumns">
-		c.id, c.full_name, c.active_full_name, c.competition_year,
+		c.id, c.full_name, c.active_full_name, c.competition_year, c.competition_date,
 		c.participation_mode, c.create_time, c.deleted_at
 	</sql>
 
@@ -149,9 +153,10 @@
 	<insert id="insertCompetition" parameterType="top.naccl.entity.Competition"
 			useGeneratedKeys="true" keyProperty="id">
 		insert into competition
-		(full_name, active_full_name, competition_year, participation_mode, create_time, deleted_at)
+		(full_name, active_full_name, competition_year, competition_date,
+		 participation_mode, create_time, deleted_at)
 		values
-		(#{fullName}, #{fullName}, #{competitionYear}, #{participationMode},
+		(#{fullName}, #{fullName}, #{competitionYear}, #{competitionDate,jdbcType=DATE}, #{participationMode},
 		 coalesce(#{createTime}, now()), null)
 	</insert>
 
@@ -220,7 +225,7 @@
 
 	<select id="findAwardsByCompetitionIds" resultMap="award">
 		select a.id, a.competition_id, a.award_mode, a.team_name, a.award_scope,
-		a.award_level, a.rank_position, a.rank_total, a.award_name, a.create_time
+		a.award_level, a.rank_position, a.rank_total, a.award_name, a.requires_login, a.create_time
 		from competition_award a
 		<choose>
 			<when test="competitionIds != null and !competitionIds.isEmpty()">
@@ -317,7 +322,7 @@
 
 	<select id="findAwardByIdForUpdate" resultMap="award">
 		select id, competition_id, award_mode, team_name, award_scope,
-		award_level, rank_position, rank_total, award_name, create_time
+		award_level, rank_position, rank_total, award_name, requires_login, create_time
 		from competition_award
 		where id = #{id}
 		for update
@@ -327,11 +332,17 @@
 			useGeneratedKeys="true" keyProperty="id">
 		insert into competition_award
 		(competition_id, award_mode, team_name, award_scope, award_level,
-		 rank_position, rank_total, award_name, create_time)
+		 rank_position, rank_total, award_name, requires_login, create_time)
 		values
 		(#{competitionId}, #{awardMode}, #{teamName}, #{awardScope}, #{awardLevel},
-		 #{rankPosition}, #{rankTotal}, #{awardName}, coalesce(#{createTime}, now()))
+		 #{rankPosition}, #{rankTotal}, #{awardName}, #{requiresLogin}, coalesce(#{createTime}, now()))
 	</insert>
+
+	<update id="updateAwardLoginRequirement">
+		update competition_award
+		set requires_login = #{requiresLogin}
+		where competition_id = #{competitionId} and id = #{awardId}
+	</update>
 
 	<delete id="deleteAward">
 		delete from competition_award
@@ -416,10 +427,10 @@
 
 	<select id="findActiveAwardProjectionsByUsername" resultMap="awardFlat">
 		select c.id as competition_id, c.full_name as competition_full_name,
-		c.competition_year, ctt.type as competition_type,
+		c.competition_year, c.competition_date, ctt.type as competition_type,
 		a.id as award_id, a.award_mode, a.team_name, a.award_scope,
 		a.award_level, a.rank_position, a.rank_total, a.award_name,
-		car.profile_visible, car.profile_sort_order
+		a.requires_login, car.profile_visible, car.profile_sort_order
 		from competition_participant p
 		join competition_award_recipient car on car.participant_id = p.id
 		join competition_award a on a.id = car.award_id

@@ -1,6 +1,5 @@
 package top.naccl.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -10,6 +9,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import top.naccl.service.impl.UserServiceImpl;
+import top.naccl.util.JwtUtils;
 
 /**
  * @Description: Spring Security配置类
@@ -18,10 +18,18 @@ import top.naccl.service.impl.UserServiceImpl;
  */
 @Configuration
 public class SecurityConfig {
-	@Autowired
-	UserServiceImpl userService;
-	@Autowired
-	MyAuthenticationEntryPoint myAuthenticationEntryPoint;
+	private final UserServiceImpl userService;
+	private final MyAuthenticationEntryPoint myAuthenticationEntryPoint;
+	private final JwtUtils jwtUtils;
+
+	public SecurityConfig(
+			UserServiceImpl userService,
+			MyAuthenticationEntryPoint myAuthenticationEntryPoint,
+			JwtUtils jwtUtils) {
+		this.userService = userService;
+		this.myAuthenticationEntryPoint = myAuthenticationEntryPoint;
+		this.jwtUtils = jwtUtils;
+	}
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -40,7 +48,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/**").permitAll()
 						.anyRequest().denyAll())
 				//校验显式携带的JWT，并按数据库中的当前角色授权
-				.addFilterBefore(new JwtFilter(userService), UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(new JwtFilter(userService, jwtUtils), UsernamePasswordAuthenticationFilter.class)
 				//未登录时，返回json，在前端执行重定向
 				.exceptionHandling(exception -> exception
 						.authenticationEntryPoint(myAuthenticationEntryPoint)

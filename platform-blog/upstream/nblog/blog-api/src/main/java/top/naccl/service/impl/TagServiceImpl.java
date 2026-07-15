@@ -1,11 +1,13 @@
 package top.naccl.service.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.naccl.constant.RedisKeyConstants;
 import top.naccl.constant.TaxonomyColorPalette;
 import top.naccl.entity.Tag;
+import top.naccl.exception.ConflictException;
 import top.naccl.exception.NotFoundException;
 import top.naccl.exception.PersistenceException;
 import top.naccl.mapper.TagMapper;
@@ -25,10 +27,13 @@ import java.util.Map;
  */
 @Service
 public class TagServiceImpl implements TagService {
-	@Autowired
-	TagMapper tagMapper;
-	@Autowired
-	RedisService redisService;
+	private final TagMapper tagMapper;
+	private final RedisService redisService;
+
+	public TagServiceImpl(TagMapper tagMapper, RedisService redisService) {
+		this.tagMapper = tagMapper;
+		this.redisService = redisService;
+	}
 
 	@Override
 	public List<Tag> getTagList() {
@@ -65,8 +70,12 @@ public class TagServiceImpl implements TagService {
 	@Override
 	public void saveTag(Tag tag) {
 		tag.setColor(TaxonomyColorPalette.randomDark());
-		if (tagMapper.saveTag(tag) != 1) {
-			throw new PersistenceException("标签添加失败");
+		try {
+			if (tagMapper.saveTag(tag) != 1) {
+				throw new PersistenceException("标签添加失败");
+			}
+		} catch (DuplicateKeyException exception) {
+			throw new ConflictException("该标签已存在", exception);
 		}
 		redisService.deleteCacheByKey(RedisKeyConstants.TAG_CLOUD_LIST);
 	}
@@ -80,16 +89,15 @@ public class TagServiceImpl implements TagService {
 		return tag;
 	}
 
-	@Override
-	public Tag getTagByName(String name) {
-		return tagMapper.getTagByName(name);
-	}
-
 	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void deleteTagById(Long id) {
-		if (tagMapper.deleteTagById(id) != 1) {
-			throw new PersistenceException("标签删除失败");
+		try {
+			if (tagMapper.deleteTagById(id) != 1) {
+				throw new NotFoundException("标签不存在");
+			}
+		} catch (DataIntegrityViolationException exception) {
+			throw new ConflictException("已有博客与此标签关联，不可删除", exception);
 		}
 		redisService.deleteCacheByKey(RedisKeyConstants.TAG_CLOUD_LIST);
 	}

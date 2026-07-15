@@ -22,6 +22,8 @@ import top.naccl.service.UserService;
 import top.naccl.service.PlayerAvatarService;
 import top.naccl.service.PlayerProfileService;
 import top.naccl.util.StringUtils;
+import top.naccl.exception.BadRequestException;
+import top.naccl.exception.PersistenceException;
 
 import java.util.Map;
 
@@ -75,13 +77,15 @@ public class PlayerAccountController {
 	@PatchMapping("/password")
 	public Result updatePassword(Authentication authentication, @RequestBody PasswordUpdate update) {
 		if (StringUtils.isEmpty(update.getOldPassword(), update.getNewPassword()) || update.getNewPassword().length() < 6) {
-			return Result.create(400, "新密码至少需要 6 个字符");
+			throw new BadRequestException("新密码至少需要 6 个字符");
 		}
 		try {
-			return userService.changePassword(authentication.getName(), update.getOldPassword(), update.getNewPassword())
-					? Result.ok("修改成功") : Result.error("修改失败");
+			if (!userService.changePassword(authentication.getName(), update.getOldPassword(), update.getNewPassword())) {
+				throw new PersistenceException("修改失败");
+			}
+			return Result.ok("修改成功");
 		} catch (BadCredentialsException e) {
-			return Result.create(400, "旧密码错误");
+			throw new BadRequestException("旧密码错误", e);
 		}
 	}
 }

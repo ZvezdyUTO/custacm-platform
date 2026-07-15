@@ -55,11 +55,15 @@ public class PlayerProfileService {
 	}
 
 	public PublicProfile getPublic(String username) {
+		return getPublic(username, false);
+	}
+
+	public PublicProfile getPublic(String username, boolean includeLoginRequiredAchievements) {
 		User user = requireUser(username);
 		List<ProfileLinkResponse> links = links(user);
 		var avatar = imageAssetService.response(user.getAvatarAssetId());
 		return new PublicProfile(user, links, avatar == null ? user.getAvatar() : avatar.originalUrl(),
-				competitionService.publicAchievements(user.getUsername()));
+				competitionService.publicAchievements(user.getUsername(), includeLoginRequiredAchievements));
 	}
 
 	@Transactional

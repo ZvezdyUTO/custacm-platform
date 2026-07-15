@@ -11,6 +11,7 @@ import top.naccl.model.vo.BlogInfo;
 import top.naccl.model.vo.PageResult;
 import top.naccl.model.vo.Result;
 import top.naccl.model.vo.SearchBlog;
+import top.naccl.exception.BadRequestException;
 import top.naccl.service.BlogService;
 import top.naccl.util.StringUtils;
 
@@ -60,7 +61,7 @@ public class BlogController {
 	public Result searchBlog(@RequestParam String query, Authentication authentication) {
 		//校验关键字字符串合法性
 		if (StringUtils.isEmpty(query) || StringUtils.hasSpecialChar(query) || query.trim().length() > 20) {
-			return Result.error("参数错误");
+			throw new BadRequestException("参数错误");
 		}
 		List<SearchBlog> searchBlogs = blogService.getSearchBlogListByQueryAndIsPublished(query.trim(), isAuthenticated(authentication));
 		return Result.ok("获取成功", searchBlogs);

@@ -1,9 +1,8 @@
 # Scripts Agent Notes
 
-- Keep scripts compatible with their declared shell and never commit real secrets.
-- There are exactly two startup entrypoints: `dev.sh` keeps the Docker database/Redis/API running without forcing backend rebuilds and runs both Vue frontends through Vite/HMR; `deploy.sh` builds and starts the complete stable four-service Compose stack and checks all public paths.
-- `dev.sh` stops the production Nginx frontend while it owns ports 4180/5173 in the foreground; Ctrl-C stops both Vite processes but leaves backend containers running. `deploy.sh` switches back to the Nginx production frontend.
-- Do not add module-only deployment scripts, a wrapper under `deploy/`, a third startup mode, or scripts that pull Git implicitly.
-- `check-doc-sync.sh` and `check-test-policy.sh` enforce documentation and Java test/report policy.
-- `sync-design-tokens.sh` only synchronizes or checks repository-local CSS token copies; it is not a startup or deployment entrypoint and must not access the network.
-- Deployment changes require synchronized `deploy/README.md`, `deploy/UPDATE.md` and `docs/server-deployment.md` updates.
+- 脚本必须兼容其声明的 shell，保持非交互、可失败退出，并且不得写入或输出真实 secret。
+- 启动入口只有 `dev.sh` 和 `deploy.sh`；其行为以 [deploy/README.md](../deploy/README.md) 为准。不得新增第三种模式、模块级部署或 `deploy/` 下的包装入口。
+- 启动和部署脚本不得隐式执行 Git 拉取、切换分支、提交或推送，也不得删除数据库或 Redis 命名卷。
+- `dev.sh` 进入开发模式时停止生产 Nginx，退出时只停止两份 Vite 并保留 Docker 后端；`deploy.sh` 构建、启动并验证完整四服务栈。
+- `check-test-policy.sh` 和 `sync-design-tokens.sh` 是校验/同步工具，不是启动入口；token 同步脚本不得访问网络。
+- 脚本行为变化时更新自身 usage，并只在运行或升级方式确实变化时同步 `deploy/README.md`。

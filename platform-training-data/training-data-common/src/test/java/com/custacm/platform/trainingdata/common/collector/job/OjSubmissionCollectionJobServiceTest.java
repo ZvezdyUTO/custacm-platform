@@ -12,8 +12,14 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -87,8 +93,87 @@ class OjSubmissionCollectionJobServiceTest {
         );
 
         assertThat(first.status()).isEqualTo(OjSubmissionCollectionJobStatus.RUNNING);
+        assertThat(first.ojName()).isEqualTo("CODEFORCES");
         assertThat(second.jobId()).isEqualTo(first.jobId());
         assertThat(queued).hasSize(1);
+    }
+
+    @Test
+    void admitsOnlyOneSameOjJobWhenStartsRace() throws Exception {
+        List<Runnable> queued = new ArrayList<>();
+        OjSubmissionCollectionJobService service = service(
+                (ojName, username, lookback) -> collectionResult("tourist", "batch-1", 10),
+                result -> OjSubmissionCollectionJobRefreshResult.notRequested(),
+                queued::add
+        );
+        ExecutorService starters = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+
+        try {
+            Future<OjSubmissionCollectionJobSnapshot> first = starters.submit(
+                    () -> startAfterSignal(service, "230511213黄炳睿", ready, start)
+            );
+            Future<OjSubmissionCollectionJobSnapshot> second = starters.submit(
+                    () -> startAfterSignal(service, "230511214李明", ready, start)
+            );
+            assertThat(ready.await(2, SECONDS)).isTrue();
+            start.countDown();
+
+            assertThat(first.get(2, SECONDS).jobId()).isEqualTo(second.get(2, SECONDS).jobId());
+            assertThat(queued).hasSize(1);
+        } finally {
+            start.countDown();
+            starters.shutdownNow();
+            assertThat(starters.awaitTermination(2, SECONDS)).isTrue();
+        }
+    }
+
+    @Test
+    void startsDifferentOjJobsIndependently() {
+        List<Runnable> queued = new ArrayList<>();
+        OjSubmissionCollectionJobService service = service(
+                (ojName, username, lookback) -> collectionResult("tourist", "batch-1", 10),
+                result -> OjSubmissionCollectionJobRefreshResult.notRequested(),
+                queued::add
+        );
+
+        OjSubmissionCollectionJobSnapshot codeforces = service.startBatchCollection(
+                List.of("230511213黄炳睿"),
+                Duration.ofHours(24),
+                false,
+                "CODEFORCES"
+        );
+        OjSubmissionCollectionJobSnapshot atcoder = service.startBatchCollection(
+                List.of("230511213黄炳睿"),
+                Duration.ofHours(24),
+                false,
+                "ATCODER"
+        );
+
+        assertThat(codeforces.jobId()).isNotEqualTo(atcoder.jobId());
+        assertThat(codeforces.ojName()).isEqualTo("CODEFORCES");
+        assertThat(atcoder.ojName()).isEqualTo("ATCODER");
+        assertThat(queued).hasSize(2);
+    }
+
+    @Test
+    void removesJobWhenExecutorRejectsIt() {
+        OjSubmissionCollectionJobService service = service(
+                (ojName, username, lookback) -> collectionResult("tourist", "batch-1", 10),
+                result -> OjSubmissionCollectionJobRefreshResult.notRequested(),
+                command -> {
+                    throw new RejectedExecutionException("executor stopped");
+                }
+        );
+
+        assertThatThrownBy(() -> service.startBatchCollection(
+                List.of("230511213黄炳睿"),
+                Duration.ofHours(24),
+                false,
+                "CODEFORCES"
+        )).isInstanceOf(RejectedExecutionException.class);
+        assertThat(service.listJobs()).isEmpty();
     }
 
     @Test
@@ -132,9 +217,9 @@ class OjSubmissionCollectionJobServiceTest {
         );
 
         assertThat(events).containsExactly(
-                "collect:null:230511213黄炳睿",
+                "collect:CODEFORCES:230511213黄炳睿",
                 "sleep:PT4S",
-                "collect:null:230511214李明"
+                "collect:CODEFORCES:230511214李明"
         );
     }
 
@@ -160,7 +245,7 @@ class OjSubmissionCollectionJobServiceTest {
     }
 
     @Test
-    void recordsRefreshFailureWithoutFailingCollectionItem() {
+    void reportsPartialSuccessWhenCollectionSucceedsButRefreshFails() {
         OjSubmissionCollectionJobService service = service(
                 (ojName, username, lookback) -> collectionResult("tourist", "batch-1", 10),
                 result -> {
@@ -175,7 +260,7 @@ class OjSubmissionCollectionJobServiceTest {
                 true
         );
 
-        assertThat(snapshot.status()).isEqualTo(OjSubmissionCollectionJobStatus.SUCCESS);
+        assertThat(snapshot.status()).isEqualTo(OjSubmissionCollectionJobStatus.PARTIAL_SUCCESS);
         assertThat(snapshot.refreshedCount()).isZero();
         assertThat(snapshot.items()).singleElement().satisfies(item -> {
             assertThat(item.itemStatus()).isEqualTo(OjSubmissionCollectionJobItemStatus.SUCCESS);
@@ -207,6 +292,22 @@ class OjSubmissionCollectionJobServiceTest {
                 refreshHandler,
                 executor,
                 Clock.fixed(NOW, ZoneOffset.UTC)
+        );
+    }
+
+    private static OjSubmissionCollectionJobSnapshot startAfterSignal(
+            OjSubmissionCollectionJobService service,
+            String username,
+            CountDownLatch ready,
+            CountDownLatch start
+    ) throws InterruptedException {
+        ready.countDown();
+        start.await();
+        return service.startBatchCollection(
+                List.of(username),
+                Duration.ofHours(24),
+                false,
+                "CODEFORCES"
         );
     }
 

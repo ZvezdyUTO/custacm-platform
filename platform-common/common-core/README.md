@@ -1,43 +1,42 @@
 # common-core
 
-`common-core` contains reusable non-business backend utilities for the platform.
-
-Current responsibility:
-
-- SQL task DAG execution core: read a YAML manifest on every run, build an adjacency-list graph, validate that the graph is a DAG, and execute SQL task nodes in topological order.
+`common-core` contains reusable, non-business backend infrastructure. Its current responsibility is the SQL task DAG executor: load a YAML manifest, validate the graph, build a topological plan and execute SQL nodes with one transaction per node.
 
 ## Directory Layout
 
 ```text
-common-core/
-  src/main/java/com/custacm/platform/common/sqltask/
-  src/test/java/com/custacm/platform/common/sqltask/
-  src/test/resources/sqltask/
+src/main/java/com/custacm/platform/common/sqltask/
+src/test/java/com/custacm/platform/common/sqltask/
+src/test/resources/sqltask/
 ```
 
 ## Dependency And Layer Rules
 
-- Must not contain business entities or module-specific table/domain concepts.
-- May contain shared infrastructure helpers that are reusable by multiple backend modules.
-- SQL task execution depends only on Spring core resources, Spring JDBC/transactions, SnakeYAML, and SLF4J.
-- Callers own their business manifest, SQL files, HTTP controllers, request validation, and security tier.
+- Must not contain business entities, module-specific schema concepts, HTTP controllers or authorization rules.
+- Depends only on Spring resources/JDBC/transactions, SnakeYAML and SLF4J in production code.
+- Callers own business manifests, SQL files, parameters, transport validation and security tiers.
+- Each task node executes in its own transaction; graph validation and fail-fast semantics stay inside the executor.
 
-## File Responsibilities
+## Key Entries
 
-- `pom.xml` - declares common-core dependencies for Spring resources, JDBC/transactions, YAML parsing, SLF4J, and tests.
-- `SqlTaskRunner.java` - public executor that reads the manifest on each invocation, validates the graph, executes nodes sequentially, applies one transaction per node, and logs run/node lifecycle events.
-- `YamlSqlTaskManifestLoader.java` - loads and validates YAML manifest structure into task definitions.
-- `SqlTaskGraph.java` - builds the adjacency-list graph, validates unique/missing/self dependencies, checks DAG shape, creates topological execution plans, and supports `startFromTaskId` resume plans with a dedicated invalid-start-node error code.
-- `SqlScriptSplitter.java` - splits multi-statement SQL scripts while preserving semicolons inside quoted text and comments.
-- `SqlTaskDefinition.java` - immutable task definition with id, description, SQL resource location, dependencies, and timeout.
-- `SqlTaskExecutionRequest.java` - execution input: manifest location, named SQL parameters, and optional `startFromTaskId`.
-- `SqlTaskExecutionResult.java` - run-level result: run id, status, manifest, resume node, failed node, timing, and node results.
-- `SqlTaskNodeResult.java` - node-level result for success, failure, or skipped downstream nodes.
-- `SqlTaskRunStatus.java` - run status enum.
-- `SqlTaskNodeStatus.java` - node status enum.
-- `SqlTaskException.java` - runtime exception carrying a stable SQL task error code.
-- `SqlTaskErrorCode.java` - stable error codes used by logs and HTTP adapters.
-- `SqlTaskRunnerTest.java` - verifies DAG execution, resume execution, invalid graph rejection, fail-fast behavior, skipped downstream nodes, and failed-node transaction rollback.
-- `SqlScriptSplitterTest.java` - verifies SQL statement splitting around quotes and comments.
-- `src/test/resources/sqltask/*.yml` - test manifests for valid, cyclic, missing-dependency, and failing graphs.
-- `src/test/resources/sqltask/*.sql` - test SQL scripts used by the common-core executor tests.
+| Path | Responsibility |
+| --- | --- |
+| `SqlTaskRunner.java` | Public manifest execution entrypoint and node transaction orchestration. |
+| `YamlSqlTaskManifestLoader.java` | YAML loading and manifest-structure validation. |
+| `SqlTaskManifest.java` and `SqlTaskDefinition.java` | Immutable manifest and task definitions. |
+| `SqlTaskGraph.java` | Dependency validation, DAG checks and execution-plan construction. |
+| `SqlScriptSplitter.java` | SQL statement splitting with quote/comment awareness. |
+| `SqlTaskExecutionRequest.java` | Manifest, parameters and optional resume-node input. |
+| `SqlTaskExecutionResult.java`, `SqlTaskNodeResult.java` and status enums | Run and node outcomes. |
+| `SqlTaskException.java` and `SqlTaskErrorCode.java` | Stable executor failure contract. |
+| `src/test/` | DAG, transaction, resume, failure and SQL-splitting tests/fixtures. |
+
+This table lists stable concepts rather than every supporting type.
+
+## Verification
+
+Run from the repository root:
+
+```bash
+mvn clean test
+```
