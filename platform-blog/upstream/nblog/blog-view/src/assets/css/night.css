@@ -472,8 +472,12 @@ html.dark .avatar-action {
 	color: #fff7ef;
 }
 
+html.dark .m-toc a.toc-link {
+	color: var(--theme-text-soft) !important;
+}
+
 html.dark .m-toc .toc-list li a:hover,
-html.dark .m-toc .is-active-link {
+html.dark .m-toc a.is-active-link {
 	color: var(--theme-accent-hover) !important;
 }
 
@@ -674,7 +678,14 @@ html.dark .comment .text a {
 }
 
 html.dark .comment-username {
-	color: var(--theme-muted-dim);
+	color: var(--theme-muted);
+}
+
+html.dark .comment-submit-button.el-button--primary,
+html.dark .comment-submit-button.el-button--primary span,
+html.dark .comment-reply-button.el-button--primary,
+html.dark .comment-reply-button.el-button--primary span {
+	color: var(--theme-text) !important;
 }
 
 html.dark .comments + .border,
@@ -1249,34 +1260,19 @@ html.dark .footer-link:focus-visible {
 	background: rgba(217, 148, 74, .13);
 }
 
-/* The article catalog participates in the global light theme instead of staying dark. */
-html[data-theme='light'] .site.is-catalog,
-html[data-theme='light'] .site.is-catalog .main,
-html[data-theme='light'] .article-catalog-page {
-	background: var(--anthropic-ivory-light) !important;
-	color: var(--anthropic-slate-dark) !important;
-}
-
-html[data-theme='light'] .article-catalog-page {
-	--catalog-canvas: var(--anthropic-ivory-light) !important;
-	--catalog-surface: #f7f7f5 !important;
-	--catalog-border: #d1cfc5 !important;
-	--catalog-text: var(--anthropic-slate-dark) !important;
-	--catalog-muted: var(--anthropic-slate-light) !important;
-	--catalog-accent: var(--anthropic-clay) !important;
-}
-
-html[data-theme='light'] .site.is-catalog .site-nav {
-	border-bottom-color: var(--glass-border) !important;
-	background: var(--glass-background) !important;
-}
-
-html[data-theme='light'] .site.is-catalog .site-nav :is(.nav-item, .nav-training-trigger, .nav-auth-trigger) {
-	color: var(--color-text) !important;
-}
-
-html[data-theme='light'] .site.is-catalog .site-nav .active.nav-item::after {
-	background: var(--color-action) !important;
+html.dark .article-catalog-page {
+	--catalog-canvas: #141413 !important;
+	--catalog-surface: #1c1c1b !important;
+	--catalog-border: #333330 !important;
+	--catalog-border-strong: #5a5954 !important;
+	--catalog-text: #faf9f5 !important;
+	--catalog-muted: #b0aea5 !important;
+	--catalog-accent: #e68a6d !important;
+	--catalog-selection: #242422 !important;
+	--catalog-media: #050505 !important;
+	--catalog-media-text: #b0aea5 !important;
+	--catalog-action: #faf9f5 !important;
+	--catalog-on-action: #141413 !important;
 }
 
 /* Current home and competition components define local light variables; remap them in night mode. */
@@ -1300,8 +1296,8 @@ html.dark .competition-page {
 }
 
 html.dark .competition-page {
-	--archive-navy: #d97757 !important;
-	--archive-navy-soft: #e68a6d !important;
+	--archive-navy: #faf9f5 !important;
+	--archive-navy-soft: #e8e6dc !important;
 	--archive-copper: #d97757 !important;
 	--archive-copper-soft: #4a332b !important;
 	--archive-paper: #1c1c1b !important;
@@ -1309,6 +1305,8 @@ html.dark .competition-page {
 	--archive-line: #333330 !important;
 	--archive-ink: #faf9f5 !important;
 	--archive-muted: #b0aea5 !important;
+	--archive-action: #d97757 !important;
+	--archive-on-action: #141413 !important;
 }
 
 html.dark :is(.archive-state, .archive-loading) {

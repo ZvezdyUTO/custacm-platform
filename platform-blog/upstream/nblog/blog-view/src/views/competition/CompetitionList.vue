@@ -118,7 +118,13 @@
 								<dd>{{ articleCount(competition) }} 篇</dd>
 							</div>
 						</dl>
-						<div v-if="showAwardSummaries(competition)" class="record-honours">
+						<dl v-if="showAwardTierCounts(competition)" class="record-award-counts" aria-label="奖项等级统计">
+							<div v-for="tier in awardTierCounts(competition)" :key="tier.code">
+								<dt>{{ tier.label }}</dt>
+								<dd><strong>{{ tier.count }}</strong> 项</dd>
+							</div>
+						</dl>
+						<div v-else-if="showAwardSummaries(competition)" class="record-honours">
 							<span v-for="award in safeList(competition.awards).slice(0, 3)" :key="award.id">
 								{{ awardSummary(award, competition) }}
 							</span>
@@ -158,11 +164,24 @@
 	const PAGE_SIZE = 10
 	const MIN_YEAR = 1900
 	const MAX_YEAR = 9999
-	const COUNT_ONLY_AWARD_CATEGORIES = new Set([
+	const TIER_COUNT_AWARD_CATEGORIES = new Set([
 		'GPLT_NATIONAL',
 		'BAIDU_STAR',
 		'LANQIAO_CUP_NATIONAL',
 	])
+	const TIER_COUNT_LABELS = Object.freeze({
+		BAIDU_NATIONAL_FIRST: '国一',
+		BAIDU_NATIONAL_SECOND: '国二',
+		BAIDU_NATIONAL_THIRD: '国三',
+		BAIDU_NATIONAL_FOURTH: '国四',
+		BAIDU_PROVINCIAL_FIRST: '省一',
+		BAIDU_PROVINCIAL_SECOND: '省二',
+		BAIDU_PROVINCIAL_THIRD: '省三',
+		FIRST_PRIZE: '国一',
+		SECOND_PRIZE: '国二',
+		THIRD_PRIZE: '国三',
+	})
+	const TIER_COUNT_ORDER = Object.freeze(Object.keys(TIER_COUNT_LABELS))
 	export default {
 		name: 'CompetitionList',
 		data() {
@@ -262,7 +281,34 @@
 			showAwardSummaries(competition) {
 				const awards = this.safeList(competition?.awards)
 				const category = competitionCategory(competition)
-				return awards.length > 0 && !COUNT_ONLY_AWARD_CATEGORIES.has(category?.code)
+				return awards.length > 0 && !TIER_COUNT_AWARD_CATEGORIES.has(category?.code)
+			},
+			showAwardTierCounts(competition) {
+				const category = competitionCategory(competition)
+				return this.safeList(competition?.awards).length > 0
+					&& TIER_COUNT_AWARD_CATEGORIES.has(category?.code)
+			},
+			awardTierCounts(competition) {
+				const counts = new Map()
+				this.safeList(competition?.awards).forEach((award, index) => {
+					const tier = typeof award?.awardTier === 'string' ? award.awardTier.trim().toUpperCase() : ''
+					const label = TIER_COUNT_LABELS[tier]
+						|| (typeof award?.awardTierLabel === 'string' && award.awardTierLabel.trim())
+						|| (typeof award?.awardName === 'string' && award.awardName.trim())
+						|| '其他'
+					const code = tier || label
+					const current = counts.get(code)
+					counts.set(code, current
+						? {...current, count: current.count + 1}
+						: {code, label, count: 1, index})
+				})
+				return [...counts.values()].sort((left, right) => {
+					const leftOrder = TIER_COUNT_ORDER.indexOf(left.code)
+					const rightOrder = TIER_COUNT_ORDER.indexOf(right.code)
+					return (leftOrder < 0 ? Number.MAX_SAFE_INTEGER : leftOrder)
+						- (rightOrder < 0 ? Number.MAX_SAFE_INTEGER : rightOrder)
+						|| left.index - right.index
+				})
 			},
 			navigate(pageNum) {
 				const query = this.routeQuery(pageNum)
@@ -357,7 +403,10 @@
 		--archive-paper-deep: #ede7dc;
 		--archive-line: #cfd5d9;
 		--archive-ink: #1b2934;
-		--archive-muted: #65727b;
+		--archive-muted: #485660;
+		--archive-action: #173149;
+		--archive-on-action: #fff;
+		--el-text-color-placeholder: var(--archive-muted);
 		min-height: 620px;
 		color: var(--archive-ink);
 	}
@@ -368,7 +417,7 @@
 		min-height: 284px;
 		align-items: center;
 		overflow: hidden;
-		border-top: 4px solid var(--archive-navy);
+		border-top: 4px solid var(--archive-action);
 		border-bottom: 1px solid var(--archive-line);
 		background: var(--archive-paper);
 		padding: 38px 42px 34px;
@@ -526,7 +575,7 @@
 	.filter-actions button,
 	.archive-state button {
 		min-height: 42px;
-		border: 1px solid var(--archive-navy);
+		border: 1px solid var(--archive-action);
 		border-radius: 2px;
 		padding: 0 18px;
 		font-weight: 600;
@@ -536,8 +585,8 @@
 
 	.filter-submit,
 	.archive-state button {
-		background: var(--archive-navy);
-		color: #fff;
+		background: var(--archive-action);
+		color: var(--archive-on-action);
 	}
 
 	.filter-reset {
@@ -805,6 +854,41 @@
 		font-style: normal;
 	}
 
+	.record-award-counts {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1px;
+		background: var(--archive-line);
+		margin: 14px 0 0;
+	}
+
+	.record-award-counts div {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 9px;
+		background: var(--archive-paper-deep);
+		padding: 7px 11px;
+	}
+
+	.record-award-counts dt {
+		color: var(--archive-copper);
+		font-size: 12px;
+		font-weight: 700;
+	}
+
+	.record-award-counts dd {
+		margin: 0;
+		color: var(--archive-muted);
+		font-size: 11px;
+	}
+
+	.record-award-counts strong {
+		color: var(--archive-navy);
+		font-family: Georgia, "Times New Roman", serif;
+		font-size: 18px;
+		font-variant-numeric: tabular-nums;
+	}
+
 	.archive-pagination {
 		display: flex;
 		justify-content: center;
@@ -816,8 +900,8 @@
 	.archive-pagination :deep(.btn-prev:hover),
 	.archive-pagination :deep(.btn-next:hover),
 	.archive-pagination :deep(.el-pager li:hover) {
-		background: var(--archive-navy) !important;
-		color: #fff !important;
+		background: var(--archive-action) !important;
+		color: var(--archive-on-action) !important;
 	}
 
 	@media (max-width: 1000px) {

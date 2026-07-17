@@ -66,7 +66,7 @@ append_referer() {
   esac
 }
 
-referer_hosts=$(printf '%s' "${FRONTEND_IMAGE_REFERER_HOSTS:-custacm.top}" | tr ',' ' ')
+referer_hosts=$(printf '%s' "${FRONTEND_IMAGE_REFERER_HOSTS:-custacm.top,www.custacm.top}" | tr ',' ' ')
 for referer_host in $referer_hosts; do
   append_referer "$referer_host"
 done
@@ -81,4 +81,30 @@ if [ -z "$trusted_referers" ]; then
   exit 1
 fi
 
-sed "s|__CUSTACM_IMAGE_TRUSTED_REFERERS__|$trusted_referers|g" "$config" > "$output_config"
+image_public_origin=${FRONTEND_IMAGE_PUBLIC_ORIGIN:-https://www.custacm.top}
+case "$image_public_origin" in
+  https://*)
+    image_public_host=${image_public_origin#https://}
+    ;;
+  *)
+    echo "FRONTEND_IMAGE_PUBLIC_ORIGIN must be an HTTPS origin without a path" >&2
+    exit 1
+    ;;
+esac
+
+case "$image_public_host" in
+  */*|*'*'*)
+    echo "FRONTEND_IMAGE_PUBLIC_ORIGIN must be an HTTPS origin without a path or wildcard" >&2
+    exit 1
+    ;;
+esac
+
+if ! validate_referer_pattern "$image_public_host"; then
+  echo "Invalid FRONTEND_IMAGE_PUBLIC_ORIGIN host: $image_public_host" >&2
+  exit 1
+fi
+
+sed \
+  -e "s|__CUSTACM_IMAGE_TRUSTED_REFERERS__|$trusted_referers|g" \
+  -e "s|__CUSTACM_IMAGE_PUBLIC_ORIGIN__|$image_public_origin|g" \
+  "$config" > "$output_config"

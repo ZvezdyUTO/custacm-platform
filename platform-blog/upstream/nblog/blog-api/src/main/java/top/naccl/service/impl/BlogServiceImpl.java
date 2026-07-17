@@ -36,8 +36,8 @@ public class BlogServiceImpl implements BlogService {
 	TagService tagService;
 	@Autowired
 	RedisService redisService;
-	//每页显示5条博客简介
-	private static final int pageSize = 5;
+	//公开文章目录每页固定显示 6 篇文章。
+	static final int PAGE_SIZE = 6;
 	//博客简介列表排序方式
 	private static final String orderBy = "is_top desc, create_time desc";
 
@@ -54,7 +54,7 @@ public class BlogServiceImpl implements BlogService {
 	@Override
 	public PageResult<BlogInfo> getBlogInfoListByIsPublished(Integer pageNum, boolean includeInternal) {
 		if (includeInternal) {
-			PageHelper.startPage(pageNum, pageSize, orderBy);
+			PageHelper.startPage(pageNum, PAGE_SIZE, orderBy);
 			return pageResult(blogMapper.getBlogInfoListByIsPublished(true));
 		}
 		String redisKey = RedisKeyConstants.HOME_BLOG_INFO_LIST;
@@ -64,7 +64,7 @@ public class BlogServiceImpl implements BlogService {
 			return pageResultFromRedis;
 		}
 		//redis没有缓存，从数据库查询，并添加缓存
-		PageHelper.startPage(pageNum, pageSize, orderBy);
+		PageHelper.startPage(pageNum, PAGE_SIZE, orderBy);
 		PageResult<BlogInfo> pageResult = pageResult(blogMapper.getBlogInfoListByIsPublished(false));
 		//添加首页缓存
 		redisService.saveKVToHash(redisKey, pageNum, pageResult);
@@ -74,14 +74,14 @@ public class BlogServiceImpl implements BlogService {
 	@Override
 	public PageResult<BlogInfo> getBlogInfoListByCategoryNameAndIsPublished(String categoryName, Integer pageNum,
 			boolean includeInternal) {
-		PageHelper.startPage(pageNum, pageSize, orderBy);
+		PageHelper.startPage(pageNum, PAGE_SIZE, orderBy);
 		return pageResult(blogMapper.getBlogInfoListByCategoryNameAndIsPublished(categoryName, includeInternal));
 	}
 
 	@Override
 	public PageResult<BlogInfo> getBlogInfoListByTagNameAndIsPublished(String tagName, Integer pageNum,
 			boolean includeInternal) {
-		PageHelper.startPage(pageNum, pageSize, orderBy);
+		PageHelper.startPage(pageNum, PAGE_SIZE, orderBy);
 		return pageResult(blogMapper.getBlogInfoListByTagNameAndIsPublished(tagName, includeInternal));
 	}
 

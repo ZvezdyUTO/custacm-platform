@@ -299,7 +299,7 @@
 		color: var(--anthropic-slate-dark);
 	}
 	.editor-page-heading, .editor-footer { border-color: var(--anthropic-cloud-light); }
-	.editor-page-heading p { color: var(--anthropic-clay); }
+	.editor-page-heading p { color: var(--anthropic-slate-light); }
 	.editor-page-heading h1, .markdown-import strong, .editor-load-failed strong { color: var(--anthropic-slate-dark); }
 	.editor-page-heading span, .markdown-import span, .publish-options small, .editor-footer > span, .editor-loading, .editor-load-failed { color: var(--anthropic-slate-light); }
 	.editor-page-heading > a, .editor-footer a { border-color: var(--anthropic-cloud-medium); color: var(--anthropic-slate-medium); }

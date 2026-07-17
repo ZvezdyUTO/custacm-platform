@@ -75,7 +75,8 @@ services:
       dockerfile: frontend/Dockerfile
     environment:
       TLS_ENABLED: ${TLS_ENABLED:-false}
-      FRONTEND_IMAGE_REFERER_HOSTS: ${FRONTEND_IMAGE_REFERER_HOSTS:-custacm.top}
+      FRONTEND_IMAGE_REFERER_HOSTS: ${FRONTEND_IMAGE_REFERER_HOSTS:-custacm.top,www.custacm.top}
+      FRONTEND_IMAGE_PUBLIC_ORIGIN: ${FRONTEND_IMAGE_PUBLIC_ORIGIN:-https://www.custacm.top}
       FRONTEND_ALLOW_LOCAL_REFERERS: ${FRONTEND_ALLOW_LOCAL_REFERERS:-false}
     ports:
       - "${FRONTEND_PORT}:80"

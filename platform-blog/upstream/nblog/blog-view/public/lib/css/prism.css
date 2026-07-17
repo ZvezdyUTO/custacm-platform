@@ -237,25 +237,24 @@ div.code-toolbar > .toolbar > .toolbar-item > span:focus {
 .rainbow-braces .token.punctuation.brace-level-1,
 .rainbow-braces .token.punctuation.brace-level-5,
 .rainbow-braces .token.punctuation.brace-level-9 {
-	color: #E50;
+	color: #9a3e00;
 	opacity: 1;
 }
 .rainbow-braces .token.punctuation.brace-level-2,
 .rainbow-braces .token.punctuation.brace-level-6,
 .rainbow-braces .token.punctuation.brace-level-10 {
-	color: #0B3;
+	color: #08782d;
 	opacity: 1;
 }
 .rainbow-braces .token.punctuation.brace-level-3,
 .rainbow-braces .token.punctuation.brace-level-7,
 .rainbow-braces .token.punctuation.brace-level-11 {
-	color: #26F;
+	color: #1f57b8;
 	opacity: 1;
 }
 .rainbow-braces .token.punctuation.brace-level-4,
 .rainbow-braces .token.punctuation.brace-level-8,
 .rainbow-braces .token.punctuation.brace-level-12 {
-	color: #E0E;
+	color: #8e3c98;
 	opacity: 1;
 }
-

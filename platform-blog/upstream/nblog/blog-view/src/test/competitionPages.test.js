@@ -69,6 +69,33 @@ const competition = {
 	],
 }
 
+function countedAward(id, awardTier, awardTierLabel, awardScopeLabel = '国家级') {
+	return {
+		...competition.awards[0],
+		id,
+		awardTier,
+		awardTierLabel,
+		awardScopeLabel,
+		rank: null,
+		rankPosition: null,
+		rankTotal: null,
+	}
+}
+
+const ordinaryPrizeAwards = [
+	countedAward(81, 'FIRST_PRIZE', '一等奖'),
+	countedAward(82, 'FIRST_PRIZE', '一等奖'),
+	countedAward(83, 'SECOND_PRIZE', '二等奖'),
+	countedAward(84, 'THIRD_PRIZE', '三等奖'),
+]
+
+const baiduPrizeAwards = [
+	countedAward(91, 'BAIDU_NATIONAL_FIRST', '国赛一等奖'),
+	countedAward(92, 'BAIDU_NATIONAL_FIRST', '国赛一等奖'),
+	countedAward(93, 'BAIDU_NATIONAL_SECOND', '国赛二等奖'),
+	countedAward(94, 'BAIDU_PROVINCIAL_FIRST', '省赛一等奖', '省级'),
+]
+
 const stubs = {
 	AppIcon: {props: ['name'], template: '<span class="app-icon-stub" :data-icon="name"></span>'},
 	RouterLink: {props: ['to'], template: '<a><slot /></a>'},
@@ -134,28 +161,32 @@ describe('public competition pages', () => {
 	})
 
 	it.each([
-		['GPLT_NATIONAL', 'GPLT 团体程序设计天梯赛（国赛）'],
-		['BAIDU_STAR', '百度之星'],
-		['LANQIAO_CUP_NATIONAL', '蓝桥杯程序设计竞赛（国奖）'],
-	])('shows only the award count for %s on the list page', async (category, categoryLabel) => {
+		['GPLT_NATIONAL', 'GPLT 团体程序设计天梯赛（国赛）', ordinaryPrizeAwards,
+			[['国一', '2 项'], ['国二', '1 项'], ['国三', '1 项']]],
+		['BAIDU_STAR', '百度之星', baiduPrizeAwards,
+			[['国一', '2 项'], ['国二', '1 项'], ['省一', '1 项']]],
+		['LANQIAO_CUP_NATIONAL', '蓝桥杯程序设计竞赛（国奖）', ordinaryPrizeAwards,
+			[['国一', '2 项'], ['国二', '1 项'], ['国三', '1 项']]],
+	])('shows grouped award tier counts for %s on the list page', async (category, categoryLabel, awards, expected) => {
 		api.getCompetitions.mockResolvedValue({
 			pageNum: 1,
 			pageSize: 10,
 			total: 1,
 			totalPages: 1,
-			list: [{...competition, category, categoryLabel}],
+			list: [{...competition, category, categoryLabel, awards}],
 		})
 
 		const wrapper = listMount()
 		await flushPromises()
 
-		expect(wrapper.text()).toContain('2 项')
+		expect(wrapper.text()).toContain('4 项')
+		const counts = wrapper.findAll('.record-award-counts > div')
+			.map(item => [item.get('dt').text(), item.get('dd').text()])
+		expect(counts).toEqual(expected)
 		expect(wrapper.find('.record-honours').exists()).toBe(false)
-		expect(wrapper.text()).not.toContain('金牌')
-		expect(wrapper.text()).not.toContain('银牌')
 	})
 
-	it('also shows only the award count for a legacy GPLT category tag', async () => {
+	it('also groups award tier counts for a legacy GPLT category tag', async () => {
 		api.getCompetitions.mockResolvedValue({
 			pageNum: 1,
 			pageSize: 10,
@@ -166,13 +197,15 @@ describe('public competition pages', () => {
 				category: undefined,
 				categoryLabel: undefined,
 				types: [{code: 'GPLT', label: '团体程序设计天梯赛'}],
+				awards: ordinaryPrizeAwards,
 			}],
 		})
 
 		const wrapper = listMount()
 		await flushPromises()
 
-		expect(wrapper.text()).toContain('2 项')
+		expect(wrapper.text()).toContain('4 项')
+		expect(wrapper.get('.record-award-counts').text()).toContain('国一2 项')
 		expect(wrapper.find('.record-honours').exists()).toBe(false)
 	})
 

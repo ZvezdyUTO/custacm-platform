@@ -40,12 +40,15 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml config
 | --- | --- |
 | Host 端口 | `BACKEND_PORT`、`FRONTEND_PORT`、`FRONTEND_HTTPS_PORT` |
 | TLS | `TLS_ENABLED`、`TLS_CERT_DIR` |
+| 托管图片 | `FRONTEND_IMAGE_REFERER_HOSTS`、`FRONTEND_IMAGE_PUBLIC_ORIGIN`、`FRONTEND_ALLOW_LOCAL_REFERERS` |
 | MySQL | `BLOG_DB_NAME`、`BLOG_DB_USERNAME`、`BLOG_DB_PASSWORD`、`BLOG_DB_ROOT_PASSWORD` |
 | 持久化卷 | `BLOG_DB_VOLUME_NAME`、`BLOG_REDIS_VOLUME_NAME` |
 | 认证 | `BLOG_TOKEN_SECRET`、`BLOG_TOKEN_TTL_MILLIS`、`BLOG_BOOTSTRAP_ADMIN_PASSWORD` |
 | 缓存与采集 | `BLOG_CACHE_TTL`、两个 `BLOG_*_LOOKBACK` 和各项 `*_ENABLED` 开关 |
 
 `.env.example` 是当前变量和默认值的事实来源。自动提交采集、AtCoder 题目定时采集和启动补采默认全部关闭；确认外部 API 配额、带宽和数据库负载后才可逐项开启。每日自动采集默认回看 `100h`，日内任务默认从上次成功游标直接续爬（`0h`）。
+
+托管图片只接受 `FRONTEND_IMAGE_REFERER_HOSTS` 中的站点 Referer；被拒绝的请求返回不可缓存的 403，避免 CDN 缓存污染。公开 API 会把相对图片路径规范到 `FRONTEND_IMAGE_PUBLIC_ORIGIN`，该值必须是无路径、无通配符的 HTTPS origin；生产默认使用 `https://www.custacm.top`，本地开发可按需覆盖。
 
 `BLOG_TOKEN_SECRET` 必须使用非 placeholder 的值，并至少包含 64 个 UTF-8 字节；不满足时 Blog API 会拒绝启动。
 

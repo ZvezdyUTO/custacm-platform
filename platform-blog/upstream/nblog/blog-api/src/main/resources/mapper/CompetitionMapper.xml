@@ -105,7 +105,8 @@
 				)
 			</foreach>
 		</if>
-		order by c.competition_year desc, c.id desc
+		order by coalesce(c.competition_date, makedate(c.competition_year, 1)) desc,
+			c.competition_date is null, c.id desc
 	</select>
 
 	<select id="findRecycleBinCompetitions" resultMap="competition">

@@ -210,6 +210,7 @@ class UnifiedSchemaMigrationTest {
 	@Test
 	void competitionCategoryQueriesMatchTheWholeStableTypeSetBeforePaging() throws IOException {
 		String mapper = resource("/mapper/CompetitionMapper.xml");
+		String normalized = mapper.replaceAll("\\s+", " ");
 
 		assertTrue(mapper.contains("categoryTypes != null and !categoryTypes.isEmpty()"));
 		assertTrue(mapper.contains("= #{categoryTypeCount}"));
@@ -217,6 +218,9 @@ class UnifiedSchemaMigrationTest {
 		assertTrue(mapper.contains("ctt.type = #{categoryType}"));
 		assertTrue(mapper.indexOf("id=\"findActiveCompetitions\"")
 				< mapper.indexOf("id=\"findRecycleBinCompetitions\""));
+		assertTrue(normalized.contains(
+				"order by coalesce(c.competition_date, makedate(c.competition_year, 1)) desc, "
+						+ "c.competition_date is null, c.id desc"));
 	}
 
 	@Test

@@ -7,6 +7,8 @@ FRONTEND_ALLOW_LOCAL_REFERERS=true \
 
 grep -F 'valid_referers custacm.top *.custacm.top custacm.* localhost 127.0.0.1;' \
   /etc/nginx/conf.d/default.conf >/dev/null
+grep -F 'sub_filter "/api/image/" "https://www.custacm.top/api/image/";' \
+  /etc/nginx/conf.d/default.conf >/dev/null
 sed -i 's|proxy_pass http://blog-api:8090;|proxy_pass http://127.0.0.1:8090;|' \
   /etc/nginx/conf.d/default.conf
 nginx -t

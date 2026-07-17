@@ -504,20 +504,21 @@
 	.js-toc-content :deep(.token.atrule),
 	.js-toc-content :deep(.token.important),
 	.js-toc-content :deep(.token.selector),
-	.js-toc-content :deep(.token.builtin) { color: var(--anthropic-error); }
+	.js-toc-content :deep(.token.builtin),
+	.js-toc-content :deep(.token.directive-hash) { color: #a63d35; }
 	.js-toc-content :deep(.token.string),
 	.js-toc-content :deep(.token.char),
 	.js-toc-content :deep(.token.attr-value),
 	.js-toc-content :deep(.token.regex),
-	.js-toc-content :deep(.token.inserted) { color: #788c5d; }
+	.js-toc-content :deep(.token.inserted) { color: #0a3069; }
 	.js-toc-content :deep(.token.number),
 	.js-toc-content :deep(.token.boolean),
 	.js-toc-content :deep(.token.constant),
-	.js-toc-content :deep(.token.symbol) { color: #6a9bcc; }
+	.js-toc-content :deep(.token.symbol) { color: #0550ae; }
 	.js-toc-content :deep(.token.function),
 	.js-toc-content :deep(.token.function-name),
 	.js-toc-content :deep(.token.class-name),
-	.js-toc-content :deep(.token.property) { color: #c46686; }
+	.js-toc-content :deep(.token.property) { color: #6f42c1; }
 
 	.js-toc-content :deep(table th),
 	.js-toc-content :deep(table td),

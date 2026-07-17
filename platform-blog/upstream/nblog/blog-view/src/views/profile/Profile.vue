@@ -528,13 +528,13 @@
 	.profile-heading, .editor-heading, .links-heading, .editor-actions { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 	.profile-heading { align-items: center; margin-bottom: 30px; }
 	.profile-heading-identity { display: flex; min-width: 0; align-items: center; gap: 18px; }
-	.profile-eyebrow { margin: 0 0 8px; color: #6d7a87; font-size: 11px; font-weight: 700; letter-spacing: .16em; }
+	.profile-eyebrow { margin: 0 0 8px; color: #596671; font-size: 11px; font-weight: 700; letter-spacing: .16em; }
 	.profile-page h1 { margin: 0; color: #20252b; font-size: 34px; font-weight: 700; }
-	.profile-handle { margin: 7px 0 0; color: #929ca6; font-size: 14px; letter-spacing: .06em; }
+	.profile-handle { margin: 7px 0 0; color: #65727d; font-size: 14px; letter-spacing: .06em; }
 	.profile-avatar-shell { width: 82px; height: 82px; flex: 0 0 82px; }
 	.profile-avatar-button { position: relative; width: 100%; height: 100%; overflow: hidden; border: 2px solid #fff; border-radius: 50%; outline: 1px solid #cbd3da; background: #eef1f4; padding: 0; box-shadow: 0 6px 18px rgba(24, 42, 57, .12); cursor: pointer; }
 	.profile-avatar-button img { display: block; width: 100%; height: 100%; object-fit: cover; }
-	.profile-avatar-button span { position: absolute; inset: auto 0 0; transform: translateY(100%); background: rgba(18, 38, 56, .78); color: #fff; padding: 6px 2px 7px; font-size: 10px; font-weight: 700; transition: transform 150ms ease; }
+	.profile-avatar-button span { position: absolute; inset: auto 0 0; transform: translateY(100%); background: #122638; color: #fff; padding: 6px 2px 7px; font-size: 10px; font-weight: 700; transition: transform 150ms ease; }
 	.profile-avatar-button:hover span, .profile-avatar-button:focus-visible span { transform: translateY(0); }
 	.profile-avatar-button:focus-visible { outline: 2px solid #17324d; outline-offset: 3px; }
 	.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -563,11 +563,11 @@
 	.password-actions button { border: 1px solid #17324d; border-radius: 3px; background: #17324d; color: #fff; padding: 9px 13px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 	.password-actions button:disabled { cursor: wait; opacity: .6; }
 	.links-heading > div { display: grid; gap: 4px; }
-	.links-heading span { color: #89939d; font-size: 12px; }
+	.links-heading span { color: #65727d; font-size: 12px; }
 	.links-heading button:disabled { cursor: not-allowed; opacity: .5; }
 	.link-rows { display: grid; gap: 8px; margin-top: 16px; }
 	.link-row { display: grid; grid-template-columns: 34px minmax(100px, .55fr) minmax(220px, 1.45fr) auto; align-items: center; gap: 8px; }
-	.link-index { color: #8c96a0; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+	.link-index { color: #65727d; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
 	.link-actions { display: flex; }
 	.link-actions button { width: 30px; height: 36px; border: 0; background: transparent; color: #6f7a85; cursor: pointer; }
 	.link-actions button:disabled { cursor: default; opacity: .25; }

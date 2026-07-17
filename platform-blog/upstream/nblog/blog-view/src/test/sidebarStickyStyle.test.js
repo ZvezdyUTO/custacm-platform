@@ -25,7 +25,7 @@ describe('desktop article workbench', () => {
 		expect(indexSource).toContain('overflow-x: clip;')
 	})
 
-	it('uses dark glass navigation on the article catalog and global light glass elsewhere', () => {
+	it('uses the shared light glass navigation on the article catalog', () => {
 		expect(indexSource).toContain('padding-inline: 2rem;')
 		expect(indexSource).toContain('padding-inline: 1rem;')
 		expect(indexSource).toContain('--home-canvas: var(--anthropic-ivory-light);')
@@ -33,10 +33,11 @@ describe('desktop article workbench', () => {
 		expect(indexSource).toContain('--home-text: #050505;')
 		expect(indexSource).toContain('--home-text-soft: #37352f;')
 		expect(indexSource).toContain('--home-border: #e9e9e7;')
-		expect(indexSource).toMatch(/\.site\.is-catalog,[\s\S]*background: #141413;[\s\S]*color: #faf9f5;/)
-		expect(indexSource).toMatch(/\.site\.is-catalog :deep\(\.site-nav\) \{[\s\S]*background: rgba\(38, 34, 31, \.68\) !important;[\s\S]*backdrop-filter: var\(--glass-filter\);/)
-		expect(indexSource).toContain('border-bottom-color: rgba(255, 244, 232, .14) !important;')
-		expect(indexSource).toMatch(/\.site\.is-catalog :deep\(\.site-nav \.nav-item\),[\s\S]*color: #f2ede7 !important;/)
+		expect(indexSource).toMatch(/\.site\.is-catalog,[\s\S]*background: var\(--anthropic-ivory-light\);[\s\S]*color: var\(--anthropic-slate-dark\);/)
+		expect(indexSource).toMatch(/\.site\.is-catalog :deep\(\.site-nav\) \{[\s\S]*background: var\(--glass-background\) !important;[\s\S]*backdrop-filter: var\(--glass-filter\);/)
+		expect(indexSource).toContain('border-bottom-color: var(--glass-border) !important;')
+		expect(indexSource).toMatch(/\.site\.is-catalog :deep\(\.site-nav \.nav-item\),[\s\S]*color: var\(--color-text\) !important;/)
+		expect(indexSource).toContain('background: var(--color-action) !important;')
 		expect(indexSource).not.toContain('.site.is-home :deep(.site-nav) {')
 		expect(indexSource).not.toContain('.site.is-article :deep(.site-nav),')
 		expect(indexSource).not.toContain('.site.is-editor :deep(.site-nav) {')

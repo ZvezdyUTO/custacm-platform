@@ -22,6 +22,13 @@ function validRefererTokens(config) {
   return match?.[1].trim().split(/\s+/) ?? [];
 }
 
+function imagePublicOrigin(config) {
+  const match = config.match(/sub_filter\s+"\/api\/image\/"\s+"([^"]+)\/api\/image\/";/);
+
+  expect(match).not.toBeNull();
+  return match?.[1] ?? '';
+}
+
 function renderConfig(env = {}) {
   const caseDir = join(testRoot, String(Date.now()), Math.random().toString(36).slice(2));
   mkdirSync(caseDir, { recursive: true });
@@ -75,10 +82,30 @@ describe('Nginx hosted image referer policy', () => {
     expect(tokens).not.toEqual(expect.arrayContaining(['none', 'blocked']));
   });
 
-  it('renders the production referer by default', () => {
-    const tokens = validRefererTokens(renderConfig());
+  it.each(nginxConfigs)('%s config never exposes forbidden image responses to shared caches', (_label, configPath) => {
+    const config = readConfig(configPath);
 
-    expect(tokens).toEqual(['custacm.top']);
+    expect(config).toContain('error_page 418 = @image_referer_forbidden;');
+    expect(config).toMatch(/if \(\$invalid_referer\) \{\s+return 418;\s+\}/);
+    expect(config).toMatch(/location @image_referer_forbidden \{[\s\S]*Cache-Control "no-store, max-age=0" always;[\s\S]*return 403;/);
+  });
+
+  it('renders the production referer by default', () => {
+    const config = renderConfig();
+    const tokens = validRefererTokens(config);
+
+    expect(tokens).toEqual(['custacm.top', 'www.custacm.top']);
+    expect(imagePublicOrigin(config)).toBe('https://www.custacm.top');
+  });
+
+  it('renders a validated canonical HTTPS image origin', () => {
+    const config = renderConfig({
+      FRONTEND_IMAGE_PUBLIC_ORIGIN: 'https://images.custacm.top',
+    });
+
+    expect(imagePublicOrigin(config)).toBe('https://images.custacm.top');
+    expect(config).toContain('proxy_set_header Accept-Encoding "";');
+    expect(config).toContain('sub_filter_types application/json;');
   });
 
   it('adds local development referers when the environment enables them', () => {
@@ -121,6 +148,17 @@ describe('Nginx hosted image referer policy', () => {
   ])('rejects invalid referer token %s', (invalidReferer) => {
     expect(() => {
       renderConfig({ FRONTEND_IMAGE_REFERER_HOSTS: `custacm.top ${invalidReferer}` });
+    }).toThrow();
+  });
+
+  it.each([
+    'http://www.custacm.top',
+    'https://www.custacm.top/path',
+    'https://*.custacm.top',
+    'https://www.custacm.top;include',
+  ])('rejects invalid canonical image origin %s', (invalidOrigin) => {
+    expect(() => {
+      renderConfig({FRONTEND_IMAGE_PUBLIC_ORIGIN: invalidOrigin});
     }).toThrow();
   });
 });

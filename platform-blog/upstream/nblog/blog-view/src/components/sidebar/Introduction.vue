@@ -428,7 +428,7 @@
 	}
 
 	.profile-links .external-mark {
-		color: #a0a8b0;
+		color: #65727d;
 		font-size: 10px;
 	}
 
@@ -436,7 +436,7 @@
 		display: block;
 		margin-top: 10px;
 		border: 1px dashed #d4dae0;
-		color: #89939d;
+		color: #65727d;
 		padding: 10px;
 		font-size: 12px;
 		text-align: center;

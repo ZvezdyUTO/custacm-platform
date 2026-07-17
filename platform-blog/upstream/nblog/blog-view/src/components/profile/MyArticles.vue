@@ -352,11 +352,11 @@
 <style scoped>
 	.my-articles { margin-top: 34px; border-top: 1px solid #dfe4e9; padding-top: 30px; }
 	.articles-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
-	.section-eyebrow { margin: 0 0 7px; color: #6d7a87; font-size: 11px; font-weight: 700; letter-spacing: .16em; }
+	.section-eyebrow { margin: 0 0 7px; color: #596671; font-size: 11px; font-weight: 700; letter-spacing: .16em; }
 	.articles-heading h2 { margin: 0; color: #202b35; font-size: 24px; }
-	.articles-heading p:last-child { margin: 8px 0 0; color: #7a8691; font-size: 13px; }
+	.articles-heading p:last-child { margin: 8px 0 0; color: #65727d; font-size: 13px; }
 	.article-view-tabs { display: flex; align-items: center; gap: 4px; margin-top: 22px; border-bottom: 1px solid #dfe4e9; }
-	.article-view-tabs button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: #73808c; padding: 10px 13px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+	.article-view-tabs button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: #596671; padding: 10px 13px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
 	.article-view-tabs button.is-active { border-bottom-color: #17324d; color: #17324d; }
 	.article-view-tabs span { margin-left: auto; color: #8a6d45; font-size: 11px; }
 	.article-filters { display: grid; grid-template-columns: minmax(0, 1fr) 180px auto; align-items: end; gap: 10px; margin-top: 22px; border: 1px solid #dfe4e9; background: #f7f9fa; padding: 14px; }
@@ -370,12 +370,12 @@
 	.article-state.is-recycle { border-color: #7c5960; color: #7c5960; }
 	.article-copy { display: grid; min-width: 0; gap: 7px; }
 	.article-copy h3 { margin: 0; overflow: hidden; color: #26313a; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
-	.article-copy span { color: #89939d; font-size: 11px; }
+	.article-copy span { color: #65727d; font-size: 11px; }
 	.article-actions { display: flex; align-items: center; gap: 6px; }
 	.article-actions a, .article-actions button { border: 0; background: transparent; color: #17324d; padding: 7px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 	.article-actions button { color: #9a4747; }
 	.article-actions .restore-button { color: #2f6c57; }
-	.article-empty { display: grid; place-items: center; gap: 7px; min-height: 150px; margin-top: 14px; border: 1px dashed #cad2d9; color: #7e8994; font-size: 13px; }
+	.article-empty { display: grid; place-items: center; gap: 7px; min-height: 150px; margin-top: 14px; border: 1px dashed #cad2d9; color: #65727d; font-size: 13px; }
 	.article-empty strong { color: #384550; font-size: 16px; }
 	.article-error { margin: 14px 0 0; border-left: 3px solid #a14b4b; background: #f8eeee; color: #7b3434; padding: 10px 12px; }
 	.article-actions .competition-panel-toggle { display: inline-flex; align-items: center; gap: 5px; margin-left: 2px; border-left: 1px solid var(--color-border); color: var(--color-action); padding-left: 11px; }

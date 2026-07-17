@@ -227,7 +227,7 @@
 		--home-border-strong: #d3d3d1;
 		--home-text: #050505;
 		--home-text-soft: #37352f;
-		--home-muted: #787774;
+		--home-muted: #686762;
 		--home-action: #2383e2;
 		background: var(--home-canvas);
 		color: var(--home-text);
@@ -235,8 +235,8 @@
 
 	.site.is-catalog,
 	.site.is-catalog .main {
-		background: #141413;
-		color: #faf9f5;
+		background: var(--anthropic-ivory-light);
+		color: var(--anthropic-slate-dark);
 	}
 
 	.site.is-catalog .main .site-container {
@@ -245,8 +245,8 @@
 	}
 
 	.site.is-catalog :deep(.site-nav) {
-		border-bottom-color: rgba(255, 244, 232, .14) !important;
-		background: rgba(38, 34, 31, .68) !important;
+		border-bottom-color: var(--glass-border) !important;
+		background: var(--glass-background) !important;
 		-webkit-backdrop-filter: var(--glass-filter);
 		backdrop-filter: var(--glass-filter);
 	}
@@ -254,11 +254,11 @@
 	.site.is-catalog :deep(.site-nav .nav-item),
 	.site.is-catalog :deep(.site-nav .nav-training-trigger),
 	.site.is-catalog :deep(.site-nav .nav-auth-trigger) {
-		color: #f2ede7 !important;
+		color: var(--color-text) !important;
 	}
 
 	.site.is-catalog :deep(.site-nav .active.nav-item::after) {
-		background: #d97757 !important;
+		background: var(--color-action) !important;
 	}
 
 	.site.is-home .main {
@@ -632,7 +632,7 @@
 
 	.article-comment-shortcut em {
 		margin-left: auto;
-		color: var(--anthropic-cloud-dark);
+		color: var(--anthropic-slate-light);
 		font-size: 10px;
 		font-style: normal;
 		font-variant-numeric: tabular-nums;

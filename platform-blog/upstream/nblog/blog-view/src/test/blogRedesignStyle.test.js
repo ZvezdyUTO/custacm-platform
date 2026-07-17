@@ -13,6 +13,11 @@ const indexSource = readFileSync(resolve(process.cwd(), 'src/views/Index.vue'), 
 const articleSource = readFileSync(resolve(process.cwd(), 'src/views/blog/Blog.vue'), 'utf8')
 const editorSource = readFileSync(resolve(process.cwd(), 'src/views/article/ArticleEditor.vue'), 'utf8')
 const markdownEditorSource = readFileSync(resolve(process.cwd(), 'src/components/article/LiveMarkdownEditor.vue'), 'utf8')
+const catalogSource = readFileSync(resolve(process.cwd(), 'src/views/category/Category.vue'), 'utf8')
+const profileSource = readFileSync(resolve(process.cwd(), 'src/views/profile/Profile.vue'), 'utf8')
+const myArticlesSource = readFileSync(resolve(process.cwd(), 'src/components/profile/MyArticles.vue'), 'utf8')
+const prismCss = readFileSync(resolve(process.cwd(), 'public/lib/css/prism.css'), 'utf8')
+const tokenCss = readFileSync(resolve(process.cwd(), 'src/assets/css/tokens.css'), 'utf8')
 
 describe('Blog redesign stylesheet contract', () => {
 	it('maps Element Plus and project-owned Blog roles to the shared semantic tokens', () => {
@@ -96,13 +101,45 @@ describe('Blog redesign stylesheet contract', () => {
 		expect(css).toMatch(/\.site-nav :where\(a, button, input, \[tabindex\]\):focus-visible \{[\s\S]*outline: none !important;/)
 	})
 
-	it('uses an ivory glass treatment outside the dark article catalog', () => {
+	it('uses the semantic glass treatment on every route, including the article catalog', () => {
 		expect(navSource).toContain('<div ref="nav" class="site-nav">')
 		expect(navSource).not.toContain("'transparent'")
 		expect(css).not.toContain('.site-nav:not(.transparent)')
 		expect(css).toContain('--glass-background: rgba(250, 249, 245, .72)')
 		expect(css).toContain('background: var(--glass-background) !important')
-		expect(indexSource).toContain('background: rgba(38, 34, 31, .68) !important')
+		expect(indexSource).toContain('background: var(--glass-background) !important')
+		expect(indexSource).not.toContain('background: rgba(38, 34, 31, .68) !important')
+	})
+
+	it('keeps the article catalog light by default and moves every dark surface behind dark mode', () => {
+		expect(catalogSource).toContain('--catalog-canvas: var(--anthropic-ivory-light)')
+		expect(catalogSource).toContain('--catalog-muted: var(--anthropic-slate-light)')
+		expect(catalogSource).toContain('background: var(--catalog-selection)')
+		expect(catalogSource).toContain('background: var(--catalog-media) !important')
+		expect(catalogSource).not.toContain('color: #c2c1bc')
+		expect(catalogSource).not.toContain('background: #050505 !important')
+		expect(catalogSource).toContain('color: var(--catalog-on-action) !important')
+		expect(nightCss).toContain('html.dark .article-catalog-page {')
+		expect(nightCss).toContain('--catalog-canvas: #141413 !important')
+		expect(nightCss).not.toContain("html[data-theme='light'] .article-catalog-page")
+	})
+
+	it('uses readable light-theme text and syntax colors on article-related pages', () => {
+		expect(tokenCss).toContain('--color-text-faint: #6b6b70')
+		expect(articleSource).toContain(':deep(.token.directive-hash) { color: #a63d35; }')
+		expect(articleSource).toContain(':deep(.token.inserted) { color: #0a3069; }')
+		expect(articleSource).toContain(':deep(.token.symbol) { color: #0550ae; }')
+		expect(articleSource).toContain(':deep(.token.property) { color: #6f42c1; }')
+		expect(prismCss).toContain('color: #08782d;')
+		expect(editorSource).toContain('.editor-page-heading p { color: var(--anthropic-slate-light); }')
+		expect(markdownEditorSource).toContain('.hljs-number), :deep(.cm-codeblock-widget .hljs-built_in)')
+		expect(markdownEditorSource).toContain('{ color: #0550ae; }')
+		expect(profileSource).not.toContain('.profile-handle { margin: 7px 0 0; color: #929ca6;')
+		expect(profileSource).toContain('background: #122638; color: #fff;')
+		expect(myArticlesSource).not.toContain('.article-copy span { color: #89939d;')
+		expect(myArticlesSource).toContain('color: #65727d; font-size: 13px;')
+		expect(nightCss).toContain('html.dark .m-toc a.toc-link {')
+		expect(nightCss).toContain('html.dark .comment-submit-button.el-button--primary span,')
 	})
 
 	it('loads the persistent two-mode theme and exposes one compact navigation switch', () => {
@@ -117,6 +154,14 @@ describe('Blog redesign stylesheet contract', () => {
 		expect(nightCss).toContain('--color-text: #faf9f5')
 		expect(nightCss).toContain('--color-action: #d97757')
 		expect(nightCss).not.toMatch(/html\.dark\s+img/)
+	})
+
+	it('keeps competition headings neutral while reserving clay for dark-mode actions', () => {
+		expect(nightCss).toContain('html.dark .competition-page {\n\t--archive-navy: #faf9f5')
+		expect(nightCss).toContain('--archive-navy-soft: #e8e6dc')
+		expect(nightCss).toContain('--archive-action: #d97757')
+		expect(nightCss).toContain('--archive-on-action: #141413')
+		expect(nightCss).not.toContain('html.dark .competition-page {\n\t--archive-navy: #d97757')
 	})
 
 	it('uses one typography and icon scale across the primary navigation items', () => {

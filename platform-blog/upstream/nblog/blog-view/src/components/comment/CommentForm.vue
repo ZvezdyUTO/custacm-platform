@@ -162,6 +162,10 @@
 		margin: 0 0 4px;
 	}
 
+	.comment-form-layout .el-input__count {
+		color: var(--anthropic-slate-light);
+	}
+
 	.comment-form-layout > .el-form-item {
 		margin: 0 !important;
 	}
@@ -260,7 +264,7 @@
 
 	.emoji-title div { display: grid; gap: 2px; }
 	.emoji-title strong { font-size: 13px; letter-spacing: .01em; }
-	.emoji-title small { color: var(--anthropic-cloud-dark); font-size: 10px; }
+	.emoji-title small { color: var(--anthropic-slate-light); font-size: 10px; }
 
 	.emoji-title > button {
 		width: 28px;

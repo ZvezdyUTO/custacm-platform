@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import top.naccl.constant.RedisKeyConstants;
 import top.naccl.entity.Tag;
 import top.naccl.mapper.BlogMapper;
 import top.naccl.model.vo.BlogInfo;
@@ -34,6 +35,12 @@ class BlogListTagBatchTest {
         service = new BlogServiceImpl();
         service.blogMapper = blogMapper;
         service.tagService = tagService;
+    }
+
+    @Test
+    void usesSixArticlesPerPublicCatalogPage() {
+        assertThat(BlogServiceImpl.PAGE_SIZE).isEqualTo(6);
+        assertThat(RedisKeyConstants.HOME_BLOG_INFO_LIST).endsWith(":v3");
     }
 
     @Test
