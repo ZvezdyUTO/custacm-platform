@@ -1,0 +1,85 @@
+deploy/.env.example
+  s_1bc36b6ae4e65c::t_1ed4a4b55164f5 15-16
+deploy/README.md
+  s_1bc36b6ae4e65c::t_c7badf0e9f828a 43,51-52
+deploy/docker-compose.yml
+  s_1bc36b6ae4e65c::t_69694273c164a7 78-79
+docs/api.md
+  s_1bc36b6ae4e65c::t_714242ceb3240b 86-87
+frontend-design-tokens/tokens.css
+  s_1bc36b6ae4e65c::t_12d1e1cb1a0a37 40
+frontend/docker-entrypoint.d/10-select-nginx-config.sh
+  s_1bc36b6ae4e65c::t_2586a714b84898 69,84-110
+frontend/nginx-https.conf
+  s_1bc36b6ae4e65c::t_ed30f6d16e0cec 26,28,36-41,48-51
+frontend/nginx.conf
+  s_1bc36b6ae4e65c::t_ce70b6b1d4b727 15,17,25-30,37-40
+frontend/src/styles/tokens.css
+  s_1bc36b6ae4e65c::t_e2069fba934d3f 41
+frontend/src/test/nginx-config.test.js
+  s_1bc36b6ae4e65c::t_957f42cc6e62fb 25-31,85-92,94-95,97-108,153-163
+frontend/test-nginx-config.sh
+  s_1bc36b6ae4e65c::t_35c4d2107d9c47 10-11
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/constant/RedisKeyConstants.java
+  s_1bc36b6ae4e65c::t_e5ae0fd33e6c93 13
+platform-blog/upstream/nblog/blog-api/src/main/java/top/naccl/service/impl/BlogServiceImpl.java
+  s_1bc36b6ae4e65c::t_54756b6c90970f 39-40,57,67,77,84
+platform-blog/upstream/nblog/blog-api/src/main/resources/mapper/CompetitionMapper.xml
+  s_1bc36b6ae4e65c::t_383b82816c3fc8 108-109
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/UnifiedSchemaMigrationTest.java
+  s_1bc36b6ae4e65c::t_34fda5a0486963 213,221-223
+platform-blog/upstream/nblog/blog-api/src/test/java/top/naccl/service/impl/BlogListTagBatchTest.java
+  s_1bc36b6ae4e65c::t_b956e90e385ae5 8,40-45
+platform-blog/upstream/nblog/blog-view/public/lib/css/prism.css
+  s_1bc36b6ae4e65c::t_f4bd0ce37ca9dd 240,246,252,258
+platform-blog/upstream/nblog/blog-view/src/assets/css/night.css
+  s_1bc36b6ae4e65c::t_17ee2940a5b63f 475-478,480,681-688,1263-1275,1299-1300,1308-1309
+platform-blog/upstream/nblog/blog-view/src/assets/css/tokens.css
+  s_1bc36b6ae4e65c::t_fe288ec7ee2f4c 41
+platform-blog/upstream/nblog/blog-view/src/components/article/LiveMarkdownEditor.vue
+  s_1bc36b6ae4e65c::t_08594e39b26adf 253-256
+platform-blog/upstream/nblog/blog-view/src/components/comment/CommentForm.vue
+  s_1bc36b6ae4e65c::t_18c75cf5162970 165-168,267
+platform-blog/upstream/nblog/blog-view/src/components/profile/MyArticles.vue
+  s_1bc36b6ae4e65c::t_ba9a6a1d47f368 355,357,359,373,378
+platform-blog/upstream/nblog/blog-view/src/components/sidebar/Introduction.vue
+  s_1bc36b6ae4e65c::t_5ed2dc774dfde5 431,439
+platform-blog/upstream/nblog/blog-view/src/test/blogRedesignStyle.test.js
+  s_1bc36b6ae4e65c::t_f4ca57baf92341 16-20,104,110-142,157-164
+platform-blog/upstream/nblog/blog-view/src/test/competitionPages.test.js
+  s_1bc36b6ae4e65c::t_37abec9a17092b 72-98,164-170,176,182-185,189,200,207-208
+platform-blog/upstream/nblog/blog-view/src/test/sidebarStickyStyle.test.js
+  s_1bc36b6ae4e65c::t_65ab6ae2410fc5 28,36-40
+platform-blog/upstream/nblog/blog-view/src/views/Index.vue
+  s_1bc36b6ae4e65c::t_87fff66f8df83d 230,238-239,248-249,257,261,635
+platform-blog/upstream/nblog/blog-view/src/views/article/ArticleEditor.vue
+  s_1bc36b6ae4e65c::t_281d2d5273147c 302
+platform-blog/upstream/nblog/blog-view/src/views/blog/Blog.vue
+  s_1bc36b6ae4e65c::t_487f5b4d179e95 507-508,513,517,521
+platform-blog/upstream/nblog/blog-view/src/views/category/Category.vue
+  s_1bc36b6ae4e65c::t_97903b9b18d32a 245-256,330,338,390,409,417-418,444,452,514,548,586-587,632,638,648-649,671,676,694,699,733-735,743,746-748
+platform-blog/upstream/nblog/blog-view/src/views/competition/CompetitionDetail.vue
+  s_1bc36b6ae4e65c::t_4123e3c0e343ba 278-280,307,455,665,693,695,698
+platform-blog/upstream/nblog/blog-view/src/views/competition/CompetitionList.vue
+  s_1bc36b6ae4e65c::t_70d05bc4ef2be3 121-127,167,172-184,284-311,406-409,420,578,588-589,857-891,903-904
+platform-blog/upstream/nblog/blog-view/src/views/profile/Profile.vue
+  s_1bc36b6ae4e65c::t_63c17471bf5c08 531,533,537,566,570
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "605f4f89c527e1631dbf822011902b9b909dda9f",
+  "prompts": {},
+  "sessions": {
+    "s_1bc36b6ae4e65c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f66c8-605a-70c3-8db7-a3a5e77abf9e",
+        "model": "unknown"
+      },
+      "human_author": "huangbingrui <huangbingrui.awa@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
