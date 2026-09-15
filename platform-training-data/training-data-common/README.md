@@ -37,6 +37,8 @@ src/test/
 - One logical collection run opens one OJ batch writer. Each bounded source page is filtered and written immediately under that batch id; the common service retains only per-handle counters and outcomes, not all matched submissions.
 - A source failure leaves only that handle's cursor unchanged. A sink/write failure aborts the run before any handle cursor is advanced, so a retry can safely replay idempotent ODS upserts.
 - Manual jobs and automatic schedules share one in-process execution coordinator. Collection plus warehouse refresh is exclusive per OJ, while Codeforces and AtCoder may run concurrently.
+- Warehouse refresh retains one pending date interval per OJ in the current JVM. Failed work is merged into the next refresh, including retries after a collection writes no rows; recovery reruns the complete DAG and clears the interval only on success. SQL nodes retain their separate transactions.
+- Problem-submission and first-accepted pages resolve all returned handle owners in one OJ-scoped binding query; an unbound handle remains an error.
 - Multi-user accepted summaries resolve the handle set once and use one batch repository query. The repository performs `SUM ... GROUP BY handle, difficulty`; application code only applies bucket ordering and unknown-to-unrated folding.
 - Jobs are in-memory only. All automatic schedules are disabled unless explicitly enabled.
 

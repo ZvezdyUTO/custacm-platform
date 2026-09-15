@@ -32,6 +32,7 @@ platform-blog/upstream/nblog/blog-view/src/assets/css/tokens.css
 ## 使用规则
 
 - 内容优先。Blog 阅读区可以舒展，训练表格和管理界面保持紧凑。
+- 文章目录按结果容器的实际宽度排列 1–6 列，网格每页至少 12 篇且不少于 4 整行；列表每页 12 篇。需要时合并后续 API 批次，仅最后一页文章耗尽时允许不满行。窗口缩放重新分页时，原页首篇仍保留在当前页内；分类、标签或登录状态变化后清空已加载的分页数据。
 - 使用语义角色，如 `--color-canvas`、`--color-surface`、`--color-text`、`--color-action`、`--color-success` 和 `--color-danger`；不要在业务组件复制一套全局颜色。
 - 间距优先使用 4/8/12/16/24/32/48/80px 阶梯。控件、普通卡片和大展示卡片使用各自 radius token；药丸只用于 CTA、搜索和筛选。
 - 玻璃只用于顶栏、下拉和 Modal/Dialog 等悬浮层，且必须有不支持 `backdrop-filter` 时的实色回退。内容卡片、表格、表单和布局侧栏使用实体表面。

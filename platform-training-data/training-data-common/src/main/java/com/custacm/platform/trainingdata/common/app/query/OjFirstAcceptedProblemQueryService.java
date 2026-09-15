@@ -11,7 +11,6 @@ import com.custacm.platform.trainingdata.common.domain.oj.repo.OjFirstAcceptedPr
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -159,14 +158,10 @@ public class OjFirstAcceptedProblemQueryService {
     }
 
     private Map<String, String> usernameByHandle(String ojName, List<OjFirstAcceptedProblem> rows) {
-        Map<String, String> usernameByHandle = new LinkedHashMap<>();
-        for (OjFirstAcceptedProblem row : rows) {
-            usernameByHandle.computeIfAbsent(
-                    row.handle(),
-                    handle -> handleAccountService.getByHandle(ojName, handle).username()
-            );
-        }
-        return usernameByHandle;
+        return handleAccountService.getUsernamesByHandles(
+                ojName,
+                rows.stream().map(OjFirstAcceptedProblem::handle).distinct().toList()
+        );
     }
 
     private static OjHandleFirstAcceptedProblemReport.OjFirstAcceptedProblemItem toProblemItem(

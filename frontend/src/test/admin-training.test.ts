@@ -37,14 +37,14 @@ describe('admin training collection', () => {
     expect(wrapper.get('.collection-member-state').text()).toContain('已建立增量采集游标');
     expect(wrapper.get('.collection-member-state').text()).toContain('最近成功窗口结束：2026/7/12 16:30');
 
-    await wrapper.get('.collection-member-row .primary-button').trigger('click');
+    await wrapper.get('.collection-member-row .collection-member-action').trigger('click');
     expect(wrapper.get('[role="alertdialog"]').text()).toContain('ui-test-jiangly · 临时测试');
     expect(batchCollectSubmissions).not.toHaveBeenCalled();
     await wrapper.get('.confirm-collection-button').trigger('click');
     await wrapper.get('.collection-reference-controls select').setValue('ATCODER');
     expect(wrapper.get('.collection-member-state').text()).toContain('首次采集将抓取全部历史');
     expect(wrapper.get('.collection-member-state').text()).toContain('最近成功窗口结束：尚无记录');
-    await wrapper.get('.collection-member-row .primary-button').trigger('click');
+    await wrapper.get('.collection-member-row .collection-member-action').trigger('click');
     await wrapper.get('.confirm-collection-button').trigger('click');
 
     expect(batchCollectSubmissions).toHaveBeenNthCalledWith(1, {

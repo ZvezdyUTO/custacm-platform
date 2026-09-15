@@ -9,7 +9,10 @@ import com.custacm.platform.trainingdata.codeforces.domain.CodeforcesOdsSubmissi
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -30,6 +33,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -208,6 +212,98 @@ class CodeforcesWarehouseSqlTaskTest {
     }
 
     @Test
+    void keepsRefreshIntervalNarrowForALaterRepeatedAcceptedSubmission() {
+        writer.upsertBatch(new CodeforcesCollectBatch("batch-first-ac", Instant.parse("2026-01-01T00:00:00Z")),
+                List.of(submission(25L, "alice", "A", "2024-01-01T10:00:00", "OK")));
+        assertThat(refreshService().refresh("batch-first-ac", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+        writer.upsertBatch(new CodeforcesCollectBatch("batch-later-ac", Instant.parse("2026-01-02T00:00:00Z")),
+                List.of(submission(26L, "alice", "A", "2024-07-01T10:00:00", "OK")));
+
+        assertThat(refreshIntervalRepository().findBatchDateInterval("batch-later-ac"))
+                .contains(new OjWarehouseRefreshInterval(LocalDate.parse("2024-07-01"), LocalDate.parse("2024-07-01")));
+    }
+
+    @Test
+    void refreshClearsPreviousDailyCountWhenEarlierAcceptedSubmissionArrivesAlone() {
+        writer.upsertBatch(new CodeforcesCollectBatch("batch-later", Instant.parse("2026-01-01T00:00:00Z")),
+                List.of(submission(20L, "alice", "A", "2024-01-10T10:00:00", "OK")));
+        OjWarehouseRefreshService service = refreshService();
+        assertThat(service.refresh("batch-later", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+
+        writer.upsertBatch(new CodeforcesCollectBatch("batch-earlier", Instant.parse("2026-01-02T00:00:00Z")),
+                List.of(submission(21L, "alice", "A", "2024-01-05T10:00:00", "OK")));
+        assertThat(service.refresh("batch-earlier", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+
+        assertThat(firstAcceptedSubmissionId("1000:A")).isEqualTo("21");
+        assertThat(rating800AcceptedCountOnDate("2024-01-05")).isEqualTo(1);
+        assertThat(rating800AcceptedCountOnDate("2024-01-10")).isZero();
+        assertThat(sumAcceptedProblemCount()).isEqualTo(1);
+    }
+
+    @Test
+    void refreshMovesFirstAcceptedToLaterDayAfterRejudgeAndRemovesRevokedOnlyAccepted() {
+        writer.upsertBatch(new CodeforcesCollectBatch("batch-before-rejudge", Instant.parse("2026-01-01T00:00:00Z")),
+                List.of(
+                        submission(30L, "alice", "A", "2024-01-01T10:00:00", "OK"),
+                        submission(31L, "alice", "A", "2024-01-10T10:00:00", "OK"),
+                        submission(32L, "alice", "B", "2024-01-01T11:00:00", "OK")
+                ));
+        OjWarehouseRefreshService service = refreshService();
+        assertThat(service.refresh("batch-before-rejudge", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+
+        writer.upsertBatch(new CodeforcesCollectBatch("batch-rejudge", Instant.parse("2026-01-02T00:00:00Z")),
+                List.of(
+                        submission(30L, "alice", "A", "2024-01-01T10:00:00", "WRONG_ANSWER"),
+                        submission(32L, "alice", "B", "2024-01-01T11:00:00", "WRONG_ANSWER")
+                ));
+        assertThat(service.refresh("batch-rejudge", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+        assertThat(service.refresh("batch-rejudge", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+
+        assertThat(firstAcceptedSubmissionId("1000:A")).isEqualTo("31");
+        assertThat(firstAcceptedDate("1000:A")).isEqualTo(LocalDate.parse("2024-01-10"));
+        assertThat(handlesForFirstAcceptedProblem("1000:B")).isEmpty();
+        assertThat(rating800AcceptedCountOnDate("2024-01-01")).isZero();
+        assertThat(rating800AcceptedCountOnDate("2024-01-10")).isEqualTo(1);
+        assertThat(sumAcceptedProblemCount()).isEqualTo(1);
+    }
+
+    @Test
+    void retriesWholeDagWithOriginalIntervalAfterDwmCommitsAndDwsFails() {
+        AtomicBoolean failSummary = new AtomicBoolean(false);
+        ResourceLoader resources = new DefaultResourceLoader() {
+            @Override
+            public Resource getResource(String location) {
+                return failSummary.get() && location.equals("classpath:" + DAILY_SUMMARY_SQL)
+                        ? new ByteArrayResource("insert into missing_summary_table values (1)".getBytes(StandardCharsets.UTF_8))
+                        : super.getResource(location);
+            }
+        };
+        OjWarehouseRefreshService service = refreshService(resources);
+        writer.upsertBatch(new CodeforcesCollectBatch("batch-later", Instant.parse("2026-01-01T00:00:00Z")),
+                List.of(submission(40L, "alice", "A", "2024-01-10T10:00:00", "OK")));
+        assertThat(service.refresh("batch-later", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+        writer.upsertBatch(new CodeforcesCollectBatch("batch-earlier", Instant.parse("2026-01-02T00:00:00Z")),
+                List.of(submission(41L, "alice", "A", "2024-01-05T10:00:00", "OK")));
+
+        failSummary.set(true);
+        assertThat(service.refresh("batch-earlier", null).status()).isEqualTo(SqlTaskRunStatus.FAILED);
+        assertThat(firstAcceptedDate("1000:A")).isEqualTo(LocalDate.parse("2024-01-05"));
+        assertThat(rating800AcceptedCountOnDate("2024-01-10")).isEqualTo(1);
+        assertThat(refreshIntervalRepository().findBatchDateInterval("batch-earlier"))
+                .contains(new OjWarehouseRefreshInterval(LocalDate.parse("2024-01-05"), LocalDate.parse("2024-01-05")));
+
+        failSummary.set(false);
+        var recovered = service.refresh("batch-earlier", "codeforces.dws.handle_daily_rating_accepted_summary");
+
+        assertThat(recovered.status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+        assertThat(recovered.tasks()).hasSize(3);
+        assertThat(rating800AcceptedCountOnDate("2024-01-05")).isEqualTo(1);
+        assertThat(rating800AcceptedCountOnDate("2024-01-10")).isZero();
+        assertThat(sumAcceptedProblemCount()).isEqualTo(1);
+        assertThat(service.refreshPending()).isEmpty();
+    }
+
+    @Test
     void latestBatchSelectionUsesFetchedAtThenIdAndSkipsRowsWithoutRefreshTime() {
         writer.upsertBatch(new CodeforcesCollectBatch(
                 "batch-old",
@@ -274,11 +370,15 @@ class CodeforcesWarehouseSqlTaskTest {
     }
 
     private OjWarehouseRefreshService refreshService() {
+        return refreshService(new DefaultResourceLoader());
+    }
+
+    private OjWarehouseRefreshService refreshService(ResourceLoader resources) {
         return new OjWarehouseRefreshService(
                 new SqlTaskRunner(
                         namedJdbcTemplate,
                         new DataSourceTransactionManager(dataSource),
-                        new DefaultResourceLoader()
+                        resources
                 ),
                 refreshIntervalRepository(),
                 "classpath:sql/tasks/codeforces-warehouse-refresh.yml",

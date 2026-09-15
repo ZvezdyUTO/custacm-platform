@@ -3,7 +3,7 @@
 	<div class="sidebar-panel m-box">
 		<div class="sidebar-panel-heading"><AppIcon name="tags" />标签云</div>
 		<div class="sidebar-panel-body sidebar-accent m-padding-small">
-			<router-link :to="`/tag/${tag.name}`" class="taxonomy-chip m-text-500" :style="{backgroundColor: tagColor(tag), color: '#fff'}" v-for="tag in displayedTagList" :key="tag.name">
+			<router-link :to="`/tag/${tag.name}`" class="taxonomy-chip m-text-500" :style="taxonomyStyle(tagColor(tag))" v-for="tag in displayedTagList" :key="tag.name">
 				{{ tag.name }}
 			</router-link>
 		</div>
@@ -11,6 +11,7 @@
 </template>
 
 <script>
+	import {taxonomyStyle} from '@/util/taxonomyColor'
 	export default {
 		name: "Tags",
 		props: {
@@ -30,6 +31,7 @@
 			},
 		},
 		methods: {
+			taxonomyStyle,
 			tagColor(tag) {
 				if (/^#[0-9a-f]{6}$/i.test(tag.color || '')) return tag.color
 				let hash = 2166136261

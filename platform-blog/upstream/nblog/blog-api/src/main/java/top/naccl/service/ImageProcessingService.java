@@ -40,18 +40,16 @@ public class ImageProcessingService {
 			byte[] source = file.getBytes();
 			ImageMetadata metadata = readMetadata(source);
 			validateDimensions(metadata, purpose);
-			BufferedImage decoded = ImageIO.read(new ByteArrayInputStream(source));
-			if (decoded == null) {
-				throw new ImageAssetException(IMAGE_FORMAT_UNSUPPORTED, "仅支持 JPEG 或 PNG 图片");
-			}
+			BufferedImage decoded = Thumbnails.of(new ByteArrayInputStream(source))
+					.useExifOrientation(true).scale(1.0).asBufferedImage();
 			String outputFormat = metadata.png() && decoded.getColorModel().hasAlpha() ? "png" : "jpg";
 			int originalLimit = purpose == ImageAsset.Purpose.ARTICLE_CONTENT ? 2560
 					: purpose == ImageAsset.Purpose.ARTICLE_COVER ? 1920 : 512;
 			int thumbnailLimit = purpose == ImageAsset.Purpose.ARTICLE_CONTENT ? 960
 					: purpose == ImageAsset.Purpose.ARTICLE_COVER ? 640 : 96;
-			byte[] original = resize(source, metadata, originalLimit, outputFormat, 0.88);
-			byte[] thumbnail = resize(source, metadata, thumbnailLimit, outputFormat, 0.80);
-			BufferedImage normalized = ImageIO.read(new ByteArrayInputStream(original));
+			BufferedImage normalized = resize(decoded, originalLimit);
+			byte[] original = encode(normalized, outputFormat, 0.88);
+			byte[] thumbnail = encode(resize(decoded, thumbnailLimit), outputFormat, 0.80);
 			return new ProcessedImage(original, thumbnail, outputFormat,
 					normalized.getWidth(), normalized.getHeight(), "png".equals(outputFormat) ? "image/png" : "image/jpeg");
 		} catch (ImageAssetException exception) {
@@ -113,16 +111,17 @@ public class ImageProcessingService {
 		}
 	}
 
-	private static byte[] resize(byte[] source, ImageMetadata metadata, int limit, String format, double quality)
+	private static BufferedImage resize(BufferedImage source, int limit) throws IOException {
+		if (source.getWidth() <= limit && source.getHeight() <= limit) {
+			return source;
+		}
+		return Thumbnails.of(source).size(limit, limit).keepAspectRatio(true).asBufferedImage();
+	}
+
+	private static byte[] encode(BufferedImage source, String format, double quality)
 			throws IOException {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		Thumbnails.Builder<? extends java.io.InputStream> builder = Thumbnails.of(new ByteArrayInputStream(source))
-				.useExifOrientation(true);
-		if (metadata.width() <= limit && metadata.height() <= limit) {
-			builder.scale(1.0);
-		} else {
-			builder.size(limit, limit).keepAspectRatio(true);
-		}
+		Thumbnails.Builder<BufferedImage> builder = Thumbnails.of(source).scale(1.0);
 		builder.outputFormat(format);
 		if ("jpg".equals(format)) {
 			builder.outputQuality(quality);

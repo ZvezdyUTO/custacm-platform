@@ -3,7 +3,7 @@
 		<!--content-->
 		<BlogItem :blogList="blogList" :layout="layout"/>
 		<!--分页-->
-		<Pagination :getBlogList="getBlogList" :totalPage="totalPage"/>
+		<Pagination :getBlogList="getBlogList" :totalPage="totalPage" :currentPage="currentPage"/>
 	</div>
 </template>
 
@@ -15,6 +15,7 @@
 		name: "BlogList",
 		components: {Pagination, BlogItem},
 		props: {
+			currentPage: {type: Number, default: undefined},
 			layout: {
 				type: String,
 				default: 'list',

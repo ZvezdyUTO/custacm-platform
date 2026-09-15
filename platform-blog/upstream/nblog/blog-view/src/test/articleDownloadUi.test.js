@@ -33,11 +33,11 @@ describe('article reading header', () => {
 		expect(indexSource).toContain('<AppIcon name="edit" /><span>编辑文章</span>')
 		expect(indexSource).toContain('const blob = await downloadBlog(token, articleId)')
 		expect(indexSource).toContain('this.authUser.username === this.articleAuthor.username')
-		expect(indexSource).toContain('height: 18px;')
+		expect(indexSource).toContain('min-height: 28px;')
 		expect(indexSource).toContain('background: transparent;')
-		expect(indexSource).toContain('font-size: 10px;')
-		expect(indexSource).toContain('width: 10px;')
-		expect(indexSource).toContain('height: 10px;')
+		expect(indexSource).toContain('font-size: 12px;')
+		expect(indexSource).toContain('width: 14px;')
+		expect(indexSource).toContain('height: 14px;')
 	})
 
 	it('omits deferred reader controls and gives every article image one radius token', () => {

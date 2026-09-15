@@ -5,7 +5,10 @@ import com.custacm.platform.common.sqltask.SqlTaskRunner;
 import com.custacm.platform.trainingdata.common.app.warehouse.OjWarehouseRefreshService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -14,6 +17,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 
 import javax.sql.DataSource;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -23,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -112,12 +117,75 @@ class AtcoderWarehouseSqlTaskTest {
         assertThat(unratedAcceptedCountOnDate("tourist", "2026-07-10")).isZero();
     }
 
+    @Test
+    void refreshMovesFirstAcceptedToLaterDayAfterRejudgeAndRemovesRevokedOnlyAccepted() {
+        insertSubmission("batch-before-rejudge", 301L, "tourist", "abc100_a", "abc100",
+                "2026-07-01T08:00:00", "AC");
+        insertSubmission("batch-before-rejudge", 302L, "tourist", "abc100_a", "abc100",
+                "2026-07-10T08:00:00", "AC");
+        insertSubmission("batch-before-rejudge", 303L, "tourist", "abc100_b", "abc100",
+                "2026-07-01T09:00:00", "AC");
+        OjWarehouseRefreshService service = refreshService();
+        assertThat(service.refresh("batch-before-rejudge", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+
+        jdbcTemplate.update("""
+                update ods_atcoder__submission set result = 'WA', batch_id = 'batch-rejudge'
+                where atcoder_submission_id in (301, 303)
+                """);
+        assertThat(service.refresh("batch-rejudge", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+        assertThat(service.refresh("batch-rejudge", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+
+        assertThat(firstAcceptedSubmissionId("tourist", "abc100_a")).isEqualTo("302");
+        assertThat(firstAcceptedDate("tourist", "abc100_a")).isEqualTo(LocalDate.parse("2026-07-10"));
+        assertThat(count("dwm_atcoder__handle_problem_first_accepted")).isEqualTo(1);
+        assertThat(unratedAcceptedCountOnDate("tourist", "2026-07-01")).isZero();
+        assertThat(unratedAcceptedCountOnDate("tourist", "2026-07-10")).isEqualTo(1);
+        assertThat(sumAcceptedProblemCount()).isEqualTo(1);
+    }
+
+    @Test
+    void nextBatchRepairsEarlierFailedDailySummaryEvenAfterTheSourceBatchWasOverwritten() {
+        AtomicBoolean failSummary = new AtomicBoolean(false);
+        ResourceLoader resources = new DefaultResourceLoader() {
+            @Override
+            public Resource getResource(String location) {
+                return failSummary.get() && location.equals("classpath:sql/dws/upsert_dws_atcoder__handle_daily_rating_accepted_summary.sql")
+                        ? new ByteArrayResource("insert into missing_summary_table values (1)".getBytes(StandardCharsets.UTF_8))
+                        : super.getResource(location);
+            }
+        };
+        OjWarehouseRefreshService service = refreshService(resources);
+        insertSubmission("batch-later", 401L, "tourist", "abc100_a", "abc100", "2026-07-10T08:00:00", "AC");
+        assertThat(service.refresh("batch-later", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+        insertSubmission("batch-earlier", 402L, "tourist", "abc100_a", "abc100", "2026-07-01T08:00:00", "AC");
+
+        failSummary.set(true);
+        assertThat(service.refresh("batch-earlier", null).status()).isEqualTo(SqlTaskRunStatus.FAILED);
+        assertThat(firstAcceptedDate("tourist", "abc100_a")).isEqualTo(LocalDate.parse("2026-07-01"));
+        assertThat(unratedAcceptedCountOnDate("tourist", "2026-07-10")).isEqualTo(1);
+
+        jdbcTemplate.update("update ods_atcoder__submission set batch_id = 'batch-recollected' where atcoder_submission_id = 402");
+        insertSubmission("batch-next", 403L, "tourist", "abc100_b", "abc100", "2026-08-01T08:00:00", "AC");
+        failSummary.set(false);
+        assertThat(service.refresh("batch-next", null).status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+
+        assertThat(unratedAcceptedCountOnDate("tourist", "2026-07-01")).isEqualTo(1);
+        assertThat(unratedAcceptedCountOnDate("tourist", "2026-07-10")).isZero();
+        assertThat(unratedAcceptedCountOnDate("tourist", "2026-08-01")).isEqualTo(1);
+        assertThat(sumAcceptedProblemCount()).isEqualTo(2);
+        assertThat(service.refreshPending()).isEmpty();
+    }
+
     private OjWarehouseRefreshService refreshService() {
+        return refreshService(new DefaultResourceLoader());
+    }
+
+    private OjWarehouseRefreshService refreshService(ResourceLoader resources) {
         return new OjWarehouseRefreshService(
                 new SqlTaskRunner(
                         namedJdbcTemplate,
                         new DataSourceTransactionManager(dataSource),
-                        new DefaultResourceLoader()
+                        resources
                 ),
                 new JdbcAtcoderWarehouseRefreshIntervalRepository(namedJdbcTemplate),
                 "classpath:sql/tasks/atcoder-warehouse-refresh.yml",

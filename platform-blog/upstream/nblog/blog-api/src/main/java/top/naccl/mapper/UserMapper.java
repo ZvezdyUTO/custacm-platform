@@ -18,6 +18,8 @@ import java.util.List;
 public interface UserMapper {
 	User findByUsername(String username);
 
+	User findByUsernameForUpdate(String username);
+
 	List<User> findByUsernames(@Param("usernames") Collection<String> usernames);
 
 	List<User> findAll();

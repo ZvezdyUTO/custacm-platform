@@ -12,7 +12,7 @@
 				<nav class="catalog-filter-group" aria-label="按分类筛选">
 					<div class="catalog-filter-heading">分类</div>
 					<router-link to="/articles" class="catalog-filter-link" :class="{'is-active': routeMode === 'articles'}">
-						<span>全部文章</span><em>{{ routeMode === 'articles' ? blogList.length : '' }}</em>
+						<span>全部文章</span>
 					</router-link>
 					<router-link v-for="category in categoryList" :key="category.name" :to="`/category/${category.name}`"
 					             class="catalog-filter-link" :class="{'is-active': routeMode === 'category' && category.name === taxonomyName}"
@@ -38,7 +38,7 @@
 				</section>
 			</aside>
 
-			<div class="catalog-results" :class="`is-${viewMode}-view`">
+			<div ref="catalogResults" class="catalog-results" :class="`is-${viewMode}-view`" :style="{'--catalog-columns': gridColumns}" :aria-busy="catalogLoading">
 				<div class="catalog-toolbar">
 					<form class="catalog-search" role="search" @submit.prevent="submitSearch">
 						<button type="submit" class="catalog-search-submit" aria-label="搜索文章" title="搜索文章"
@@ -59,6 +59,11 @@
 					</div>
 				</div>
 
+				<p v-if="!searchSubmitted && totalArticles" class="catalog-result-count">共 {{ totalArticles }} 篇 · 每页 {{ pageSize }} 篇</p>
+				<div v-if="!searchSubmitted && blogList.length && (catalogLoading || catalogError)" class="catalog-load-state" role="status">
+					<span>{{ catalogLoading ? '正在加载文章' : catalogError }}</span>
+					<button v-if="catalogError" type="button" @click="getBlogList(requestedPage)">重新加载</button>
+				</div>
 				<div v-if="searchSubmitted" class="catalog-search-state" aria-live="polite">
 					<span v-if="searchLoading">正在搜索“{{ submittedQuery }}”</span>
 					<span v-else-if="searchError">{{ searchError }}</span>
@@ -75,8 +80,13 @@
 						</router-link>
 					</article>
 				</div>
+				<div v-else-if="!searchSubmitted && !blogList.length && (catalogLoading || catalogError)" class="catalog-empty" role="status">
+					<AppIcon :name="catalogLoading ? 'loader' : 'search'" :spin="catalogLoading" :size="24"/>
+					<strong>{{ catalogLoading ? '正在加载文章' : catalogError }}</strong>
+					<button v-if="catalogError" type="button" @click="getBlogList(requestedPage)">重新加载</button>
+				</div>
 				<BlogList v-else-if="!searchSubmitted && blogList.length" :layout="viewMode" :getBlogList="getBlogList"
-				          :blogList="blogList" :totalPage="totalPage"/>
+				          :blogList="blogList" :totalPage="totalPage" :currentPage="currentPage"/>
 				<div v-else-if="!searchLoading && !searchError" class="catalog-empty" role="status">
 					<AppIcon name="search" :size="24"/>
 					<strong>{{ searchSubmitted ? '没有找到匹配的文章' : '当前没有文章' }}</strong>
@@ -94,6 +104,7 @@
 	import {getBlogList} from '@/api/home'
 	import {getBlogListByTagName} from '@/api/tag'
 	import {SESSION_CHANGE_EVENT} from '@/auth/session'
+	import {catalogColumns, catalogPageSize, createCatalogPager} from '@/util/catalogPagination'
 
 	export default {
 		name: "ArticleCatalog",
@@ -106,6 +117,14 @@
 			return {
 				blogList: [],
 				totalPage: 0,
+				totalArticles: 0,
+				currentPage: 1,
+				requestedPage: 1,
+				catalogWidth: 0,
+				catalogLoading: false,
+				catalogError: '',
+				catalogRequestId: 0,
+				catalogPager: null,
 				viewMode: 'grid',
 				searchQuery: '',
 				submittedQuery: '',
@@ -122,18 +141,22 @@
 			'$route.fullPath'() {
 				if (['articles', 'category', 'tag'].includes(this.$route.name)) {
 					this.resetSearch()
-					this.getBlogList()
+					this.resetCatalog()
 				}
+			},
+			pageSize(nextSize, previousSize) {
+				if (!this.catalogPager) return
+				const firstIndex = (this.currentPage - 1) * previousSize
+				this.getBlogList(Math.floor(firstIndex / nextSize) + 1)
 			},
 			tagList: {
 				immediate: true,
 				handler() { this.refreshRandomTags() },
 			},
 		},
-		created() {
-			this.getBlogList()
-		},
 		computed: {
+			gridColumns() { return catalogColumns(this.catalogWidth) },
+			pageSize() { return catalogPageSize(this.gridColumns, this.viewMode) },
 			routeMode() { return this.$route.name || 'articles' },
 			taxonomyName() { return this.$route.params.name || '' },
 			heroTitle() {
@@ -141,6 +164,10 @@
 				return '全部文章'
 			},
 			heroDescription() {
+				if (this.routeMode === 'category') {
+					const category = this.categoryList.find(item => item.name === this.taxonomyName)
+					if (category?.description?.trim()) return category.description.trim()
+				}
 				return '记录思考、经验与发现，也分享简单的日常。'
 			},
 		},
@@ -158,9 +185,9 @@
 				this.randomTags = shuffled.slice(0, 12)
 			},
 			refreshVisibleBlogs(event) {
-				if (!event || event.key === null || event.key === 'custacm.accessToken' || event.key === 'custacm.user') {
+				if (!event || event.type === SESSION_CHANGE_EVENT || event.key === null || event.key === 'custacm.accessToken' || event.key === 'custacm.user') {
 					this.resetSearch()
-					this.getBlogList()
+					this.resetCatalog()
 				}
 			},
 			resetSearch() {
@@ -209,31 +236,60 @@
 			searchResultDescription(description) {
 				return String(description || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 			},
-			getBlogList(pageNum) {
-				let request
-				if (this.routeMode === 'category') request = getBlogListByCategoryName(this.taxonomyName, pageNum)
-				else if (this.routeMode === 'tag') request = getBlogListByTagName(this.taxonomyName, pageNum)
-				else request = getBlogList(pageNum)
-				return request.then(res => {
-					if (res.code === 200) {
-						this.blogList = res.data.list
-						this.totalPage = res.data.totalPage
-						this.$nextTick(() => {
-							Prism.highlightAll()
-						})
-					} else {
-						this.msgError(res.msg)
-					}
-				}).catch(() => {
-					this.msgError("请求失败")
+			measureCatalog() {
+				const width = this.$refs.catalogResults?.getBoundingClientRect().width
+				if (width > 0) this.catalogWidth = width
+			},
+			resetCatalog() {
+				const mode = this.routeMode
+				const name = this.taxonomyName
+				this.catalogPager = createCatalogPager(page => {
+					if (mode === 'category') return getBlogListByCategoryName(name, page)
+					if (mode === 'tag') return getBlogListByTagName(name, page)
+					return getBlogList(page)
 				})
+				this.blogList = []
+				this.totalArticles = 0
+				this.totalPage = 0
+				this.currentPage = 1
+				return this.getBlogList(1)
+			},
+			async getBlogList(pageNum = 1) {
+				this.requestedPage = pageNum
+				const requestId = ++this.catalogRequestId
+				this.catalogLoading = true
+				this.catalogError = ''
+				try {
+					const result = await this.catalogPager.readPage(pageNum, this.pageSize)
+					if (requestId !== this.catalogRequestId) return
+					this.blogList = result.list
+					this.totalPage = result.totalPage
+					this.totalArticles = result.total
+					this.currentPage = result.page
+					this.$nextTick(() => Prism.highlightAll())
+				} catch {
+					if (requestId === this.catalogRequestId) this.catalogError = '文章加载失败，请重试。'
+				} finally {
+					if (requestId === this.catalogRequestId) this.catalogLoading = false
+				}
 			}
 		},
 		mounted() {
+			this.measureCatalog()
+			this.resetCatalog()
+			if (typeof ResizeObserver !== 'undefined') {
+				this.catalogObserver = new ResizeObserver(() => this.measureCatalog())
+				this.catalogObserver.observe(this.$refs.catalogResults)
+			} else {
+				window.addEventListener('resize', this.measureCatalog)
+			}
 			window.addEventListener('storage', this.refreshVisibleBlogs)
 			window.addEventListener(SESSION_CHANGE_EVENT, this.refreshVisibleBlogs)
 		},
 		beforeUnmount() {
+			this.catalogRequestId += 1
+			this.catalogObserver?.disconnect()
+			window.removeEventListener('resize', this.measureCatalog)
 			window.removeEventListener('storage', this.refreshVisibleBlogs)
 			window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshVisibleBlogs)
 		}
@@ -264,12 +320,12 @@
 	.catalog-hero {
 		width: min(640px, calc(100% - 336px));
 		margin-left: 336px;
-		padding: 176px 0 192px;
+		padding: 72px 0 64px;
 	}
 
 	.catalog-hero-mark {
 		display: inline-flex;
-		margin-bottom: 38px;
+		margin-bottom: 24px;
 		color: var(--catalog-text);
 	}
 
@@ -285,6 +341,7 @@
 
 	.catalog-hero p {
 		max-width: 630px;
+		overflow-wrap: anywhere;
 		margin: 24px 0 0;
 		color: var(--catalog-muted);
 		font-size: 19px;
@@ -432,8 +489,10 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 24px;
-		margin-bottom: 32px;
+		margin-bottom: 16px;
 	}
+
+	.catalog-result-count { margin: 0 0 24px; color: var(--catalog-muted); font-size: 13px; }
 
 	.catalog-search {
 		display: flex;
@@ -477,9 +536,10 @@
 
 	.catalog-search input {
 		width: 100%;
+		min-width: 0;
 		border: 0;
 		outline: 0;
-		background: transparent;
+		background: transparent !important;
 		color: var(--catalog-text);
 		font-size: 15px;
 	}
@@ -499,7 +559,7 @@
 	}
 
 	.catalog-results.is-grid-view .catalog-search-hits {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-columns: repeat(var(--catalog-columns, 1), minmax(0, 1fr));
 	}
 
 	.catalog-search-hit {
@@ -610,10 +670,15 @@
 	}
 
 	.catalog-empty strong { color: var(--catalog-text); font: 500 22px/1.2 Georgia, serif; }
+	.catalog-load-state { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; color: var(--catalog-muted); }
+	.catalog-empty button,
+	.catalog-load-state button { border: 1px solid var(--catalog-border); border-radius: 8px; background: var(--catalog-surface); padding: 8px 16px; color: var(--catalog-text); cursor: pointer; }
+	.catalog-empty button:focus-visible,
+	.catalog-load-state button:focus-visible { outline: 2px solid var(--catalog-accent); outline-offset: 3px; }
 
 	.catalog-results :deep(.blog-item-collection.is-grid) {
-		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-		gap: 32px;
+		grid-template-columns: repeat(var(--catalog-columns, 1), minmax(0, 1fr));
+		gap: 24px;
 		margin-bottom: 46px;
 	}
 
@@ -650,7 +715,7 @@
 	}
 
 	.catalog-results :deep(.blog-item-collection.is-grid .list-card-main) {
-		padding: 24px 32px 18px;
+		padding: 24px 24px 16px;
 	}
 
 	.catalog-results :deep(.list-card-title),
@@ -662,7 +727,7 @@
 
 	.catalog-results :deep(.blog-item-collection.is-grid .list-card-title) {
 		font-size: 22px !important;
-		line-height: 1.08 !important;
+		line-height: 1.25 !important;
 	}
 
 	.catalog-results :deep(.list-card-category) {
@@ -682,7 +747,7 @@
 	}
 
 	.catalog-results :deep(.blog-item-collection.is-grid .list-author-card) {
-		margin: 0 32px 22px;
+		margin: 0 24px 20px;
 		border-top-color: var(--catalog-border);
 		color: var(--catalog-muted);
 	}
@@ -702,34 +767,57 @@
 	.catalog-results.is-list-view :deep(.blog-list-card) {
 		overflow: hidden;
 		padding: 0 !important;
+		margin-bottom: 24px !important;
 	}
 
 	.catalog-results.is-list-view :deep(.blog-list-grid) { margin: 0 !important; }
 	.catalog-results.is-list-view :deep(.list-card-layout) {
-		grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
+		grid-template-columns: minmax(0, 1fr) 240px;
+		grid-template-areas: "main cover" "author author";
 		gap: 0;
 		padding: 0;
 	}
 
-	.catalog-results.is-list-view :deep(.list-card-main) { padding: 30px 32px; }
+	.catalog-results.is-list-view :deep(.without-cover .list-card-layout) { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main" "author"; }
+	.catalog-results.is-list-view :deep(.list-card-main) { grid-area: main; min-height: 0; padding: 24px 24px 16px; }
+	.catalog-results.is-list-view :deep(.list-card-title) { margin-bottom: 12px !important; }
+	.catalog-results.is-list-view :deep(.list-card-category) { margin-bottom: 12px !important; }
+	.catalog-results.is-list-view :deep(.list-card-description) { display: -webkit-box; max-height: 4.95em; overflow: hidden; padding: 0 !important; -webkit-box-orient: vertical; -webkit-line-clamp: 3; font-size: 15px; line-height: 1.65; }
+	.catalog-results.is-list-view :deep(.list-card-description p) { margin: 0; font-size: inherit; line-height: inherit; }
 	.catalog-results.is-list-view :deep(.list-card-aside) {
-		align-self: stretch;
-		gap: 0;
-		border-left: 1px solid var(--catalog-border);
+		display: contents;
 	}
 
 	.catalog-results.is-list-view :deep(.list-author-card) {
+		grid-area: author;
+		width: auto;
+		margin: 0 24px 20px;
+		padding: 12px 0 0;
+		flex-direction: row;
+		align-items: center;
+		flex-wrap: wrap;
 		border: 0;
-		border-bottom: 1px solid var(--catalog-border);
+		border-top: 1px solid var(--catalog-border);
 		border-radius: 0;
 		background: transparent;
 		box-shadow: none;
+		backdrop-filter: none;
 	}
 
-	.catalog-results.is-list-view :deep(.list-card-cover) { border-radius: 0; }
-	.catalog-results.is-list-view :deep(.section-divider),
+	.catalog-results.is-list-view :deep(.list-author-avatar) { width: 32px; height: 32px; flex-basis: 32px; }
+	.catalog-results.is-list-view :deep(.list-author-copy strong) { font-size: 13px; }
+	.catalog-results.is-list-view :deep(.list-author-copy span) { font-size: 11px; }
+	.catalog-results.is-list-view :deep(.list-author-identity) { width: auto; }
+	.catalog-results.is-list-view :deep(.list-article-meta) { display: flex; flex-wrap: wrap; gap: 8px 16px; width: auto; margin-left: auto; border: 0; padding: 0; }
+	.catalog-results.is-list-view :deep(.list-card-cover) { grid-area: cover; align-self: center; width: calc(100% - 24px); margin: 24px 24px 16px 0; border-radius: 8px; }
+	.catalog-results.is-list-view :deep(.list-card-action) { flex: 0 0 auto; margin: 0 0 0 12px; padding: 0; justify-content: flex-start; }
 	.catalog-results.is-list-view :deep(.list-card-tags) { display: none; }
 	.catalog-results.is-list-view :deep(.read-more-button) {
+		min-width: 0;
+		min-height: 36px;
+		margin: 0;
+		padding: 8px 12px;
+		box-shadow: none;
 		border-color: var(--catalog-action) !important;
 		background: var(--catalog-action) !important;
 		color: var(--catalog-on-action) !important;
@@ -751,15 +839,13 @@
 	@media (max-width: 1180px) {
 		.catalog-hero { width: calc(100% - 280px); margin-left: 280px; }
 		.catalog-workspace { grid-template-columns: 224px minmax(0, 1fr); gap: 40px; }
-		.catalog-results :deep(.blog-item-collection.is-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-		.catalog-results.is-grid-view .catalog-search-hits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 	}
 
 	@media (max-width: 900px) {
-		.catalog-hero { width: 100%; margin-left: 0; padding-block: 84px; }
+		.catalog-hero { width: 100%; margin-left: 0; padding-block: 48px; }
 		.catalog-workspace { grid-template-columns: minmax(0, 1fr); }
 		.catalog-sidebar { position: static; }
-		.catalog-results.is-list-view :deep(.list-card-layout) { grid-template-columns: minmax(0, 1fr); }
+		.catalog-results.is-list-view :deep(.list-card-layout) { grid-template-columns: minmax(0, 1fr) 200px; }
 	}
 
 	@media (max-width: 640px) {
@@ -768,8 +854,11 @@
 		.catalog-toolbar { align-items: stretch; flex-direction: column; }
 		.catalog-search { width: 100%; }
 		.catalog-view-switch { align-self: flex-end; }
-		.catalog-results :deep(.blog-item-collection.is-grid) { grid-template-columns: minmax(0, 1fr); }
-		.catalog-results.is-grid-view .catalog-search-hits { grid-template-columns: minmax(0, 1fr); }
+		.catalog-results.is-list-view :deep(.list-card-layout) { grid-template-columns: minmax(0, 1fr); grid-template-areas: "cover" "main" "author"; }
+		.catalog-results.is-list-view :deep(.without-cover .list-card-layout) { grid-template-areas: "main" "author"; }
+		.catalog-results.is-list-view :deep(.list-card-cover) { width: calc(100% - 48px); margin: 24px 24px 0; }
+		.catalog-results.is-list-view :deep(.list-author-identity) { flex: 1 1 calc(100% - 100px); }
+		.catalog-results.is-list-view :deep(.list-article-meta) { order: 1; width: 100%; margin: 0; }
 	}
 
 	@media (prefers-reduced-motion: reduce) {

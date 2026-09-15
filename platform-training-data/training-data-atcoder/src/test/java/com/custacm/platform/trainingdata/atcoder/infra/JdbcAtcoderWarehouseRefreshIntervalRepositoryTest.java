@@ -67,6 +67,16 @@ class JdbcAtcoderWarehouseRefreshIntervalRepositoryTest {
     }
 
     @Test
+    void doesNotExpandToHistoricalFirstAcceptedForALaterRepeatedAcceptedSubmission() {
+        insertExistingDwm("tourist", "abc100_a", "2026-01-01");
+        insertOds("batch-1", 1L, "tourist", "abc100_a", "2026-07-01T00:00:00Z", "AC");
+
+        assertThat(repository.findBatchDateInterval("batch-1")).contains(new OjWarehouseRefreshInterval(
+                LocalDate.parse("2026-07-01"), LocalDate.parse("2026-07-01")
+        ));
+    }
+
+    @Test
     void ignoresExistingFirstAcceptedDateForUnacceptedTouchedProblems() {
         insertExistingDwm("tourist", "abc100_a", "2026-07-10");
         insertOds("batch-1", 1L, "tourist", "abc100_a", "2026-07-01T00:00:00Z", "WA");

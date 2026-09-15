@@ -68,7 +68,7 @@
 					</el-dropdown-menu>
 				</template>
 			</el-dropdown>
-			<button class="mobile-menu-button m-right-top m-mobile-show" aria-label="展开或收起导航" @click="toggle">
+			<button class="mobile-menu-button m-right-top m-mobile-show" aria-label="展开或收起导航" :aria-expanded="!mobileHide" @click="toggle">
 				<AppIcon name="menu" />
 			</button>
 		</div>
@@ -281,13 +281,7 @@
 		height: auto;
 	}
 
-	.nav-brand:focus-visible .nav-brand-plate {
-		outline: none;
-	}
-
 	.el-dropdown-link {
-		outline-style: none !important;
-		outline-color: unset !important;
 		height: 100%;
 		cursor: pointer;
 	}
@@ -305,8 +299,8 @@
 		height: 51px;
 		place-items: center;
 		border: 0;
-		background: #17191b;
-		color: #fff;
+		background: transparent;
+		color: var(--color-text);
 		cursor: pointer;
 	}
 
@@ -421,9 +415,9 @@
 		margin-left: 0;
 	}
 
-		.nav-auth-trigger {
-			display: flex;
-			max-width: 260px;
+	.nav-auth-trigger {
+		display: flex;
+		max-width: 260px;
 		align-items: center;
 		border: 0;
 		background: transparent;
@@ -432,15 +426,15 @@
 		font: inherit;
 	}
 
-		.nav-auth-trigger > span {
-			min-width: 0;
-			max-width: 240px;
+	.nav-auth-trigger > span {
+		min-width: 0;
+		max-width: 240px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
-	@media screen and (min-width: 769px) and (max-width: 1600px) {
+	@media screen and (min-width: 1024px) and (max-width: 1600px) {
 		.site-nav .nav-container {
 			padding: 0 8px;
 		}
@@ -452,13 +446,15 @@
 			padding-right: .7em !important;
 		}
 
-			.nav-auth-trigger,
-			.nav-auth-trigger > span {
-				max-width: 180px;
+		.nav-auth-trigger,
+		.nav-auth-trigger > span {
+			max-width: 180px;
 		}
 	}
 
-	@media screen and (max-width: 767px) {
+	@media screen and (max-width: 1023px) {
+		.site-nav .m-mobile-hide { display: none !important; }
+		.site-nav .m-mobile-show { display: grid !important; }
 		.site-nav .nav-container {
 			display: block;
 			padding: 0 52px 0 8px;
@@ -472,6 +468,9 @@
 		.nav-account {
 			margin-left: 0;
 		}
+
+		.site-nav .el-dropdown { display: block; width: 100%; }
+		.site-nav .nav-auth-trigger { max-width: 100%; }
 
 		.nav-theme-toggle {
 			justify-content: flex-start !important;

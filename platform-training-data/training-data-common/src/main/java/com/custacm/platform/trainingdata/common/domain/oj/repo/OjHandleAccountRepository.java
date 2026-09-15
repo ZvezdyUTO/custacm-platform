@@ -15,6 +15,8 @@ public interface OjHandleAccountRepository {
 
     Optional<OjHandleAccount> findByHandle(String ojName, String handle);
 
+    Map<String, String> findUsernamesByHandles(String ojName, List<String> handles);
+
     OjHandleAccount save(OjHandleAccount account);
 
     OjHandleAccount replace(

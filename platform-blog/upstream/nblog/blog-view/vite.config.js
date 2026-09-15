@@ -3,7 +3,7 @@ import {defineConfig} from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 const apiProxy = {
-	target: 'http://localhost:8090',
+	target: process.env.DEV_API_TARGET || 'http://localhost:8090',
 	changeOrigin: true,
 	rewrite: path => path.replace(/^\/api/, ''),
 }
@@ -33,6 +33,13 @@ export default defineConfig({
 		host: '0.0.0.0',
 		port: 4180,
 		strictPort: true,
+		watch: {
+			usePolling: process.env.DEV_USE_POLLING === 'true',
+			interval: 500,
+		},
+		hmr: {
+			clientPort: process.env.DEV_HMR_CLIENT_PORT ? Number(process.env.DEV_HMR_CLIENT_PORT) : undefined,
+		},
 		proxy: {
 			'/api': apiProxy,
 			'/training-app': trainingProxy,

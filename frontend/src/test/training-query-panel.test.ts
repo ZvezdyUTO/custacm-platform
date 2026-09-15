@@ -5,12 +5,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import TrainingQueryPanel from '../components/TrainingQueryPanel.vue';
 import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
 import { OJ_NAMES } from '../types';
+import { problemFirstAcceptedFixture, problemSubmissionsFixture } from './fixtures';
 
 function dashboardFixture() {
   const applyTrainingQuery = vi.fn().mockResolvedValue(undefined);
   return {
     dashboard: {
-      status: ref('ready'), trainingUsers: ref([]), selectedTrainingUser: computed(() => null),
+      status: ref('ready'), trainingUpdatedAt: ref({ multiple: null, single: null, problem: null }), trainingUsers: ref([]), selectedTrainingUser: computed(() => null),
       includeRetiredUsers: ref(false),
       selectedUsername: ref(null), selectedOjName: ref(OJ_NAMES.CODEFORCES),
       trainingQuery: ref({ acceptedFromDateUtcPlus8: '2026-07-01', acceptedToDateUtcPlus8: '2026-07-12', minProblemRating: '', maxProblemRating: '' }),
@@ -29,6 +30,35 @@ function dashboardFixture() {
 afterEach(() => vi.useRealTimers());
 
 describe('training query automatic filters', () => {
+  it('explains the single-user initial, loading and error states', async () => {
+    const { dashboard } = dashboardFixture();
+    dashboard.trainingUsers.value = [{ username: 'player-a', nickname: '队员甲', ojNames: [OJ_NAMES.CODEFORCES] }];
+    const wrapper = mount(TrainingQueryPanel, { props: { dashboard, mode: 'single' } });
+    expect(wrapper.get('.query-empty-state').text()).toContain('选择队员，查看训练情况');
+    expect(wrapper.get('.query-updated-at').text()).toBe('尚未查询');
+    dashboard.status.value = 'loading';
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('.query-empty-state').text()).toContain('正在加载训练数据');
+    dashboard.status.value = 'error';
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('.query-empty-state').text()).toContain('训练数据暂时无法加载');
+  });
+
+  it('distinguishes a problem query awaiting input from an empty response on either tab', async () => {
+    const { dashboard } = dashboardFixture();
+    const wrapper = mount(TrainingQueryPanel, { props: { dashboard, mode: 'problem' } });
+    expect(wrapper.get('.query-empty-state').text()).toContain('2242:C');
+    dashboard.problemSubmissions.value = { ...problemSubmissionsFixture, total: 0, submissions: [] };
+    dashboard.problemFirstAccepted.value = { ...problemFirstAcceptedFixture, total: 0, acceptedHandles: [] };
+    dashboard.trainingUpdatedAt.value.problem = new Date('2026-09-14T10:30:00+08:00').getTime();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('.query-empty-state').exists()).toBe(false);
+    expect(wrapper.get('.submission-empty').text()).toContain('暂无提交记录');
+    expect(wrapper.get('.query-updated-at').text()).toContain('更新于');
+    await wrapper.findAll('.problem-query-panel .activity-switch button')[1]!.trigger('click');
+    expect(wrapper.get('.submission-empty').text()).toContain('暂无首次通过记录');
+  });
+
   it('leaves the single-user search empty until the user chooses a player', () => {
     const { dashboard } = dashboardFixture();
     dashboard.trainingUsers.value = [{ username: 'player-a', nickname: '队员甲', ojNames: [OJ_NAMES.CODEFORCES] }];

@@ -39,6 +39,7 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml config
 | 范围 | 变量 |
 | --- | --- |
 | Host 端口 | `BACKEND_PORT`、`FRONTEND_PORT`、`FRONTEND_HTTPS_PORT` |
+| 本地前端开发 | `DEV_FRONTEND_PORT`、`DEV_USE_POLLING` |
 | TLS | `TLS_ENABLED`、`TLS_CERT_DIR` |
 | 托管图片 | `FRONTEND_IMAGE_REFERER_HOSTS`、`FRONTEND_IMAGE_PUBLIC_ORIGIN`、`FRONTEND_ALLOW_LOCAL_REFERERS` |
 | MySQL | `BLOG_DB_NAME`、`BLOG_DB_USERNAME`、`BLOG_DB_PASSWORD`、`BLOG_DB_ROOT_PASSWORD` |
@@ -64,12 +65,19 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml config
 
 该脚本：
 
-- 停止生产 Nginx `frontend`；
-- 保留并启动 Docker 中的 MySQL、Redis 和 Blog API，不强制重建后端镜像；
-- 在宿主机启动 Training Vite 5173 和 Blog Vite 4180；
-- Ctrl-C 时只停止两份 Vite，后端容器继续运行。
+- 使用本机 Docker context，停止本地同一套栈的现有 `frontend`；
+- 保留并启动 MySQL、Redis 和 Blog API，不强制重建后端镜像；
+- 通过 `docker-compose.dev.yml` 将同一个 `frontend` 服务替换为 Node 开发容器，同时运行两份 Vite；基础 Compose 和稳定运行仍是原来的四服务 Nginx 拓扑；
+- 只发布 `127.0.0.1:${DEV_FRONTEND_PORT:-4180}`。Blog Vite 是统一网关，Training 的 5173 端口仅在容器内使用；
+- Ctrl-C 时只停止本次前端开发容器，三个后端容器和数据卷继续保留。
 
-两份 Vite 都代理 `localhost:8090`，所以开发模式要求 `BACKEND_PORT=8090`。
+宿主机只需要 Docker（Compose 支持 `!override`）和 curl，不需要安装 Node、npm 或 pnpm。首次启动会构建轻量开发镜像并安装前端依赖；两套源码以只读方式挂载，分别使用独立的 `node_modules` 命名卷，避免混入宿主机的原生依赖。npm 下载缓存和 pnpm store 也持久化。后续启动在依赖清单及 Node/包管理器版本不变时直接复用依赖。
+
+日常直接修改本地 `.vue`、CSS、JS/TS 文件，Vite 会通过同源 WebSocket 更新浏览器，无需再次运行前端 build、Docker build 或 Maven。`DEV_USE_POLLING` 默认开启以适配 macOS Docker 文件挂载；原生 Linux 可设为 `false`。修改依赖清单后重新运行 `dev.sh` 自动安装；修改开发镜像入口后重新运行会增量构建该镜像。
+
+两份 Vite 在容器内通过 `blog-api:8090` 访问后端，因此开发模式不再限制宿主机 `BACKEND_PORT`。`/api/image/**` 同样去掉 `/api` 后由后端现有 `/image/**` 资源映射读取本地 `uploads/`；本地开发不复制生产 Nginx 的图片 Referer 与 URL 改写规则。
+
+开发配置仅由 `dev.sh` 合并使用。切回稳定运行时使用 `deploy.sh`，会把同一个 `frontend` 服务恢复为 Nginx。不要删除 MySQL、Redis 或开发依赖卷来完成模式切换。
 
 ### 稳定运行、验收或服务器更新
 
@@ -97,6 +105,7 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml config
 | `http://localhost:8090/health` | 直接访问 Blog API |
 
 开发模式入口为 `http://localhost:4180/` 和 `http://localhost:4180/training/multiple`。
+若设置了 `DEV_FRONTEND_PORT`，以 `dev.sh` 启动后打印的地址为准。
 
 ## HTTPS
 
@@ -221,7 +230,8 @@ WHERE t.id IS NULL;
 ## 构建说明
 
 - 后端镜像从根 Maven reactor 打包 `platform-blog/upstream/nblog/blog-api`。
-- 前端镜像使用 Node 20.19：Training 通过已跟踪的 pnpm lock 构建；Blog 按当前 Dockerfile 使用 `npm install`；两份产物复制到 Nginx 1.27 Alpine。
+- 前端镜像使用 Node 20.19：Training 通过已跟踪的 pnpm lock 构建；Blog 固定 npm 11.12.1 后使用 `npm install`；两份产物复制到 Nginx 1.27 Alpine。
+- 同一 Dockerfile 的 `frontend-dev` target 只准备 Node 与容器入口，不执行两份前端生产构建；依赖在开发卷中按需安装。
 - Blog 静态产物位于 Nginx root，Training 静态产物位于内部 `/training-app`。
 
 ## 验证
@@ -247,6 +257,12 @@ curl -fsS "http://localhost:${BACKEND_PORT}/health"
 ```
 
 随后按 `TLS_ENABLED` 使用实际 HTTP 或 HTTPS 端口检查 `/`、`/training/multiple` 和 `/api/health`。浏览器还应验证刷新 fallback、登录/退出、player/admin 权限隔离、跨前端会话以及控制台无关键错误。
+
+开发容器还应检查两个页面的热更新都通过同一网关端口连接，修改两端样式后页面直接更新，容器和后端无需重建。配置校验使用：
+
+```bash
+docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml config --quiet
+```
 
 ## 数据与安全
 

@@ -1,0 +1,32 @@
+# Development override for the existing frontend service; used by scripts/dev.sh.
+services:
+  frontend:
+    image: ${COMPOSE_PROJECT_NAME:-custacm-platform}-frontend-dev:local
+    build:
+      target: frontend-dev
+    init: true
+    environment: !override
+      DEV_API_TARGET: http://blog-api:8090
+      DEV_HMR_CLIENT_PORT: ${DEV_FRONTEND_PORT:-4180}
+      DEV_USE_POLLING: ${DEV_USE_POLLING:-true}
+    ports: !override
+      - "127.0.0.1:${DEV_FRONTEND_PORT:-4180}:4180"
+    volumes: !override
+      - ../frontend:/workspace/frontend:ro
+      - ../platform-blog/upstream/nblog/blog-view:/workspace/blog-view:ro
+      - training-dev-modules:/workspace/frontend/node_modules
+      - blog-dev-modules:/workspace/blog-view/node_modules
+      - frontend-dev-npm-cache:/root/.npm
+      - frontend-dev-pnpm-store:/pnpm/store
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:4180/ && wget -q -O /dev/null http://127.0.0.1:4180/training-app/ && wget -q -O /dev/null http://127.0.0.1:4180/api/health"]
+      interval: 3s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+volumes:
+  training-dev-modules:
+  blog-dev-modules:
+  frontend-dev-npm-cache:
+  frontend-dev-pnpm-store:

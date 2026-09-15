@@ -14,6 +14,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import javax.sql.DataSource;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -127,6 +128,21 @@ class JdbcOjHandleAccountRepositoryTest {
                 .extracting(OjHandleAccount::username)
                 .isEqualTo("112488李四");
         assertThat(repository.findByHandle(OjNames.ATCODER, "missing")).isEmpty();
+    }
+
+    @Test
+    void findsOnlyRequestedUsernamesInTheRequestedOj() {
+        repository.save(account("alice", Map.of(OjNames.CODEFORCES, "tourist", OjNames.ATCODER, "alice_atcoder"),
+                true, Map.of()));
+        repository.save(account("bob", Map.of(OjNames.CODEFORCES, "Benq", OjNames.ATCODER, "tourist"),
+                true, Map.of()));
+
+        assertThat(repository.findUsernamesByHandles("codeforces", List.of("tourist", "Benq", "missing", "tourist")))
+                .containsExactlyInAnyOrderEntriesOf(Map.of("tourist", "alice", "Benq", "bob"));
+        assertThat(repository.findUsernamesByHandles("atcoder", List.of("tourist")))
+                .containsExactlyEntriesOf(Map.of("tourist", "bob"));
+        assertThat(repository.findUsernamesByHandles(OjNames.ATCODER, List.of())).isEmpty();
+        assertThat(repository.findUsernamesByHandles(OjNames.CODEFORCES, List.of("missing"))).isEmpty();
     }
 
     @Test

@@ -54,6 +54,27 @@ function deferred<T>() {
 }
 
 describe('homepage featured groups admin', () => {
+  it('keeps featured slots and candidate selection usable when cover images fail', async () => {
+    const dashboard = {
+      homepageFeaturedGroups: ref([group(1, 0)]),
+      loadHomepageFeaturedGroups: vi.fn().mockResolvedValue(undefined),
+      searchHomepageFeaturedArticleCandidates: vi.fn().mockResolvedValue([candidate(41)]),
+    } as unknown as ReturnType<typeof usePlatformDashboard>;
+    const wrapper = mount(HomepageFeaturedGroupsPanel, { props: { dashboard } });
+    await flushPromises();
+    const firstSlot = wrapper.findAll('.featured-article-slot')[0]!;
+    await firstSlot.get('img').trigger('error');
+    expect(firstSlot.find('img').exists()).toBe(false);
+    expect(firstSlot.text()).toContain('文章 10');
+    await firstSlot.trigger('click');
+    await flushPromises();
+    const option = wrapper.get('.featured-candidate-list > button');
+    await option.get('img').trigger('error');
+    expect(option.find('img').exists()).toBe(false);
+    await option.trigger('click');
+    expect(firstSlot.text()).toContain('文章 41');
+  });
+
   it('creates only after all three article slots are selected', async () => {
     const groups = ref<HomepageFeaturedGroup[]>([group(1, 0)]);
     const candidates = [candidate(41), candidate(42), candidate(43)];

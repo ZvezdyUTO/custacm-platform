@@ -75,6 +75,8 @@ This table lists stable navigation points rather than every component or test. I
 
 ## Verification
 
+For local hot reload, run the repository's `./scripts/dev.sh`. It runs both Vite applications in one Docker frontend container with mounted source and cached dependencies. See [local development](../../../../deploy/README.md) for ports, lifecycle and configuration.
+
 Run in this directory:
 
 ```bash

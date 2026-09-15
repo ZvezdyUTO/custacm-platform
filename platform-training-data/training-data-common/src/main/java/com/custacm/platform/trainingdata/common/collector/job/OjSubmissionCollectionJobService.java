@@ -225,12 +225,11 @@ public class OjSubmissionCollectionJobService {
         if (!refreshWarehouse) {
             return OjSubmissionCollectionJobRefreshResult.notRequested();
         }
-        if (collectionResult.batchId() == null) {
-            return OjSubmissionCollectionJobRefreshResult.noBatch();
-        }
         try {
             return Objects.requireNonNull(
-                    refreshHandler.refresh(collectionResult),
+                    collectionResult.batchId() == null
+                            ? refreshHandler.refreshPending(collectionResult.ojName())
+                            : refreshHandler.refresh(collectionResult),
                     "refresh result must not be null"
             );
         } catch (Exception ex) {
@@ -306,6 +305,10 @@ public class OjSubmissionCollectionJobService {
     @FunctionalInterface
     public interface RefreshHandler {
         OjSubmissionCollectionJobRefreshResult refresh(OjSubmissionCollectionResult result) throws Exception;
+
+        default OjSubmissionCollectionJobRefreshResult refreshPending(String ojName) throws Exception {
+            return OjSubmissionCollectionJobRefreshResult.noBatch();
+        }
     }
 
     interface SleepStrategy {

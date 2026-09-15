@@ -15,7 +15,9 @@ import top.naccl.model.dto.AdminUserCreateRequest;
 import top.naccl.model.dto.AdminUserUpdateRequest;
 import top.naccl.model.vo.AdminUserMutationResponse;
 import top.naccl.util.HashUtils;
+import top.naccl.util.PasswordPolicy;
 import top.naccl.service.ImageAssetService;
+import top.naccl.service.TrainingDataMutationGuard;
 import top.naccl.config.BootstrapAdminInitializer;
 
 import java.security.SecureRandom;
@@ -39,17 +41,20 @@ public class AdminUserService {
     private final OjHandleAccountService handleAccountService;
     private final OjStudentDataPurgeService purgeService;
     private final ImageAssetService imageAssetService;
+    private final TrainingDataMutationGuard trainingDataMutationGuard;
 
     public AdminUserService(
             UserMapper userMapper,
             OjHandleAccountService handleAccountService,
             OjStudentDataPurgeService purgeService,
-            ImageAssetService imageAssetService
+            ImageAssetService imageAssetService,
+            TrainingDataMutationGuard trainingDataMutationGuard
     ) {
         this.userMapper = userMapper;
         this.handleAccountService = handleAccountService;
         this.purgeService = purgeService;
         this.imageAssetService = imageAssetService;
+        this.trainingDataMutationGuard = trainingDataMutationGuard;
     }
 
     @Transactional
@@ -65,7 +70,7 @@ public class AdminUserService {
         String generatedPassword = request.password() == null || request.password().isBlank()
                 ? randomPassword() : null;
         String rawPassword = generatedPassword == null ? request.password() : generatedPassword;
-        validatePassword(rawPassword);
+        PasswordPolicy.validateNewPassword(rawPassword);
 
         User user = new User();
         user.setUsername(username);
@@ -115,8 +120,13 @@ public class AdminUserService {
         if (request == null) {
             throw new BadRequestException("请求体不能为空");
         }
-        String oldUsername = normalizeUsername(username);
-        User user = requireUser(oldUsername);
+        String requestedRole = request.role() == null ? null : normalizeRole(request.role());
+        trainingDataMutationGuard.acquireUntilTransactionCompletes();
+        // Always lock the administrator set before a target row when a mutation can remove an admin.
+        List<Long> adminIds = "ROLE_player".equals(requestedRole) ? userMapper.lockAdminIds() : List.of();
+        User user = requireUser(normalizeUsername(username));
+        // MySQL resolves usernames case-insensitively; all invariants use the stored identity.
+        String oldUsername = user.getUsername();
         String newUsername = request.newUsername() == null ? oldUsername : normalizeUsername(request.newUsername());
         if (isRoot(oldUsername) && !oldUsername.equals(newUsername)) {
             throw new ForbiddenException("root 用户名不可修改");
@@ -124,12 +134,12 @@ public class AdminUserService {
         if (!oldUsername.equals(newUsername) && userMapper.findByUsername(newUsername) != null) {
             throw new BadRequestException("用户名已存在");
         }
-        String newRole = request.role() == null ? user.getRole() : normalizeRole(request.role());
+        String newRole = requestedRole == null ? user.getRole() : requestedRole;
         if (isRoot(oldUsername) && !"ROLE_admin".equals(newRole)) {
             throw new ForbiddenException("root 必须保持管理员角色");
         }
         if ("ROLE_admin".equals(user.getRole()) && !"ROLE_admin".equals(newRole)) {
-            requireAnotherAdmin();
+            requireAnotherAdmin(adminIds);
         }
         boolean root = isRoot(oldUsername);
         Map<String, String> requestedHandles;
@@ -164,7 +174,7 @@ public class AdminUserService {
 				generatedPassword = randomPassword();
 				rawPassword = generatedPassword;
 			}
-			validatePassword(rawPassword);
+			PasswordPolicy.validateNewPassword(rawPassword);
 			user.setPassword(HashUtils.getBC(rawPassword));
         }
         if (userMapper.updateAdminFields(user, oldUsername) != 1) {
@@ -187,13 +197,15 @@ public class AdminUserService {
 
     @Transactional
     public void delete(String username) {
-        String normalizedUsername = normalizeUsername(username);
-        User user = requireUser(normalizedUsername);
+        trainingDataMutationGuard.acquireUntilTransactionCompletes();
+        List<Long> adminIds = userMapper.lockAdminIds();
+        User user = requireUser(normalizeUsername(username));
+        String normalizedUsername = user.getUsername();
         if (isRoot(normalizedUsername)) {
             throw new ForbiddenException("root 用户不可删除");
         }
         if ("ROLE_admin".equals(user.getRole())) {
-            requireAnotherAdmin();
+            requireAnotherAdmin(adminIds);
         }
         OjHandleAccount account = findHandleAccount(normalizedUsername);
         if (account != null) {
@@ -206,14 +218,15 @@ public class AdminUserService {
         }
     }
 
-    private void requireAnotherAdmin() {
-        if (userMapper.lockAdminIds().size() <= 1) {
+    private void requireAnotherAdmin(List<Long> adminIds) {
+        if (adminIds.size() <= 1) {
             throw new ForbiddenException("系统必须至少保留一个管理员");
         }
     }
 
     private User requireUser(String username) {
-        User user = userMapper.findByUsername(username);
+        // Serialize account and handle mutations before reading the state used for purge decisions.
+        User user = userMapper.findByUsernameForUpdate(username);
         if (user == null) {
             throw new NotFoundException("用户不存在");
         }
@@ -280,16 +293,10 @@ public class AdminUserService {
     }
 
     private static String normalizeRole(String role) {
-        if (!ROLES.contains(role)) {
+        if (role == null || !ROLES.contains(role)) {
             throw new BadRequestException("角色只能是 ROLE_admin 或 ROLE_player");
         }
         return role;
-    }
-
-    private static void validatePassword(String password) {
-        if (password == null || password.length() < 6 || password.length() > 128) {
-            throw new BadRequestException("密码长度需为 6 到 128 个字符");
-        }
     }
 
     private static String trimToEmpty(String value) {

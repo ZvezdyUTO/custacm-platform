@@ -15,11 +15,11 @@ import top.naccl.model.vo.HomepageFeaturedImage;
 import top.naccl.repository.HomepageFeaturedImageRepository;
 
 import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,6 +27,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -70,14 +71,13 @@ public class HomepageFeaturedImageService {
         if (repository.count() >= MAX_IMAGE_COUNT) {
             throw new BadRequestException("精选图片最多保留 12 张");
         }
-        validateFile(file);
+        byte[] original = validateFile(file);
         String fileStem = "homepage-featured-" + UUID.randomUUID();
         String originalFileName = fileStem + ".jpg";
         String thumbnailFileName = fileStem + "-thumbnail.jpg";
         Path originalTarget = Path.of(uploadProperties.getPath()).resolve(originalFileName).normalize();
         Path thumbnailTarget = Path.of(uploadProperties.getPath()).resolve(thumbnailFileName).normalize();
         try {
-            byte[] original = file.getBytes();
             byte[] thumbnail = createThumbnail(original);
             Files.createDirectories(originalTarget.getParent());
             Files.write(originalTarget, original, StandardOpenOption.CREATE_NEW);
@@ -198,7 +198,7 @@ public class HomepageFeaturedImageService {
         return output.toByteArray();
     }
 
-    private void validateFile(MultipartFile file) {
+    private byte[] validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BadRequestException("请选择裁剪后的精选图片");
         }
@@ -208,11 +208,27 @@ public class HomepageFeaturedImageService {
         if (!"image/jpeg".equalsIgnoreCase(file.getContentType())) {
             throw new BadRequestException("精选图片必须裁剪并导出为 JPEG");
         }
-        try (InputStream inputStream = file.getInputStream()) {
-            BufferedImage image = ImageIO.read(inputStream);
-            if (image == null || image.getWidth() != REQUIRED_WIDTH || image.getHeight() != REQUIRED_HEIGHT) {
-                throw new BadRequestException("精选图片必须为 1200×800");
+        try {
+            byte[] original = file.getBytes();
+            try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(original))) {
+                Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+                if (!readers.hasNext()) {
+                    throw new BadRequestException("精选图片必须裁剪并导出为 JPEG");
+                }
+                ImageReader reader = readers.next();
+                try {
+                    reader.setInput(input, true, true);
+                    if (!"JPEG".equalsIgnoreCase(reader.getFormatName())) {
+                        throw new BadRequestException("精选图片必须裁剪并导出为 JPEG");
+                    }
+                    if (reader.getWidth(0) != REQUIRED_WIDTH || reader.getHeight(0) != REQUIRED_HEIGHT) {
+                        throw new BadRequestException("精选图片必须为 1200×800");
+                    }
+                } finally {
+                    reader.dispose();
+                }
             }
+            return original;
         } catch (IOException exception) {
             throw new BadRequestException("无法读取精选图片", exception);
         }

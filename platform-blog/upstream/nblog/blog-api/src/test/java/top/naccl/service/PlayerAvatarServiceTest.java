@@ -19,6 +19,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.when;
 
 /**
@@ -39,7 +40,7 @@ class PlayerAvatarServiceTest {
 		ImageAsset previous = asset(3L, "/old-thumb.png", "/old.png");
 		ImageAsset replacement = asset(8L, "/api/image/assets/new/thumbnail.png", "/api/image/assets/new/original.png");
 		MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", new byte[]{1});
-		when(userMapper.findByUsername("player1")).thenReturn(user);
+		when(userMapper.findByUsernameForUpdate("player1")).thenReturn(user);
 		when(imageAssetService.findById(3L)).thenReturn(previous);
 		when(imageAssetService.storeAvatar(1L, file)).thenReturn(replacement);
 		when(userMapper.updateAvatarByUsername("player1", replacement.getThumbnailUrl(), 8L)).thenReturn(1);
@@ -53,11 +54,16 @@ class PlayerAvatarServiceTest {
 		assertEquals(replacement.getOriginalUrl(), profile.getAvatarOriginalUrl());
 		assertEquals(List.of(achievement), profile.getAchievements());
 		verify(imageAssetService).replaceAvatar(previous, replacement);
+		var order = inOrder(userMapper, imageAssetService);
+		order.verify(userMapper).findByUsernameForUpdate("player1");
+		order.verify(imageAssetService).findById(3L);
+		order.verify(userMapper).updateAvatarByUsername("player1", replacement.getThumbnailUrl(), 8L);
+		order.verify(imageAssetService).replaceAvatar(previous, replacement);
 	}
 
 	@Test
 	void rejectsMissingCurrentUserBeforeWritingFiles() {
-		when(userMapper.findByUsername("missing")).thenReturn(null);
+		when(userMapper.findByUsernameForUpdate("missing")).thenReturn(null);
 		assertThrows(NotFoundException.class, () -> service().updateAvatar("missing",
 				new MockMultipartFile("file", new byte[]{1})));
 	}

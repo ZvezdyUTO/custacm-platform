@@ -87,11 +87,13 @@ class OjCollectorSchedulingConfigTest {
     }
 
     @Test
-    void skipsWarehouseRefreshWhenScheduledCollectionReturnsNoBatch() throws Exception {
+    void checksPendingWarehouseWorkWhenScheduledCollectionReturnsNoBatch() throws Exception {
         OjScheduledSubmissionCollectionService collectionService = mock(OjScheduledSubmissionCollectionService.class);
         when(collectionService.collectRecentWindowForConfiguredHandles("CODEFORCES", Duration.ofHours(120)))
                 .thenReturn(successResult("CODEFORCES", null));
         OjWarehouseRefreshHandler refreshHandler = refreshHandler("CODEFORCES", "batch-codeforces");
+        when(refreshHandler.refreshPending()).thenReturn(new OjSubmissionCollectionJobRefreshResult(
+                OjSubmissionCollectionJobRefreshStatus.SUCCESS, "recovered pending refresh"));
         OjCollectorSchedulingProperties properties = new OjCollectorSchedulingProperties(
                 List.of(new OjCollectorSchedulingProperties.Schedule(
                         "daily-recent-submissions",
@@ -115,6 +117,7 @@ class OjCollectorSchedulingConfigTest {
 
         registrar.getTriggerTaskList().getFirst().getRunnable().run();
         verify(refreshHandler).ojName();
+        verify(refreshHandler).refreshPending();
         verify(refreshHandler, never()).refresh(any());
     }
 

@@ -6,6 +6,10 @@ function optionalBearer() {
 	return token ? {Authorization: `Bearer ${token}`} : undefined
 }
 
+export function getCategories() {
+	return axios({url: 'categories', method: 'GET'})
+}
+
 export function getBlogListByCategoryName(categoryName, pageNum) {
 	return axios({
 		url: 'category',

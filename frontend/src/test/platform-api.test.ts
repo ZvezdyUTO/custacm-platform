@@ -400,7 +400,7 @@ describe('focused Blog admin API', () => {
     expect(requestAt(fetchMock, 0).url.searchParams.get('pageNum')).toBe('2');
     expect(requestAt(fetchMock, 0).url.searchParams.get('pageSize')).toBe('20');
     expect(requestAt(fetchMock, 1).init.method).toBe('POST');
-    expect(JSON.parse(String(requestAt(fetchMock, 1).init.body))).toEqual({ name: '算法', color: '#8B1E3F' });
+    expect(JSON.parse(String(requestAt(fetchMock, 1).init.body))).toEqual({ name: '算法', color: '#8B1E3F', description: '' });
     expect(requestAt(fetchMock, 2).init.method).toBe('PUT');
     expect(JSON.parse(String(requestAt(fetchMock, 2).init.body))).toEqual({ id: 7, name: '赛事题解' });
     expect(requestAt(fetchMock, 3).url.searchParams.get('id')).toBe('7');
@@ -408,6 +408,17 @@ describe('focused Blog admin API', () => {
     expectBearer(requestAt(fetchMock, 3).init);
   });
 
+  it('sends category descriptions on creation and preserves an explicit empty update', async () => {
+    const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: null });
+    await createCategory('token', '题解', '#8B1E3F', '分享解题思路');
+    await updateCategory('token', { id: 7, name: '题解', description: '赛后复盘' });
+    await updateCategory('token', { id: 7, name: '题解', description: '' });
+
+    expect(JSON.parse(String(requestAt(fetchMock, 0).init.body)).description).toBe('分享解题思路');
+    expect(JSON.parse(String(requestAt(fetchMock, 1).init.body)).description).toBe('赛后复盘');
+    expect(JSON.parse(String(requestAt(fetchMock, 2).init.body)).description).toBe('');
+    for (let index = 0; index < 3; index += 1) expectBearer(requestAt(fetchMock, index).init);
+  });
 	it('moves, lists and restores articles through the Blog admin recycle bin routes', async () => {
 		const fetchMock = stubFetch({ code: 200, errorCode: null, msg: 'ok', data: null });
 

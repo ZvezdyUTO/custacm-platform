@@ -65,6 +65,8 @@ public interface BlogMapper {
 
 	Blog getBlogByIdAndUserId(Long id, Long userId);
 
+	Blog getOwnedBlogForUpdate(@Param("id") Long id, @Param("userId") Long userId);
+
 	BlogDetail getBlogByIdAndIsPublished(Long id);
 
 	BlogDetail getInternalBlogById(Long id);

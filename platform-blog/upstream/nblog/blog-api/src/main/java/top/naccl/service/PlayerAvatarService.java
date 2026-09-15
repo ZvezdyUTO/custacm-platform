@@ -35,7 +35,7 @@ public class PlayerAvatarService {
 
 	@Transactional
 	public PlayerProfile updateAvatar(String username, MultipartFile file) {
-		User user = userMapper.findByUsername(username);
+		User user = userMapper.findByUsernameForUpdate(username);
 		if (user == null) {
 			throw new NotFoundException("用户不存在");
 		}

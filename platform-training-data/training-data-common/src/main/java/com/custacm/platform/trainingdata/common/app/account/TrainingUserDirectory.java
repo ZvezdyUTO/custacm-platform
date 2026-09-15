@@ -4,6 +4,7 @@ import com.custacm.platform.trainingdata.common.domain.oj.model.OjHandleAccount;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 public interface TrainingUserDirectory {
     List<OjHandleAccount> listAll();
@@ -11,6 +12,8 @@ public interface TrainingUserDirectory {
     OjHandleAccount getByUsername(String username);
 
     OjHandleAccount getByHandle(String ojName, String handle);
+
+    Map<String, String> getUsernamesByHandles(String ojName, List<String> handles);
 
     String getHandle(OjHandleAccount account, String ojName);
 

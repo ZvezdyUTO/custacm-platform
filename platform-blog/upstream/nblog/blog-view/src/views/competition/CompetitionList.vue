@@ -669,7 +669,7 @@
 
 	.archive-timeline {
 		position: relative;
-		background: rgba(255, 255, 255, .38);
+		background: var(--archive-paper);
 		padding: 0 42px;
 	}
 
@@ -798,6 +798,8 @@
 		font-size: clamp(21px, 2vw, 28px);
 		line-height: 1.35;
 	}
+
+	.record-heading h2 a { color: inherit; }
 
 	.record-heading h2 a:hover,
 	.record-heading h2 a:focus-visible {

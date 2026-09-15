@@ -8,7 +8,7 @@ import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
 describe('category admin panel', () => {
   it('loads, creates, renames and deletes categories', async () => {
     const dashboard = {
-      adminCategories: ref({ list: [{ id: 3, name: '题解', color: '#8B1E3F' }], pageNum: 1, pageSize: 15, pages: 2, total: 16 }),
+      adminCategories: ref({ list: [{ id: 3, name: '题解', color: '#8B1E3F', description: '分享解题思路' }], pageNum: 1, pageSize: 15, pages: 2, total: 16 }),
       adminTags: ref({ list: [{ id: 8, name: 'DP', color: '#245A73' }], pageNum: 1, pageSize: 15, pages: 2, total: 16 }),
       loadAdminCategories: vi.fn().mockResolvedValue(undefined),
       loadAdminTags: vi.fn().mockResolvedValue(undefined),
@@ -24,14 +24,31 @@ describe('category admin panel', () => {
     await flushPromises();
 
     await wrapper.get('.category-create-form input').setValue('算法');
+    await wrapper.get('[aria-label="新分类说明"]').setValue('  记录算法学习笔记  ');
     await wrapper.get('.category-create-form').trigger('submit');
     await flushPromises();
-    expect(dashboard.createCategory).toHaveBeenCalledWith('算法', '#8B1E3F');
+    expect(dashboard.createCategory).toHaveBeenCalledWith('算法', '#8B1E3F', '记录算法学习笔记');
+    expect(wrapper.get<HTMLInputElement>('[aria-label="新分类说明"]').element.value).toBe('');
 
+    expect(wrapper.get<HTMLInputElement>('[aria-label="分类 题解 说明"]').element.value).toBe('分享解题思路');
     await wrapper.get('.category-admin-row input').setValue('赛事题解');
     await wrapper.get('.category-admin-row').trigger('submit');
     await flushPromises();
-    expect(dashboard.updateCategory).toHaveBeenCalledWith(3, '赛事题解', '#8B1E3F');
+    expect(dashboard.updateCategory).toHaveBeenCalledWith(3, '赛事题解', '#8B1E3F', '分享解题思路');
+
+    await wrapper.get('.category-admin-row input[type="color"]').setValue('#deef18');
+    const preview = wrapper.get<HTMLElement>('.category-admin-row .taxonomy-color-preview');
+    expect(preview.element.style.color).toBe('rgb(0, 0, 0)');
+    expect(preview.element.style.backgroundColor).toBe('rgb(222, 239, 24)');
+    await wrapper.get('[aria-label="分类 赛事题解 说明"]').setValue('赛后复盘与题解');
+    await wrapper.get('.category-admin-row').trigger('submit');
+    await flushPromises();
+    expect(dashboard.updateCategory).toHaveBeenLastCalledWith(3, '赛事题解', '#deef18', '赛后复盘与题解');
+
+    await wrapper.get('[aria-label="分类 赛事题解 说明"]').setValue('  ');
+    await wrapper.get('.category-admin-row').trigger('submit');
+    await flushPromises();
+    expect(dashboard.updateCategory).toHaveBeenLastCalledWith(3, '赛事题解', '#deef18', '');
 
     await wrapper.get('.danger-button').trigger('click');
     expect(wrapper.get('[role="alertdialog"]').text()).toContain('删除这个分类');

@@ -25,6 +25,12 @@ public final class OjWarehouseRefreshDispatcher implements OjSubmissionCollectio
         return handler.refresh(result.batchId());
     }
 
+    @Override
+    public OjSubmissionCollectionJobRefreshResult refreshPending(String ojName) {
+        OjWarehouseRefreshHandler handler = handlersByOjName.get(OjNames.normalize(ojName));
+        return handler == null ? OjSubmissionCollectionJobRefreshResult.noBatch() : handler.refreshPending();
+    }
+
     private static Map<String, OjWarehouseRefreshHandler> handlersByOjName(List<OjWarehouseRefreshHandler> handlers) {
         Map<String, OjWarehouseRefreshHandler> indexed = new LinkedHashMap<>();
         for (OjWarehouseRefreshHandler handler : handlers == null ? List.<OjWarehouseRefreshHandler>of() : handlers) {

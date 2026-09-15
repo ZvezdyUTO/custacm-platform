@@ -89,7 +89,7 @@ frontend/
 
 ## 本地开发
 
-要求 Node.js 20.19+ 与 pnpm 10.33.2。从仓库根运行：
+开发容器只要求宿主机有 Docker Compose 和 curl。从仓库根运行：
 
 ```bash
 cp deploy/.env.example deploy/.env
@@ -102,10 +102,10 @@ cp deploy/.env.example deploy/.env
 ```text
 Blog:     http://localhost:4180/
 Training: http://localhost:4180/training/multiple
-API:      http://localhost:8090/health
+API:      http://localhost:4180/api/health
 ```
 
-`dev.sh` 保留 Docker 中的 MySQL、Redis 和 Blog API，在宿主机启动 Training Vite 5173 与 Blog Vite 4180；开发模式要求 `BACKEND_PORT=8090`。Ctrl-C 只停止两份 Vite，后端容器继续运行。
+`dev.sh` 在同一个前端容器中运行两份 Vite，挂载本地源码并缓存独立依赖，修改页面后直接热更新。Blog 4180 是唯一发布的开发端口，API 经该网关访问；Ctrl-C 只停止前端开发容器。可通过 `DEV_FRONTEND_PORT` 调整端口，后端宿主机端口不限于 8090。
 
 完整部署与升级流程见 [deploy/README.md](../deploy/README.md)。
 

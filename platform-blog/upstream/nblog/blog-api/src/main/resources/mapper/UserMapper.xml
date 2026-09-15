@@ -6,6 +6,10 @@
         select * from user where username=#{username} limit 1
     </select>
 
+    <select id="findByUsernameForUpdate" resultType="top.naccl.entity.User">
+        select * from user where username=#{username} limit 1 for update
+    </select>
+
 	<select id="findByUsernames" resultType="top.naccl.entity.User">
 		select * from user
 		where username in

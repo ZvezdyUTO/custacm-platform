@@ -32,8 +32,60 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 class OjWarehouseQueryServiceTest {
+    @Test
+    void resolvesProblemSubmissionOwnersWithOneBatchLookupPerPage() {
+        OjProblemSubmissionCriteria query = new OjProblemSubmissionCriteria("1000:A", null, null, 100, 0);
+        OjSubmissionRepository submissions = mock(OjSubmissionRepository.class);
+        when(submissions.countProblemSubmissions(query)).thenReturn(3L);
+        when(submissions.findProblemSubmissions(query)).thenReturn(List.of(
+                submission(1, "tourist", 800, true),
+                submission(2, "Benq", 800, true),
+                submission(3, "tourist", 800, false)
+        ));
+        OjHandleAccountRepository accounts = mock(OjHandleAccountRepository.class);
+        when(accounts.findUsernamesByHandles(OjNames.CODEFORCES, List.of("tourist", "Benq")))
+                .thenReturn(Map.of("tourist", "alice", "Benq", "bob"));
+        OjSubmissionQueryService service = new OjSubmissionQueryService(submissions,
+                new OjHandleAccountService(accounts, Clock.systemUTC()));
+
+        OjProblemSubmissionReport report = service.listProblemSubmissions(query);
+
+        assertThat(report.submissions()).extracting(OjSubmissionItem::username)
+                .containsExactly("alice", "bob", "alice");
+        verify(accounts).findUsernamesByHandles(OjNames.CODEFORCES, List.of("tourist", "Benq"));
+        verifyNoMoreInteractions(accounts);
+    }
+
+    @Test
+    void resolvesProblemFirstAcceptedOwnersWithOneBatchLookupPerPage() {
+        OjProblemFirstAcceptedHandleCriteria query =
+                new OjProblemFirstAcceptedHandleCriteria(OjNames.ATCODER, "abc100_a", null, null, 100, 0);
+        OjFirstAcceptedProblemRepository accepted = mock(OjFirstAcceptedProblemRepository.class);
+        when(accepted.countProblemFirstAcceptedHandles(query)).thenReturn(2L);
+        when(accepted.findProblemFirstAcceptedHandles(query)).thenReturn(List.of(
+                firstAccepted("tourist", "1000:A", 800, "2026-07-04T12:00:00"),
+                firstAccepted("Benq", "1000:A", 800, "2026-07-04T11:00:00")
+        ));
+        OjHandleAccountRepository accounts = mock(OjHandleAccountRepository.class);
+        when(accounts.findUsernamesByHandles(OjNames.ATCODER, List.of("tourist", "Benq")))
+                .thenReturn(Map.of("tourist", "alice", "Benq", "bob"));
+        OjFirstAcceptedProblemQueryService service = new OjFirstAcceptedProblemQueryService(accepted,
+                new OjHandleAccountService(accounts, Clock.systemUTC()));
+
+        OjProblemFirstAcceptedHandleReport report = service.summarizeProblemFirstAcceptedHandles(query);
+
+        assertThat(report.acceptedHandles()).extracting(OjProblemFirstAcceptedHandleReport.OjFirstAcceptedHandle::username)
+                .containsExactly("alice", "bob");
+        verify(accounts).findUsernamesByHandles(OjNames.ATCODER, List.of("tourist", "Benq"));
+        verifyNoMoreInteractions(accounts);
+    }
+
     @Test
     void returnsStudentSubmissionDetails() {
         LocalDateTime from = LocalDateTime.parse("2026-07-01T00:00:00");
@@ -709,6 +761,18 @@ class OjWarehouseQueryServiceTest {
             return accountsByIdentity.values().stream()
                     .filter(account -> handle.equals(account.handles().get(OjNames.normalize(ojName))))
                     .findFirst();
+        }
+
+        @Override
+        public Map<String, String> findUsernamesByHandles(String ojName, List<String> handles) {
+            Map<String, String> usernames = new LinkedHashMap<>();
+            for (OjHandleAccount account : findAll()) {
+                String handle = account.handles().get(OjNames.normalize(ojName));
+                if (handle != null && handles.contains(handle)) {
+                    usernames.put(handle, account.username());
+                }
+            }
+            return usernames;
         }
 
         @Override

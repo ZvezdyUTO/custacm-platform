@@ -109,6 +109,15 @@ describe('home featured article groups', () => {
 		expect(leadCard.find('.featured-release-tags-more').text()).toBe('…')
 	})
 
+	it('replaces a failed cover without removing its frame and tries a replacement URL', async () => {
+		const {wrapper} = mountFeatured([{id: 1, articles: [article(1)]}])
+		await wrapper.get('.featured-release-media img').trigger('error')
+		expect(wrapper.find('.featured-release-media img').exists()).toBe(false)
+		expect(wrapper.get('.featured-release-media').text()).toContain('首图暂不可用')
+		await wrapper.setProps({featuredGroups: [{id: 1, articles: [article(1, {firstPicture: '/img/replaced.jpg'})]}]})
+		expect(wrapper.get('.featured-release-media img').attributes('src')).toBe('/img/replaced.jpg')
+	})
+
 	it('keeps every cover at 16:9 without cropping and provides restrained motion fallbacks', () => {
 		expect(featuredSource).toContain('aspect-ratio: 16 / 9;')
 		expect(featuredSource).toContain('.featured-release-media img { display: block; width: 100%; height: 100%; object-fit: contain; }')

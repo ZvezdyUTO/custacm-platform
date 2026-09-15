@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import top.naccl.constant.RedisKeyConstants;
 import top.naccl.constant.TaxonomyColorPalette;
 import top.naccl.entity.Category;
+import top.naccl.exception.BadRequestException;
 import top.naccl.exception.ConflictException;
 import top.naccl.exception.NotFoundException;
 import top.naccl.exception.PersistenceException;
@@ -52,6 +53,7 @@ public class CategoryServiceImpl implements CategoryService {
 	@Override
 	public void saveCategory(Category category) {
 		category.setColor(TaxonomyColorPalette.normalize(category.getColor()));
+		category.setDescription(category.getDescription() == null ? "" : normalizeDescription(category.getDescription()));
 		try {
 			if (categoryMapper.saveCategory(category) != 1) {
 				throw new PersistenceException("分类添加失败");
@@ -88,6 +90,7 @@ public class CategoryServiceImpl implements CategoryService {
 	@Override
 	public void updateCategory(Category category) {
 		category.setColor(TaxonomyColorPalette.normalize(category.getColor()));
+		category.setDescription(normalizeDescription(category.getDescription()));
 		try {
 			if (categoryMapper.updateCategory(category) != 1) {
 				throw new NotFoundException("分类不存在");
@@ -98,5 +101,14 @@ public class CategoryServiceImpl implements CategoryService {
 		redisService.deleteCacheByKey(RedisKeyConstants.CATEGORY_NAME_LIST);
 		//修改了分类名，可能有首页文章关联了分类，也要更新首页缓存
 		redisService.deleteCacheByKey(RedisKeyConstants.HOME_BLOG_INFO_LIST);
+	}
+
+	private static String normalizeDescription(String description) {
+		if (description == null) return null;
+		String normalized = description.trim();
+		if (normalized.length() > 200) {
+			throw new BadRequestException("分类说明不能超过 200 个字符");
+		}
+		return normalized;
 	}
 }

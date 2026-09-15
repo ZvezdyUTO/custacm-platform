@@ -1,10 +1,26 @@
 <template>
   <section class="category-admin admin-reference-page" aria-label="管理分类与标签">
-    <header class="reference-page-header"><span class="reference-page-icon"><Tags :size="22" /></span><div><h2>管理分类与标签</h2><p>分类名称和颜色可以自定义；标签只允许新增或删除，新增时自动生成深色随机颜色。</p></div></header>
+    <header class="reference-page-header"><span class="reference-page-icon"><Tags :size="22" /></span><div><h2>管理分类与标签</h2><p>分类名称、颜色和说明可以自定义；标签只允许新增或删除，新增时自动生成深色随机颜色。</p></div></header>
     <p v-if="notice" class="category-admin-notice" role="status">{{ notice }}</p><p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
     <section class="taxonomy-admin-section" aria-labelledby="category-section-title"><h3 id="category-section-title">分类</h3>
-      <form class="category-create-form category-color-form" @submit.prevent="createCategory"><label>新分类名称<input v-model="newCategoryName" maxlength="255" placeholder="输入分类名称" :disabled="busy"></label><label>展示颜色<input v-model="newCategoryColor" type="color" aria-label="新分类展示颜色" :disabled="busy"></label><span class="taxonomy-color-preview" :style="{backgroundColor:newCategoryColor}">分类预览</span><button class="primary-button" type="submit" :disabled="busy||!newCategoryName.trim()">新增分类</button></form>
-      <div class="category-admin-list"><div class="taxonomy-list-header category-grid"><span>分类名称</span><span>颜色</span><span>预览</span><span>操作</span></div><form v-for="category in categoryDrafts" :key="category.id" class="category-admin-row category-grid" @submit.prevent="saveCategory(category)"><input v-model="category.name" maxlength="255" :aria-label="`分类 ${category.id} 名称`" :disabled="busy"><input v-model="category.color" type="color" :aria-label="`分类 ${category.name} 展示颜色`" :disabled="busy"><span class="taxonomy-color-preview" :style="{backgroundColor:category.color}">{{ category.name }}</span><div class="category-admin-actions"><button type="submit" :disabled="busy||!category.name.trim()">保存</button><button class="danger-button" type="button" :disabled="busy" @click="removeCategory(category.id,category.name)">删除</button></div></form><p v-if="!busy&&!categoryDrafts.length" class="category-admin-empty">暂无分类。</p></div>
+      <form class="category-create-form category-color-form" @submit.prevent="createCategory">
+        <label>新分类名称<input v-model="newCategoryName" maxlength="255" placeholder="输入分类名称" :disabled="busy"></label>
+        <label>展示颜色<input v-model="newCategoryColor" type="color" aria-label="新分类展示颜色" :disabled="busy"></label>
+        <span class="taxonomy-color-preview" :style="{backgroundColor:newCategoryColor, color:readableTextColor(newCategoryColor)}">分类预览</span>
+        <button class="primary-button" type="submit" :disabled="busy||!newCategoryName.trim()">新增分类</button>
+        <label class="category-description-field">分类说明<span>显示在分类页面标题下，最多 200 字；留空时显示默认说明。</span><input v-model="newCategoryDescription" maxlength="200" aria-label="新分类说明" placeholder="写一句话介绍这个分类" :disabled="busy"></label>
+      </form>
+      <div class="category-admin-list">
+        <div class="taxonomy-list-header category-grid"><span>分类名称</span><span>颜色</span><span>预览</span><span>操作</span></div>
+        <form v-for="category in categoryDrafts" :key="category.id" class="category-admin-row category-grid" @submit.prevent="saveCategory(category)">
+          <input v-model="category.name" maxlength="255" :aria-label="`分类 ${category.id} 名称`" :disabled="busy">
+          <input v-model="category.color" type="color" :aria-label="`分类 ${category.name} 展示颜色`" :disabled="busy">
+          <span class="taxonomy-color-preview" :style="{backgroundColor:category.color, color:readableTextColor(category.color || '#8B1E3F')}">{{ category.name }}</span>
+          <div class="category-admin-actions"><button type="submit" :disabled="busy||!category.name.trim()">保存</button><button class="danger-button" type="button" :disabled="busy" @click="removeCategory(category.id,category.name)">删除</button></div>
+          <label class="category-description-field">分类说明<input v-model="category.description" maxlength="200" :aria-label="`分类 ${category.name} 说明`" placeholder="留空时显示默认说明" :disabled="busy"></label>
+        </form>
+        <p v-if="!busy&&!categoryDrafts.length" class="category-admin-empty">暂无分类。</p>
+      </div>
       <PaginationBar class="category-pagination" :page="categoryPage.pageNum" :limit="categoryPage.pageSize" :total-pages="categoryPage.pages" :disabled="busy" @change="changeCategoryPage" />
     </section>
     <section class="taxonomy-admin-section" aria-labelledby="tag-section-title"><h3 id="tag-section-title">标签</h3>
@@ -34,6 +50,7 @@ import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
 import type { AdminCategory } from '../types';
 import AdminConfirmDialog from './AdminConfirmDialog.vue';
 import PaginationBar from './PaginationBar.vue';
+import { readableTextColor } from '../utils/colorContrast';
 
 type PendingDelete = { kind: 'category' | 'tag'; id: number; name: string };
 
@@ -43,6 +60,7 @@ const notice = ref('');
 const errorMessage = ref('');
 const newCategoryName = ref('');
 const newCategoryColor = ref('#8B1E3F');
+const newCategoryDescription = ref('');
 const newTagName = ref('');
 const categoryDrafts = ref<AdminCategory[]>([]);
 const pendingDelete = ref<PendingDelete | null>(null);
@@ -52,7 +70,7 @@ const categoryPage = computed(() => props.dashboard.adminCategories.value || { l
 const tagPage = computed(() => props.dashboard.adminTags.value || { list: [], pageNum: 1, pageSize: 15, pages: 1, total: 0 });
 
 watch(categories, (items) => {
-  categoryDrafts.value = items.map((item) => ({ ...item, color: item.color || '#8B1E3F' }));
+  categoryDrafts.value = items.map((item) => ({ ...item, color: item.color || '#8B1E3F', description: item.description || '' }));
 }, { immediate: true });
 
 onMounted(() => run(async () => {
@@ -76,8 +94,9 @@ function createCategory() {
   const name = newCategoryName.value.trim();
   if (!name) return;
   void run(async () => {
-    await props.dashboard.createCategory(name, newCategoryColor.value);
+    await props.dashboard.createCategory(name, newCategoryColor.value, newCategoryDescription.value.trim());
     newCategoryName.value = '';
+    newCategoryDescription.value = '';
     notice.value = '分类已新增。';
   });
 }
@@ -86,7 +105,7 @@ function saveCategory(category: AdminCategory) {
   const name = category.name.trim();
   if (!name) return;
   void run(async () => {
-    await props.dashboard.updateCategory(category.id, name, category.color || '#8B1E3F');
+    await props.dashboard.updateCategory(category.id, name, category.color || '#8B1E3F', category.description?.trim() || '');
     notice.value = '分类已更新。';
   });
 }

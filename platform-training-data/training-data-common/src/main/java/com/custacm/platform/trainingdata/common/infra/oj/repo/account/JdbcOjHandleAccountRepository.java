@@ -84,6 +84,29 @@ public class JdbcOjHandleAccountRepository implements OjHandleAccountRepository 
     }
 
     @Override
+    public Map<String, String> findUsernamesByHandles(String ojName, List<String> handles) {
+        String normalizedOjName = OjNames.normalize(ojName);
+        if (handles.isEmpty()) {
+            return Map.of();
+        }
+        return jdbcTemplate.query("""
+                        select handle, username
+                        from oj_handle_binding
+                        where oj_name = :ojName and handle in (:handles)
+                        """,
+                new MapSqlParameterSource()
+                        .addValue("ojName", normalizedOjName)
+                        .addValue("handles", handles),
+                rs -> {
+                    Map<String, String> usernames = new LinkedHashMap<>();
+                    while (rs.next()) {
+                        usernames.put(rs.getString("handle"), rs.getString("username"));
+                    }
+                    return usernames;
+                });
+    }
+
+    @Override
     public OjHandleAccount save(OjHandleAccount account) {
         return transactionTemplate.execute(status -> {
             jdbcTemplate.update("""

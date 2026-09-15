@@ -10,3 +10,6 @@ target
 **/node_modules
 **/dist
 deploy/.env
+deploy/secrets
+uploads
+.playwright-cli

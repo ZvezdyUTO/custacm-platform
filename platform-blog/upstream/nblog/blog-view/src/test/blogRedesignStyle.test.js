@@ -58,7 +58,7 @@ describe('Blog redesign stylesheet contract', () => {
 		expect(articleSource).toContain('background: var(--category-color);')
 		expect(articleSource).toContain(':style="taxonomyStyle(tag.color)"')
 		expect(taxonomyRule).not.toContain('background:')
-		expect(taxonomyRule).toContain('color: #fff !important;')
+		expect(taxonomyRule).toContain('color: var(--taxonomy-text-color, #fff) !important;')
 	})
 
 	it('wraps the complete article title and summary even when they contain an unbroken word', () => {
@@ -96,9 +96,11 @@ describe('Blog redesign stylesheet contract', () => {
 		expect(css).toContain('background: #c7c7cc')
 	})
 
-	it('does not draw the global blue focus rectangle inside the navigation bar', () => {
+	it('keeps keyboard focus visible inside the navigation bar', () => {
 		expect(css).toContain('.site-nav :where(a, button, input, [tabindex]):focus-visible')
-		expect(css).toMatch(/\.site-nav :where\(a, button, input, \[tabindex\]\):focus-visible \{[\s\S]*outline: none !important;/)
+		const navigationFocus = css.match(/\.site-nav :where\(a, button, input, \[tabindex\]\):focus-visible \{([^}]*)\}/)?.[1] || ''
+		expect(navigationFocus).toContain('outline: 2px solid var(--color-focus-ring) !important;')
+		expect(navigationFocus).not.toContain('outline: none')
 	})
 
 	it('uses the semantic glass treatment on every route, including the article catalog', () => {

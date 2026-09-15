@@ -18,6 +18,9 @@
   --color-action-on-dark: #e68a6d;
   --color-focus-ring: #e68a6d;
   --color-on-action: #141413;
+  --color-danger: #e69a91;
+  --color-success: #8ac99e;
+  --color-warning: #dfb472;
   --glass-background: rgba(28, 28, 27, .78);
   --glass-border: rgba(250, 249, 245, .14);
   --floating-shadow: 0 18px 46px rgb(0 0 0 / 34%);
@@ -649,6 +652,8 @@ html.dark .collect-toggle-field input:checked ~ .collect-toggle-track {
 
 /* Notices and semantic statuses retain their own meaning. */
 html.dark .training-site .form-error,
+html.dark .training-site .competition-form-footer p.is-error,
+html.dark .training-site .competition-award-submit p.is-error,
 html.dark .query-summary .query-error,
 html.dark .multi-summary-error strong {
   border-color: var(--night-danger-border);

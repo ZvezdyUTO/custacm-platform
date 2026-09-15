@@ -3,6 +3,7 @@ package top.naccl.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import top.naccl.config.properties.UploadProperties;
 import top.naccl.entity.Blog;
@@ -10,9 +11,6 @@ import top.naccl.entity.Category;
 import top.naccl.entity.ImageAsset;
 import top.naccl.entity.Tag;
 import top.naccl.entity.User;
-import top.naccl.mapper.BlogMapper;
-import top.naccl.mapper.CommentMapper;
-import top.naccl.mapper.ImageAssetMapper;
 import top.naccl.model.vo.ArticleBackupComment;
 
 import java.io.IOException;
@@ -29,7 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
@@ -41,25 +38,21 @@ import java.util.zip.ZipOutputStream;
  * @author huangbingrui.awa
  */
 @Service
+@Transactional(propagation = Propagation.NEVER)
 public class ArticleArchiveService {
-	private final BlogMapper blogMapper;
-	private final CommentMapper commentMapper;
-	private final ImageAssetMapper imageAssetMapper;
+	private final ArticleArchiveSnapshotReader snapshotReader;
 	private final UploadProperties uploadProperties;
 	private final ObjectWriter jsonWriter;
 
-	public ArticleArchiveService(BlogMapper blogMapper, CommentMapper commentMapper,
-			ImageAssetMapper imageAssetMapper, UploadProperties uploadProperties, ObjectMapper objectMapper) {
-		this.blogMapper = blogMapper;
-		this.commentMapper = commentMapper;
-		this.imageAssetMapper = imageAssetMapper;
+	public ArticleArchiveService(ArticleArchiveSnapshotReader snapshotReader,
+			UploadProperties uploadProperties, ObjectMapper objectMapper) {
+		this.snapshotReader = snapshotReader;
 		this.uploadProperties = uploadProperties;
 		this.jsonWriter = objectMapper.writerWithDefaultPrettyPrinter();
 	}
 
-	@Transactional(readOnly = true)
 	public void writeSingleArticle(Blog blog, OutputStream output) throws IOException {
-		List<ImageAsset> assets = imageAssetMapper.findByBlogId(blog.getId());
+		List<ImageAsset> assets = snapshotReader.readArticleAssets(blog.getId());
 		List<String> warnings = new ArrayList<>();
 		List<ArchivedAsset> archivedAssets = prepareArticleAssets("", assets, warnings);
 		try (ZipOutputStream zip = zip(output)) {
@@ -72,20 +65,13 @@ public class ArticleArchiveService {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	public void writeAllArticlesBackup(OutputStream output) throws IOException {
-		List<Blog> blogs = blogMapper.getAllBlogsForBackup();
-		List<Long> blogIds = blogs.stream().map(Blog::getId).toList();
-		List<ArticleBackupComment> comments = blogIds.isEmpty()
-				? List.of() : commentMapper.getArticleBackupComments(blogIds);
-		List<ImageAsset> articleAssets = blogIds.isEmpty()
-				? List.of() : imageAssetMapper.findByBlogIds(blogIds);
-		Map<Long, User> authors = authorsById(blogs);
-		List<Long> avatarIds = authors.values().stream()
-				.map(User::getAvatarAssetId).filter(Objects::nonNull).distinct().toList();
-		Map<Long, ImageAsset> avatars = avatarIds.isEmpty() ? Map.of()
-				: imageAssetMapper.findByIds(avatarIds).stream()
-				.collect(Collectors.toMap(ImageAsset::getId, Function.identity()));
+		ArticleArchiveSnapshotReader.Snapshot snapshot = snapshotReader.readAllArticles();
+		List<Blog> blogs = snapshot.blogs();
+		List<ArticleBackupComment> comments = snapshot.comments();
+		List<ImageAsset> articleAssets = snapshot.articleAssets();
+		Map<Long, User> authors = snapshot.authors();
+		Map<Long, ImageAsset> avatars = snapshot.avatars();
 
 		Map<Long, List<ArticleBackupComment>> commentsByBlog = comments.stream()
 				.collect(Collectors.groupingBy(ArticleBackupComment::getBlogId, LinkedHashMap::new, Collectors.toList()));
@@ -197,17 +183,6 @@ public class ArticleArchiveService {
 		} catch (IOException | InvalidPathException exception) {
 			return null;
 		}
-	}
-
-	private static Map<Long, User> authorsById(List<Blog> blogs) {
-		Map<Long, User> authors = new LinkedHashMap<>();
-		for (Blog blog : blogs) {
-			User author = blog.getUser();
-			if (author != null && author.getId() != null) {
-				authors.putIfAbsent(author.getId(), author);
-			}
-		}
-		return authors;
 	}
 
 	private static String rewriteManagedImageUrls(String markdown, List<ArchivedAsset> assets) {

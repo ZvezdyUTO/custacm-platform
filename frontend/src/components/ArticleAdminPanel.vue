@@ -24,7 +24,10 @@
     <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
     <div class="article-admin-list">
       <article v-for="article in articles" :key="article.id" class="article-admin-card">
-        <div class="article-admin-cover" :class="{ 'is-empty': !article.firstPicture }"><img v-if="article.firstPicture" :src="article.firstPicture" alt=""><ImageOff v-else :size="22" /></div>
+        <div class="article-admin-cover" :class="{ 'is-empty': !article.firstPicture || failedCoverUrls.has(article.firstPicture) }">
+          <img v-if="article.firstPicture && !failedCoverUrls.has(article.firstPicture)" :key="article.firstPicture" :src="article.firstPicture" alt="" @error="failedCoverUrls.add(article.firstPicture)">
+          <ImageOff v-else :size="22" role="img" :aria-label="article.firstPicture ? '封面暂不可用' : '未设置封面'" />
+        </div>
 		<div class="article-admin-info"><div class="article-admin-title"><strong>{{ article.title }}</strong><span v-if="viewMode === 'active' && article.top">置顶</span></div><p v-if="viewMode === 'active'">{{ article.category?.name || '未分类' }} · 更新于 {{ formatDate(article.updateTime) }}</p><p v-else>{{ article.category?.name || '未分类' }} · 作者 {{ article.user?.nickname || article.user?.username || '已注销用户' }} · 删除于 {{ formatDate(article.deletedAt) }} · {{ remainingRetention(article.deletedAt) }}</p></div>
 		<span :class="['article-publish-state', viewMode === 'recycle' ? 'is-recycle' : (article.published ? 'is-published' : '')]">{{ viewMode === 'recycle' ? '回收站' : (article.published ? '已发布' : '草稿') }}</span>
 			<div class="article-admin-actions"><button v-if="viewMode === 'active'" class="article-delete-button" type="button" :disabled="busy" @click="pendingDelete = article"><Trash2 :size="17" />删除</button><button v-else class="article-restore-button" type="button" :disabled="busy" @click="restore(article)"><RotateCcw :size="17" />恢复文章</button></div>
@@ -73,6 +76,7 @@ const backupBusy = ref(false); const backupMessage = ref('');
 const pendingBackup = ref(false);
 const viewMode = ref<'featured' | 'active' | 'recycle'>('featured');
 const pendingDelete = ref<AdminArticle | null>(null);
+const failedCoverUrls = ref(new Set<string>());
 const response = computed(() => props.dashboard.adminArticles.value);
 const articles = computed(() => response.value?.blogs.list || []);
 const categories = computed(() => response.value?.categories || []);
