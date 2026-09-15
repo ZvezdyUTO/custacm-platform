@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 import top.naccl.entity.User;
+import top.naccl.exception.BadRequestException;
 import top.naccl.mapper.UserMapper;
 import top.naccl.util.HashUtils;
 
@@ -51,5 +52,21 @@ class UserServiceImplTest {
 		assertTrue(userService.changePassword("player1", "old-password", "new-password"));
 		verify(userMapper).updatePasswordByUsername(org.mockito.ArgumentMatchers.eq("player1"),
 				argThat(encoded -> HashUtils.matchBC("new-password", encoded)));
+	}
+
+	@Test
+	void rejectsUnsupportedNewPasswordBeforeLookingUpTheAccount() {
+		for (String password : new String[]{null, "short", "a".repeat(73), "密".repeat(25)}) {
+			assertThrows(BadRequestException.class,
+					() -> userService.changePassword("player1", "old-password", password));
+		}
+		org.mockito.Mockito.verifyNoInteractions(userMapper);
+	}
+
+	@Test
+	void missingLoginPasswordIsAnAuthenticationFailure() {
+		when(userMapper.findByUsername("player1")).thenReturn(player);
+		assertThrows(org.springframework.security.core.userdetails.UsernameNotFoundException.class,
+				() -> userService.findUserByUsernameAndPassword("player1", null));
 	}
 }

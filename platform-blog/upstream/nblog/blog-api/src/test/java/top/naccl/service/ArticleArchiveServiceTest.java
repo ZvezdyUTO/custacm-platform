@@ -50,7 +50,8 @@ class ArticleArchiveServiceTest {
 	void setUp() {
 		UploadProperties properties = new UploadProperties();
 		properties.setPath(uploadRoot.toString());
-		service = new ArticleArchiveService(blogMapper, commentMapper, imageAssetMapper, properties, objectMapper);
+		service = new ArticleArchiveService(new ArticleArchiveSnapshotReader(blogMapper, commentMapper, imageAssetMapper),
+				properties, objectMapper);
 	}
 
 	@Test
@@ -87,6 +88,21 @@ class ArticleArchiveServiceTest {
 
 		assertEquals("# 最短路\n\n> **简介**\n>\n> 第一行\n> \n> 第二行\n\n---\n\n正文",
 				text(entries, "article.md"));
+	}
+
+	@Test
+	void keepsMissingAssetWarningsAndOriginalMarkdownUrls() throws Exception {
+		when(imageAssetMapper.findByBlogId(5L)).thenReturn(
+				List.of(imageAsset(101L, 5L, "article-image", "CONTENT")));
+
+		Map<String, byte[]> entries = archive(output -> service.writeSingleArticle(article(), output));
+
+		JsonNode warnings = objectMapper.readTree(entries.get("warnings.json"));
+		assertEquals(2, warnings.size());
+		assertTrue(warnings.get(0).asText().contains("original file is missing"));
+		assertTrue(warnings.get(1).asText().contains("thumbnail file is missing"));
+		assertTrue(text(entries, "article.md").contains("/api/image/assets/article-image/original.jpg"));
+		assertTrue(entries.keySet().stream().noneMatch(name -> name.startsWith("images/")));
 	}
 
 	@Test

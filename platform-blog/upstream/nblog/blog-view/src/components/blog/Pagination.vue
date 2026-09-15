@@ -1,6 +1,6 @@
 <template>
 	<div class="pagination-shell">
-		<el-pagination @current-change="handleCurrentChange" :current-page="pageNum" :page-count="totalPage"
+		<el-pagination @current-change="handleCurrentChange" :current-page="effectivePage" :page-count="totalPage"
 		               layout="prev, pager, next" background hide-on-single-page>
 		</el-pagination>
 	</div>
@@ -12,6 +12,7 @@
 	export default {
 		name: "Pagination",
 		props: {
+			currentPage: {type: Number, default: undefined},
 			getBlogList: {
 				type: Function,
 				required: true
@@ -31,6 +32,7 @@
 			})
 		},
 		computed: {
+			effectivePage() { return this.currentPage ?? this.pageNum },
 			...mapState(['isBlogToHome', 'clientSize'])
 		},
 		data() {
@@ -41,6 +43,7 @@
 		methods: {
 			//监听页码改变的事件
 			handleCurrentChange(newPage) {
+				if (newPage === this.effectivePage) return
 				//如果是首页，则滚动至Header下方
 				if (this.$route.name === 'home') {
 					window.scrollTo({top: this.clientSize.clientHeight, behavior: 'smooth'})

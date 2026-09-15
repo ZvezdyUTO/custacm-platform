@@ -56,8 +56,9 @@
 							</div>
 						</footer>
 					</div>
-					<figure v-if="blog.firstPicture" class="featured-release-media">
-						<img :src="blog.firstPicture" :alt="`${blog.title} 首图`" loading="lazy" decoding="async">
+					<figure v-if="blog.firstPicture" class="featured-release-media" :class="{'cover-unavailable': !hasCover(blog.firstPicture)}">
+						<img v-if="hasCover(blog.firstPicture)" :src="blog.firstPicture" :alt="`${blog.title} 首图`" loading="lazy" decoding="async" @error="coverFailed">
+						<div v-else class="cover-unavailable-copy"><AppIcon name="image" :size="28"/><span>首图暂不可用</span></div>
 					</figure>
 				</article>
 			</div>
@@ -68,10 +69,13 @@
 
 <script>
 	import {sanitizeHtml} from '@/util/sanitizeHtml'
+	import {coverImageState} from '@/util/coverImageState'
+	import {taxonomyStyle} from '@/util/taxonomyColor'
 
 	// Author: huangbingrui.awa
 	export default {
 		name: 'FeaturedBlog',
+		mixins: [coverImageState],
 		props: { featuredGroups: { type: Array, default: () => [] } },
 		computed: {
 			displayedGroups() {
@@ -90,7 +94,7 @@
 			authorName(blog) { return blog?.authorNickname || blog?.authorUsername || '已注销用户' },
 			visibleTags(blog, blogIndex) { return (blog?.tags || []).slice(0, blogIndex === 0 ? 5 : 3) },
 			hasHiddenTags(blog, blogIndex) { return (blog?.tags?.length || 0) > (blogIndex === 0 ? 5 : 3) },
-			tagStyle(color) { return {backgroundColor: color || '#8B1E3F', color: '#fff'} },
+			tagStyle: taxonomyStyle,
 			summaryHtml(blog) {
 				const description = blog?.description?.trim()
 				return description ? sanitizeHtml(description) : '<p>这篇文章暂时没有填写简介。</p>'
@@ -133,10 +137,12 @@
 	.featured-release-tag { display: block; max-width: 7rem; overflow: hidden; padding: .28rem .55rem; border: 1px solid rgb(255 255 255 / 24%); border-radius: 7px; color: #fff; font-size: .6875rem; font-weight: 650; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 	.featured-release-tags-more { flex: 0 0 auto; color: var(--home-muted, #787774); font-size: 1rem; font-weight: 700; line-height: 1; }
 	.featured-release-date { display: flex; flex: 0 0 auto; align-items: center; gap: .8rem; font-size: .8125rem; font-variant-numeric: tabular-nums; }
-	.featured-release-arrow { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; background: var(--home-text, #050505); color: #fff; font-size: 1.1rem; line-height: 1; transition: transform 180ms ease, background-color 180ms ease; }
-	.featured-release-card:hover .featured-release-arrow, .featured-release-card:focus-visible .featured-release-arrow { transform: translateX(3px); background: var(--home-action, #2383e2); }
+	.featured-release-arrow { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; background: var(--home-text, #050505); color: var(--home-canvas, #faf9f5); font-size: 1.1rem; line-height: 1; transition: transform 180ms ease, background-color 180ms ease; }
+	.featured-release-card:hover .featured-release-arrow, .featured-release-card:focus-visible .featured-release-arrow { transform: translateX(3px); background: var(--home-action, #2383e2); color: var(--color-on-action); }
 	.featured-release-media { width: 100%; aspect-ratio: 16 / 9; margin: 0; overflow: hidden; align-self: center; background: var(--home-media, #eeecea); }
 	.featured-release-media img { display: block; width: 100%; height: 100%; object-fit: contain; }
+	.featured-release-card.without-image:not(:first-child) { align-self: start; min-height: 280px; border-top: 3px solid var(--home-border-strong); }
+	.featured-release-card.without-image:not(:first-child) .featured-release-footer { padding-top: 48px; }
 	.featured-empty { margin: 1.5rem 0 2rem; padding: 1.5rem; color: var(--color-text-muted); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 18px; text-align: center; }
 	@keyframes featured-release-enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 	@media (max-width: 900px) { .featured-release-grid { grid-template-columns: 1fr; } .featured-release-card:first-child { display: flex; width: 100%; grid-column: auto; } }

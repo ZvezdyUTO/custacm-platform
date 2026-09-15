@@ -360,8 +360,8 @@ export function listAdminCategories(
   return requestData(`/admin/categories?${params.toString()}`, { headers: authHeaders(token) });
 }
 
-export function createCategory(token: string, name: string, color = '#8B1E3F'): Promise<void> {
-  return jsonRequest(token, '/admin/category', 'POST', { name, color });
+export function createCategory(token: string, name: string, color = '#8B1E3F', description = ''): Promise<void> {
+  return jsonRequest(token, '/admin/category', 'POST', { name, color, description });
 }
 
 export function listAdminTags(token: string, pageNum = 1, pageSize = 10): Promise<AdminTagPage> {

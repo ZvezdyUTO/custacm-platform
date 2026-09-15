@@ -64,6 +64,7 @@ class ImageAssetServiceTest {
 		when(assetMapper.findById(4L)).thenReturn(asset);
 		when(userMapper.findByUsername("player1")).thenReturn(user());
 		when(assetMapper.findReferencedBlogId(4L)).thenReturn(null);
+		when(assetMapper.markUnboundDeleting(4L)).thenReturn(1);
 
 		service().deleteUnbound("player1", 4L);
 
@@ -83,6 +84,17 @@ class ImageAssetServiceTest {
 	}
 
 	@Test
+	void preparingExistingArticleUsesCurrentLockedReferencesForTheRemovalDelta() {
+		ImageAsset current = asset(4L, "current", ImageAsset.Purpose.ARTICLE_CONTENT, ImageAsset.Status.ACTIVE);
+		when(assetMapper.findByBlogIdForUpdate(7L)).thenReturn(List.of(current));
+
+		var prepared = service().prepareBlogAssets(1L, 7L, null, "without images");
+
+		assertEquals(List.of(current), prepared.previous());
+		verify(assetMapper, never()).findByBlogId(7L);
+	}
+
+	@Test
 	void cleanupRemovesStaleTemporaryDirectoryLeftBeforeDatabaseInsert() throws Exception {
 		Path temporaryDirectory = uploadDirectory.resolve("assets/.tmp-crashed-upload");
 		Files.createDirectories(temporaryDirectory);
@@ -94,6 +106,47 @@ class ImageAssetServiceTest {
 		service().cleanupStaleAssets();
 
 		assertFalse(Files.exists(temporaryDirectory));
+	}
+
+	@Test
+	void cleanupPreservesAnAssetActivatedAfterTheCandidateScan() throws Exception {
+		ImageAsset staleCandidate = asset(4L, "bound-during-scan",
+				ImageAsset.Purpose.ARTICLE_CONTENT, ImageAsset.Status.TEMP);
+		Path directory = uploadDirectory.resolve("assets/" + staleCandidate.getPublicId());
+		Files.createDirectories(directory);
+		Files.write(directory.resolve("original.jpg"), new byte[]{1});
+		when(assetMapper.findCleanupCandidates(any())).thenReturn(List.of(staleCandidate));
+		when(assetMapper.findAllPublicIds()).thenReturn(List.of(staleCandidate.getPublicId()));
+
+		service().cleanupStaleAssets();
+
+		assertTrue(Files.exists(directory.resolve("original.jpg")));
+		verify(assetMapper, never()).deleteById(4L);
+	}
+
+	@Test
+	void bindingRejectsAnAssetClaimedByCleanupAfterValidation() {
+		ImageAsset staleCandidate = asset(4L, "claimed", ImageAsset.Purpose.ARTICLE_CONTENT, ImageAsset.Status.TEMP);
+
+		assertThrows(ImageAssetException.class, () -> service().bindBlogAssets(7L,
+				new ImageAssetService.PreparedBlogAssets(null, List.of(staleCandidate), List.of())));
+
+		verify(assetMapper, never()).insertReference(7L, 4L, "CONTENT");
+	}
+
+	@Test
+	void deletingUnboundAssetRejectsActivationAfterTheInitialRead() throws Exception {
+		ImageAsset asset = asset(4L, "newly-active", ImageAsset.Purpose.ARTICLE_CONTENT, ImageAsset.Status.TEMP);
+		Path directory = uploadDirectory.resolve("assets/" + asset.getPublicId());
+		Files.createDirectories(directory);
+		Files.write(directory.resolve("original.jpg"), new byte[]{1});
+		when(assetMapper.findById(4L)).thenReturn(asset);
+		when(userMapper.findByUsername("player1")).thenReturn(user());
+
+		assertThrows(ImageAssetException.class, () -> service().deleteUnbound("player1", 4L));
+
+		assertTrue(Files.exists(directory.resolve("original.jpg")));
+		verify(assetMapper, never()).deleteById(4L);
 	}
 
 	@Test

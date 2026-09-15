@@ -194,8 +194,8 @@
   justify-content: flex-end;
   gap: 8px;
   margin-top: -10px;
-  color: #8994a1;
-  font-size: 11px;
+  color: var(--color-text-muted);
+  font-size: 12px;
 }
 
 .query-filter-hint {
@@ -226,7 +226,7 @@
 }
 
 .query-auto-refresh-hint {
-  color: #7b8794;
+  color: var(--color-text-muted);
 }
 
 .query-retired-toggle {
@@ -492,6 +492,27 @@
   gap: 12px;
 }
 
+.problem-stat-grid {
+  grid-template-columns: 1.4fr repeat(2, minmax(150px, 1fr));
+}
+
+.query-empty-state {
+  display: grid;
+  min-height: 260px;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 40px 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.query-empty-state h2 { margin: 0; color: var(--color-text); font-size: 18px; }
+.query-empty-state p { max-width: 520px; margin: 0; line-height: 1.7; }
+
 .training-stat-card,
 .rating-panel,
 .recent-submission-panel,
@@ -546,7 +567,7 @@
 .training-result-grid {
   display: grid;
   grid-template-columns: clamp(340px, 28vw, 520px) minmax(0, 1fr);
-  align-items: stretch;
+  align-items: start;
   gap: 12px;
 }
 
@@ -576,8 +597,7 @@
 }
 
 .rating-panel header {
-  min-height: 78px;
-  align-items: stretch;
+  min-height: 32px;
 }
 
 .rating-panel-title {
@@ -1563,11 +1583,11 @@
   place-items: center;
   border: 0;
   background: transparent;
-  color: #536273;
+  color: var(--color-text-muted);
 }
 
 .create-row-remove:hover {
-  color: #b42318;
+  color: var(--color-danger);
 }
 
 .create-user-actions {
@@ -1793,7 +1813,7 @@
   padding: 13px;
 }
 
-.collection-member-row .primary-button {
+.collection-member-row .collection-member-action {
   min-height: 40px;
   justify-content: center;
 }

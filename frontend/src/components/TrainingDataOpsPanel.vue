@@ -13,9 +13,9 @@
 
     <div class="collection-member-list">
       <article v-for="item in collectableUsers" :key="item.user.username" class="collection-member-row">
-        <div class="collection-member-identity"><strong><span>{{ item.user.username }}</span><template v-if="item.user.nickname"><i aria-hidden="true">·</i><span>{{ item.user.nickname }}</span></template></strong><span>{{ OJ_LABELS[collectionOj] }}：{{ item.handles[collectionOj] }}</span><div class="collection-member-state"><b :class="{ 'is-ready': item.collectionStates?.[collectionOj]?.lastCollectedAt }">{{ collectionProgressLabel(item.collectionStates?.[collectionOj]) }}</b><small>最近成功窗口结束：{{ collectionTimeLabel(item.collectionStates?.[collectionOj]?.lastCollectedAt) }}</small></div></div>
+        <div class="collection-member-identity"><strong><span>{{ item.user.username }}</span><template v-if="item.user.nickname && item.user.nickname !== item.user.username"><i aria-hidden="true">·</i><span>{{ item.user.nickname }}</span></template></strong><span>{{ OJ_LABELS[collectionOj] }}：{{ item.handles[collectionOj] }}</span><div class="collection-member-state"><b :class="{ 'is-ready': item.collectionStates?.[collectionOj]?.lastCollectedAt }">{{ collectionProgressLabel(item.collectionStates?.[collectionOj]) }}</b><small>最近成功窗口结束：{{ collectionTimeLabel(item.collectionStates?.[collectionOj]?.lastCollectedAt) }}</small></div></div>
         <label>倒退小时数<input v-model="lookbackByUsername[item.user.username]" min="1" type="number" placeholder="沿用统一值" /></label>
-        <button class="primary-button" :disabled="isOjBusy(collectionOj)" type="button" @click="collectOne(item.user.username)"><RefreshCw :class="{ spin: isOjBusy(collectionOj) }" :size="18" />{{ isOjBusy(collectionOj) ? '正在采集' : '执行采集' }}</button>
+        <button class="secondary-button collection-member-action" :disabled="isOjBusy(collectionOj)" type="button" @click="collectOne(item.user.username)"><RefreshCw :class="{ spin: isOjBusy(collectionOj) }" :size="18" />{{ isOjBusy(collectionOj) ? '正在采集' : '执行采集' }}</button>
       </article>
       <p v-if="!collectableUsers.length" class="batch-target-empty">当前 OJ 暂无可采集的现役队员。</p>
     </div>

@@ -1,3 +1,12 @@
+FROM node:20.19-alpine AS frontend-dev
+
+RUN npm install --global npm@11.12.1 \
+    && corepack enable && corepack prepare pnpm@10.33.2 --activate
+COPY frontend/dev-entrypoint.sh /usr/local/bin/custacm-dev
+RUN chmod +x /usr/local/bin/custacm-dev
+EXPOSE 4180
+ENTRYPOINT ["/usr/local/bin/custacm-dev"]
+
 FROM node:20.19-alpine AS training-build
 
 RUN corepack enable
@@ -9,6 +18,7 @@ RUN pnpm build
 
 FROM node:20.19-alpine AS blog-build
 
+RUN npm install --global npm@11.12.1
 WORKDIR /workspace/blog-view
 COPY platform-blog/upstream/nblog/blog-view/package.json ./
 RUN npm install

@@ -77,13 +77,25 @@ body {
 }
 
 .site-nav :where(a, button, input, [tabindex]):focus-visible {
-	outline: none !important;
-	outline-offset: 0;
+	outline: 2px solid var(--color-focus-ring) !important;
+	outline-offset: -4px;
 }
 
 html {
 	scrollbar-color: #c7c7cc transparent;
 	scrollbar-width: thin;
+}
+
+.cover-unavailable-copy {
+	display: grid;
+	height: 100%;
+	min-height: 160px;
+	place-content: center;
+	justify-items: center;
+	gap: 12px;
+	background: var(--color-surface-subtle);
+	color: var(--color-text-muted);
+	font-size: 14px;
 }
 
 body::-webkit-scrollbar {

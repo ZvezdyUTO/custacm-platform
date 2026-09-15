@@ -21,5 +21,6 @@ public class Category {
 	private Long id;
 	private String name;//分类名称
 	private String color;//分类展示颜色
+	private String description;//分类页面标题下的说明
 	private List<Blog> blogs = new ArrayList<>();//该分类下的博客文章
 }

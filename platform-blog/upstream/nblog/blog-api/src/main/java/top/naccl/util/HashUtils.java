@@ -15,6 +15,6 @@ public class HashUtils {
 	}
 
 	public static boolean matchBC(CharSequence rawPassword, String encodedPassword) {
-		return bCryptPasswordEncoder.matches(rawPassword, encodedPassword);
+		return rawPassword != null && bCryptPasswordEncoder.matches(rawPassword, encodedPassword);
 	}
 }

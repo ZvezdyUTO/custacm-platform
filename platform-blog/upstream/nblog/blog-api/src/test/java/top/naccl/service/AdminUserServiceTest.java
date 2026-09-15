@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import top.naccl.entity.User;
 import top.naccl.exception.BadRequestException;
+import top.naccl.exception.ConflictException;
 import top.naccl.exception.ForbiddenException;
 import top.naccl.mapper.UserMapper;
 import top.naccl.model.dto.AdminUserCreateRequest;
@@ -29,6 +30,8 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class AdminUserServiceTest {
@@ -36,6 +39,7 @@ class AdminUserServiceTest {
     @Mock OjHandleAccountService handleAccountService;
     @Mock OjStudentDataPurgeService purgeService;
     @Mock ImageAssetService imageAssetService;
+    @Mock TrainingDataMutationGuard trainingDataMutationGuard;
 
     @Test
     void createsPlayerWithGeneratedBcryptPasswordAndHandles() {
@@ -69,19 +73,26 @@ class AdminUserServiceTest {
     void preventsDowngradingOrDeletingLastAdministrator() {
         AdminUserService service = service();
         User admin = user("admin", "ROLE_admin");
-        when(userMapper.findByUsername("admin")).thenReturn(admin);
+        when(userMapper.findByUsernameForUpdate("admin")).thenReturn(admin);
         when(userMapper.lockAdminIds()).thenReturn(List.of(1L));
 
         assertThrows(ForbiddenException.class, () -> service.update("admin", new AdminUserUpdateRequest(
                 "admin", null, null, "ROLE_player", null, Map.of(), true)));
         assertThrows(ForbiddenException.class, () -> service.delete("admin"));
+        var ordered = inOrder(trainingDataMutationGuard, userMapper);
+        ordered.verify(trainingDataMutationGuard).acquireUntilTransactionCompletes();
+        ordered.verify(userMapper).lockAdminIds();
+        ordered.verify(userMapper).findByUsernameForUpdate("admin");
+        ordered.verify(trainingDataMutationGuard).acquireUntilTransactionCompletes();
+        ordered.verify(userMapper).lockAdminIds();
+        ordered.verify(userMapper).findByUsernameForUpdate("admin");
     }
 
     @Test
     void rootCannotBeRenamedDowngradedDeletedOrGivenTrainingIdentity() {
         AdminUserService service = service();
         User root = user("root", "ROLE_admin");
-        when(userMapper.findByUsername("root")).thenReturn(root);
+        when(userMapper.findByUsernameForUpdate("root")).thenReturn(root);
 
         assertThrows(ForbiddenException.class, () -> service.update("root", new AdminUserUpdateRequest(
                 "renamed-root", null, null, null, null, null, null)));
@@ -93,10 +104,54 @@ class AdminUserServiceTest {
     }
 
     @Test
+    void rootProtectionUsesTheStoredIdentityForCaseInsensitiveUsernameLookups() {
+        when(userMapper.findByUsernameForUpdate("ROOT")).thenReturn(user("root", "ROLE_admin"));
+
+        AdminUserService service = service();
+        assertThrows(ForbiddenException.class, () -> service.update("ROOT", new AdminUserUpdateRequest(
+                "renamed-root", null, null, null, null, null, null)));
+        assertThrows(ForbiddenException.class, () -> service.update("ROOT", new AdminUserUpdateRequest(
+                null, null, null, "ROLE_player", null, null, null)));
+        assertThrows(ForbiddenException.class, () -> service.update("ROOT", new AdminUserUpdateRequest(
+                null, null, null, null, null, Map.of("CODEFORCES", "root"), true)));
+        assertThrows(ForbiddenException.class, () -> service.delete("ROOT"));
+        org.mockito.Mockito.verifyNoInteractions(handleAccountService, purgeService, imageAssetService);
+    }
+
+    @Test
+    void rejectsMissingRoleAsBadRequest() {
+        assertThrows(BadRequestException.class, () -> service().create(new AdminUserCreateRequest(
+                "player", "123456", null, null, null, Map.of(), true)));
+    }
+
+    @Test
+    void caseInsensitiveLookupDoesNotRenameAnOrdinaryAccount() {
+        User player = user("Player", "ROLE_player");
+        when(userMapper.findByUsernameForUpdate("PLAYER")).thenReturn(player);
+        when(userMapper.updateAdminFields(player, "Player")).thenReturn(1);
+
+        var response = service().update("PLAYER", new AdminUserUpdateRequest(
+                null, "昵称", null, null, null, Map.of(), true));
+
+        assertEquals("Player", response.user().getUsername());
+        assertEquals(false, response.reloginRequired());
+        verify(handleAccountService).create("Player", Map.of(), true);
+    }
+
+    @Test
+    void rejectsNewPasswordsOverTheBcryptByteLimitBeforeWriting() {
+        for (String password : List.of("a".repeat(73), "密".repeat(25))) {
+            assertThrows(BadRequestException.class, () -> service().create(new AdminUserCreateRequest(
+                    "player", password, null, null, "ROLE_player", Map.of(), true)));
+        }
+        org.mockito.Mockito.verify(userMapper, org.mockito.Mockito.never()).insert(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
     void usernameChangeUsesParentForeignKeyCascadeAndRequiresRelogin() {
         AdminUserService service = service();
         User player = user("old-name", "ROLE_player");
-        when(userMapper.findByUsername("old-name")).thenReturn(player);
+        when(userMapper.findByUsernameForUpdate("old-name")).thenReturn(player);
         when(userMapper.findByUsername("new-name")).thenReturn(null);
         when(userMapper.updateAdminFields(argThat(user -> "new-name".equals(user.getUsername())),
                 org.mockito.ArgumentMatchers.eq("old-name"))).thenReturn(1);
@@ -112,7 +167,7 @@ class AdminUserServiceTest {
 	void blankPatchPasswordGeneratesOneTimeResetPassword() {
 		AdminUserService service = service();
 		User player = user("player", "ROLE_player");
-		when(userMapper.findByUsername("player")).thenReturn(player);
+		when(userMapper.findByUsernameForUpdate("player")).thenReturn(player);
 		when(userMapper.updateAdminFields(org.mockito.ArgumentMatchers.any(),
 				org.mockito.ArgumentMatchers.eq("player"))).thenReturn(1);
 
@@ -132,7 +187,7 @@ class AdminUserServiceTest {
         Instant now = Instant.parse("2026-07-12T00:00:00Z");
         OjHandleAccount active = new OjHandleAccount("player", Map.of(), true, now, now);
         OjHandleAccount retired = new OjHandleAccount("player", Map.of(), false, now, now);
-        when(userMapper.findByUsername("player")).thenReturn(player);
+        when(userMapper.findByUsernameForUpdate("player")).thenReturn(player);
         when(userMapper.updateAdminFields(player, "player")).thenReturn(1);
         when(handleAccountService.getByUsername("player")).thenReturn(active);
         when(handleAccountService.replaceHandlesAfterPurge("player", Map.of(), false)).thenReturn(retired);
@@ -175,7 +230,7 @@ class AdminUserServiceTest {
                 "CODEFORCES", "tourist", "ATCODER", "old-atcoder"), true, now, now);
         OjHandleAccount replaced = new OjHandleAccount(
                 "player", Map.of("CODEFORCES", "Benq"), true, now, now);
-        when(userMapper.findByUsername("player")).thenReturn(player);
+        when(userMapper.findByUsernameForUpdate("player")).thenReturn(player);
         when(userMapper.updateAdminFields(player, "player")).thenReturn(1);
         when(handleAccountService.getByUsername("player")).thenReturn(existing);
         when(handleAccountService.replaceHandlesAfterPurge(
@@ -196,7 +251,7 @@ class AdminUserServiceTest {
 	void deletionSchedulesAllUnreferencedManagedAssetsForImmediateCleanup() {
 		AdminUserService service = service();
 		User player = user("player", "ROLE_player");
-		when(userMapper.findByUsername("player")).thenReturn(player);
+		when(userMapper.findByUsernameForUpdate("player")).thenReturn(player);
 		when(userMapper.deleteByUsername("player")).thenReturn(1);
 
 		service.delete("player");
@@ -204,8 +259,21 @@ class AdminUserServiceTest {
 		verify(imageAssetService).prepareUserAssetDeletion(1L);
 	}
 
+    @Test
+    void activeCollectionRejectsUpdateAndDeletionBeforeAnyDatabaseAccess() {
+        doThrow(new ConflictException("采集正在运行"))
+                .when(trainingDataMutationGuard).acquireUntilTransactionCompletes();
+
+        assertThrows(ConflictException.class, () -> service().update("player", new AdminUserUpdateRequest(
+                null, null, null, null, null, Map.of(), true)));
+        assertThrows(ConflictException.class, () -> service().delete("player"));
+
+        verifyNoInteractions(userMapper, handleAccountService, purgeService, imageAssetService);
+    }
+
     private AdminUserService service() {
-        return new AdminUserService(userMapper, handleAccountService, purgeService, imageAssetService);
+        return new AdminUserService(userMapper, handleAccountService, purgeService, imageAssetService,
+                trainingDataMutationGuard);
     }
 
     private User user(String username, String role) {

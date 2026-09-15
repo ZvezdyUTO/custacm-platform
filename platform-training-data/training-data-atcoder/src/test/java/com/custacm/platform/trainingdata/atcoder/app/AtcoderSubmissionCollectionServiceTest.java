@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -339,6 +340,18 @@ class AtcoderSubmissionCollectionServiceTest {
             return OjNames.ATCODER.equals(OjNames.normalize(ojName)) && "tourist".equals(handle)
                     ? Optional.of(account)
                     : Optional.empty();
+        }
+
+        @Override
+        public Map<String, String> findUsernamesByHandles(String ojName, List<String> handles) {
+            Map<String, String> usernames = new LinkedHashMap<>();
+            for (OjHandleAccount account : findAll()) {
+                String handle = account.handles().get(OjNames.normalize(ojName));
+                if (handle != null && handles.contains(handle)) {
+                    usernames.put(handle, account.username());
+                }
+            }
+            return usernames;
         }
 
         @Override

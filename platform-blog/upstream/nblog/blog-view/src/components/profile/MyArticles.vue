@@ -402,4 +402,19 @@
 	.competition-binding-list small { font-size: 10px; }
 	.competition-binding-mark { display: grid; grid-row: 1 / span 2; width: 18px; height: 18px; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-size: 11px; font-weight: 800; }
 	.el-pagination { justify-content: center; margin-top: 18px; }
+
+	@media (max-width: 767px) {
+		.article-view-tabs { flex-wrap: wrap; }
+		.article-view-tabs > span { width: 100%; margin: 4px 0 10px; }
+		.article-filters { grid-template-columns: minmax(0, 1fr); }
+		.article-filters input, .article-filters select { width: 100%; min-width: 0; }
+		.article-row { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px; }
+		.article-copy h3 { white-space: normal; overflow-wrap: anywhere; }
+		.article-actions { flex-wrap: wrap; }
+		.article-actions a, .article-actions button { white-space: nowrap; }
+		.article-competition-bindings { grid-column: 1; }
+		.article-competition-bindings > header, .article-competition-bindings > header > div { flex-wrap: wrap; }
+		.competition-binding-list { grid-template-columns: minmax(0, 1fr); }
+		.competition-binding-list > button:nth-child(odd) { border-right: 0; }
+	}
 </style>

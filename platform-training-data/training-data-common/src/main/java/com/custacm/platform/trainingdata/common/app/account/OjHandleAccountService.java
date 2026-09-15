@@ -79,6 +79,31 @@ public class OjHandleAccountService implements TrainingUserDirectory {
                 .orElseThrow(OjHandleAccountService::notFound);
     }
 
+    @Override
+    public Map<String, String> getUsernamesByHandles(String ojName, List<String> handles) {
+        String normalizedOjName = requireOjName(ojName);
+        if (handles == null) {
+            throw invalidRequest("handles must not be null");
+        }
+        List<String> normalizedHandles = handles.stream()
+                .map(handle -> requireText(handle, "handle", OjHandleAccountService::invalidRequest))
+                .distinct()
+                .toList();
+        if (normalizedHandles.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> usernames = repository.findUsernamesByHandles(normalizedOjName, normalizedHandles);
+        Map<String, String> result = new LinkedHashMap<>();
+        for (String handle : handles) {
+            String username = usernames.get(handle.trim());
+            if (username == null) {
+                throw notFound();
+            }
+            result.put(handle, username);
+        }
+        return result;
+    }
+
     public String getHandle(OjHandleAccount account, String ojName) {
         String normalizedOjName = requireOjName(ojName);
         String handle = account.handles().get(normalizedOjName);

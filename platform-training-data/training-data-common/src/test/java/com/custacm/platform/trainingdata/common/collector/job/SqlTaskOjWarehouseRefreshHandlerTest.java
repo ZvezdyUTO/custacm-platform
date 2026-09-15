@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -49,6 +50,14 @@ class SqlTaskOjWarehouseRefreshHandlerTest {
         assertThatThrownBy(() -> handler.refresh(" "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("batchId must not be blank");
+    }
+
+    @Test
+    void mapsPendingRecoveryAndKeepsNoBatchWhenNoRecoveryIsNeeded() {
+        when(refreshService.refreshPending()).thenReturn(Optional.of(sqlResult(SqlTaskRunStatus.SUCCESS)), Optional.empty());
+
+        assertThat(handler.refreshPending().status()).isEqualTo(OjSubmissionCollectionJobRefreshStatus.SUCCESS);
+        assertThat(handler.refreshPending().status()).isEqualTo(OjSubmissionCollectionJobRefreshStatus.NO_BATCH);
     }
 
     private SqlTaskExecutionResult sqlResult(SqlTaskRunStatus status) {

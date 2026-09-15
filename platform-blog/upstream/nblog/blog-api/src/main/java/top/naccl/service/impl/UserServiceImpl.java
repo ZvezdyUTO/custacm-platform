@@ -11,6 +11,7 @@ import top.naccl.exception.NotFoundException;
 import top.naccl.mapper.UserMapper;
 import top.naccl.service.UserService;
 import top.naccl.util.HashUtils;
+import top.naccl.util.PasswordPolicy;
 
 /**
  * @Description: 用户业务层接口实现类
@@ -53,6 +54,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
 	@Override
 	public boolean changePassword(String username, String oldPassword, String newPassword) {
+		PasswordPolicy.validateNewPassword(newPassword);
 		User user = findUserByUsername(username);
 		if (!HashUtils.matchBC(oldPassword, user.getPassword())) {
 			throw new BadCredentialsException("旧密码错误");

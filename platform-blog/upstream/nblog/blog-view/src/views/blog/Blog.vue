@@ -17,7 +17,8 @@
 				<time class="article-date" :datetime="blog.createTime">{{ $filters.dateFormat(blog.createTime, 'YYYY年M月D日') }}</time>
 			</header>
 			<figure v-if="blog.firstPicture" class="article-cover article-reading-width" :class="{'has-summary': blog.description}">
-				<img :src="blog.firstPicture" :alt="`${blog.title} 首图`" decoding="async">
+				<img v-if="hasCover(blog.firstPicture)" :src="blog.firstPicture" :alt="`${blog.title} 首图`" decoding="async" @error="coverFailed">
+				<div v-else class="cover-unavailable-copy"><AppIcon name="image" :size="32"/><span>首图暂不可用</span></div>
 			</figure>
 			<p v-if="blog.description" class="article-summary article-copy-width" :class="{'without-cover': !blog.firstPicture}">
 				{{ blog.description }}
@@ -81,9 +82,12 @@
 	import ManagedImageViewer from '@/components/article/ManagedImageViewer.vue'
 	import {originalUrlForManagedThumbnail} from '@/util/articleImages'
 	import {sanitizeHtml} from '@/util/sanitizeHtml'
+	import {coverImageState} from '@/util/coverImageState'
+	import {taxonomyStyle} from '@/util/taxonomyColor'
 
 	export default {
 		name: "Blog",
+		mixins: [coverImageState],
 		components: {CommentList, ManagedImageViewer},
 		emits: ['article-author-change'],
 			data() {
@@ -132,7 +136,7 @@
 			},
 		methods: {
 			sanitizeHtml,
-				taxonomyStyle(color) { return {backgroundColor: color || '#8B1E3F', color: '#fff'} },
+			taxonomyStyle,
 			openManagedImage(event) {
 				if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return
 				const image = event.target instanceof HTMLImageElement ? event.target : null
@@ -291,14 +295,14 @@
 	.taxonomy-chip {
 		border: 1px solid transparent !important;
 		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
-		color: #fff !important;
+		color: var(--taxonomy-text-color, #fff) !important;
 		transition: filter 140ms ease, box-shadow 140ms ease;
 	}
 
 	.taxonomy-chip:hover,
 	.taxonomy-chip:focus-visible {
 		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28);
-		color: #fff !important;
+		color: var(--taxonomy-text-color, #fff) !important;
 		filter: brightness(1.08) saturate(1.06);
 		outline: none;
 	}

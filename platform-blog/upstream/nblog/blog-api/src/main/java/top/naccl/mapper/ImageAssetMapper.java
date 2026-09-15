@@ -66,6 +66,14 @@ public interface ImageAssetMapper {
 	List<ImageAsset> findByBlogId(Long blogId);
 
 	@Select("""
+			select ia.*, bir.blog_id, bir.role as reference_role
+			from image_asset ia join blog_image_reference bir on bir.image_asset_id=ia.id
+			where bir.blog_id=#{blogId}
+			for update
+			""")
+	List<ImageAsset> findByBlogIdForUpdate(Long blogId);
+
+	@Select("""
 			<script>
 			select ia.*, bir.blog_id, bir.role as reference_role
 			from image_asset ia join blog_image_reference bir on bir.image_asset_id=ia.id
@@ -101,12 +109,32 @@ public interface ImageAssetMapper {
 	@Update("update image_asset set status=#{status}, update_time=now() where id=#{id}")
 	int updateStatus(@Param("id") Long id, @Param("status") String status);
 
+	@Update("""
+			update image_asset set status='ACTIVE', update_time=now()
+			where id=#{id} and status in ('TEMP', 'ACTIVE')
+			""")
+	int activateIfBindable(Long id);
+
+	@Update("""
+			update image_asset set status='DELETING', update_time=now()
+			where id=#{id} and status in ('TEMP', 'DELETING')
+			and not exists (select 1 from blog_image_reference where image_asset_id=#{id})
+			""")
+	int markUnboundDeleting(Long id);
+
+	@Update("""
+			update image_asset set status='DELETING', update_time=now()
+			where id=#{id} and (status='DELETING' or (status='TEMP' and create_time < #{cutoff}))
+			and not exists (select 1 from blog_image_reference where image_asset_id=#{id})
+			""")
+	int markCleanupCandidateDeleting(@Param("id") Long id, @Param("cutoff") Date cutoff);
+
 	@Delete("delete from image_asset where id=#{id}")
 	int deleteById(Long id);
 
 	@Select("""
 			select * from image_asset
-			where status='DELETING' or (status='TEMP' and create_time &lt; #{cutoff})
+			where status='DELETING' or (status='TEMP' and create_time < #{cutoff})
 			order by id
 			""")
 	List<ImageAsset> findCleanupCandidates(Date cutoff);

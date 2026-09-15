@@ -245,6 +245,42 @@ class OjSubmissionCollectionJobServiceTest {
     }
 
     @Test
+    void retriesPendingWarehouseWorkWhenANewManualJobCollectsNoRows() {
+        List<String> recoveredOjs = new ArrayList<>();
+        OjWarehouseRefreshHandler handler = new OjWarehouseRefreshHandler() {
+            @Override
+            public String ojName() {
+                return "CODEFORCES";
+            }
+
+            @Override
+            public OjSubmissionCollectionJobRefreshResult refresh(String batchId) {
+                throw new AssertionError("there is no new batch");
+            }
+
+            @Override
+            public OjSubmissionCollectionJobRefreshResult refreshPending() {
+                recoveredOjs.add(ojName());
+                return new OjSubmissionCollectionJobRefreshResult(OjSubmissionCollectionJobRefreshStatus.SUCCESS, "SUCCESS");
+            }
+        };
+        OjSubmissionCollectionJobService service = service(
+                (ojName, username, lookback) -> collectionResult("tourist", null, 0),
+                new OjWarehouseRefreshDispatcher(List.of(handler)),
+                Runnable::run
+        );
+
+        OjSubmissionCollectionJobSnapshot snapshot = service.startBatchCollection(
+                List.of("230511213黄炳睿"), Duration.ofHours(24), true);
+
+        assertThat(recoveredOjs).containsExactly("CODEFORCES");
+        assertThat(snapshot.status()).isEqualTo(OjSubmissionCollectionJobStatus.SUCCESS);
+        assertThat(snapshot.refreshedCount()).isEqualTo(1);
+        assertThat(snapshot.items()).singleElement().extracting(OjSubmissionCollectionJobItem::refreshStatus)
+                .isEqualTo(OjSubmissionCollectionJobRefreshStatus.SUCCESS);
+    }
+
+    @Test
     void reportsPartialSuccessWhenCollectionSucceedsButRefreshFails() {
         OjSubmissionCollectionJobService service = service(
                 (ojName, username, lookback) -> collectionResult("tourist", "batch-1", 10),

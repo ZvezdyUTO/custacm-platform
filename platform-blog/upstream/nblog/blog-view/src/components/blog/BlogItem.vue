@@ -1,6 +1,6 @@
 <template>
 	<div class="blog-item-collection" :class="{'is-grid': layout === 'grid'}">
-		<article class="content-panel m-padded-tb-large m-margin-bottom-big m-box blog-list-card" v-for="item in blogList" :key="item.id" :style="cardStyle(item)">
+		<article class="content-panel m-padded-tb-large m-margin-bottom-big m-box blog-list-card" v-for="item in blogList" :key="item.id" :style="cardStyle(item)" :class="{'without-cover': !item.firstPicture}">
 			<a v-if="layout === 'grid'" class="list-card-hit-area" :href="`/blog/${item.id}`" :aria-label="`阅读文章：${item.title}`" @click.prevent="toBlog(item)"></a>
 			<div class="featured-corner-mark" v-if="item.top" aria-label="置顶文章">
 				<AppIcon name="arrow-up-circle" />
@@ -16,9 +16,6 @@
 								<AppIcon name="folder" /><span class="m-text-500">{{ item.category.name }}</span>
 							</router-link>
 							<div class="typo line-numbers match-braces rainbow-braces list-card-description" v-lazy-container="{selector: 'img'}" v-viewer v-html="sanitizeHtml(item.description)"></div>
-							<div v-if="layout !== 'grid'" class="list-card-action">
-								<a href="javascript:;" @click.prevent="toBlog(item)" class="read-more-button">阅读全文</a>
-							</div>
 						</div>
 						<aside class="list-card-aside" aria-label="文章作者与首图">
 							<div class="list-author-card">
@@ -39,18 +36,19 @@
 										<span><AppIcon name="file" />{{ item.words }} 字</span>
 									</span>
 								</div>
+								<div v-if="layout !== 'grid'" class="list-card-action">
+									<a :href="`/blog/${item.id}`" :aria-label="`阅读全文：${item.title}`" @click.prevent="toBlog(item)" class="read-more-button">阅读全文</a>
+								</div>
 							</div>
-							<figure v-if="item.firstPicture" class="list-card-cover">
-								<img :src="item.firstPicture" :alt="`${item.title} 首图`" loading="lazy" decoding="async">
+							<figure v-if="hasCover(item.firstPicture)" class="list-card-cover">
+								<img :src="item.firstPicture" :alt="`${item.title} 首图`" loading="lazy" decoding="async" @error="coverFailed">
 							</figure>
-							<figure v-else-if="layout === 'grid'" class="list-card-cover list-card-cover-empty" :aria-label="`${item.title} 暂无首图`">
-								<div><AppIcon name="file" :size="28" /><span>暂无首图</span></div>
+							<figure v-else-if="layout === 'grid' || item.firstPicture" class="list-card-cover list-card-cover-empty" :aria-label="`${item.title} ${item.firstPicture ? '首图暂不可用' : '暂无首图'}`">
+								<div><AppIcon name="file" :size="28" /><span>{{ item.firstPicture ? '首图暂不可用' : '暂无首图' }}</span></div>
 							</figure>
 						</aside>
 					</div>
-					<template v-if="layout !== 'grid'">
-						<!--横线-->
-						<div class="section-divider m-margin-lr-no"></div>
+					<template v-if="layout !== 'grid' && item.tags.length">
 						<!--标签-->
 						<div class="row m-padded-tb-no list-card-tags">
 							<div class="column m-padding-left-no">
@@ -66,6 +64,8 @@
 
 <script>
 	import {sanitizeHtml} from '@/util/sanitizeHtml'
+	import {coverImageState} from '@/util/coverImageState'
+	import {taxonomyStyle} from '@/util/taxonomyColor'
 
 	export function countVisibleTags(widths, availableWidth, ellipsisWidth, gap) {
 		const totalWidth = widths.reduce((total, width) => total + width, 0) + Math.max(0, widths.length - 1) * gap
@@ -85,6 +85,7 @@
 
 	export default {
 		name: "BlogItem",
+		mixins: [coverImageState],
 		props: {
 			blogList: {
 				type: Array,
@@ -127,7 +128,7 @@
 					if (this.tagResizeObserver) this.tagResizeObserver.observe(row)
 				})
 			},
-			taxonomyStyle(color) { return {backgroundColor: color || '#8B1E3F', color: '#fff'} },
+			taxonomyStyle,
 			cardStyle(item) { return {'--category-color': item.category?.color || '#17324d'} },
 			useDefaultAvatar(event) {
 				if (!event.target.src.endsWith('/img/default-avatar.jpg')) event.target.src = '/img/default-avatar.jpg'
@@ -400,7 +401,10 @@
 	.list-card-description {
 		min-width: 0;
 		padding: 0.25rem 0 0.75rem !important;
+		text-align: left;
 	}
+
+	.list-card-description :deep(p) { text-align: left; }
 
 	.list-card-cover {
 		box-sizing: border-box;
@@ -456,7 +460,7 @@
 		border-radius: 0;
 	}
 
-	.blog-item-collection.is-grid .list-card-cover-empty {
+	.list-card-cover-empty {
 		display: grid;
 		place-items: center;
 		background:
@@ -465,7 +469,7 @@
 		color: var(--color-text-faint, #7a7a80);
 	}
 
-	.blog-item-collection.is-grid .list-card-cover-empty > div {
+	.list-card-cover-empty > div {
 		display: inline-flex;
 		align-items: center;
 		flex-direction: column;

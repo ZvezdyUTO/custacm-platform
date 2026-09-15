@@ -23,7 +23,17 @@ public class SqlTaskOjWarehouseRefreshHandler implements OjWarehouseRefreshHandl
 
     @Override
     public OjSubmissionCollectionJobRefreshResult refresh(String batchId) {
-        SqlTaskExecutionResult result = refreshService.refresh(batchId, null);
+        return toRefreshResult(refreshService.refresh(batchId, null));
+    }
+
+    @Override
+    public OjSubmissionCollectionJobRefreshResult refreshPending() {
+        return refreshService.refreshPending()
+                .map(SqlTaskOjWarehouseRefreshHandler::toRefreshResult)
+                .orElseGet(OjSubmissionCollectionJobRefreshResult::noBatch);
+    }
+
+    private static OjSubmissionCollectionJobRefreshResult toRefreshResult(SqlTaskExecutionResult result) {
         return new OjSubmissionCollectionJobRefreshResult(
                 result.status() == SqlTaskRunStatus.SUCCESS
                         ? OjSubmissionCollectionJobRefreshStatus.SUCCESS

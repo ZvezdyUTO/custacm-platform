@@ -88,7 +88,10 @@ public class PlayerBlogService {
 			throw new BadRequestException("文章 id 不能为空");
 		}
 		User user = requireUser(username);
-		top.naccl.entity.Blog stored = requireOwnedBlog(user, blog.getId());
+		top.naccl.entity.Blog stored = blogMapper.getOwnedBlogForUpdate(blog.getId(), user.getId());
+		if (stored == null) {
+			throw new NotFoundException("文章不存在或不属于当前用户");
+		}
 		ImageAssetService.PreparedBlogAssets assets = imageAssetService.prepareBlogAssets(
 				user.getId(), blog.getId(), blog.getFirstPictureAssetId(), blog.getContent());
 		blog.setFirstPicture(assets.coverThumbnailUrl(blog.getFirstPicture()));

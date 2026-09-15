@@ -1,5 +1,5 @@
 <template>
-  <section class="training-query" aria-label="训练数据查询">
+  <section class="training-query" aria-label="训练数据查询" :aria-busy="isRefreshing">
     <component
       :is="mode === 'problem' ? 'form' : 'div'"
       :class="['query-form', {
@@ -122,7 +122,7 @@
     </component>
     <div class="query-meta-row">
       <span class="query-filter-hint"><template v-if="mode === 'problem'">日期的任一边界留空时，不限制对应方向的范围。</template><template v-else><span class="query-auto-refresh-hint" aria-live="polite">{{ isRefreshing ? '正在刷新…' : '筛选后自动刷新' }}</span> · 日期或 Rating 的任一边界留空时，不限制对应方向的范围。</template></span>
-      <span class="query-updated-at">更新于 {{ updatedAt }}</span>
+      <span class="query-updated-at">{{ updatedAt ? `更新于 ${updatedAt}` : '尚未查询' }}</span>
       <button class="query-refresh-button" :disabled="isRefreshing" aria-label="刷新训练数据" type="button" @click="refresh">
         <RefreshCw :class="{ spin: isRefreshing }" :size="14" />
       </button>
@@ -177,11 +177,16 @@
         <article class="training-stat-card"><span>首 AC 人数</span><strong>{{ problemFirstAccepted?.total || 0 }}</strong><small>按筛选条件统计</small></article>
       </div>
       <article class="recent-submission-panel problem-query-panel"><header><div class="activity-switch"><button :class="{ 'is-active': problemTab === 'submissions' }" type="button" @click="problemTab = 'submissions'">提交明细</button><button :class="{ 'is-active': problemTab === 'accepted' }" type="button" @click="problemTab = 'accepted'">首 AC handle</button></div></header>
-        <div class="submission-table-scroll"><table class="submission-table"><thead><tr v-if="problemTab === 'submissions'"><th>队员</th><th>判题</th><th>提交时间</th></tr><tr v-else><th>队员</th><th>handle</th><th>首次通过时间</th></tr></thead><tbody v-if="problemTab === 'submissions'"><tr v-for="item in problemSubmissions?.submissions || []" :key="item.submissionId"><td><strong>{{ item.username }}</strong><small>{{ item.handle }} / {{ item.language }}</small></td><td><span :class="['submission-verdict', { accepted: item.accepted }]">{{ verdict(item) }}</span></td><td>{{ item.submittedAtUtcPlus8 || '-' }}</td></tr></tbody><tbody v-else><tr v-for="item in problemFirstAccepted?.acceptedHandles || []" :key="`${item.username}-${item.handle}`"><td><strong>{{ item.username }}</strong></td><td>{{ item.handle }}</td><td>{{ item.firstAcceptedAtUtcPlus8 }}</td></tr></tbody></table></div>
+        <div class="submission-table-scroll"><table class="submission-table"><thead><tr v-if="problemTab === 'submissions'"><th>队员</th><th>判题</th><th>提交时间</th></tr><tr v-else><th>队员</th><th>handle</th><th>首次通过时间</th></tr></thead><tbody v-if="problemTab === 'submissions'"><tr v-for="item in problemSubmissions?.submissions || []" :key="item.submissionId"><td><strong>{{ item.username }}</strong><small>{{ item.handle }} / {{ item.language }}</small></td><td><span :class="['submission-verdict', { accepted: item.accepted }]">{{ verdict(item) }}</span></td><td>{{ item.submittedAtUtcPlus8 || '-' }}</td></tr><tr v-if="!problemSubmissions?.submissions.length"><td class="submission-empty" colspan="3">当前筛选范围内暂无提交记录，可调整日期范围后重新查询。</td></tr></tbody><tbody v-else><tr v-for="item in problemFirstAccepted?.acceptedHandles || []" :key="`${item.username}-${item.handle}`"><td><strong>{{ item.username }}</strong></td><td>{{ item.handle }}</td><td>{{ item.firstAcceptedAtUtcPlus8 }}</td></tr><tr v-if="!problemFirstAccepted?.acceptedHandles.length"><td class="submission-empty" colspan="3">当前筛选范围内暂无首次通过记录，可调整日期范围后重新查询。</td></tr></tbody></table></div>
         <PaginationBar v-if="problemTab === 'submissions'" :page="problemSubmissionPage" :limit="problemSubmissionLimit" :total-pages="problemSubmissions?.totalPages || 1" :disabled="isRefreshing" @change="dashboard.changeProblemSubmissionPage" />
         <PaginationBar v-else :page="problemFirstAcceptedPage" :limit="problemFirstAcceptedLimit" :total-pages="problemFirstAccepted?.totalPages || 1" :disabled="isRefreshing" @change="dashboard.changeProblemFirstAcceptedPage" />
       </article>
     </template>
+    <section v-else class="query-empty-state" role="status">
+      <Search :size="32" aria-hidden="true" />
+      <h2>{{ emptyState.title }}</h2>
+      <p>{{ emptyState.description }}</p>
+    </section>
   </section>
 </template>
 
@@ -209,7 +214,22 @@ const playerSearchQuery = ref('');
 const playerSearchOpen = ref(false);
 const activePlayerSearchIndex = ref(-1);
 const isRefreshing = computed(() => status.value === 'loading');
-const updatedAt = computed(() => new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'medium', hour12: false }).format(new Date()));
+const updatedAt = computed(() => {
+  const timestamp = dashboard.trainingUpdatedAt.value[props.mode];
+  return timestamp === null ? '' : new Intl.DateTimeFormat('zh-CN', {
+    dateStyle: 'short', timeStyle: 'medium', hour12: false,
+  }).format(timestamp);
+});
+const emptyState = computed(() => {
+  if (isRefreshing.value) return { title: '正在加载训练数据', description: '数据加载完成后会显示在这里，请稍候。' };
+  if (status.value === 'error') return { title: '训练数据暂时无法加载', description: '请检查查询条件，点击上方刷新按钮重试。' };
+  if (props.mode === 'problem') return {
+    title: '查询一道题的训练记录',
+    description: `输入题目编号（例如 ${selectedOjName.value === OJ_NAMES.ATCODER ? 'abc443_c' : '2242:C'}），选择日期范围后点击查询。`,
+  };
+  if (!trainingUsers.value.length) return { title: '暂无可查询的队员', description: '队员绑定 OJ 账号并产生训练数据后，可以在这里查看。' };
+  return { title: '选择队员，查看训练情况', description: '在上方搜索并选择队员，即可查看通过统计、难度分布和最近记录。' };
+});
 const queryError = computed(() => {
   if (draft.acceptedFromDateUtcPlus8 && draft.acceptedToDateUtcPlus8 && draft.acceptedFromDateUtcPlus8 > draft.acceptedToDateUtcPlus8) return '通过起始日期不能晚于结束日期。';
   if (draft.minProblemRating && draft.maxProblemRating && Number(draft.minProblemRating) > Number(draft.maxProblemRating)) return '最低 rating 不能大于最高 rating。';

@@ -63,7 +63,7 @@
           >
             <span class="featured-slot-label">{{ SLOT_LABELS[slotIndex] }}</span>
             <span class="featured-slot-media">
-              <img v-if="article?.firstPicture" :src="article.firstPicture" alt="">
+              <img v-if="article?.firstPicture && !failedCoverUrls.has(article.firstPicture)" :key="article.firstPicture" :src="article.firstPicture" alt="" @error="failedCoverUrls.add(article.firstPicture)">
               <ImageOff v-else :size="28" />
             </span>
             <span v-if="article" class="featured-slot-copy">
@@ -148,7 +148,7 @@
             @click="selectCandidate(candidate)"
           >
             <span class="featured-candidate-cover">
-              <img v-if="candidate.firstPicture" :src="candidate.firstPicture" alt="">
+              <img v-if="candidate.firstPicture && !failedCoverUrls.has(candidate.firstPicture)" :key="candidate.firstPicture" :src="candidate.firstPicture" alt="" @error="failedCoverUrls.add(candidate.firstPicture)">
               <ImageOff v-else :size="20" />
             </span>
             <span class="featured-candidate-copy">
@@ -216,6 +216,7 @@ const loading = ref(true);
 const busy = ref(false);
 const message = ref('');
 const errorMessage = ref('');
+const failedCoverUrls = ref(new Set<string>());
 const picker = ref<{ groupIndex: number; slotIndex: number } | null>(null);
 const candidateQuery = ref('');
 const candidateBusy = ref(false);

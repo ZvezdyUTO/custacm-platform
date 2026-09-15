@@ -135,11 +135,10 @@ public class OjCollectorSchedulingConfig implements SchedulingConfigurer {
     }
 
     private OjSubmissionCollectionJobRefreshResult refreshWarehouse(OjSubmissionCollectionResult result) {
-        if (result.batchId() == null || result.batchId().isBlank()) {
-            return OjSubmissionCollectionJobRefreshResult.noBatch();
-        }
         try {
-            OjSubmissionCollectionJobRefreshResult refreshResult = warehouseRefreshDispatcher.refresh(result);
+            OjSubmissionCollectionJobRefreshResult refreshResult = result.batchId() == null || result.batchId().isBlank()
+                    ? warehouseRefreshDispatcher.refreshPending(result.ojName())
+                    : warehouseRefreshDispatcher.refresh(result);
             if (refreshResult.status() == OjSubmissionCollectionJobRefreshStatus.FAILED) {
                 log.error(
                         "Scheduled OJ warehouse refresh failed, errorCode={}, ojName={}, batchId={}, message={}",

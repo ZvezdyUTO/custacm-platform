@@ -6,6 +6,27 @@ import ArticleAdminPanel from '../components/ArticleAdminPanel.vue';
 import type { usePlatformDashboard } from '../composables/usePlatformDashboard';
 
 describe('article admin panel', () => {
+  it('replaces a failed cover and retries a newly assigned image URL', async () => {
+    const article = { id: 7, title: '题解', firstPicture: '/api/image/broken.png', published: true };
+    const adminArticles = ref({ categories: [], blogs: { pageNum: 1, pages: 1, total: 1, list: [article] } });
+    const dashboard = {
+      adminArticles, loadAdminArticles: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ReturnType<typeof usePlatformDashboard>;
+    const wrapper = mount(ArticleAdminPanel, {
+      props: { dashboard }, global: { stubs: { HomepageFeaturedGroupsPanel: true } },
+    });
+    await wrapper.findAll('.article-admin-tabs button')[1]!.trigger('click');
+    await flushPromises();
+    await wrapper.get('.article-admin-cover img').trigger('error');
+    expect(wrapper.find('.article-admin-cover img').exists()).toBe(false);
+    expect(wrapper.get('.article-admin-cover [role="img"]').attributes('aria-label')).toBe('封面暂不可用');
+
+    adminArticles.value.blogs.list[0]!.firstPicture = '/api/image/replacement.png';
+    await flushPromises();
+    expect(wrapper.get('.article-admin-cover img').attributes('src')).toBe('/api/image/replacement.png');
+    expect(wrapper.find('.article-admin-cover [role="img"]').exists()).toBe(false);
+  });
+
   it('opens homepage composition first and keeps article backup and recycle-bin operations', async () => {
     const loadAdminArticles = vi.fn().mockResolvedValue(undefined);
 	const deleteArticle = vi.fn().mockResolvedValue(undefined);

@@ -150,6 +150,7 @@ export function usePlatformDashboard(options: {
 }) {
   const status = ref<DashboardStatus>(options.token.value ? 'loading' : 'signed-out');
   const errorMessage = ref<string | null>(null);
+  const trainingUpdatedAt = ref<Record<TrainingQueryMode, number | null>>({ multiple: null, single: null, problem: null });
   const adminUsers = ref<AdminUserMutationResponse[]>([]);
   const trainingUsers = ref<TrainingUser[]>([]);
   const includeRetiredUsers = ref(false);
@@ -216,6 +217,7 @@ export function usePlatformDashboard(options: {
     multiUserRows.value = [];
     if (users.length === 0) {
       multiUserProgress.value = { completed: 0, total: 0, active: false, failed: 0 };
+      trainingUpdatedAt.value.multiple = Date.now();
       return;
     }
     try {
@@ -235,6 +237,7 @@ export function usePlatformDashboard(options: {
       });
       const failed = rows.filter((row) => row.status === 'error').length;
       multiUserRows.value = rows.sort(compareMultiUserSummaryRows);
+      trainingUpdatedAt.value.multiple = Date.now();
       multiUserProgress.value = { completed: rows.length, total: users.length, active: false, failed };
       if (failed > 0) errorMessage.value = `${failed} 名队员的汇总结果缺失，请重试。`;
     } catch (error) {
@@ -268,6 +271,7 @@ export function usePlatformDashboard(options: {
     acceptedSummary.value = summary;
     submissions.value = submissionReport;
     firstAccepted.value = acceptedReport;
+    trainingUpdatedAt.value.single = Date.now();
   }
 
   async function loadProblemDetails(sequence = ++requestSequence) {
@@ -285,6 +289,7 @@ export function usePlatformDashboard(options: {
     if (sequence !== requestSequence) return;
     problemSubmissions.value = submissionReport;
     problemFirstAccepted.value = acceptedReport;
+    trainingUpdatedAt.value.problem = Date.now();
   }
 
   async function refreshDashboard(mode = options.mode.value) {
@@ -384,6 +389,7 @@ export function usePlatformDashboard(options: {
         .sort(compareMultiUserSummaryRows);
       const failed = rows.filter((item) => item.status === 'error').length;
       multiUserRows.value = rows;
+      trainingUpdatedAt.value.multiple = Date.now();
       multiUserProgress.value = { completed: rows.length, total: rows.length, active: false, failed };
       if (failed === 0) {
         status.value = 'ready';
@@ -701,13 +707,13 @@ export function usePlatformDashboard(options: {
     return adminCategories.value;
   }
 
-  async function createCategory(name: string, color: string) {
-    await createCategoryApi(activeToken(), name, color);
+  async function createCategory(name: string, color: string, description = '') {
+    await createCategoryApi(activeToken(), name, color, description);
     await loadAdminCategories(1, adminCategories.value?.pageSize || 10);
   }
 
-  async function updateCategory(id: number, name: string, color: string) {
-    await updateCategoryApi(activeToken(), { id, name, color });
+  async function updateCategory(id: number, name: string, color: string, description?: string) {
+    await updateCategoryApi(activeToken(), { id, name, color, description });
     await loadAdminCategories(adminCategories.value?.pageNum || 1, adminCategories.value?.pageSize || 10);
   }
 
@@ -736,6 +742,7 @@ export function usePlatformDashboard(options: {
     if (!token) {
       requestSequence += 1;
       status.value = 'signed-out';
+      trainingUpdatedAt.value = { multiple: null, single: null, problem: null };
       return;
     }
     void refreshDashboard(options.mode.value);
@@ -763,7 +770,7 @@ export function usePlatformDashboard(options: {
   });
 
   return {
-    status, errorMessage, adminUsers, trainingUsers, includeRetiredUsers, selectedTrainingUser,
+    status, errorMessage, trainingUpdatedAt, adminUsers, trainingUsers, includeRetiredUsers, selectedTrainingUser,
     selectedUsername, selectedOjName, trainingQuery, multiUserRows, multiUserProgress,
     acceptedSummary, submissions, firstAccepted, problemKey, problemSubmissions,
     problemFirstAccepted, submissionPage, submissionLimit, firstAcceptedPage,

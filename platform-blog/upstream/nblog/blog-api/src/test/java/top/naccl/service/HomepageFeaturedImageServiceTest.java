@@ -16,6 +16,7 @@ import top.naccl.repository.HomepageFeaturedImageRepository;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,6 +33,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.ArgumentMatchers.endsWith;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
@@ -91,6 +94,52 @@ class HomepageFeaturedImageServiceTest {
                 () -> service.upload(new MockMultipartFile(
                         "file", "featured.jpg", "image/jpeg", jpeg(1200, 799))));
         assertEquals("精选图片必须为 1200×800", dimensionError.getMessage());
+    }
+
+    @Test
+    void rejectsPngDisguisedAsJpegBeforePersistingFiles() throws Exception {
+        ByteArrayOutputStream png = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(1200, 800, BufferedImage.TYPE_INT_RGB), "png", png);
+
+        BadRequestException error = assertThrows(BadRequestException.class,
+                () -> service.upload(new MockMultipartFile(
+                        "file", "featured.jpg", "image/jpeg", png.toByteArray())));
+
+        assertEquals("精选图片必须裁剪并导出为 JPEG", error.getMessage());
+        verify(repository, never()).insert(anyString(), anyString());
+        try (Stream<Path> files = Files.list(uploadDirectory)) {
+            assertEquals(0, files.count());
+        }
+    }
+
+    @Test
+    void rejectsOversizedImageHeaderBeforeDecodingItsPixels() throws Exception {
+        byte[] original = jpeg(1, 1);
+        for (int index = 0; index < original.length - 8; index++) {
+            if ((original[index] & 0xff) == 0xff && (original[index + 1] & 0xff) == 0xc0) {
+                original[index + 5] = 0x40;
+                original[index + 6] = 0;
+                original[index + 7] = 0x40;
+                original[index + 8] = 0;
+                break;
+            }
+        }
+        try (var input = ImageIO.createImageInputStream(new ByteArrayInputStream(original))) {
+            var reader = ImageIO.getImageReaders(input).next();
+            try {
+                reader.setInput(input);
+                assertEquals(16384, reader.getWidth(0));
+                assertEquals(16384, reader.getHeight(0));
+            } finally {
+                reader.dispose();
+            }
+        }
+
+        BadRequestException error = assertThrows(BadRequestException.class,
+                () -> service.upload(new MockMultipartFile("file", "featured.jpg", "image/jpeg", original)));
+
+        assertEquals("精选图片必须为 1200×800", error.getMessage());
+        verify(repository, never()).insert(anyString(), anyString());
     }
 
     @Test

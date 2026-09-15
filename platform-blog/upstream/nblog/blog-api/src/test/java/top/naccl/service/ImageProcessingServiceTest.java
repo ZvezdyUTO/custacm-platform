@@ -39,6 +39,36 @@ class ImageProcessingServiceTest {
 		var result = service.process(file, ImageAsset.Purpose.ARTICLE_CONTENT);
 		assertEquals("png", result.extension());
 		assertEquals("image/png", result.mimeType());
+		assertTrue(ImageIO.read(new ByteArrayInputStream(result.original())).getColorModel().hasAlpha());
+		assertTrue(ImageIO.read(new ByteArrayInputStream(result.thumbnail())).getColorModel().hasAlpha());
+	}
+
+	@Test
+	void preservesExifOrientationInBothVariantsAndReportedDimensions() throws Exception {
+		byte[] jpeg = image("rotated.jpg", "image/jpeg", 1200, 600,
+				BufferedImage.TYPE_INT_RGB, "jpg").getBytes();
+		byte[] exif = {
+				(byte) 0xff, (byte) 0xe1, 0, 34,
+				'E', 'x', 'i', 'f', 0, 0,
+				'I', 'I', 42, 0, 8, 0, 0, 0,
+				1, 0, 0x12, 1, 3, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0
+		};
+		ByteArrayOutputStream source = new ByteArrayOutputStream();
+		source.write(jpeg, 0, 2);
+		source.write(exif);
+		source.write(jpeg, 2, jpeg.length - 2);
+
+		var result = service.process(new MockMultipartFile(
+				"file", "rotated.jpg", "image/jpeg", source.toByteArray()), ImageAsset.Purpose.ARTICLE_CONTENT);
+
+		BufferedImage original = ImageIO.read(new ByteArrayInputStream(result.original()));
+		BufferedImage thumbnail = ImageIO.read(new ByteArrayInputStream(result.thumbnail()));
+		assertEquals(600, original.getWidth());
+		assertEquals(1200, original.getHeight());
+		assertEquals(original.getWidth(), result.width());
+		assertEquals(original.getHeight(), result.height());
+		assertEquals(480, thumbnail.getWidth());
+		assertEquals(960, thumbnail.getHeight());
 	}
 
 	@Test

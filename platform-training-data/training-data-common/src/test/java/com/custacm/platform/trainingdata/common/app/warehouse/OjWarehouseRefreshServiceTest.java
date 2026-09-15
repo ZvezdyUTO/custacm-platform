@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -113,6 +114,87 @@ class OjWarehouseRefreshServiceTest {
 
         verify(intervalRepository).findBatchDateInterval("missing-batch");
         verifyNoInteractions(runner);
+    }
+
+    @Test
+    void retriesFailedBatchWithItsOriginalIntervalAndTheCompleteDag() {
+        when(intervalRepository.findBatchDateInterval("batch-1")).thenReturn(Optional.of(interval("2026-07-01", "2026-07-10")));
+        when(runner.execute(any())).thenReturn(failedResult(), successResult());
+
+        assertThat(service.refresh("batch-1", null).status()).isEqualTo(SqlTaskRunStatus.FAILED);
+        assertThat(service.refresh("batch-1", "example.dws.daily_summary").status()).isEqualTo(SqlTaskRunStatus.SUCCESS);
+
+        ArgumentCaptor<SqlTaskExecutionRequest> requests = ArgumentCaptor.forClass(SqlTaskExecutionRequest.class);
+        verify(runner, times(2)).execute(requests.capture());
+        verify(intervalRepository).findBatchDateInterval("batch-1");
+        assertThat(requests.getAllValues().get(1).parameters()).isEqualTo(requests.getAllValues().getFirst().parameters());
+        assertThat(requests.getAllValues().get(1).startFromTaskId()).isNull();
+        assertThat(service.refreshPending()).isEmpty();
+    }
+
+    @Test
+    void carriesFailedIntervalsIntoTheNextBatchAndClearsThemOnlyAfterSuccess() {
+        when(intervalRepository.findBatchDateInterval("batch-1")).thenReturn(Optional.of(interval("2026-07-01", "2026-07-10")));
+        when(intervalRepository.findBatchDateInterval("batch-2")).thenReturn(Optional.of(interval("2026-08-01", "2026-08-01")));
+        when(intervalRepository.findBatchDateInterval("batch-3")).thenReturn(Optional.of(interval("2026-09-01", "2026-09-01")));
+        when(runner.execute(any())).thenReturn(failedResult(), failedResult(), successResult(), successResult());
+
+        service.refresh("batch-1", null);
+        service.refresh("batch-2", "example.dws.daily_summary");
+        assertThat(service.refreshPending()).get().extracting(SqlTaskExecutionResult::status).isEqualTo(SqlTaskRunStatus.SUCCESS);
+        service.refresh("batch-3", null);
+
+        ArgumentCaptor<SqlTaskExecutionRequest> requests = ArgumentCaptor.forClass(SqlTaskExecutionRequest.class);
+        verify(runner, times(4)).execute(requests.capture());
+        for (SqlTaskExecutionRequest request : requests.getAllValues().subList(1, 3)) {
+            assertThat(request.parameters().get("refreshFromDateUtcPlus8")).isEqualTo(Date.valueOf("2026-07-01"));
+            assertThat(request.parameters().get("refreshToDateUtcPlus8")).isEqualTo(Date.valueOf("2026-08-01"));
+            assertThat(request.startFromTaskId()).isNull();
+        }
+        assertThat(requests.getAllValues().get(3).parameters().get("refreshFromDateUtcPlus8"))
+                .isEqualTo(Date.valueOf("2026-09-01"));
+    }
+
+    @Test
+    void retainsPendingIntervalWhenExecutionThrowsAndRetriesWithoutNewOdsRows() {
+        when(intervalRepository.findBatchDateInterval("batch-1")).thenReturn(Optional.of(interval("2026-07-01", "2026-07-10")));
+        when(runner.execute(any())).thenThrow(new IllegalStateException("connection unavailable")).thenReturn(successResult());
+
+        assertThatThrownBy(() -> service.refresh("batch-1", null)).hasMessage("connection unavailable");
+        assertThat(service.refreshPending()).get().extracting(SqlTaskExecutionResult::status).isEqualTo(SqlTaskRunStatus.SUCCESS);
+        assertThat(service.refreshPending()).isEmpty();
+
+        verify(intervalRepository).findBatchDateInterval("batch-1");
+        verify(runner, times(2)).execute(any());
+    }
+
+    @Test
+    void missingNewBatchDoesNotDiscardEarlierPendingWork() {
+        when(intervalRepository.findBatchDateInterval("batch-1")).thenReturn(Optional.of(interval("2026-07-01", "2026-07-10")));
+        when(intervalRepository.findBatchDateInterval("missing")).thenReturn(Optional.empty());
+        when(runner.execute(any())).thenReturn(failedResult(), successResult());
+        service.refresh("batch-1", null);
+
+        assertThatThrownBy(() -> service.refresh("missing", null)).isInstanceOf(IllegalArgumentException.class);
+        assertThat(service.refreshPending()).isPresent();
+        verify(runner, times(2)).execute(any());
+    }
+
+    @Test
+    void doesNotQueryOrRunSqlWithoutPendingWork() {
+        assertThat(service.refreshPending()).isEmpty();
+        verifyNoInteractions(runner, intervalRepository);
+    }
+
+    private static OjWarehouseRefreshInterval interval(String from, String to) {
+        return new OjWarehouseRefreshInterval(LocalDate.parse(from), LocalDate.parse(to));
+    }
+
+    private SqlTaskExecutionResult failedResult() {
+        Instant now = Instant.parse("2026-07-08T00:00:00Z");
+        return new SqlTaskExecutionResult("failed-run", SqlTaskRunStatus.FAILED,
+                "classpath:sql/tasks/example-warehouse-refresh.yml", null, "example.dws.daily_summary",
+                now, now, 0L, List.of());
     }
 
     private SqlTaskExecutionResult successResult() {

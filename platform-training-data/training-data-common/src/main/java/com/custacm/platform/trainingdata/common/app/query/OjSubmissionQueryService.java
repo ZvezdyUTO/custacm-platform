@@ -12,7 +12,6 @@ import com.custacm.platform.trainingdata.common.domain.oj.repo.OjSubmissionRepos
 import com.custacm.platform.trainingdata.common.domain.oj.value.OjNames;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -160,14 +159,10 @@ public class OjSubmissionQueryService {
     }
 
     private Map<String, String> usernameByHandle(String ojName, List<OjSubmission> rows) {
-        Map<String, String> usernameByHandle = new LinkedHashMap<>();
-        for (OjSubmission row : rows) {
-            usernameByHandle.computeIfAbsent(
-                    row.handle(),
-                    handle -> handleAccountService.getByHandle(ojName, handle).username()
-            );
-        }
-        return usernameByHandle;
+        return handleAccountService.getUsernamesByHandles(
+                ojName,
+                rows.stream().map(OjSubmission::handle).distinct().toList()
+        );
     }
 
     private static OjSubmissionItem toSubmissionItem(OjSubmission row, String username) {

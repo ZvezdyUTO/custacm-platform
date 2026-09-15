@@ -15,6 +15,11 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 class OjHandleAccountServiceTest {
     private static final Instant NOW = Instant.parse("2026-07-05T00:00:00Z");
@@ -123,6 +128,44 @@ class OjHandleAccountServiceTest {
                         ));
     }
 
+    @Test
+    void normalizesAndDeduplicatesHandlesForOneOwnerLookup() {
+        OjHandleAccountRepository repository = mock(OjHandleAccountRepository.class);
+        when(repository.findUsernamesByHandles(OjNames.CODEFORCES, List.of("tourist", "Benq")))
+                .thenReturn(Map.of("tourist", "alice", "Benq", "bob"));
+        OjHandleAccountService service = new OjHandleAccountService(repository, Clock.systemUTC());
+
+        assertThat(service.getUsernamesByHandles(" codeforces ", List.of(" tourist ", "Benq", "tourist")))
+                .containsExactlyInAnyOrderEntriesOf(Map.of(" tourist ", "alice", "Benq", "bob", "tourist", "alice"));
+        verify(repository).findUsernamesByHandles(OjNames.CODEFORCES, List.of("tourist", "Benq"));
+        verifyNoMoreInteractions(repository);
+    }
+
+    @Test
+    void skipsDatabaseForAnEmptyOwnerLookupAndRejectsInvalidHandles() {
+        OjHandleAccountRepository repository = mock(OjHandleAccountRepository.class);
+        OjHandleAccountService service = new OjHandleAccountService(repository, Clock.systemUTC());
+
+        assertThat(service.getUsernamesByHandles(OjNames.CODEFORCES, List.of())).isEmpty();
+        assertThatThrownBy(() -> service.getUsernamesByHandles(OjNames.CODEFORCES, null))
+                .isInstanceOf(OjHandleAccountException.class);
+        assertThatThrownBy(() -> service.getUsernamesByHandles(OjNames.CODEFORCES, List.of(" ")))
+                .isInstanceOf(OjHandleAccountException.class);
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void rejectsAPartiallyUnboundOwnerLookup() {
+        OjHandleAccountRepository repository = mock(OjHandleAccountRepository.class);
+        when(repository.findUsernamesByHandles(OjNames.ATCODER, List.of("tourist", "missing")))
+                .thenReturn(Map.of("tourist", "alice"));
+        OjHandleAccountService service = new OjHandleAccountService(repository, Clock.systemUTC());
+
+        assertThatThrownBy(() -> service.getUsernamesByHandles(OjNames.ATCODER, List.of("tourist", "missing")))
+                .isInstanceOfSatisfying(OjHandleAccountException.class, ex -> assertThat(ex.errorCode())
+                        .isEqualTo(OjHandleAccountException.ErrorCode.OJ_HANDLE_ACCOUNT_NOT_FOUND));
+    }
+
     private static final class InMemoryOjHandleAccountRepository implements OjHandleAccountRepository {
         private final Map<String, OjHandleAccount> accountsByIdentity = new LinkedHashMap<>();
 
@@ -141,6 +184,18 @@ class OjHandleAccountServiceTest {
             return accountsByIdentity.values().stream()
                     .filter(account -> handle.equals(account.handles().get(OjNames.normalize(ojName))))
                     .findFirst();
+        }
+
+        @Override
+        public Map<String, String> findUsernamesByHandles(String ojName, List<String> handles) {
+            Map<String, String> usernames = new LinkedHashMap<>();
+            for (OjHandleAccount account : findAll()) {
+                String handle = account.handles().get(OjNames.normalize(ojName));
+                if (handle != null && handles.contains(handle)) {
+                    usernames.put(handle, account.username());
+                }
+            }
+            return usernames;
         }
 
         @Override

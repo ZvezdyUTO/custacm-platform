@@ -337,6 +337,18 @@ class OjAcceptedSummaryQueryServiceTest {
         }
 
         @Override
+        public Map<String, String> findUsernamesByHandles(String ojName, List<String> handles) {
+            Map<String, String> usernames = new LinkedHashMap<>();
+            for (OjHandleAccount account : findAll()) {
+                String handle = account.handles().get(OjNames.normalize(ojName));
+                if (handle != null && handles.contains(handle)) {
+                    usernames.put(handle, account.username());
+                }
+            }
+            return usernames;
+        }
+
+        @Override
         public OjHandleAccount save(OjHandleAccount account) {
             accountsByIdentity.put(account.username(), account);
             return account;

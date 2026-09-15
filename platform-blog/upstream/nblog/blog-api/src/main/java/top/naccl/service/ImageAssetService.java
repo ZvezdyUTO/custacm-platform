@@ -148,7 +148,7 @@ public class ImageAssetService {
 					ImageAsset.Purpose.ARTICLE_CONTENT);
 			contentAssets.put(validated.getId(), validated);
 		}
-		List<ImageAsset> previous = blogId == null ? List.of() : assetMapper.findByBlogId(blogId);
+		List<ImageAsset> previous = blogId == null ? List.of() : assetMapper.findByBlogIdForUpdate(blogId);
 		return new PreparedBlogAssets(cover, List.copyOf(contentAssets.values()), previous);
 	}
 
@@ -177,7 +177,7 @@ public class ImageAssetService {
 
 	@Transactional
 	public void replaceAvatar(ImageAsset current, ImageAsset replacement) {
-		assetMapper.updateStatus(replacement.getId(), ImageAsset.Status.ACTIVE.name());
+		activate(replacement);
 		if (current != null) {
 			markDeletingAfterCommit(List.of(current));
 		}
@@ -204,7 +204,10 @@ public class ImageAssetService {
 		if (assetMapper.findReferencedBlogId(assetId) != null || ImageAsset.Status.ACTIVE.name().equals(asset.getStatus())) {
 			throw new ImageAssetException(IMAGE_NOT_OWNED, "已绑定图片不能单独删除");
 		}
-		markDeletingAfterCommit(List.of(asset));
+		if (assetMapper.markUnboundDeleting(assetId) != 1) {
+			throw new ImageAssetException(IMAGE_NOT_OWNED, "已绑定图片不能单独删除");
+		}
+		runAfterCommit(() -> deleteFilesAndRecord(asset));
 	}
 
 	public ImageAsset findById(Long id) {
@@ -219,7 +222,9 @@ public class ImageAssetService {
 	public void cleanupStaleAssets() {
 		Date cutoff = Date.from(Instant.now().minus(TEMP_RETENTION));
 		for (ImageAsset asset : assetMapper.findCleanupCandidates(cutoff)) {
-			deleteFilesAndRecord(asset);
+			if (assetMapper.markCleanupCandidateDeleting(asset.getId(), cutoff) == 1) {
+				deleteFilesAndRecord(asset);
+			}
 		}
 		cleanupOrphanDirectories(cutoff.toInstant());
 	}
@@ -239,8 +244,14 @@ public class ImageAssetService {
 	}
 
 	private void bind(Long blogId, ImageAsset asset, String role) {
+		activate(asset);
 		assetMapper.insertReference(blogId, asset.getId(), role);
-		assetMapper.updateStatus(asset.getId(), ImageAsset.Status.ACTIVE.name());
+	}
+
+	private void activate(ImageAsset asset) {
+		if (assetMapper.activateIfBindable(asset.getId()) != 1) {
+			throw new ImageAssetException(IMAGE_NOT_OWNED, "图片已删除或正在清理，请重新上传");
+		}
 	}
 
 	private void markDeletingAfterCommit(List<ImageAsset> assets) {

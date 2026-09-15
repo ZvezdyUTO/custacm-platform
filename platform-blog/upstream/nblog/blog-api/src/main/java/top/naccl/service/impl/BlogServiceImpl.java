@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.naccl.constant.RedisKeyConstants;
 import top.naccl.entity.Blog;
+import top.naccl.exception.BadRequestException;
 import top.naccl.exception.ConflictException;
 import top.naccl.exception.NotFoundException;
 import top.naccl.exception.PersistenceException;
@@ -53,6 +54,7 @@ public class BlogServiceImpl implements BlogService {
 
 	@Override
 	public PageResult<BlogInfo> getBlogInfoListByIsPublished(Integer pageNum, boolean includeInternal) {
+		validatePageNumber(pageNum);
 		if (includeInternal) {
 			PageHelper.startPage(pageNum, PAGE_SIZE, orderBy);
 			return pageResult(blogMapper.getBlogInfoListByIsPublished(true));
@@ -66,14 +68,17 @@ public class BlogServiceImpl implements BlogService {
 		//redis没有缓存，从数据库查询，并添加缓存
 		PageHelper.startPage(pageNum, PAGE_SIZE, orderBy);
 		PageResult<BlogInfo> pageResult = pageResult(blogMapper.getBlogInfoListByIsPublished(false));
-		//添加首页缓存
-		redisService.saveKVToHash(redisKey, pageNum, pageResult);
+		//PageHelper 会把越界页映射到末页，不能按任意请求页码重复缓存该页。
+		if (pageNum <= Math.max(1, pageResult.getTotalPage())) {
+			redisService.saveKVToHash(redisKey, pageNum, pageResult);
+		}
 		return pageResult;
 	}
 
 	@Override
 	public PageResult<BlogInfo> getBlogInfoListByCategoryNameAndIsPublished(String categoryName, Integer pageNum,
 			boolean includeInternal) {
+		validatePageNumber(pageNum);
 		PageHelper.startPage(pageNum, PAGE_SIZE, orderBy);
 		return pageResult(blogMapper.getBlogInfoListByCategoryNameAndIsPublished(categoryName, includeInternal));
 	}
@@ -81,8 +86,15 @@ public class BlogServiceImpl implements BlogService {
 	@Override
 	public PageResult<BlogInfo> getBlogInfoListByTagNameAndIsPublished(String tagName, Integer pageNum,
 			boolean includeInternal) {
+		validatePageNumber(pageNum);
 		PageHelper.startPage(pageNum, PAGE_SIZE, orderBy);
 		return pageResult(blogMapper.getBlogInfoListByTagNameAndIsPublished(tagName, includeInternal));
+	}
+
+	private static void validatePageNumber(Integer pageNum) {
+		if (pageNum == null || pageNum < 1) {
+			throw new BadRequestException("页码必须大于等于 1");
+		}
 	}
 
 	private PageResult<BlogInfo> pageResult(List<BlogInfo> blogInfos) {

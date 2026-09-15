@@ -306,7 +306,7 @@
 		gap: 48px;
 		border-top: 4px solid var(--archive-action);
 		border-bottom: 1px solid var(--archive-line);
-		background: linear-gradient(105deg, var(--archive-paper), rgba(247, 244, 238, .3));
+		background: linear-gradient(105deg, var(--archive-paper), var(--archive-paper-deep));
 		padding: 42px 48px 38px;
 	}
 
@@ -412,7 +412,7 @@
 	}
 
 	.detail-overview div {
-		background: rgba(255, 255, 255, .66);
+		background: var(--archive-paper-deep);
 		padding: 18px 26px;
 	}
 
@@ -435,7 +435,7 @@
 		grid-template-columns: minmax(310px, .8fr) minmax(0, 1.35fr);
 		gap: 0;
 		border-bottom: 1px solid var(--archive-line);
-		background: rgba(255, 255, 255, .38);
+		background: var(--archive-paper);
 	}
 
 	.ledger-section {
@@ -664,7 +664,7 @@
 		gap: 14px;
 		border-top: 4px solid var(--archive-action);
 		border-bottom: 1px solid var(--archive-line);
-		background: rgba(255, 255, 255, .52);
+		background: var(--archive-paper);
 		padding: 52px;
 		text-align: center;
 	}

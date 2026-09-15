@@ -267,6 +267,14 @@
 		where b.id=#{id} and b.user_id=#{userId} and b.deleted_at is null
     </select>
 
+    <!--先锁定文章根，再计算图片与标签差量；编辑只需要这些服务端保留字段。-->
+    <select id="getOwnedBlogForUpdate" resultMap="blog">
+        select id, create_time, is_top, is_recommend, is_appreciation
+        from blog
+        where id=#{id} and user_id=#{userId} and deleted_at is null
+        for update
+    </select>
+
     <resultMap id="blogDetail" type="top.naccl.model.vo.BlogDetail">
         <id property="id" column="id"/>
         <result property="authorUsername" column="author_username"/>

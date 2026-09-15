@@ -61,6 +61,7 @@
 
 <script>
 	import {getSite} from '@/api/index'
+	import {getCategories} from '@/api/category'
 	import {downloadBlog} from '@/api/blog'
 	import Nav from "@/components/index/Nav";
 	import Header from "@/components/index/Header";
@@ -130,6 +131,7 @@
 					this.scrollToTop()
 				}
 				if (this.$route.name !== 'blog') this.articleAuthor = null
+				if (this.catalogRoute) this.refreshCategories()
 			}
 		},
 		created() {
@@ -149,6 +151,14 @@
 			window.removeEventListener(SESSION_CHANGE_EVENT, this.refreshVisibleContent)
 		},
 		methods: {
+			async refreshCategories() {
+				try {
+					const res = await getCategories()
+					if (res.code === 200) this.categoryList = res.data
+				} catch {
+					// 暂时无法刷新时保留已展示的分类。
+				}
+			},
 			scrollToComments() {
 				const target = document.getElementById('article-comments')
 				const pane = this.$refs.mainContent
@@ -439,7 +449,8 @@
 	}
 
 	.article-sidebar :deep(.profile-avatar-shell) {
-		width: 100%;
+		width: 112px;
+		max-width: 100%;
 		height: auto;
 		aspect-ratio: 1;
 		border-radius: 20px;
@@ -485,7 +496,7 @@
 
 	.article-author-actions :is(button, a) {
 		display: inline-flex;
-		height: 18px;
+		min-height: 28px;
 		align-items: center;
 		justify-content: flex-start;
 		gap: 4px;
@@ -495,9 +506,9 @@
 		color: var(--anthropic-slate-light) !important;
 		padding: 0 2px;
 		font: inherit;
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 600;
-		line-height: 18px;
+		line-height: 1.4;
 		text-decoration: underline;
 		text-decoration-color: transparent;
 		text-underline-offset: 2px;
@@ -519,8 +530,8 @@
 	}
 
 	.article-author-actions .app-icon {
-		width: 10px;
-		height: 10px;
+		width: 14px;
+		height: 14px;
 	}
 
 	.article-sidebar :deep(.profile-notes) {
@@ -688,7 +699,8 @@
 			padding-inline: 0;
 		}
 
-		.main-grid {
+		.main-grid,
+		.main-grid.has-article-sidebar {
 			grid-template-columns: minmax(0, 1fr);
 			gap: 0;
 		}

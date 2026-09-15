@@ -32,7 +32,7 @@
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: var(--shadow);
 }
 
@@ -78,10 +78,15 @@
   min-height: 31px;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--text);
   padding: 0 8px;
   font-size: 11px;
+}
+
+.homepage-featured-actions button:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-subtle);
 }
 
 .homepage-featured-actions .danger-link {
@@ -99,7 +104,7 @@
   border: 1.5px dashed color-mix(in srgb, var(--navy) 38%, transparent);
   border-radius: var(--radius-panel);
   background: transparent;
-  color: color-mix(in srgb, var(--navy) 62%, transparent);
+  color: var(--color-action);
   cursor: pointer;
   transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
 }

@@ -1,7 +1,7 @@
 // Author: huangbingrui.awa
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h, ref } from 'vue';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { listHomepageFeaturedGroups } from '../api/admin';
 import { ApiError } from '../api/client';
 import { getAcceptedSummaries, listTrainingUsers } from '../api/training';
@@ -45,17 +45,39 @@ function mountDashboard(mode: TrainingQueryMode = 'multiple', onUnauthorized = v
 }
 
 describe('multi-user batch summary state', () => {
+  afterEach(() => vi.restoreAllMocks());
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(listTrainingUsers).mockResolvedValue(users);
   });
 
   it('loads the full user directory for single-user substring search', async () => {
-    const { wrapper } = mountDashboard('single');
+    const { dashboard, wrapper } = mountDashboard('single');
 
     await flushPromises();
 
     expect(listTrainingUsers).toHaveBeenCalledWith('token', true);
+    expect(dashboard.trainingUpdatedAt.value.single).toBeNull();
+    wrapper.unmount();
+  });
+
+  it('records completed requests and keeps the last successful timestamp after a failure', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1000);
+    vi.mocked(getAcceptedSummaries).mockResolvedValue(users.map((user) => ({
+      username: user.username, authorHandle: user.username, totalAcceptedProblemCount: 0, ratingCounts: [],
+    })));
+    const { dashboard, wrapper } = mountDashboard();
+    expect(dashboard.trainingUpdatedAt.value.multiple).toBeNull();
+    await flushPromises();
+    expect(dashboard.trainingUpdatedAt.value.multiple).toBe(1000);
+    vi.mocked(Date.now).mockReturnValue(2000);
+    await dashboard.refreshDashboard();
+    expect(dashboard.trainingUpdatedAt.value.multiple).toBe(2000);
+    vi.mocked(Date.now).mockReturnValue(3000);
+    vi.mocked(getAcceptedSummaries).mockRejectedValue(new Error('加载失败'));
+    await dashboard.refreshDashboard();
+    expect(dashboard.trainingUpdatedAt.value.multiple).toBe(2000);
+    expect(dashboard.trainingUpdatedAt.value.problem).toBeNull();
     wrapper.unmount();
   });
 

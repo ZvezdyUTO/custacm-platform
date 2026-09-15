@@ -139,7 +139,7 @@ class PlayerBlogServiceTest {
 		stored.setTop(true);
 		stored.setRecommend(true);
 		stored.setAppreciation(true);
-		when(blogMapper.getBlogByIdAndUserId(10L, 7L)).thenReturn(stored);
+		when(blogMapper.getOwnedBlogForUpdate(10L, 7L)).thenReturn(stored);
 		top.naccl.model.dto.Blog input = validBlog();
 		input.setId(10L);
 
@@ -149,12 +149,18 @@ class PlayerBlogServiceTest {
 		assertEquals(true, input.getRecommend());
 		assertEquals(true, input.getAppreciation());
 		verify(blogService).updateBlog(input);
+		InOrder writeOrder = inOrder(blogMapper, imageAssetService, blogService);
+		writeOrder.verify(blogMapper).getOwnedBlogForUpdate(10L, 7L);
+		writeOrder.verify(imageAssetService).prepareBlogAssets(7L, 10L, null, "content");
+		writeOrder.verify(blogService).updateBlog(input);
+		writeOrder.verify(imageAssetService).bindBlogAssets(org.mockito.ArgumentMatchers.eq(10L), any());
+		verify(blogMapper, never()).getBlogByIdAndUserId(any(), any());
 	}
 
 	@Test
 	void updateRejectsAnotherUsersBlog() {
 		when(userMapper.findByUsername("player1")).thenReturn(player);
-		when(blogMapper.getBlogByIdAndUserId(10L, 7L)).thenReturn(null);
+		when(blogMapper.getOwnedBlogForUpdate(10L, 7L)).thenReturn(null);
 		top.naccl.model.dto.Blog input = validBlog();
 		input.setId(10L);
 

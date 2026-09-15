@@ -528,6 +528,7 @@
 	.profile-heading, .editor-heading, .links-heading, .editor-actions { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 	.profile-heading { align-items: center; margin-bottom: 30px; }
 	.profile-heading-identity { display: flex; min-width: 0; align-items: center; gap: 18px; }
+	.profile-heading-identity > div:last-child { min-width: 0; overflow-wrap: anywhere; }
 	.profile-eyebrow { margin: 0 0 8px; color: #596671; font-size: 11px; font-weight: 700; letter-spacing: .16em; }
 	.profile-page h1 { margin: 0; color: #20252b; font-size: 34px; font-weight: 700; }
 	.profile-handle { margin: 7px 0 0; color: #65727d; font-size: 14px; letter-spacing: .06em; }
@@ -584,5 +585,20 @@
 		.link-row { grid-template-columns: 28px minmax(100px, .6fr) minmax(180px, 1.4fr); }
 		.link-actions { grid-column: 2 / -1; justify-content: flex-end; }
 		.password-fields { grid-template-columns: 1fr; }
+	}
+
+	@media (max-width: 767px) {
+		.profile-page { padding: 24px 16px !important; }
+		.profile-heading, .editor-heading, .links-heading { flex-wrap: wrap; gap: 16px; }
+		.profile-heading-identity { width: 100%; gap: 12px; }
+		.profile-page h1 { font-size: 28px; }
+		.profile-avatar-shell { width: 64px; height: 64px; flex-basis: 64px; }
+		.profile-editor { padding: 16px; }
+		.link-row { grid-template-columns: 24px minmax(0, 1fr); gap: 8px; }
+		.link-row > input { min-width: 0; grid-column: 2; }
+		.link-index { grid-column: 1; grid-row: 1; }
+		.link-actions { grid-column: 2; }
+		.editor-actions button, .links-heading button { white-space: nowrap; }
+		.editor-fields input, .editor-fields textarea { padding-right: 52px; }
 	}
 </style>
