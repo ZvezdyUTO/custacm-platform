@@ -93,6 +93,8 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml config
 
 源码更新必须由操作者在运行脚本前显式完成。仓库不提供模块级更新、自动拉取或第三种启动入口。
 
+生产 Nginx 对 HTML 入口返回 `Cache-Control: no-store`，避免浏览器在更新后继续引用旧脚本；带文件哈希的静态资源保留正常缓存，缺失的构建资源返回 404。Blog 每次正式构建都会更新 Training 内嵌入口的版本参数，使已缓存旧入口的浏览器也能加载新版；该参数不显示在外层页面地址中。本地热更新不使用此版本参数。
+
 ## 默认地址
 
 使用 `.env.example` 默认端口时：

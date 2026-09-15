@@ -14,13 +14,21 @@ const allowedPages = new Set([
 	'admin/appearance',
 ])
 
-export function buildTrainingFrameSource(rawPath, routeQuery = {}) {
+export function buildTrainingFrameSource(rawPath, routeQuery = {}, buildVersion = '') {
 	const page = allowedPages.has(rawPath) ? rawPath : 'multiple'
 	const query = new URLSearchParams()
 	for (const [key, value] of Object.entries(routeQuery)) {
-		if (typeof value === 'string') query.set(key, value)
+		if (key !== '_build' && typeof value === 'string') query.set(key, value)
 	}
+	if (buildVersion) query.set('_build', buildVersion)
 	return `/training-app/${page}${query.size ? `?${query.toString()}` : ''}`
+}
+
+export function buildTrainingHostPath(path) {
+	if (!isAllowedTrainingRoutePath(path)) return null
+	const url = new URL(path, 'https://custacm.invalid')
+	url.searchParams.delete('_build')
+	return `/training${url.pathname}${url.search}${url.hash}`
 }
 
 export function isAllowedTrainingRoutePath(path) {

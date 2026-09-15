@@ -14,21 +14,22 @@
 import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
 import {useRoute} from 'vue-router'
 import {getCurrentTheme, THEME_CHANGE_EVENT} from '../../theme'
-import {buildTrainingFrameSource, isAllowedTrainingRoutePath} from '../../utils/trainingRoute'
+import {buildTrainingFrameSource, buildTrainingHostPath} from '../../utils/trainingRoute'
 
 // Author: huangbingrui.awa
 const route = useRoute()
 const frame = ref(null)
 const frameSource = computed(() => {
 	const rawPath = Array.isArray(route.params.trainingPath) ? route.params.trainingPath.join('/') : route.params.trainingPath
-	return buildTrainingFrameSource(rawPath, route.query)
+	return buildTrainingFrameSource(rawPath, route.query, __TRAINING_ENTRY_VERSION__)
 })
 
 function syncTrainingUrl(event) {
 	if (event.origin !== window.location.origin || event.source !== frame.value?.contentWindow || event.data?.type !== 'custacm:training-route') return
 	const path = typeof event.data.path === 'string' ? event.data.path : ''
-	if (!isAllowedTrainingRoutePath(path)) return
-	window.history.replaceState(window.history.state, '', `/training${path}`)
+	const hostPath = buildTrainingHostPath(path)
+	if (!hostPath) return
+	window.history.replaceState(window.history.state, '', hostPath)
 }
 
 function syncThemeToFrame(event) {

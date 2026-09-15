@@ -15,8 +15,11 @@ const trainingProxy = {
 }
 
 // Author: huangbingrui.awa
-export default defineConfig({
+export default defineConfig(({command}) => ({
 	plugins: [vue()],
+	define: {
+		__TRAINING_ENTRY_VERSION__: JSON.stringify(command === 'build' ? Date.now().toString(36) : ''),
+	},
 	resolve: {
 		alias: {
 			'@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -60,4 +63,4 @@ export default defineConfig({
 			},
 		},
 	},
-})
+}))
