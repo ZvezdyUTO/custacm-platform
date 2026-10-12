@@ -5,7 +5,7 @@ import Header from '@/components/index/Header.vue'
 describe('homepage banner loading', () => {
 	afterEach(() => vi.restoreAllMocks())
 
-	it('keeps the mosaic on failure and reveals the banner when it loads', async () => {
+	it('keeps the blurred preview on failure and reveals the banner when it loads', async () => {
 		const wrapper = mount(Header)
 		const media = wrapper.get('.home-hero-media')
 		const banner = media.get(':scope > img')

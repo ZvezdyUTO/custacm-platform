@@ -148,7 +148,7 @@
 		aspect-ratio: 16 / 9;
 		/* 32×18, 32-color preview, cropped from the banner with transparency preserved. */
 		background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAASCAMAAAANFixgAAAAWlBMVEVGR0M9NDJROTOfd16tp6CGfJF9cY1dZNpKT8dhW0ZraKF7cZe0rm3v8onR0XSLcHSQa1na2afJyZ/Bvaiooanq5Ni0tdrP0IB6XVhrTTe9uoJQKCR9YWrh5XpSYmdAAAAAHXRSTlMBLrvn1/f197VN5tPp/vn3+ffanvD+8rL+/Gb+7X8GRjwAAAD9SURBVCjPbdDbdoQgDAVQQRETAUFhxFL//zdLuDjtrLJ82+eE4DD8cxgfx3EqR3waZy3RfP50uTCWM9Ad/44GRFyk5Gztvv52UFobJaVcsm92I+8BGjtwnY/LE3Zymx1X7E6JQzunHaLX5Bv10ffLy2a7D+b2XmtVPPf9q91eAjz44Oga8/YW4AcAcBdC1rs74vR6Am46T7NT/zZGlQdUbzvA7naAs7jKASHEPHvy2J85OX4oc6pbXdYICojiPTAcnrEvAKNijFQXtf8EYIv0L0xMKX1nxtLfngCkyzIGp6o+CxpQvC3Jk70Y45etXhasHlrAXomnVPv5k4+HH7neFQgfoMm0AAAAAElFTkSuQmCC') center / cover;
-		image-rendering: pixelated;
+		filter: blur(16px);
 		transition: opacity var(--duration-medium) var(--ease-standard);
 		content: '';
 		pointer-events: none;
