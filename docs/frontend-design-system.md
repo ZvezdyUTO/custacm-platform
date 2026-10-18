@@ -38,6 +38,7 @@ platform-blog/upstream/nblog/blog-view/src/assets/css/tokens.css
 - 玻璃只用于顶栏、下拉和 Modal/Dialog 等悬浮层，且必须有不支持 `backdrop-filter` 时的实色回退。内容卡片、表格、表单和布局侧栏使用实体表面。
 - 动效使用共享 duration/easing token；只做轻量反馈。`prefers-reduced-motion: reduce` 下必须立即降级。
 - 用户定义的分类色、标签色、业务图片和 rating 色不被全局主题覆盖。
+- 首页首图先显示内嵌的低分辨率高斯模糊预览，完整图片加载后淡入；加载失败时保留预览，reduced-motion 下直接切换。
 
 ## 可访问性
 

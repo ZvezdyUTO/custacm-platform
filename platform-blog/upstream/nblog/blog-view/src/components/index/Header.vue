@@ -17,8 +17,8 @@
 				</span>
 			</h1>
 		</div>
-		<figure class="home-hero-media">
-			<img src="/img/homepage-banner-default.png" alt="CUSTACM 平台首页首图" loading="eager" decoding="async">
+		<figure class="home-hero-media" :class="{'is-loaded': bannerLoaded}">
+			<img ref="banner" src="/img/homepage-banner-default.png" alt="CUSTACM 平台首页首图" loading="eager" decoding="async" @load="bannerLoaded = true">
 			<ul class="home-hero-logos" aria-label="赛事与校队标志">
 				<li>
 					<a href="https://icpc.global/" target="_blank" rel="noopener noreferrer" aria-label="访问 ICPC 官网">
@@ -57,7 +57,11 @@
 					}
 				}
 			}))
-			return {titleLines}
+			return {titleLines, bannerLoaded: false}
+		},
+		mounted() {
+			const banner = this.$refs.banner
+			this.bannerLoaded = banner.complete && banner.naturalWidth > 0
 		}
 	}
 </script>
@@ -128,12 +132,30 @@
 	}
 
 	.home-hero-media > img {
+		position: relative;
 		display: block;
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
 		object-position: center;
+		opacity: 0;
+		transition: opacity var(--duration-medium) var(--ease-standard);
 	}
+
+	.home-hero-media::before {
+		position: absolute;
+		inset: auto 0 0;
+		aspect-ratio: 16 / 9;
+		/* 32×18, 32-color preview, cropped from the banner with transparency preserved. */
+		background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAASCAMAAAANFixgAAAAWlBMVEVGR0M9NDJROTOfd16tp6CGfJF9cY1dZNpKT8dhW0ZraKF7cZe0rm3v8onR0XSLcHSQa1na2afJyZ/Bvaiooanq5Ni0tdrP0IB6XVhrTTe9uoJQKCR9YWrh5XpSYmdAAAAAHXRSTlMBLrvn1/f197VN5tPp/vn3+ffanvD+8rL+/Gb+7X8GRjwAAAD9SURBVCjPbdDbdoQgDAVQQRETAUFhxFL//zdLuDjtrLJ82+eE4DD8cxgfx3EqR3waZy3RfP50uTCWM9Ad/44GRFyk5Gztvv52UFobJaVcsm92I+8BGjtwnY/LE3Zymx1X7E6JQzunHaLX5Bv10ffLy2a7D+b2XmtVPPf9q91eAjz44Oga8/YW4AcAcBdC1rs74vR6Am46T7NT/zZGlQdUbzvA7naAs7jKASHEPHvy2J85OX4oc6pbXdYICojiPTAcnrEvAKNijFQXtf8EYIv0L0xMKX1nxtLfngCkyzIGp6o+CxpQvC3Jk70Y45etXhasHlrAXomnVPv5k4+HH7neFQgfoMm0AAAAAElFTkSuQmCC') center / cover;
+		filter: blur(16px);
+		transition: opacity var(--duration-medium) var(--ease-standard);
+		content: '';
+		pointer-events: none;
+	}
+
+	.home-hero-media.is-loaded > img { opacity: 1; }
+	.home-hero-media.is-loaded::before { opacity: 0; }
 
 	.home-hero-media::after {
 		position: absolute;
@@ -214,6 +236,11 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
+		.home-hero-media > img,
+		.home-hero-media::before {
+			transition: none;
+		}
+
 		.home-hero-title-letter,
 		.home-hero-logos li {
 			animation: none;
